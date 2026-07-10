@@ -178,8 +178,6 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — covers Vercel, self-hosted Node
 - Waveform artifact library (motion, electrocautery, disconnects) and audible alarms/beep tones
 - Multi-monitor layouts (anesthesia machine screen, ventilator loops, agent analyzer)
 - Scenario branching graphs with guarded transitions (currently: phases + faculty judgment)
-- Cross-session analytics dashboards per cohort/institution (premium)
-- Scenario marketplace with peer review (premium/hosted)
 
 ## License
 
