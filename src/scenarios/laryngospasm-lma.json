@@ -1,0 +1,347 @@
+{
+  "id": "laryngospasm-lma",
+  "version": "1.0.0",
+  "title": "Laryngospasm After LMA Placement",
+  "summary": "A 24-year-old smoker with a recent upper respiratory infection develops partial and then complete laryngospasm shortly after LMA placement for a knee arthroscopy. Learners must recognize the obstruction, apply CPAP with jaw thrust, deepen the anesthetic, and escalate to succinylcholine and intubation if refractory."
+  ,
+  "tags": {
+    "topics": ["airway", "laryngospasm", "supraglottic airway", "hypoxemia"],
+    "difficulty": "intermediate",
+    "trainingLevels": ["srna", "resident_junior", "resident_senior", "crna"]
+  },
+  "learningObjectives": [
+    "Identify risk factors for laryngospasm (recent URI, smoking, light anesthesia, airway manipulation, secretions).",
+    "Differentiate partial from complete laryngospasm using capnography, auscultation, and chest movement.",
+    "Perform first-line management: 100% oxygen, CPAP, jaw thrust with pressure at Larson's point, and removal of stimulus.",
+    "Escalate appropriately: deepen anesthesia with propofol, then give succinylcholine and secure the airway if the spasm is refractory.",
+    "Anticipate and manage complications of laryngospasm, including hypoxic bradycardia and negative pressure pulmonary edema.",
+    "Demonstrate clear crisis communication and early calls for help during an airway emergency."
+  ],
+  "setup": [
+    "OR set up for a general anesthetic with LMA: size 4 LMA, backup size 3 and 5, functioning laryngoscope and 7.0 ETT immediately available.",
+    "Labeled syringes: propofol (both induction dose and a 'deepening' aliquot), succinylcholine 20 mg/mL, atropine 0.4 mg/mL.",
+    "Suction on and within reach under the pillow; manikin configured to allow jaw thrust and CPAP.",
+    "Program or simulate stridor audio for the partial laryngospasm phase and silent chest for the complete phase.",
+    "Chart documents a URI 2 weeks ago (resolved cough) and a half-pack-per-day smoking history.",
+    "Confederate circulating nurse available to fetch drugs and call for help when asked."
+  ],
+  "patient": {
+    "name": "Tyler Nguyen",
+    "age": 24,
+    "sex": "male",
+    "weightKg": 76,
+    "heightCm": 180,
+    "asa": 2,
+    "allergies": ["No known drug allergies"],
+    "medications": ["Ibuprofen as needed for knee pain"],
+    "pmh": [
+      "Upper respiratory infection 2 weeks ago, now resolved except occasional dry cough",
+      "Smoker, half pack per day for 6 years",
+      "Right ACL tear (sports injury), otherwise healthy",
+      "No prior anesthetics; no family anesthetic problems"
+    ],
+    "airway": {
+      "mallampati": 1,
+      "mouthOpeningCm": 5,
+      "thyromentalCm": 8,
+      "neckMobility": "normal",
+      "dentition": "Full natural dentition, good condition",
+      "notes": "Easy-appearing airway. Recent URI and smoking increase airway reactivity risk."
+    },
+    "plan": "Right knee arthroscopy under general anesthesia with a size 4 LMA, spontaneous ventilation, sevoflurane maintenance."
+  },
+  "baselineVitals": {
+    "hr": 78,
+    "sbp": 126,
+    "dbp": 72,
+    "spo2": 99,
+    "etco2": 37,
+    "rr": 14,
+    "temp": 36.7,
+    "depth": 95,
+    "agentEt": 0,
+    "agentFi": 0,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "induction", "label": "Induction", "description": "IV induction with propofol; preparing for LMA insertion." },
+    { "id": "lma_placement", "label": "LMA Placement", "description": "LMA inserted and ventilation confirmed; volatile started." },
+    { "id": "laryngospasm", "label": "Laryngospasm", "description": "Partial then complete laryngospasm with desaturation." },
+    { "id": "management", "label": "Management", "description": "CPAP, deepening, succinylcholine, and airway rescue." },
+    { "id": "resolution", "label": "Resolution", "description": "Oxygenation restored; monitoring for complications (NPPE)." }
+  ],
+  "events": [
+    {
+      "id": "propofol-induction",
+      "label": "Propofol induction given",
+      "description": "Propofol 2-2.5 mg/kg IV. Depth falls to a surgical level, blood pressure drops modestly, respiratory rate slows.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "depth": 45, "sbp": 106, "dbp": 62, "hr": 74, "rr": 8, "spo2": 99 }, "overSec": 60 }
+      ],
+      "phaseHint": "induction"
+    },
+    {
+      "id": "lma-placed",
+      "label": "LMA placed, ventilation confirmed",
+      "description": "Size 4 LMA seated on first attempt; capnography confirms a good waveform with spontaneous ventilation.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "etco2": 40, "rr": 12, "spo2": 99 }, "overSec": 30 }
+      ],
+      "phaseHint": "lma_placement"
+    },
+    {
+      "id": "start-sevoflurane",
+      "label": "Sevoflurane started at 2%",
+      "description": "Sevoflurane dialed to 2% inspired; end-tidal rises toward 1.8% over several minutes. Depth is still relatively light when the airway is stimulated.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "agentFi": 2.0, "agentEt": 1.8, "depth": 48 }, "overSec": 180 }
+      ],
+      "phaseHint": "lma_placement"
+    },
+    {
+      "id": "partial-laryngospasm",
+      "label": "Partial laryngospasm",
+      "description": "Inspiratory stridor with rocking chest movement. SpO2 drifts down slowly, EtCO2 waveform shrinks, respiratory effort increases. Triggered by light anesthesia and airway irritation.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 92, "etco2": 22, "rr": 22, "hr": 96 }, "overSec": 90 }
+      ],
+      "autoAtSec": 300,
+      "phaseHint": "laryngospasm"
+    },
+    {
+      "id": "complete-laryngospasm",
+      "label": "Complete laryngospasm",
+      "description": "Cords fully adducted: silent chest, no capnograph trace, no air movement despite effort. SpO2 falls rapidly through the 80s into the 70s. Fire if first-line measures are delayed or fail.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "etco2": 0, "rr": 0 }, "overSec": 15 },
+        { "vitals": { "spo2": 76, "hr": 112 }, "overSec": 120 }
+      ],
+      "phaseHint": "laryngospasm"
+    },
+    {
+      "id": "hypoxic-bradycardia",
+      "label": "Bradycardia from hypoxia",
+      "description": "Sustained hypoxia produces sinus bradycardia into the 40s — a pre-arrest sign. Faculty-triggered if hypoxia is prolonged.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "hr": 42, "sbp": 96, "dbp": 54 }, "rhythm": "sinus_brady", "overSec": 60 }
+      ],
+      "phaseHint": "laryngospasm"
+    },
+    {
+      "id": "cpap-jaw-thrust-response",
+      "label": "Response to 100% O2 + CPAP + jaw thrust",
+      "description": "Firm jaw thrust with pressure at Larson's point and sustained CPAP on 100% oxygen partially breaks the spasm: some air movement returns and SpO2 rises modestly.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 88, "etco2": 16, "rr": 6 }, "overSec": 60 }
+      ],
+      "phaseHint": "management"
+    },
+    {
+      "id": "deepen-propofol-response",
+      "label": "Response to deepening with propofol",
+      "description": "Propofol 0.5-1 mg/kg IV deepens the anesthetic and relaxes the cords; ventilation and saturation recover over 1-2 minutes if the spasm was partial or recently complete.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "depth": 35, "spo2": 96, "etco2": 35, "rr": 12, "hr": 84, "sbp": 100, "dbp": 58 }, "overSec": 90 }
+      ],
+      "phaseHint": "management"
+    },
+    {
+      "id": "succinylcholine-reintubation",
+      "label": "Succinylcholine + intubation, full recovery",
+      "description": "Succinylcholine 0.5-1 mg/kg IV (with atropine available) breaks refractory spasm; the trachea is intubated and the patient is ventilated with 100% oxygen. Full recovery of oxygenation and ventilation.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "rr": 12, "etco2": 38 }, "overSec": 60 },
+        { "vitals": { "spo2": 99, "hr": 88, "sbp": 112, "dbp": 66, "depth": 42 }, "rhythm": "sinus", "overSec": 120 }
+      ],
+      "phaseHint": "management"
+    },
+    {
+      "id": "nppe-complication",
+      "label": "Negative pressure pulmonary edema (optional)",
+      "description": "Minutes after resolution, pink frothy secretions appear in the airway with crackles, tachypnea, and desaturation despite a patent airway — negative pressure pulmonary edema from forceful inspiration against closed cords.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "spo2": 90, "rr": 24, "hr": 104, "etco2": 32 }, "overSec": 180 }
+      ],
+      "phaseHint": "resolution"
+    },
+    {
+      "id": "full-recovery",
+      "label": "Full recovery / stabilization",
+      "description": "Oxygenation, ventilation, and hemodynamics return to normal on appropriate support; the team plans disposition and monitoring.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "spo2": 99, "etco2": 37, "rr": 12, "hr": 80, "sbp": 118, "dbp": 68, "temp": 36.7 }, "rhythm": "sinus", "overSec": 180 }
+      ],
+      "phaseHint": "resolution"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "assess-airway-risk",
+      "label": "Identify elevated laryngospasm risk (recent URI, smoker) and verbalize a plan",
+      "phase": "induction",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "adequate-depth-before-lma",
+      "label": "Ensure adequate anesthetic depth before instrumenting the airway",
+      "phase": "induction",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "confirm-lma-ventilation",
+      "label": "Confirm LMA placement with capnography and chest rise",
+      "phase": "lma_placement",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "recognize-laryngospasm",
+      "label": "Recognize laryngospasm (stridor/silent chest, lost capnograph, falling SpO2) and announce it",
+      "phase": "laryngospasm",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help early in the airway emergency",
+      "phase": "laryngospasm",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "cpap-jaw-thrust",
+      "label": "Apply 100% O2 with sustained CPAP and jaw thrust at Larson's point",
+      "description": "FiO2 1.0, tight seal, APL 15-20 cmH2O CPAP, firm bilateral pressure in the laryngospasm notch behind the earlobes.",
+      "phase": "laryngospasm",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "remove-stimulus-deepen",
+      "label": "Remove the stimulus and deepen anesthesia with propofol 0.5-1 mg/kg IV",
+      "phase": "management",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "give-succinylcholine",
+      "label": "Give succinylcholine 0.5-1 mg/kg IV for refractory spasm",
+      "description": "Small-dose IV succinylcholine (or 4 mg/kg IM if no IV) once CPAP and deepening fail; atropine drawn up for bradycardia.",
+      "phase": "management",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "prepare-intubation",
+      "label": "Prepare to intubate (laryngoscope, ETT, suction ready) once paralyzed",
+      "phase": "management",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "avoid-prolonged-hypoxia",
+      "label": "Escalate before profound hypoxia; recognize and treat hypoxic bradycardia",
+      "description": "Does not persist with failing maneuvers while SpO2 falls through the 70s; treats bradycardia by restoring oxygenation, with atropine available.",
+      "phase": "management",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "monitor-nppe",
+      "label": "Monitor for negative pressure pulmonary edema after the event",
+      "description": "Checks for frothy secretions, crackles, and desaturation; plans extended observation and supportive care if present.",
+      "phase": "resolution",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "Routine propofol induction and first-pass LMA placement with confirmed ventilation; sevoflurane started.",
+    "About five minutes in, at a light plane of anesthesia, partial laryngospasm develops: stridor, shrinking capnograph, SpO2 drifting down.",
+    "Learners should announce the diagnosis, switch to 100% O2, apply CPAP with jaw thrust at Larson's point, and stop any stimulation.",
+    "If treatment is delayed or the spasm progresses, faculty fires complete laryngospasm: silent chest, EtCO2 zero, SpO2 falling into the 70s.",
+    "Deepening with propofol 0.5-1 mg/kg resolves most spasms; refractory spasm requires succinylcholine 0.5-1 mg/kg IV and intubation.",
+    "Prolonged hypoxia triggers sinus bradycardia into the 40s, forcing escalation.",
+    "After recovery, faculty may fire NPPE; learners should recognize it and plan monitoring and supportive care."
+  ],
+  "correctManagement": [
+    "Identify the high-risk airway (recent URI, smoker) preoperatively and ensure adequate depth before airway manipulation.",
+    "Diagnose laryngospasm promptly from stridor or silent chest with a lost capnograph trace, and say it out loud to the team.",
+    "Immediately deliver 100% oxygen with a tight seal and sustained CPAP of 15-20 cmH2O.",
+    "Apply firm jaw thrust with bilateral pressure at Larson's point (the laryngospasm notch).",
+    "Remove any stimulus (suction secretions, stop surgical stimulation) and deepen anesthesia with propofol 0.5-1 mg/kg IV.",
+    "If spasm is refractory or desaturation is rapid, give succinylcholine 0.5-1 mg/kg IV (4 mg/kg IM if no IV access) without delay.",
+    "Prepare and perform tracheal intubation once the cords relax; ventilate with 100% oxygen.",
+    "Have atropine ready and treat hypoxic bradycardia primarily by restoring oxygenation.",
+    "Call for help early and assign roles (airway, drugs, timer/recorder).",
+    "Observe for negative pressure pulmonary edema afterward: frothy secretions, crackles, desaturation; treat with oxygen, positive pressure, and extended monitoring."
+  ],
+  "commonErrors": [
+    "Attributing the falling SpO2 to a probe or circuit problem and delaying the diagnosis.",
+    "Applying intermittent bag squeezes instead of sustained CPAP with an effective jaw thrust.",
+    "Trying to force ventilation against closed cords with high pressures, insufflating the stomach.",
+    "Delaying succinylcholine while SpO2 falls through the 70s ('one more try' with CPAP).",
+    "Removing the LMA and instrumenting the airway at a light plane, worsening the spasm.",
+    "Forgetting atropine/failing to anticipate bradycardia in the hypoxic patient.",
+    "Not calling for help until the patient is bradycardic.",
+    "Failing to monitor for NPPE after an episode of forceful inspiration against a closed glottis."
+  ],
+  "debrief": {
+    "points": [
+      "Laryngospasm risk factors: recent URI (airway hyperreactivity persists 2-6 weeks), smoking, light anesthesia, secretions, and airway manipulation — this patient had four of them.",
+      "Partial versus complete spasm: stridor with some CO2 trace versus silent chest with a flat capnograph; the treatment threshold changes accordingly.",
+      "First-line sequence: 100% O2, sustained CPAP 15-20 cmH2O, jaw thrust with Larson's point pressure, remove the stimulus.",
+      "Pharmacologic escalation: propofol 0.5-1 mg/kg deepens and often breaks the spasm; succinylcholine 0.5-1 mg/kg IV is definitive for refractory spasm and should not be delayed once desaturation is significant.",
+      "Hypoxic bradycardia is a pre-arrest rhythm in this setting; the treatment is oxygenation, with atropine as an adjunct.",
+      "Negative pressure pulmonary edema follows forceful inspiration against a closed glottis; onset can be delayed, so extended observation is warranted.",
+      "Crisis resource management: early call for help, closed-loop communication, and explicit role assignment shorten time to definitive treatment."
+    ],
+    "questions": [
+      "What preoperative findings raised this patient's laryngospasm risk, and would they have changed your airway plan?",
+      "How did you distinguish partial from complete laryngospasm at the bedside?",
+      "Walk me through your first-line maneuvers — what does effective CPAP with a Larson's maneuver actually look and feel like?",
+      "What was your trigger point for giving succinylcholine, and in retrospect was it early enough?",
+      "How would your management have differed if there had been no IV in place?",
+      "What did the bradycardia tell you, and how should it be treated in this context?",
+      "What will you watch for over the next few hours after a significant laryngospasm, and why?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Risk Assessment and Recognition",
+      "actionIds": ["assess-airway-risk", "confirm-lma-ventilation", "recognize-laryngospasm"]
+    },
+    {
+      "id": "management",
+      "label": "Airway Management and Escalation",
+      "actionIds": [
+        "adequate-depth-before-lma",
+        "cpap-jaw-thrust",
+        "remove-stimulus-deepen",
+        "give-succinylcholine",
+        "prepare-intubation",
+        "avoid-prolonged-hypoxia"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Follow-up",
+      "actionIds": ["call-for-help", "monitor-nppe"]
+    }
+  ],
+  "estimatedMinutes": 20
+}

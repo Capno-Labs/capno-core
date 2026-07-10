@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+}
+
+/* Shared control styles.
+   Depth + motion follow a Stripe-style system: layered low-alpha shadows,
+   ~150ms ease transitions, a subtle hover lift on interactive surfaces, and
+   visible :focus-visible rings everywhere (keyboard parity with hover). */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition duration-150 ease-out hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950;
+  }
+  .btn-primary {
+    @apply btn bg-sky-600 text-white shadow-[0_2px_5px_-1px_rgba(2,132,199,0.4),0_1px_3px_-1px_rgba(0,0,0,0.3)] hover:bg-sky-500;
+  }
+  .btn-secondary {
+    @apply btn bg-slate-700 text-slate-100 shadow-[0_2px_5px_-1px_rgba(0,0,0,0.35)] hover:bg-slate-600;
+  }
+  .btn-danger {
+    @apply btn bg-red-700 text-white shadow-[0_2px_5px_-1px_rgba(185,28,28,0.4),0_1px_3px_-1px_rgba(0,0,0,0.3)] hover:bg-red-600;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-slate-300 ring-1 ring-slate-700 hover:bg-slate-800;
+  }
+  .card {
+    @apply rounded-xl bg-slate-900 p-4 ring-1 ring-slate-800 shadow-[0_2px_5px_-1px_rgba(0,0,0,0.35),0_1px_3px_-1px_rgba(0,0,0,0.25)];
+  }
+  .card-interactive {
+    @apply card transition duration-150 ease-out hover:-translate-y-0.5 hover:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.45),0_3px_7px_-3px_rgba(0,0,0,0.35)] focus-visible:outline-none focus-visible:ring-2;
+  }
+  .input {
+    @apply w-full rounded-md border-0 bg-slate-800 px-3 py-2 text-sm text-slate-100 ring-1 ring-slate-700 transition duration-150 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500;
+  }
+  .label {
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400;
+  }
+  /* Stripe-style arrow affordance: the arrow nudges right on hover of the parent link. */
+  .link-arrow {
+    @apply inline-block transition-transform duration-150 ease-out;
+  }
+  a:hover .link-arrow,
+  .card-interactive:hover .link-arrow {
+    transform: translateX(3px);
+  }
+}
+
+/* Waveform graticule: the canvas above it is transparent; this owns the
+   monitor background so erased strips reveal the grid instead of flat black. */
+.wave-graticule {
+  background-color: #05080d;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      rgba(18, 32, 58, 0.5) 0,
+      rgba(18, 32, 58, 0.5) 1px,
+      transparent 1px,
+      transparent 26px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(18, 32, 58, 0.5) 0,
+      rgba(18, 32, 58, 0.5) 1px,
+      transparent 1px,
+      transparent 26px
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .card-interactive,
+  .link-arrow {
+    transition: none !important;
+    transform: none !important;
+  }
+  /* Decorative motion only — alarm-flash stays: it's a safety cue. */
+  .animate-char-pop,
+  .animate-shake,
+  .animate-crt-line,
+  .animate-crt-fade,
+  .animate-bar-grow,
+  .animate-pop-in,
+  .animate-event-fire {
+    animation: none !important;
+  }
+}
+
+/* Print styles for the debrief PDF export */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-report {
+    background: white !important;
+    color: black !important;
+  }
+  .print-report * {
+    color: black !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    --tw-ring-color: #d1d5db !important;
+  }
+  .print-report .keep-badge-bg {
+    background: #e5e7eb !important;
+  }
+  /* Print always gets final static values: kill any reveal animation and the
+     scaleX(0) start state it would otherwise freeze at. */
+  .print-report [class*='animate-'] {
+    animation: none !important;
+  }
+  .print-report .anim-bar {
+    animation: none !important;
+    transform: none !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+}

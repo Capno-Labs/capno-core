@@ -1,0 +1,455 @@
+{
+  "id": "last-nerve-block",
+  "version": "1.0.0",
+  "title": "Local Anesthetic Systemic Toxicity After Peripheral Nerve Block",
+  "summary": "A 72-year-old woman receiving an interscalene block with ropivacaine 0.5% before total shoulder arthroplasty develops prodromal neurologic symptoms, a generalized seizure, and then ventricular dysrhythmia with hypotension. Learners must recognize LAST, control the seizure, and deliver 20% lipid emulsion with ASRA-modified resuscitation.",
+  "tags": {
+    "topics": [
+      "toxicity",
+      "local anesthetic systemic toxicity",
+      "regional anesthesia",
+      "lipid emulsion",
+      "resuscitation"
+    ],
+    "difficulty": "advanced",
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+  },
+  "learningObjectives": [
+    "Recognize the prodromal neurologic signs of local anesthetic systemic toxicity (perioral numbness, tinnitus, metallic taste, agitation) during and after peripheral nerve block placement.",
+    "Institute immediate first-response measures: stop the injection, call for help and the LAST rescue kit, and support the airway with 100% oxygen to prevent hypoxia and acidosis.",
+    "Treat local anesthetic-induced seizures with benzodiazepines while avoiding large propofol doses in the hemodynamically compromised patient.",
+    "Administer 20% lipid emulsion correctly: 1.5 mL/kg bolus over 2-3 minutes followed by an infusion, with appropriate redosing and maximum-dose awareness.",
+    "Apply ASRA-modified ACLS for LAST: reduced epinephrine bolus doses (1 mcg/kg or less), avoidance of vasopressin, calcium channel blockers, beta-blockers, and lidocaine, and early notification for cardiopulmonary bypass capability.",
+    "Plan appropriate post-event monitoring for at least 4-6 hours given the risk of recurrent cardiovascular instability."
+  ],
+  "setup": [
+    "Configure the room as a preoperative block bay: stretcher, standard monitors, nasal cannula with capnography, ultrasound machine with a linear probe at the bedside, and a running 20 g peripheral IV.",
+    "Stage a LAST rescue kit (mock 20% lipid emulsion 500 mL bags, syringes, ASRA checklist card, airway equipment) in an adjacent room; it arrives only when requested.",
+    "Prepare a confederate block nurse who is administering light sedation (midazolam 1 mg already given) and can fetch the kit, draw drugs, and start CPR when directed.",
+    "Provide a syringe labeled ropivacaine 0.5% 30 mL attached to an echogenic block needle; the learner or a confederate regional attending is 20 mL into the injection when the scenario advances.",
+    "Brief learners: the patient is sedated but conversant, positioned semi-lateral for a right interscalene block before total shoulder arthroplasty.",
+    "Have the OR charge nurse reachable by phone for the cardiopulmonary bypass / perfusion notification if learners escalate."
+  ],
+  "patient": {
+    "name": "Margaret Ellison",
+    "age": 72,
+    "sex": "female",
+    "weightKg": 58,
+    "heightCm": 160,
+    "asa": 3,
+    "allergies": ["Sulfa antibiotics (rash)"],
+    "medications": [
+      "Lisinopril 20 mg daily",
+      "Atorvastatin 40 mg nightly",
+      "Alendronate weekly",
+      "Acetaminophen as needed for shoulder pain"
+    ],
+    "pmh": [
+      "Hypertension, well controlled",
+      "Severe right glenohumeral osteoarthritis scheduled for total shoulder arthroplasty",
+      "Osteoporosis",
+      "Mild chronic kidney disease (creatinine 1.3)",
+      "No prior problems with anesthesia; prior GA for cholecystectomy"
+    ],
+    "airway": {
+      "mallampati": 2,
+      "mouthOpeningCm": 4,
+      "thyromentalCm": 6.5,
+      "neckMobility": "normal",
+      "dentition": "Upper denture, removed",
+      "notes": "Anticipated straightforward mask ventilation and laryngoscopy"
+    },
+    "plan": "Right interscalene brachial plexus block with ropivacaine 0.5% 30 mL (150 mg) under ultrasound guidance with light midazolam sedation, followed by general anesthesia for right total shoulder arthroplasty."
+  },
+  "baselineVitals": {
+    "hr": 76,
+    "sbp": 142,
+    "dbp": 78,
+    "spo2": 97,
+    "etco2": 34,
+    "rr": 14,
+    "temp": 36.5,
+    "depth": 85,
+    "agentEt": 0,
+    "agentFi": 0,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    {
+      "id": "block_placement",
+      "label": "Block Placement",
+      "description": "Ultrasound-guided interscalene block underway with ropivacaine 0.5%; patient lightly sedated and conversant."
+    },
+    {
+      "id": "prodrome",
+      "label": "Prodromal Symptoms",
+      "description": "Perioral numbness, tinnitus, metallic taste, and agitation signal rising local anesthetic plasma levels; the injection must stop now."
+    },
+    {
+      "id": "seizure",
+      "label": "Seizure",
+      "description": "Generalized tonic-clonic seizure with airway compromise and desaturation; hypoxia and acidosis worsen cardiac toxicity."
+    },
+    {
+      "id": "cardiovascular_toxicity",
+      "label": "Cardiovascular Toxicity",
+      "description": "Conduction blockade and myocardial depression: widening QRS to ventricular tachycardia with profound hypotension, possibly arrest."
+    },
+    {
+      "id": "treatment",
+      "label": "Lipid Rescue and Modified ACLS",
+      "description": "Lipid emulsion bolus and infusion, benzodiazepine seizure control, CPR if pulseless, and reduced-dose epinephrine per ASRA."
+    },
+    {
+      "id": "stabilization",
+      "label": "Stabilization and Monitoring",
+      "description": "Circulation recovers; the team plans prolonged monitoring, disposition, and case cancellation discussions."
+    }
+  ],
+  "events": [
+    {
+      "id": "block-injection",
+      "label": "Ropivacaine injection proceeding",
+      "description": "The block needle is in place with good ultrasound imaging; 20 of 30 mL of ropivacaine 0.5% has been injected in 5 mL aliquots. Narrate normal spread; aspiration was reportedly negative, but a small vessel injection has occurred.",
+      "category": "drug",
+      "effects": [
+        {
+          "vitals": { "hr": 78 },
+          "overSec": 30
+        }
+      ],
+      "autoAtSec": 30,
+      "phaseHint": "block_placement"
+    },
+    {
+      "id": "prodromal-symptoms",
+      "label": "Prodromal neurologic symptoms",
+      "description": "Patient states: 'My lips feel numb... there's a ringing in my ears... I feel funny, something is wrong.' She becomes restless and mildly agitated with a metallic taste. HR and BP drift up from the excitatory phase.",
+      "category": "physiology",
+      "effects": [
+        {
+          "vitals": { "hr": 94, "sbp": 158, "dbp": 86, "rr": 18 },
+          "overSec": 120
+        }
+      ],
+      "autoAtSec": 150,
+      "phaseHint": "prodrome"
+    },
+    {
+      "id": "seizure-onset",
+      "label": "Generalized tonic-clonic seizure",
+      "description": "The patient stiffens and convulses. Respirations become erratic and ineffective; SpO2 falls into the upper 80s; HR 120. Capnography trace becomes chaotic. The seizure continues until treated with a benzodiazepine.",
+      "category": "physiology",
+      "effects": [
+        {
+          "vitals": { "hr": 120, "rr": 6, "spo2": 88, "etco2": 26, "sbp": 165, "dbp": 92, "depth": 60 },
+          "rhythm": "sinus_tach",
+          "overSec": 90
+        }
+      ],
+      "autoAtSec": 330,
+      "phaseHint": "seizure"
+    },
+    {
+      "id": "cardiovascular-toxicity",
+      "label": "Cardiovascular toxicity: wide-complex VT and hypotension",
+      "description": "Announce progressive QRS widening and PR prolongation on the monitor, then a wide-complex rhythm consistent with ventricular tachycardia. SBP collapses toward 60 with barely palpable pulses. This fires automatically if lipid has not been started; delay or advance it based on learner performance.",
+      "category": "circulation",
+      "effects": [
+        {
+          "vitals": { "hr": 148, "sbp": 60, "dbp": 38, "spo2": 90, "etco2": 22 },
+          "rhythm": "vtach",
+          "overSec": 120
+        }
+      ],
+      "autoAtSec": 600,
+      "phaseHint": "cardiovascular_toxicity"
+    },
+    {
+      "id": "cardiac-arrest",
+      "label": "Cardiac arrest",
+      "description": "Faculty-triggered if lipid emulsion is substantially delayed or hypoxia persists: pulseless with asystole on the monitor. Begin high-quality CPR; LAST arrests may require prolonged resuscitation because recovery is possible once the drug redistributes.",
+      "category": "circulation",
+      "effects": [
+        {
+          "vitals": { "hr": 0, "sbp": 0, "dbp": 0, "spo2": 70, "etco2": 12, "rr": 0 },
+          "rhythm": "asystole",
+          "overSec": 20
+        }
+      ],
+      "phaseHint": "cardiovascular_toxicity"
+    },
+    {
+      "id": "midazolam-response",
+      "label": "Response: benzodiazepine controls seizure",
+      "description": "Trigger after midazolam 2 mg IV (or equivalent benzodiazepine): convulsions stop, respirations return with assisted bag-mask ventilation and 100% O2, and SpO2 recovers.",
+      "category": "drug",
+      "effects": [
+        {
+          "vitals": { "rr": 12, "spo2": 96, "etco2": 34, "hr": 110, "depth": 70 },
+          "overSec": 120
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "lipid-bolus-response",
+      "label": "Response: 20% lipid emulsion bolus given",
+      "description": "Trigger after learners push 20% lipid emulsion 1.5 mL/kg (about 90 mL for 58 kg) over 2-3 minutes. Over the next 5 minutes the QRS narrows, VT converts to sinus tachycardia, and blood pressure climbs out of the critical range.",
+      "category": "drug",
+      "effects": [
+        {
+          "vitals": { "sbp": 95, "dbp": 55, "hr": 108, "spo2": 97, "etco2": 32 },
+          "rhythm": "sinus_tach",
+          "overSec": 300
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "lipid-infusion-cpr-response",
+      "label": "Response: lipid infusion with effective CPR (ROSC)",
+      "description": "Trigger during an arrest once high-quality CPR, the lipid bolus (repeatable up to 3 doses), and an infusion of 0.25 mL/kg/min (about 15 mL/min) are running: return of spontaneous circulation with improving perfusion. Maximum total lipid about 12 mL/kg.",
+      "category": "resolution",
+      "effects": [
+        {
+          "vitals": { "hr": 115, "sbp": 88, "dbp": 52, "spo2": 95, "etco2": 30, "rr": 10 },
+          "rhythm": "sinus_tach",
+          "overSec": 300
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "epi-small-dose",
+      "label": "Response: small-dose epinephrine",
+      "description": "Trigger when learners give epinephrine in reduced boluses of 1 mcg/kg or less (about 50 mcg here) per ASRA: modest BP support without precipitating refractory dysrhythmia. If learners give 1 mg boluses instead, warn of worsening ventricular dysrhythmias and impaired lipid efficacy.",
+      "category": "drug",
+      "effects": [
+        {
+          "vitals": { "sbp": 92, "dbp": 54, "hr": 118 },
+          "overSec": 90
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "recurrent-instability",
+      "label": "Recurrent hypotension after initial recovery",
+      "description": "Faculty-triggered if the team declares victory early, stops the lipid infusion, or plans immediate transfer without monitoring: BP sags again as local anesthetic redistributes, reinforcing the need for continued infusion and prolonged observation.",
+      "category": "circulation",
+      "effects": [
+        {
+          "vitals": { "sbp": 78, "dbp": 45, "hr": 122 },
+          "rhythm": "sinus_tach",
+          "overSec": 180
+        }
+      ],
+      "phaseHint": "stabilization"
+    },
+    {
+      "id": "stabilized",
+      "label": "Response: sustained stabilization",
+      "description": "Trigger once the lipid infusion continues at least 10 minutes past hemodynamic recovery and the team has a monitoring plan: vitals settle, the patient begins to arouse, and the team discusses ICU-level observation for 4-6 hours or more and cancellation of the arthroplasty.",
+      "category": "resolution",
+      "effects": [
+        {
+          "vitals": { "hr": 92, "sbp": 118, "dbp": 66, "spo2": 98, "etco2": 34, "rr": 14, "depth": 80 },
+          "rhythm": "sinus",
+          "overSec": 240
+        }
+      ],
+      "phaseHint": "stabilization"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-prodrome",
+      "label": "Recognize prodromal LAST symptoms",
+      "description": "Identifies perioral numbness, tinnitus, metallic taste, and agitation as signs of rising local anesthetic plasma levels rather than anxiety or oversedation.",
+      "phase": "prodrome",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "stop-injection",
+      "label": "Stop the injection immediately",
+      "description": "Halts local anesthetic injection at the first symptom and withdraws the needle; states aloud that no further local anesthetic will be given.",
+      "phase": "prodrome",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "call-help-last-kit",
+      "label": "Call for help and the LAST rescue kit",
+      "description": "Declares a LAST emergency, summons additional staff, and requests the lipid rescue kit and the ASRA checklist.",
+      "phase": "prodrome",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "airway-100-o2",
+      "label": "Manage airway with 100% oxygen",
+      "description": "Applies 100% oxygen with bag-mask support of ventilation to prevent hypoxia, hypercarbia, and acidosis, which potentiate cardiac toxicity; prepares intubation equipment.",
+      "phase": "seizure",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "benzo-seizure",
+      "label": "Suppress seizure with a benzodiazepine",
+      "description": "Gives midazolam 2 mg IV (or equivalent) as the first-line anticonvulsant; avoids large propofol doses given impending cardiovascular compromise.",
+      "phase": "seizure",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "lipid-bolus",
+      "label": "Give 20% lipid emulsion 1.5 mL/kg bolus",
+      "description": "Administers 20% lipid emulsion 1.5 mL/kg (about 90 mL) IV over 2-3 minutes at the first sign of serious toxicity; may repeat up to twice for persistent instability.",
+      "phase": "treatment",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "lipid-infusion",
+      "label": "Start lipid infusion",
+      "description": "Follows the bolus with an infusion of 0.25 mL/kg/min (about 15 mL/min), doubling for refractory hypotension, continuing at least 10 minutes past hemodynamic recovery, maximum about 12 mL/kg total.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 12
+    },
+    {
+      "id": "cpr-if-pulseless",
+      "label": "Start CPR immediately if pulseless",
+      "description": "Begins high-quality chest compressions without delay when pulses are lost, verbalizing that circulation is required for lipid to reach the heart.",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "reduced-epi",
+      "label": "Use reduced epinephrine doses",
+      "description": "Limits epinephrine boluses to 1 mcg/kg or less (about 50 mcg) per ASRA rather than standard 1 mg ACLS doses.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 12
+    },
+    {
+      "id": "avoid-contraindicated-drugs",
+      "label": "Avoid vasopressin, CCBs, beta-blockers, and lidocaine",
+      "description": "Explicitly avoids vasopressin, calcium channel blockers, beta-blockers, and lidocaine (and other local anesthetics) during the resuscitation; uses amiodarone if an antiarrhythmic is needed.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "notify-bypass",
+      "label": "Notify cardiopulmonary bypass team early",
+      "description": "Alerts the nearest facility or team capable of cardiopulmonary bypass / ECMO early in a refractory arrest, anticipating prolonged resuscitation.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 8
+    },
+    {
+      "id": "prolonged-monitoring",
+      "label": "Plan monitoring for at least 4-6 hours",
+      "description": "Arranges monitored (ICU-level) observation for at least 4-6 hours after a cardiovascular event (2 hours after a limited CNS event) because instability can recur as lipid clears.",
+      "phase": "stabilization",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "cancel-case-communicate",
+      "label": "Communicate with surgeon and family; defer surgery",
+      "description": "Informs the surgical team and family, cancels or postpones the arthroplasty, documents the event and total lipid dose, and reports to a LAST registry if available.",
+      "phase": "stabilization",
+      "critical": false,
+      "points": 6
+    }
+  ],
+  "expectedProgression": [
+    "Minutes 0-2: block in progress; 20 of 30 mL ropivacaine 0.5% injected with reassuring ultrasound images and reportedly negative aspiration.",
+    "Minutes 2-5: prodrome — perioral numbness, tinnitus, metallic taste, agitation with mild hypertension and tachycardia; learners should stop the injection, call for help, and bring the lipid kit to the bedside.",
+    "Minutes 5-8: generalized tonic-clonic seizure with erratic ineffective respirations and desaturation into the upper 80s; benzodiazepine and supported ventilation with 100% oxygen are required.",
+    "Minutes 8-12: cardiovascular toxicity — progressive QRS widening to ventricular tachycardia with SBP near 60; lipid emulsion bolus is due now if not already given.",
+    "If lipid is delayed or hypoxia persists, the patient arrests (asystole), requiring prolonged CPR, repeated lipid boluses, an infusion, and reduced-dose epinephrine, with early bypass/ECMO notification.",
+    "With correct therapy, the rhythm narrows and converts and blood pressure recovers over about 5 minutes after the bolus; premature discontinuation of the infusion produces recurrent hypotension.",
+    "Stabilization: patient arouses, the case is deferred, and the team arranges at least 4-6 hours of monitored observation and full documentation."
+  ],
+  "correctManagement": [
+    "Inject local anesthetic in small (3-5 mL) aliquots with aspiration and ongoing verbal contact; treat any new neurologic complaint during injection as LAST until proven otherwise.",
+    "Stop the injection immediately at the first prodromal sign and call for help and the LAST rescue kit with the ASRA checklist.",
+    "Maintain oxygenation and ventilation with 100% oxygen and bag-mask support; intubate if the airway cannot otherwise be protected, because hypoxia and acidosis dramatically worsen cardiac toxicity.",
+    "Terminate seizures with benzodiazepines first-line (midazolam 1-2 mg IV increments); use only small doses of propofol, if any, once cardiovascular signs are present.",
+    "Give 20% lipid emulsion early: 1.5 mL/kg (about 90 mL for 58 kg) IV over 2-3 minutes at the first sign of serious toxicity, not only after arrest.",
+    "Follow with a lipid infusion of 0.25 mL/kg/min (about 15 mL/min), repeat the bolus up to two more times and double the infusion for refractory collapse, continue at least 10 minutes past recovery, and respect the approximately 12 mL/kg total ceiling.",
+    "If pulseless, begin high-quality CPR immediately and expect a prolonged resuscitation; circulation is what carries lipid to the myocardium.",
+    "Modify ACLS per ASRA: epinephrine boluses of 1 mcg/kg or less, no vasopressin, no calcium channel blockers or beta-blockers, and no lidocaine; prefer amiodarone for ventricular dysrhythmias.",
+    "Notify the nearest cardiopulmonary bypass / ECMO capable team early in a refractory arrest.",
+    "After recovery, continue monitored observation for at least 4-6 hours following cardiovascular involvement, since toxicity can recur as lipid partitioning shifts.",
+    "Defer the planned surgery, communicate transparently with the surgeon, patient, and family, and document drug, dose, timing, and total lipid administered.",
+    "Reduce future risk: weight- and comorbidity-adjusted dosing in small elderly patients, ultrasound guidance, incremental injection, and an immediately available lipid kit wherever blocks are performed."
+  ],
+  "commonErrors": [
+    "Dismissing perioral numbness, tinnitus, or agitation as anxiety or oversedation and continuing the injection.",
+    "Delaying lipid emulsion until cardiac arrest instead of giving it at the first sign of serious toxicity.",
+    "Treating the seizure with a large propofol bolus in a patient on the verge of cardiovascular collapse.",
+    "Using standard 1 mg epinephrine doses, vasopressin, or lidocaine during the resuscitation, contrary to ASRA guidance.",
+    "Forgetting the lipid infusion after the bolus, or stopping it immediately upon recovery, allowing recurrent instability.",
+    "Neglecting ventilation and oxygenation, letting hypoxia and acidosis potentiate cardiac toxicity.",
+    "Abandoning resuscitation early; LAST arrests can recover after prolonged CPR, and bypass/ECMO should be considered rather than termination.",
+    "Discharging or transferring the patient to an unmonitored setting shortly after apparent recovery."
+  ],
+  "debrief": {
+    "points": [
+      "Mechanism of LAST: sodium-channel blockade in the CNS (excitation then depression) and myocardium (conduction block and contractile failure); ropivacaine is less cardiotoxic than bupivacaine but 150 mg intravascularly in a 58 kg elderly patient is ample for toxicity.",
+      "Risk factors present in this case: advanced age, low body weight, relatively high milligram dose, and a vessel-rich interscalene site; how dose adjustment and incremental injection reduce risk.",
+      "The rationale for immediate lipid therapy at first serious signs, the dosing sequence (1.5 mL/kg bolus, 0.25 mL/kg/min infusion, redosing, 12 mL/kg ceiling), and the leading 'lipid sink'/metabolic hypotheses.",
+      "Why ASRA modifies ACLS in LAST: small epinephrine doses, avoidance of vasopressin, CCBs, beta-blockers, and lidocaine, and early bypass/ECMO notification for refractory arrest.",
+      "The primacy of oxygenation and seizure control: hypoxia and acidosis multiply cardiac toxicity, so airway management is itself cardiotoxicity treatment.",
+      "Systems safety: lipid kits and cognitive aids physically present in every block area, checklist use under stress, and closed-loop communication during the resuscitation.",
+      "Post-event duties: 4-6 hours minimum monitored observation, documentation of doses and timing, disclosure to the patient and family, and case deferral decisions."
+    ],
+    "questions": [
+      "What did you make of her first complaints, and what made you commit (or hesitate to commit) to the diagnosis of LAST?",
+      "How did you prioritize airway, seizure control, and lipid emulsion in the first two minutes, and would you sequence anything differently?",
+      "Talk through your lipid dosing: how you calculated it, when you would redose, and when you would stop the infusion.",
+      "How does an arrest from LAST change your ACLS drug choices and your expectations about resuscitation duration?",
+      "What preventive steps in block technique or dosing might have changed the course for this 58 kg patient?",
+      "Where is the lipid kit in your own block area, and who would you assign to mix and run it in a real event?",
+      "What does this patient need from the team over the next 6 hours, and how would you handle the conversation with her family and the surgeon?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Immediate Response",
+      "actionIds": ["recognize-prodrome", "stop-injection", "call-help-last-kit"]
+    },
+    {
+      "id": "management",
+      "label": "Resuscitation and Lipid Therapy",
+      "actionIds": [
+        "airway-100-o2",
+        "benzo-seizure",
+        "lipid-bolus",
+        "lipid-infusion",
+        "cpr-if-pulseless",
+        "reduced-epi",
+        "avoid-contraindicated-drugs"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Escalation",
+      "actionIds": ["notify-bypass", "cancel-case-communicate"]
+    },
+    {
+      "id": "disposition",
+      "label": "Disposition",
+      "actionIds": ["prolonged-monitoring"]
+    }
+  ],
+  "estimatedMinutes": 25
+}

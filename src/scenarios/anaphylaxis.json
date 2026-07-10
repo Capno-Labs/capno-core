@@ -1,0 +1,359 @@
+{
+  "id": "anaphylaxis",
+  "version": "1.0.0",
+  "title": "Intraoperative Anaphylaxis",
+  "summary": "A 45-year-old woman undergoing laparoscopic cholecystectomy develops anaphylaxis minutes after cefazolin and rocuronium are given. Learners must recognize the reaction, give epinephrine early, resuscitate with fluids and infusions, and plan tryptase testing and ICU disposition."
+  ,
+  "tags": {
+    "topics": ["hypersensitivity", "anaphylaxis", "shock", "epinephrine", "crisis management"],
+    "difficulty": "advanced",
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+  },
+  "learningObjectives": [
+    "Recognize intraoperative anaphylaxis from hypotension, tachycardia, desaturation, and bronchospasm under general anesthesia, where cutaneous signs may be hidden by drapes.",
+    "State the most likely perioperative triggers (neuromuscular blockers, antibiotics, latex, chlorhexidine) and stop or remove them.",
+    "Administer epinephrine early and titrate from 50-100 mcg IV boluses to an infusion for refractory shock.",
+    "Resuscitate with 100% oxygen and rapid crystalloid (20-30 mL/kg or more) for distributive shock with capillary leak.",
+    "Escalate appropriately: epinephrine infusion, vasopressin, bronchodilators, and preparation for cardiac arrest (PEA).",
+    "Plan confirmatory workup (serial tryptase levels) and disposition (ICU, allergy referral), and communicate clearly with the surgical team."
+  ],
+  "setup": [
+    "OR configured mid-case for laparoscopic cholecystectomy: patient draped, ETT in place, mechanical ventilation, sevoflurane running.",
+    "Labeled syringes: epinephrine 10 mcg/mL and 100 mcg/mL dilutions, vasopressin 1 unit/mL, phenylephrine (a decoy that should NOT be the mainstay), succinylcholine, atropine.",
+    "Two IV setups with a pressure bag and at least 2 L of crystalloid available; code cart with defibrillator just outside the room.",
+    "Confederate surgeon at the field who can report 'the bowel looks pink but she seems flushed under the drapes' when asked, and can pause insufflation on request.",
+    "Anesthesia record shows cefazolin 2 g IV started 2 minutes ago and rocuronium 50 mg IV given at induction 10 minutes ago.",
+    "Lab requisition forms available so learners can concretely order tryptase levels."
+  ],
+  "patient": {
+    "name": "Maria Delgado",
+    "age": 45,
+    "sex": "female",
+    "weightKg": 70,
+    "heightCm": 163,
+    "asa": 2,
+    "allergies": ["Seasonal pollen (rhinitis)", "No known drug allergies"],
+    "medications": ["Loratadine 10 mg as needed", "Oral contraceptive pill"],
+    "pmh": [
+      "Symptomatic cholelithiasis, scheduled for laparoscopic cholecystectomy",
+      "Mild intermittent asthma, rare albuterol use, no hospitalizations",
+      "Two uneventful prior anesthetics (cesarean delivery, wrist ORIF)",
+      "No prior antibiotic exposure problems documented"
+    ],
+    "airway": {
+      "mallampati": 2,
+      "mouthOpeningCm": 4.5,
+      "thyromentalCm": 7,
+      "neckMobility": "normal",
+      "dentition": "Intact, no loose teeth",
+      "notes": "Grade 1 view at intubation; 7.0 ETT secured at 21 cm; already intubated at scenario start."
+    },
+    "plan": "Laparoscopic cholecystectomy under general endotracheal anesthesia. Cefazolin 2 g IV for surgical prophylaxis; rocuronium for relaxation; sevoflurane maintenance."
+  },
+  "baselineVitals": {
+    "hr": 76,
+    "sbp": 118,
+    "dbp": 68,
+    "spo2": 99,
+    "etco2": 35,
+    "rr": 12,
+    "temp": 36.4,
+    "depth": 45,
+    "agentEt": 2.0,
+    "agentFi": 2.2,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "maintenance", "label": "Maintenance", "description": "Stable anesthetic; cefazolin infusing after rocuronium at induction." },
+    { "id": "reaction_onset", "label": "Reaction Onset", "description": "Early signs: falling blood pressure, rising heart rate, flushing." },
+    { "id": "crisis", "label": "Crisis", "description": "Full anaphylaxis: profound hypotension, bronchospasm, desaturation." },
+    { "id": "treatment", "label": "Treatment", "description": "Epinephrine, fluids, infusion, adjuncts, escalation." },
+    { "id": "stabilization", "label": "Stabilization", "description": "Hemodynamics recover; workup and disposition planning." }
+  ],
+  "events": [
+    {
+      "id": "cefazolin-given",
+      "label": "Cefazolin 2 g IV infusing",
+      "description": "Antibiotic prophylaxis started; no immediate vital sign change. This marks the exposure to the likely trigger.",
+      "category": "drug",
+      "effects": [],
+      "autoAtSec": 60,
+      "phaseHint": "maintenance"
+    },
+    {
+      "id": "early-signs",
+      "label": "Early anaphylaxis signs",
+      "description": "Blood pressure drifts down and heart rate climbs over about 90 seconds. Flushing and early urticaria are visible on the chest if learners look under the drapes. Peak airway pressure creeps up slightly.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "sbp": 92, "dbp": 52, "hr": 104, "etco2": 32 }, "rhythm": "sinus_tach", "overSec": 90 }
+      ],
+      "autoAtSec": 240,
+      "phaseHint": "reaction_onset"
+    },
+    {
+      "id": "full-anaphylaxis",
+      "label": "Full anaphylaxis: shock and bronchospasm",
+      "description": "Profound distributive shock: SBP falls to 55/30 over 2 minutes with HR 135. Severe bronchospasm: high peak pressures, prolonged upsloping (shark-fin) capnograph with EtCO2 falling to ~20, and SpO2 88%.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "sbp": 55, "dbp": 30, "hr": 135, "spo2": 88, "etco2": 20 }, "rhythm": "sinus_tach", "capnoShape": "bronchospasm", "overSec": 120 }
+      ],
+      "autoAtSec": 420,
+      "phaseHint": "crisis"
+    },
+    {
+      "id": "refractory-hypotension",
+      "label": "Refractory hypotension (untreated)",
+      "description": "Without epinephrine, capillary leak and vasoplegia deepen: SBP 42/25, HR 145, SpO2 82%. Fire if learners give only phenylephrine/fluids or delay epinephrine.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "sbp": 42, "dbp": 25, "hr": 145, "spo2": 82, "etco2": 16 }, "overSec": 120 }
+      ],
+      "phaseHint": "crisis"
+    },
+    {
+      "id": "cardiac-arrest-pea",
+      "label": "Cardiac arrest: PEA",
+      "description": "Circulatory collapse to pulseless electrical activity — organized narrow complexes at ~40/min, no pulse, EtCO2 ~10, pleth unreadable. Faculty-triggered if epinephrine is still not given. Requires CPR and arrest-dose epinephrine 1 mg IV.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "sbp": 0, "dbp": 0, "hr": 40, "spo2": 0, "etco2": 10 }, "rhythm": "pea", "overSec": 20 }
+      ],
+      "phaseHint": "crisis"
+    },
+    {
+      "id": "epinephrine-bolus-response",
+      "label": "Epinephrine 50-100 mcg IV bolus response",
+      "description": "Epinephrine bolus produces partial recovery within a minute: SBP to the mid 80s, some bronchodilation (EtCO2 toward 28, SpO2 93%). Repeat boluses are expected while an infusion is prepared.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 85, "dbp": 48, "hr": 128, "spo2": 93, "etco2": 28 }, "overSec": 60 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "epi-infusion-fluids-response",
+      "label": "Epinephrine infusion + rapid fluids response",
+      "description": "Epinephrine infusion 2-10 mcg/min plus 1-2 L crystalloid under pressure: blood pressure and oxygenation stabilize over about 5 minutes; heart rate trends down as perfusion is restored.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 104, "dbp": 60, "hr": 108, "spo2": 97, "etco2": 33 }, "overSec": 300 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "albuterol-response",
+      "label": "Albuterol / bronchodilator response",
+      "description": "Albuterol 8-10 puffs via the ETT (or deepened volatile once pressure allows) eases bronchospasm: capnograph shape normalizes, EtCO2 toward 31, SpO2 improves.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "etco2": 31, "spo2": 95, "rr": 12 }, "capnoShape": "normal", "overSec": 120 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "vasopressin-response",
+      "label": "Vasopressin 1-2 units IV response",
+      "description": "For catecholamine-refractory vasoplegia, vasopressin 1-2 unit IV boluses raise SBP toward the mid 90s over 1-2 minutes.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 94, "dbp": 55 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "reduce-volatile",
+      "label": "Volatile agent reduced during shock",
+      "description": "Sevoflurane turned down to ~0.5% while profoundly hypotensive; consider amnestic adjuncts. Depth lightens.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "agentFi": 0.5, "agentEt": 0.8, "depth": 58 }, "overSec": 120 }
+      ],
+      "phaseHint": "crisis"
+    },
+    {
+      "id": "stabilization-achieved",
+      "label": "Stabilization achieved",
+      "description": "On an epinephrine infusion with fluids running, vitals stabilize: SBP ~110, HR trending to the 90s, SpO2 98%, normal capnograph. The team plans tryptase levels and ICU admission.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "sbp": 110, "dbp": 64, "hr": 96, "spo2": 98, "etco2": 34, "rr": 12, "agentFi": 1.5, "agentEt": 1.3, "depth": 48 }, "rhythm": "sinus", "capnoShape": "normal", "overSec": 300 }
+      ],
+      "phaseHint": "stabilization"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-anaphylaxis",
+      "label": "Recognize anaphylaxis (hypotension + tachycardia + bronchospasm after antibiotic) and state the diagnosis",
+      "phase": "reaction_onset",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help and the code cart early",
+      "phase": "crisis",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "stop-suspected-agent",
+      "label": "Stop the cefazolin infusion and withhold further rocuronium",
+      "phase": "crisis",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "administer-100-o2",
+      "label": "Ventilate with 100% oxygen and hand-check compliance",
+      "phase": "crisis",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "give-epinephrine-early",
+      "label": "Give epinephrine 50-100 mcg IV early, repeating every 1-2 min as needed",
+      "description": "Epinephrine is the definitive treatment; alpha-agonists alone are inadequate. Escalate dose if no response.",
+      "phase": "crisis",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "rapid-iv-fluids",
+      "label": "Give rapid crystalloid (20-30 mL/kg, pressure bag, second IV)",
+      "phase": "crisis",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "communicate-surgical-team",
+      "label": "Inform the surgical team, request a hold on insufflation/stimulation, and share the plan",
+      "phase": "crisis",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "remove-latex-triggers",
+      "label": "Consider and remove other triggers (latex, chlorhexidine) from the field",
+      "phase": "treatment",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "escalate-epi-infusion",
+      "label": "Start an epinephrine infusion (2-10 mcg/min) for recurrent or refractory hypotension",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "give-bronchodilator",
+      "label": "Treat bronchospasm with albuterol via the ETT",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "consider-vasopressin",
+      "label": "Consider vasopressin 1-2 units IV for catecholamine-refractory shock",
+      "phase": "treatment",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "plan-tryptase-icu",
+      "label": "Order serial tryptase levels (1, 4, 24 h) and plan ICU admission with allergy referral",
+      "phase": "stabilization",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "Stable maintenance anesthesia; cefazolin begins infusing about a minute into the scenario.",
+    "Around 4 minutes, blood pressure drifts down with tachycardia and flushing — subtle enough to be mistaken for deep anesthesia or insufflation effects.",
+    "By about 7 minutes, full anaphylaxis: SBP 55/30, HR 135, SpO2 88%, shark-fin capnograph with EtCO2 20.",
+    "Learners should announce anaphylaxis, call for help, stop the antibiotic, go to 100% oxygen, and give epinephrine 50-100 mcg IV immediately with rapid fluids.",
+    "Epinephrine boluses give partial recovery; an epinephrine infusion plus 1-2 L crystalloid stabilizes the patient over several minutes.",
+    "If epinephrine is delayed, faculty fires refractory hypotension and then PEA arrest, requiring CPR and 1 mg epinephrine.",
+    "Once stable, the team discusses aborting or expediting surgery, orders tryptase levels, and arranges ICU admission."
+  ],
+  "correctManagement": [
+    "Declare the emergency: state 'this is anaphylaxis,' call for help, and send for the code cart.",
+    "Stop the suspected trigger: halt the cefazolin infusion, withhold further rocuronium, and remove latex/chlorhexidine exposure where possible.",
+    "Ventilate with 100% oxygen; reduce or turn off volatile agent while profoundly hypotensive.",
+    "Give epinephrine 50-100 mcg IV immediately; repeat every 1-2 minutes and escalate the dose if there is no response.",
+    "Start an epinephrine infusion 2-10 mcg/min for ongoing hypotension rather than relying on repeated boluses.",
+    "Infuse crystalloid rapidly (20-30 mL/kg or more) via pressure bag; place a second large-bore IV.",
+    "Treat bronchospasm with albuterol via the ETT; epinephrine itself is the primary bronchodilator.",
+    "Use vasopressin 1-2 units IV for catecholamine-refractory vasoplegia; consider glucagon if the patient were beta-blocked.",
+    "If pulseless: CPR, arrest-dose epinephrine 1 mg IV, and ACLS for PEA.",
+    "Ask the surgeon to pause insufflation/stimulation and jointly decide whether to abort or expedite the case.",
+    "Send serial tryptase levels (within 1 hour, at 4 hours, and baseline at 24 hours) to confirm the diagnosis.",
+    "Admit to ICU for monitoring of biphasic reactions; document the reaction and refer to allergy/immunology for trigger identification."
+  ],
+  "commonErrors": [
+    "Treating early hypotension with phenylephrine boluses alone and anchoring on 'deep anesthetic' or pneumoperitoneum as the cause.",
+    "Delaying epinephrine out of fear of tachycardia or arrhythmia in a shocked patient.",
+    "Giving a single epinephrine bolus without redosing or starting an infusion when hypotension recurs.",
+    "Underestimating fluid requirements: anaphylaxis can extravasate 35% or more of circulating volume within minutes.",
+    "Forgetting to stop the antibiotic infusion, leaving the trigger running throughout the resuscitation.",
+    "Ignoring the bronchospasm/ventilation problem while focusing solely on blood pressure.",
+    "Failing to inform the surgical team or to discuss aborting the case.",
+    "Omitting tryptase levels and allergy follow-up, leaving the trigger unidentified for future anesthetics."
+  ],
+  "debrief": {
+    "points": [
+      "Perioperative anaphylaxis presents atypically: under drapes and anesthesia, hypotension and bronchospasm often precede or replace visible cutaneous signs.",
+      "The most common perioperative triggers are neuromuscular blockers, antibiotics (especially beta-lactams), latex, and chlorhexidine; timing after exposure is the key diagnostic clue.",
+      "Epinephrine is the only first-line drug: alpha-1 vasoconstriction, beta-1 inotropy, beta-2 bronchodilation, and mast-cell stabilization. Dose 50-100 mcg IV for severe hypotension, 1 mg for arrest, then an infusion.",
+      "Distributive shock with capillary leak demands aggressive volume: tens of mL/kg of crystalloid, not a token 500 mL.",
+      "Refractory shock options: escalating epinephrine, vasopressin, and glucagon for beta-blocked patients; PEA arrest requires immediate CPR.",
+      "Steroids and antihistamines are second-line at best — they do not treat shock and must never precede epinephrine.",
+      "Serial tryptase (1 h, 4 h, 24 h baseline) plus allergy referral protects the patient in every future anesthetic.",
+      "Team communication — declaring the emergency, assigning roles, and involving the surgeon in the abort/continue decision — determines how fast definitive treatment happens."
+    ],
+    "questions": [
+      "What made you first suspect anaphylaxis rather than deep anesthesia, hypovolemia, or insufflation effects?",
+      "When did epinephrine first enter your mind, and when was it actually given? What accounts for any gap?",
+      "How did you choose your epinephrine dose, and when would you move from boluses to an infusion?",
+      "How much fluid does a patient in anaphylactic shock actually need, and how did your resuscitation compare?",
+      "If the blood pressure had not responded to escalating epinephrine, what were your next two moves?",
+      "How did communication with the surgical team go, and what would you script differently next time?",
+      "What follow-up does this patient need before she can safely have another anesthetic?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Diagnosis",
+      "actionIds": ["recognize-anaphylaxis"]
+    },
+    {
+      "id": "management",
+      "label": "Resuscitation and Escalation",
+      "actionIds": [
+        "stop-suspected-agent",
+        "administer-100-o2",
+        "give-epinephrine-early",
+        "rapid-iv-fluids",
+        "remove-latex-triggers",
+        "escalate-epi-infusion",
+        "give-bronchodilator",
+        "consider-vasopressin"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Teamwork",
+      "actionIds": ["call-for-help", "communicate-surgical-team"]
+    },
+    {
+      "id": "disposition",
+      "label": "Workup and Disposition",
+      "actionIds": ["plan-tryptase-icu"]
+    }
+  ],
+  "estimatedMinutes": 25
+}

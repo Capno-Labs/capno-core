@@ -1,0 +1,343 @@
+{
+  "id": "difficult-airway-cico",
+  "version": "1.0.0",
+  "title": "Difficult Airway: Cannot Intubate, Cannot Oxygenate",
+  "summary": "A 46-year-old man with obesity and undertreated sleep apnea proves impossible to intubate after a routine induction, then impossible to ventilate by supraglottic airway or two-person mask. Learners must limit attempts, keep oxygenating, declare CICO out loud, and perform a scalpel cricothyroidotomy before hypoxia becomes arrest.",
+  "tags": {
+    "topics": ["airway", "difficult airway", "cannot intubate cannot oxygenate", "front-of-neck access", "crisis management"],
+    "difficulty": "advanced",
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+  },
+  "estimatedMinutes": 25,
+  "learningObjectives": [
+    "Verbalize a complete airway strategy (plans A through D) before induction, including where the difficult airway equipment is and who will do what.",
+    "Apply the DAS 2025 escalation: videolaryngoscopy with a maximum of 3+1 intubation attempts, up to 3 attempts with a second-generation supraglottic airway, optimized two-person mask ventilation, then front-of-neck access.",
+    "Prioritize oxygenation over intubation: reoxygenate between attempts, and change something with each attempt instead of repeating the same failure.",
+    "Declare 'failed intubation' and 'CICO' out loud so the whole team transitions plans at the same moment.",
+    "Perform (or verbalize) scalpel cricothyroidotomy — vertical skin incision, scalpel-bougie-tube, size 6.0 cuffed tube — without delay once CICO is declared.",
+    "Confirm every airway with waveform capnography, and plan post-event care: ICU disposition, airway alert documentation, and telling the patient."
+  ],
+  "setup": [
+    "OR configured pre-induction: patient on the table in a ramped position, monitors on, preoxygenation mask in place, IV running.",
+    "Airway equipment: videolaryngoscope, standard laryngoscopes, bougie, oral airways, second-generation supraglottic airways (sizes 4 and 5), and a marked front-of-neck kit (scalpel with size 10 blade, bougie, size 6.0 cuffed tube).",
+    "The difficult airway trolley lives outside the room and arrives only when someone asks for it by name.",
+    "Confederate circulator who can be sent for help, and a second pair of hands who arrives 60-90 seconds after help is called (available for two-person mask ventilation).",
+    "Faculty voices the laryngoscopy findings on each attempt: 'grade 4 view, no epiglottis seen' regardless of device or optimization — this airway will not be intubated.",
+    "Preop chart: BMI 38, obstructive sleep apnea on CPAP (rarely used), thick neck, Mallampati 3 — predictors that were documented but not acted on. The case is an elective hernia repair."
+  ],
+  "patient": {
+    "name": "Victor Okafor",
+    "age": 46,
+    "sex": "male",
+    "weightKg": 118,
+    "heightCm": 175,
+    "asa": 3,
+    "allergies": ["No known drug allergies"],
+    "medications": ["Lisinopril 20 mg daily", "Atorvastatin 40 mg nightly"],
+    "pmh": [
+      "Obstructive sleep apnea, prescribed CPAP but rarely uses it",
+      "Obesity (BMI 38) with a thick, short neck",
+      "Hypertension, reasonably controlled",
+      "Gastroesophageal reflux on omeprazole",
+      "Symptomatic inguinal hernia scheduled for open repair; no prior anesthetics"
+    ],
+    "airway": {
+      "mallampati": 3,
+      "mouthOpeningCm": 3.5,
+      "thyromentalCm": 6,
+      "neckMobility": "limited",
+      "dentition": "Intact, prominent upper incisors",
+      "notes": "Thick neck, full beard trimmed short. Predictors of difficulty documented at preop but the plan was a routine IV induction — the difficulty is 'unanticipated' only because nobody acted on the signs."
+    },
+    "plan": "Open inguinal hernia repair under general endotracheal anesthesia; routine IV induction with propofol and rocuronium planned."
+  },
+  "baselineVitals": {
+    "hr": 78,
+    "sbp": 142,
+    "dbp": 88,
+    "spo2": 97,
+    "etco2": 36,
+    "rr": 14,
+    "temp": 36.7,
+    "depth": 96,
+    "agentEt": 0,
+    "agentFi": 0,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "preinduction", "label": "Pre-Induction", "description": "Airway assessment, strategy briefing, positioning, preoxygenation." },
+    { "id": "induction", "label": "Induction", "description": "Propofol and rocuronium; apnea begins." },
+    { "id": "failed_laryngoscopy", "label": "Failed Laryngoscopy", "description": "Grade 4 views despite optimization; attempts must be limited." },
+    { "id": "rescue", "label": "Rescue Attempts", "description": "Supraglottic airway and two-person mask ventilation both fail." },
+    { "id": "cico", "label": "CICO", "description": "Cannot intubate, cannot oxygenate — declared out loud." },
+    { "id": "fona", "label": "Front-of-Neck Access", "description": "Scalpel cricothyroidotomy: vertical incision, scalpel-bougie-tube." },
+    { "id": "reoxygenation", "label": "Reoxygenation", "description": "Ventilation restored through the surgical airway; post-event planning." }
+  ],
+  "events": [
+    {
+      "id": "induction-apnea",
+      "label": "Induction and apnea",
+      "description": "Propofol and rocuronium given; the patient is apneic and paralyzed. Saturation holds initially on the preoxygenation reserve — but an obese patient with OSA desaturates fast.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "rr": 0, "etco2": 0, "depth": 38, "hr": 84 }, "overSec": 45 }
+      ],
+      "autoAtSec": 120,
+      "phaseHint": "induction"
+    },
+    {
+      "id": "desaturation-begins",
+      "label": "Desaturation begins",
+      "description": "The preoxygenation reserve is spent: SpO2 slides through the low 90s and the heart rate climbs. Every subsequent attempt now costs oxygen.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "spo2": 90, "hr": 94 }, "overSec": 120 }
+      ],
+      "autoAtSec": 270,
+      "phaseHint": "failed_laryngoscopy"
+    },
+    {
+      "id": "failed-intubation-attempts",
+      "label": "Intubation attempts fail (grade 4 view)",
+      "description": "Videolaryngoscopy with optimization — position, external laryngeal manipulation, bougie — still gives a grade 4 view. Fire after the learners' intubation attempts; saturation slips with each one. DAS allows a maximum of 3+1 attempts before declaring failed intubation.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 86, "hr": 100 }, "overSec": 30 }
+      ],
+      "phaseHint": "failed_laryngoscopy"
+    },
+    {
+      "id": "failed-sga",
+      "label": "Supraglottic airway fails to ventilate",
+      "description": "A second-generation SGA seats poorly: no capnograph trace, no chest rise, large leak. Reposition or re-size up to 3 attempts — this one will not rescue. Saturation continues to fall.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 79, "hr": 108 }, "rhythm": "sinus_tach", "overSec": 30 }
+      ],
+      "phaseHint": "rescue"
+    },
+    {
+      "id": "critical-desaturation",
+      "label": "Critical desaturation",
+      "description": "Ongoing failure to oxygenate: SpO2 falls through the 70s. The pleth tone is unmistakable. Time-driven — this fires even while learners are mid-attempt, forcing the pace.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "spo2": 72, "hr": 114 }, "overSec": 90 }
+      ],
+      "autoAtSec": 450,
+      "phaseHint": "rescue"
+    },
+    {
+      "id": "cico-mask-fail",
+      "label": "Two-person mask ventilation fails — CICO",
+      "description": "Optimal two-person mask ventilation with airway adjuncts and confirmed full paralysis moves no gas: flat capnograph, SpO2 into the 60s. This is cannot intubate, cannot oxygenate — the team must hear those words.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 66, "etco2": 0, "hr": 120 }, "overSec": 45 }
+      ],
+      "phaseHint": "cico"
+    },
+    {
+      "id": "hypoxic-bradycardia",
+      "label": "Hypoxic bradycardia (peri-arrest)",
+      "description": "Profound hypoxia turns the tachycardia into bradycardia — the herald of arrest. Fire if front-of-neck access is still not underway. CPR and arrest drugs are moments away.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "hr": 38, "spo2": 55, "sbp": 88, "dbp": 50 }, "rhythm": "sinus_brady", "overSec": 45 }
+      ],
+      "phaseHint": "cico"
+    },
+    {
+      "id": "partial-mask-oxygenation",
+      "label": "Partial oxygenation between attempts",
+      "description": "A brief window of partial mask ventilation (jaw thrust, two airways, two hands) buys a small recovery — a reward for prioritizing oxygenation between attempts, not a solution.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 84, "etco2": 14, "hr": 104 }, "overSec": 45 }
+      ],
+      "phaseHint": "rescue"
+    },
+    {
+      "id": "fona-success",
+      "label": "Scalpel cricothyroidotomy succeeds",
+      "description": "Vertical skin incision, stabilize the larynx, transverse stab through the cricothyroid membrane, bougie, size 6.0 cuffed tube — a capnograph trace confirms ventilation. Saturation recovers over the next minute or two; the first CO2 readings are high after the apneic period.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 92, "etco2": 48, "rr": 12, "hr": 98 }, "rhythm": "sinus", "overSec": 90 }
+      ],
+      "phaseHint": "fona"
+    },
+    {
+      "id": "reoxygenation-stable",
+      "label": "Reoxygenation and stabilization",
+      "description": "Ventilation through the surgical airway normalizes gas exchange; anesthesia is re-established and the team plans next steps: secure the airway definitively, ICU, ENT involvement, documentation.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "spo2": 98, "etco2": 38, "hr": 86, "sbp": 134, "dbp": 82, "rr": 12, "depth": 45, "agentFi": 2.0, "agentEt": 1.4 }, "overSec": 240 }
+      ],
+      "phaseHint": "reoxygenation"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "verbalize-airway-plan",
+      "label": "Brief plans A-D out loud before induction, including equipment location and roles",
+      "phase": "preinduction",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "optimize-preoxygenation",
+      "label": "Position ramped and preoxygenate thoroughly (tight mask, 3+ minutes or end-tidal O2 guided)",
+      "phase": "preinduction",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "limit-attempts-declare-failed",
+      "label": "Limit intubation to 3+1 attempts, changing something each time, then declare 'failed intubation' out loud",
+      "phase": "failed_laryngoscopy",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help and the difficult airway trolley at the first failed attempt",
+      "phase": "failed_laryngoscopy",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "oxygenate-between-attempts",
+      "label": "Reoxygenate by mask between attempts — oxygenation always outranks intubation",
+      "phase": "failed_laryngoscopy",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "place-sga",
+      "label": "Move to a second-generation supraglottic airway (up to 3 attempts) when intubation is declared failed",
+      "phase": "rescue",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "two-person-mask",
+      "label": "Optimize final mask ventilation: two hands, two providers, oral/nasal airways, confirmed full paralysis",
+      "phase": "rescue",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "consider-wake-up",
+      "label": "Verbalize whether waking the patient (sugammadex reversal) is still viable at each transition",
+      "phase": "rescue",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "declare-cico",
+      "label": "Declare 'cannot intubate, cannot oxygenate' out loud so the team transitions together",
+      "phase": "cico",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "perform-fona",
+      "label": "Perform scalpel cricothyroidotomy immediately: vertical incision, scalpel-bougie-tube, size 6.0 cuffed tube",
+      "phase": "fona",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "confirm-capnography",
+      "label": "Confirm ventilation with waveform capnography after every airway device, including the surgical airway",
+      "phase": "fona",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "post-event-plan",
+      "label": "Plan post-event care: convert/secure the airway, ICU disposition, airway alert documentation, ENT consult, and full disclosure to the patient",
+      "phase": "reoxygenation",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "Learners assess the airway, brief a strategy, position, and preoxygenate; induction happens about 2 minutes in.",
+    "First laryngoscopy is a grade 4 view; optimization and videolaryngoscopy do not improve it — this airway cannot be intubated.",
+    "Saturation starts falling around 4-5 minutes; learners must cap attempts at 3+1, keep reoxygenating between them, and call for help early.",
+    "A second-generation SGA fails to ventilate despite repositioning; two-person optimized mask ventilation also moves no gas.",
+    "With a flat capnograph and SpO2 in the 60s, the team declares CICO and opens the front-of-neck kit.",
+    "Scalpel cricothyroidotomy (vertical incision, scalpel-bougie-tube) restores oxygenation over a minute or two; delay instead produces hypoxic bradycardia and peri-arrest.",
+    "The debrief then covers the missed predictors, the attempt discipline, and the post-event obligations."
+  ],
+  "correctManagement": [
+    "Before induction: recognize the documented predictors (OSA, BMI 38, Mallampati 3, limited neck movement), brief plans A-D, position ramped, preoxygenate fully, and know where the front-of-neck kit is.",
+    "Plan A: videolaryngoscopy first-line, maximum 3+1 attempts, changing something meaningful each attempt (position, blade, bougie, operator); declare failed intubation aloud when capped.",
+    "Call for help and the difficult airway trolley at the first sign of difficulty — not after the third failure.",
+    "Maintain oxygenation between all attempts; attempts that cost oxygen without a plan change are harm.",
+    "Plan B: second-generation supraglottic airway, up to 3 attempts; success converts the crisis into a controlled decision (wake vs proceed).",
+    "Plan C: final optimized two-person mask ventilation with adjuncts and confirmed full neuromuscular block; consider whether waking the patient is still achievable.",
+    "Plan D: declare CICO explicitly, then scalpel cricothyroidotomy without further delay — extend the head, vertical skin incision if landmarks are impalpable, stabilize the larynx, transverse stab through the cricothyroid membrane, rotate, bougie, railroad a size 6.0 cuffed tube, inflate, ventilate.",
+    "Confirm every airway — SGA, mask, surgical — with waveform capnography.",
+    "Afterward: secure a definitive airway plan with ENT, ICU admission, document an airway alert, debrief the team, and tell the patient exactly what happened and why future anesthetics must know."
+  ],
+  "commonErrors": [
+    "Task fixation: repeated laryngoscopy with the same blade, same position, same operator — burning oxygen to repeat a failure.",
+    "Not calling for help until the situation is already CICO.",
+    "Skipping reoxygenation between attempts because 'the tube is almost in'.",
+    "Treating an SGA as a failure after one poorly seated attempt, or conversely spending five attempts on it.",
+    "Never saying the words 'failed intubation' or 'CICO', so each team member is privately on a different plan.",
+    "Delaying front-of-neck access to try 'one more' anything — the single most lethal error in this scenario.",
+    "Fumbling for a cannula or improvised kit instead of the scalpel-bougie-tube technique in the marked kit.",
+    "Forgetting capnographic confirmation after the cric, or forgetting the post-event obligations (ICU, documentation, patient disclosure)."
+  ],
+  "debrief": {
+    "points": [
+      "This airway was 'unanticipated' only on paper: OSA, obesity, Mallampati 3, and limited neck movement were documented. Airway strategy starts at the preop note, not at the first grade 4 view.",
+      "DAS 2025 structure: videolaryngoscopy first-line with a 3+1 attempt cap (plan A), second-generation SGA up to 3 attempts (plan B), final optimized two-person mask ventilation (plan C), declared CICO and front-of-neck access (plan D).",
+      "Oxygenation outranks intubation at every step — the metric that matters is SpO2 trend, not number of attempts survived.",
+      "Declaration language ('failed intubation', 'CICO') is a team synchronization tool: it forces everyone onto the same plan at the same time.",
+      "Scalpel cricothyroidotomy is the standardized rescue: vertical skin incision when landmarks are impalpable, scalpel-bougie-tube, size 6.0 cuffed tube, capnographic confirmation. Hesitation, not technique, is what kills.",
+      "Waking the patient is a live option only while oxygenation is maintainable and reversal is feasible — it must be considered aloud at each transition before CICO forecloses it.",
+      "Waveform capnography is the universal confirmation of ventilation — after the SGA, the mask, and the surgical airway alike.",
+      "Post-event care is part of the algorithm: definitive airway plan, ICU, airway alert documentation, ENT follow-up, team debrief, and honest disclosure so the patient carries the warning to every future anesthetic."
+    ],
+    "questions": [
+      "Looking back at the preop airway exam, what would you change about the induction plan — and why didn't the documented predictors change it?",
+      "What did you change between laryngoscopy attempts, and when did you decide to stop trying?",
+      "When was help called, and what would have happened here if it had been called two minutes later?",
+      "What made you declare CICO when you did? What were you waiting for, and was it worth the oxygen?",
+      "Walk through the cricothyroidotomy steps — incision orientation, the role of the bougie, tube size, and how you confirmed ventilation.",
+      "At what point did waking the patient stop being an option?",
+      "What does this patient need before leaving the hospital, and what must every future anesthetist know?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Strategy and Declarations",
+      "actionIds": ["verbalize-airway-plan", "limit-attempts-declare-failed", "declare-cico"]
+    },
+    {
+      "id": "management",
+      "label": "Oxygenation and Airway Rescue",
+      "actionIds": [
+        "optimize-preoxygenation",
+        "oxygenate-between-attempts",
+        "place-sga",
+        "two-person-mask",
+        "consider-wake-up",
+        "perform-fona",
+        "confirm-capnography"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Follow-Up",
+      "actionIds": ["call-for-help", "post-event-plan"]
+    }
+  ]
+}

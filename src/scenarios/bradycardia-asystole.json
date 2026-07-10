@@ -1,0 +1,354 @@
+{
+  "id": "bradycardia-asystole",
+  "version": "1.0.0",
+  "title": "Unstable Bradycardia During Laparoscopic Insufflation",
+  "summary": "A healthy 34-year-old woman undergoing laparoscopic ovarian cystectomy becomes profoundly bradycardic as the surgeon insufflates the abdomen — a vagal reflex from peritoneal stretch. Learners must recognize the trigger, have the surgeon release the pneumoperitoneum, give atropine per ACLS, and run the asystole algorithm if the rhythm degenerates.",
+  "tags": {
+    "topics": ["cardiac", "bradycardia", "asystole", "ACLS", "laparoscopy"],
+    "difficulty": "intermediate",
+    "trainingLevels": ["srna", "resident_junior", "resident_senior", "crna"]
+  },
+  "estimatedMinutes": 20,
+  "monitoring": { "nibpIntervalSec": 120 },
+  "learningObjectives": [
+    "Recognize progressive bradycardia on the ECG and pleth before the blood pressure cuff confirms hypotension, and connect it to peritoneal insufflation as the vagal trigger.",
+    "Treat the cause first: ask the surgeon to release the pneumoperitoneum and stop stimulation while drugs are drawn up.",
+    "Apply the ACLS bradycardia algorithm: atropine 1 mg IV repeated every 3-5 minutes (maximum 3 mg), then transcutaneous pacing and/or an epinephrine infusion 2-10 mcg/min if refractory.",
+    "Declare cardiac arrest and start high-quality CPR immediately when the rhythm degenerates to asystole, giving epinephrine 1 mg IV every 3-5 minutes per the non-shockable pathway.",
+    "Use capnography during CPR: EtCO2 reflects compression quality, and an abrupt sustained rise heralds return of spontaneous circulation.",
+    "Communicate as a team: call for help early, assign roles, and make a joint post-event plan with the surgeon."
+  ],
+  "setup": [
+    "OR configured for gynecologic laparoscopy: patient supine, ETT in place, mechanical ventilation, sevoflurane running, surgeon about to insufflate.",
+    "Labeled syringes: atropine 0.4 mg/mL, epinephrine 10 mcg/mL and 100 mcg/mL dilutions, glycopyrrolate (slower onset — a reasonable but inferior choice for unstable bradycardia).",
+    "Code cart with defibrillator/transcutaneous pacer immediately outside the room; pacing pads available.",
+    "Confederate surgeon who announces 'insufflating now' on cue, can report intra-abdominal pressure if asked, and releases the pneumoperitoneum only when explicitly asked to.",
+    "NIBP is set to cycle every 2 minutes — remind faculty that the displayed pressure lags the crisis; the ECG rate and pleth tell the real-time story.",
+    "Anesthesia record shows an uneventful induction 15 minutes ago; fentanyl 100 mcg at induction (opioids potentiate vagal tone)."
+  ],
+  "patient": {
+    "name": "Elena Marsh",
+    "age": 34,
+    "sex": "female",
+    "weightKg": 62,
+    "heightCm": 166,
+    "asa": 1,
+    "allergies": ["No known drug allergies"],
+    "medications": ["Oral contraceptive pill"],
+    "pmh": [
+      "Symptomatic right ovarian cyst scheduled for laparoscopic cystectomy",
+      "Distance runner with high resting vagal tone; resting heart rate in the high 50s",
+      "No cardiac history; normal preoperative ECG",
+      "One uneventful prior anesthetic (wisdom teeth)"
+    ],
+    "airway": {
+      "mallampati": 1,
+      "mouthOpeningCm": 5,
+      "thyromentalCm": 8,
+      "neckMobility": "normal",
+      "dentition": "Intact",
+      "notes": "Grade 1 view at intubation; 7.0 ETT secured at 21 cm; already intubated at scenario start."
+    },
+    "plan": "Laparoscopic ovarian cystectomy under general endotracheal anesthesia with sevoflurane maintenance; pneumoperitoneum to 15 mmHg."
+  },
+  "baselineVitals": {
+    "hr": 62,
+    "sbp": 112,
+    "dbp": 66,
+    "spo2": 99,
+    "etco2": 34,
+    "rr": 12,
+    "temp": 36.5,
+    "depth": 48,
+    "agentEt": 1.8,
+    "agentFi": 2.0,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "maintenance", "label": "Maintenance", "description": "Stable anesthetic before insufflation." },
+    { "id": "insufflation", "label": "Insufflation", "description": "Pneumoperitoneum established; CO2 absorption and peritoneal stretch begin." },
+    { "id": "bradycardia", "label": "Bradycardia", "description": "Vagally mediated heart rate collapse with hypotension." },
+    { "id": "arrest", "label": "Arrest", "description": "Asystole if the reflex is not interrupted — CPR and ACLS." },
+    { "id": "treatment", "label": "Treatment", "description": "Desufflation, atropine, escalation to pacing or epinephrine." },
+    { "id": "recovery", "label": "Recovery", "description": "Rhythm and pressure restored; team debriefs the plan for the case." }
+  ],
+  "events": [
+    {
+      "id": "insufflation-begins",
+      "label": "Pneumoperitoneum insufflation begins",
+      "description": "The surgeon insufflates CO2 to 15 mmHg. EtCO2 drifts up from absorption and blood pressure rises slightly from increased afterload. This is the exposure to the vagal trigger.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "etco2": 39, "sbp": 118, "dbp": 72 }, "overSec": 90 }
+      ],
+      "autoAtSec": 60,
+      "phaseHint": "insufflation"
+    },
+    {
+      "id": "vagal-bradycardia-onset",
+      "label": "Vagal bradycardia onset",
+      "description": "Peritoneal stretch triggers a vagal reflex: heart rate falls into the 40s over a minute with drifting blood pressure. The NIBP has not cycled yet — the ECG and pleth carry the story.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "hr": 44, "sbp": 92, "dbp": 54 }, "rhythm": "sinus_brady", "overSec": 60 }
+      ],
+      "autoAtSec": 180,
+      "phaseHint": "bradycardia"
+    },
+    {
+      "id": "profound-bradycardia",
+      "label": "Profound unstable bradycardia",
+      "description": "Heart rate falls to the low 30s with SBP in the 70s — unstable bradycardia by ACLS criteria (hypotension with bradycardia). Without desufflation and atropine this will degenerate.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "hr": 32, "sbp": 74, "dbp": 42, "etco2": 30 }, "overSec": 60 }
+      ],
+      "autoAtSec": 330,
+      "phaseHint": "bradycardia"
+    },
+    {
+      "id": "asystole-arrest",
+      "label": "Asystole",
+      "description": "The rhythm degenerates to asystole: flat line, no pulse, pleth lost, EtCO2 collapses. Faculty-triggered if the vagal stimulus is not removed and atropine is delayed. Requires immediate CPR and epinephrine 1 mg IV per the non-shockable algorithm.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "hr": 0, "sbp": 0, "dbp": 0, "spo2": 0, "etco2": 8 }, "rhythm": "asystole", "overSec": 15 }
+      ],
+      "phaseHint": "arrest"
+    },
+    {
+      "id": "effective-cpr",
+      "label": "High-quality CPR in progress",
+      "description": "Good compressions generate an EtCO2 in the mid-teens. Fire once compressions start; remind learners that EtCO2 below 10 mmHg suggests inadequate compression quality.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "etco2": 15 }, "overSec": 20 }
+      ],
+      "phaseHint": "arrest"
+    },
+    {
+      "id": "desufflation-response",
+      "label": "Pneumoperitoneum released",
+      "description": "The surgeon desufflates on request. With the vagal stimulus removed the heart rate begins to recover toward the high 40s — partial improvement while drugs take effect.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "hr": 48, "sbp": 88, "dbp": 52 }, "overSec": 60 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "atropine-response",
+      "label": "Atropine 1 mg IV response",
+      "description": "Atropine 1 mg IV (ACLS 2020 dose; repeat every 3-5 min to a 3 mg maximum) lifts the heart rate to the 70s and restores the pressure over about 90 seconds.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "hr": 78, "sbp": 108, "dbp": 64 }, "rhythm": "sinus", "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "epi-infusion-response",
+      "label": "Epinephrine infusion response",
+      "description": "For atropine-refractory bradycardia, an epinephrine infusion 2-10 mcg/min raises the rate to the high 80s and supports the pressure.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "hr": 88, "sbp": 112, "dbp": 68 }, "rhythm": "sinus", "overSec": 120 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "pacing-capture",
+      "label": "Transcutaneous pacing with capture",
+      "description": "Pacing pads placed and electrical capture confirmed at a set rate of 80/min with a corresponding pulse (the monitor shows a regular rhythm at the paced rate).",
+      "category": "equipment",
+      "effects": [
+        { "vitals": { "hr": 80, "sbp": 104, "dbp": 62 }, "rhythm": "sinus", "overSec": 45 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "rosc-after-cpr",
+      "label": "ROSC after CPR and epinephrine",
+      "description": "An abrupt sustained rise in EtCO2 heralds return of spontaneous circulation; a slow sinus rhythm returns with a palpable pulse. Fire after effective CPR plus arrest-dose epinephrine.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "hr": 52, "sbp": 92, "dbp": 56, "spo2": 96, "etco2": 44 }, "rhythm": "sinus_brady", "overSec": 30 }
+      ],
+      "phaseHint": "recovery"
+    },
+    {
+      "id": "stabilization-achieved",
+      "label": "Stabilization achieved",
+      "description": "Heart rate and pressure normalize; EtCO2 settles. The team discusses whether to proceed (typically yes, with slow re-insufflation at lower pressure and vagolytic cover) and documents the event.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "hr": 76, "sbp": 116, "dbp": 70, "spo2": 99, "etco2": 36, "rr": 12 }, "rhythm": "sinus", "overSec": 240 }
+      ],
+      "phaseHint": "recovery"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-bradycardia",
+      "label": "Recognize progressive bradycardia from the ECG/pleth and link it to insufflation",
+      "description": "The NIBP lags — the diagnosis is made from the falling ECG rate, not the cuff.",
+      "phase": "bradycardia",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "ask-desufflation",
+      "label": "Ask the surgeon to release the pneumoperitoneum and stop stimulation",
+      "description": "Removing the vagal stimulus is the first and fastest treatment.",
+      "phase": "bradycardia",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "give-atropine",
+      "label": "Give atropine 1 mg IV promptly, repeating every 3-5 min (max 3 mg)",
+      "phase": "bradycardia",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "administer-100-o2",
+      "label": "Ventilate with 100% oxygen and verify the airway and EtCO2",
+      "phase": "bradycardia",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help and the code cart when the bradycardia is unstable",
+      "phase": "bradycardia",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "prepare-pacing",
+      "label": "Prepare transcutaneous pacing and/or an epinephrine infusion (2-10 mcg/min) for atropine-refractory bradycardia",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "start-cpr-immediately",
+      "label": "Declare asystole and start high-quality CPR without delay",
+      "phase": "arrest",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "arrest-epinephrine",
+      "label": "Give epinephrine 1 mg IV every 3-5 minutes per the non-shockable algorithm",
+      "phase": "arrest",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "minimize-interruptions",
+      "label": "Run the arrest cleanly: 2-minute cycles, minimal pauses, EtCO2 to gauge compression quality",
+      "phase": "arrest",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "consider-reversible-causes",
+      "label": "Consider reversible causes (vagal stimulus, hypovolemia, hypoxia, embolism, deep anesthetic)",
+      "phase": "treatment",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "post-event-plan",
+      "label": "Make a joint plan with the surgeon (proceed vs abort, re-insufflation strategy) and arrange post-ROSC care if arrest occurred",
+      "phase": "recovery",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "Stable maintenance anesthesia; the surgeon insufflates about a minute in, with a mild EtCO2 rise as the only change.",
+    "Around 3 minutes, the heart rate slides into the 40s — the cuff has not cycled, so learners must read the ECG and pleth.",
+    "By about 5-6 minutes the rate is in the low 30s with SBP in the 70s: unstable bradycardia.",
+    "Learners should announce the problem, ask for desufflation, go to 100% oxygen, give atropine 1 mg IV, and call for help.",
+    "Desufflation plus atropine recovers the rate and pressure over 1-2 minutes; refractory cases need pacing or an epinephrine infusion.",
+    "If the stimulus continues untreated, faculty fires asystole: CPR, epinephrine 1 mg IV, 2-minute cycles until ROSC.",
+    "After stabilization the team decides how to resume the case — typically slow, lower-pressure re-insufflation with atropine available."
+  ],
+  "correctManagement": [
+    "Treat the cause first: ask the surgeon to release the pneumoperitoneum and pause stimulation the moment the vagal pattern is recognized.",
+    "Ventilate with 100% oxygen and confirm the airway, EtCO2, and depth of anesthesia.",
+    "Give atropine 1 mg IV for unstable bradycardia; repeat every 3-5 minutes to a maximum of 3 mg (ACLS 2020).",
+    "If atropine is ineffective: transcutaneous pacing and/or an epinephrine infusion 2-10 mcg/min (dopamine 5-20 mcg/kg/min is an alternative).",
+    "Call for help and the code cart early — before the rhythm degenerates.",
+    "On asystole: declare the arrest, start CPR immediately, and give epinephrine 1 mg IV every 3-5 minutes; asystole is not shockable.",
+    "Run 2-minute CPR cycles with minimal interruptions; use EtCO2 to gauge compression quality (below 10 mmHg suggests inadequate compressions) and watch for the abrupt EtCO2 rise of ROSC.",
+    "Search for reversible causes in parallel: persistent vagal stimulus, hypoxia, hypovolemia, embolism, anesthetic overdose.",
+    "After recovery, agree on a plan with the surgeon: usually proceed with slow re-insufflation at lower pressure, with atropine drawn up.",
+    "Document the event and the rhythm strips, and hand over the episode explicitly at the end of the case."
+  ],
+  "commonErrors": [
+    "Waiting for the next NIBP reading to 'confirm' the problem while the ECG rate falls — the cuff lags by up to two minutes.",
+    "Treating the number instead of the cause: giving atropine without asking the surgeon to desufflate, so the bradycardia recurs.",
+    "Using the old 0.5 mg atropine dose or tiny incremental doses in an unstable patient (ACLS 2020 specifies 1 mg).",
+    "Reaching for glycopyrrolate in an unstable bradycardia — its onset is slower and it is not the ACLS agent.",
+    "Failing to call for help and the code cart until after the arrest.",
+    "Delaying CPR after asystole to fiddle with the monitor, gain lines, or 'double-check' the rhythm.",
+    "Attempting to defibrillate asystole instead of running the non-shockable pathway.",
+    "Ignoring EtCO2 during CPR, losing both the quality gauge and the earliest sign of ROSC."
+  ],
+  "debrief": {
+    "points": [
+      "Peritoneal stretch during insufflation is a classic vagal trigger; young patients with high resting vagal tone and opioid pretreatment are at particular risk.",
+      "The fastest treatment for reflex bradycardia is removing the stimulus — desufflation works faster than any drug reaches the circulation.",
+      "In cuff-mode monitoring the NIBP is always stale: the ECG rate, pleth amplitude, and EtCO2 are the real-time signals. This is a monitor-literacy point, not a trivia point.",
+      "ACLS 2020 bradycardia pathway: atropine 1 mg IV q3-5min (max 3 mg) → transcutaneous pacing and/or epinephrine 2-10 mcg/min or dopamine 5-20 mcg/kg/min.",
+      "Asystole is non-shockable: high-quality CPR plus epinephrine 1 mg IV q3-5min, 2-minute cycles, and a parallel hunt for reversible causes.",
+      "Capnography during arrest does double duty: compression quality (target above 10 mmHg) and the abrupt sustained rise that announces ROSC.",
+      "Crisis resource management determines speed: declaring the problem out loud, calling for help early, and assigning compressions/drugs/timer roles.",
+      "The decision to resume surgery after a vagal arrest is a joint one — slower insufflation, lower target pressure, and vagolytics drawn up are standard precautions."
+    ],
+    "questions": [
+      "What told you the heart rate was falling — and how long would you have waited for the next cuff reading?",
+      "Why does desufflation work faster than atropine here? What does that imply about treating reflex bradycardias generally?",
+      "What is the current ACLS atropine dose and ceiling, and what are your next two moves if it fails?",
+      "At what point did this rhythm become an arrest, and what had to happen in the first 10 seconds afterward?",
+      "What was your EtCO2 during compressions, and what would a value of 8 mmHg have told you?",
+      "How did the team divide roles once help arrived, and what would you script differently?",
+      "Would you let the surgeon re-insufflate after recovery? Under what conditions?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Diagnosis",
+      "actionIds": ["recognize-bradycardia"]
+    },
+    {
+      "id": "management",
+      "label": "Bradycardia and Arrest Management",
+      "actionIds": [
+        "ask-desufflation",
+        "give-atropine",
+        "administer-100-o2",
+        "prepare-pacing",
+        "start-cpr-immediately",
+        "arrest-epinephrine",
+        "minimize-interruptions",
+        "consider-reversible-causes"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Teamwork",
+      "actionIds": ["call-for-help"]
+    },
+    {
+      "id": "disposition",
+      "label": "Recovery and Disposition",
+      "actionIds": ["post-event-plan"]
+    }
+  ]
+}

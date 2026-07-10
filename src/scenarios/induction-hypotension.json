@@ -1,0 +1,322 @@
+{
+  "id": "induction-hypotension",
+  "version": "1.0.0",
+  "title": "General Anesthesia Induction with Post-Induction Hypotension",
+  "summary": "A 68-year-old hypertensive man on lisinopril (taken the morning of surgery) develops significant hypotension after a routine propofol induction. Learners must recognize the pressure drop, treat it with vasopressors and fluid, and adjust the anesthetic.",
+  "tags": {
+    "topics": ["hemodynamics", "induction", "hypotension", "vasopressors", "geriatric anesthesia"],
+    "difficulty": "beginner",
+    "trainingLevels": ["medical_student", "srna", "resident_junior"]
+  },
+  "learningObjectives": [
+    "Identify patient factors that predispose to post-induction hypotension (age, ACE inhibitor use, hypertension, hypovolemia).",
+    "Titrate induction agents appropriately in an elderly patient on renin-angiotensin blockade.",
+    "Recognize post-induction hypotension promptly using appropriate monitoring frequency.",
+    "Select and dose vasopressors (phenylephrine vs. ephedrine) based on heart rate and clinical context.",
+    "Apply adjunctive measures: fluid bolus, reduction of volatile agent, and increased blood pressure monitoring frequency.",
+    "Generate a differential diagnosis for hypotension after induction beyond drug effect."
+  ],
+  "setup": [
+    "Standard OR setup with anesthesia machine, circle circuit, and full ASA monitors applied to the manikin.",
+    "20 g IV in the left forearm running lactated Ringer's; label a second bag of crystalloid as available for bolus.",
+    "Prepare labeled syringes: propofol, fentanyl, rocuronium, phenylephrine 100 mcg/mL, ephedrine 5 mg/mL.",
+    "Set the NIBP cycle to 5 minutes at case start so learners must consider shortening it.",
+    "Faculty confederate plays the circulating nurse and can answer questions about the patient chart.",
+    "Chart shows lisinopril taken with a sip of water at 06:00 on the day of surgery."
+  ],
+  "patient": {
+    "name": "Walter Briggs",
+    "age": 68,
+    "sex": "male",
+    "weightKg": 82,
+    "heightCm": 175,
+    "asa": 3,
+    "allergies": ["No known drug allergies"],
+    "medications": [
+      "Lisinopril 20 mg daily (taken morning of surgery)",
+      "Amlodipine 5 mg daily",
+      "Atorvastatin 40 mg nightly",
+      "Aspirin 81 mg daily (held 7 days)"
+    ],
+    "pmh": [
+      "Hypertension, moderately controlled",
+      "Hyperlipidemia",
+      "Type 2 diabetes mellitus, diet controlled",
+      "Former smoker, quit 10 years ago",
+      "NPO since midnight; clear liquids until 04:00"
+    ],
+    "airway": {
+      "mallampati": 2,
+      "mouthOpeningCm": 4.5,
+      "thyromentalCm": 7,
+      "neckMobility": "normal",
+      "dentition": "Upper partial denture, removed preoperatively",
+      "notes": "No anticipated airway difficulty; prior uneventful general anesthetic in 2019."
+    },
+    "plan": "Elective open inguinal hernia repair under general anesthesia with an endotracheal tube. Standard IV induction, sevoflurane maintenance."
+  },
+  "baselineVitals": {
+    "hr": 74,
+    "sbp": 152,
+    "dbp": 84,
+    "spo2": 96,
+    "etco2": 36,
+    "rr": 14,
+    "temp": 36.6,
+    "depth": 96,
+    "agentEt": 0,
+    "agentFi": 0,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "preinduction", "label": "Pre-induction", "description": "Room setup, monitors, preoxygenation, IV check." },
+    { "id": "induction", "label": "Induction", "description": "IV induction, airway management, start of volatile agent." },
+    { "id": "post_induction", "label": "Post-induction", "description": "Hypotension develops before surgical stimulation." },
+    { "id": "maintenance", "label": "Maintenance", "description": "Incision and ongoing hemodynamic management." },
+    { "id": "resolution", "label": "Resolution", "description": "Vitals stabilize and the case proceeds." }
+  ],
+  "events": [
+    {
+      "id": "propofol-induction",
+      "label": "Propofol induction given",
+      "description": "Propofol 1.5-2 mg/kg IV with fentanyl 1-2 mcg/kg. Depth falls to a surgical level, blood pressure drifts down modestly, patient becomes apneic and is mask ventilated.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "depth": 40, "sbp": 122, "dbp": 68, "hr": 70, "rr": 10, "etco2": 38, "spo2": 99 }, "overSec": 60 }
+      ],
+      "phaseHint": "induction"
+    },
+    {
+      "id": "start-sevoflurane",
+      "label": "Sevoflurane started at 2%",
+      "description": "After intubation, sevoflurane is dialed to 2% inspired; end-tidal climbs toward 1.8% over the next few minutes.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "agentFi": 2.0, "agentEt": 1.8, "depth": 42 }, "overSec": 180 }
+      ],
+      "phaseHint": "induction"
+    },
+    {
+      "id": "post-induction-hypotension",
+      "label": "Post-induction hypotension onset",
+      "description": "Vasodilation from propofol and sevoflurane, unopposed in a chronically ACE-inhibited patient, drops the blood pressure to 72/40. Heart rate compensation is blunted.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "sbp": 72, "dbp": 40, "hr": 78 }, "overSec": 90 }
+      ],
+      "autoAtSec": 180,
+      "phaseHint": "post_induction"
+    },
+    {
+      "id": "worsening-hypotension",
+      "label": "Hypotension worsens (untreated)",
+      "description": "If no treatment is given, MAP continues to fall: 58/32 with early tachycardia and a mild SpO2 dip. Fire if learners fail to act.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "sbp": 58, "dbp": 32, "hr": 92, "spo2": 94 }, "overSec": 120 }
+      ],
+      "phaseHint": "post_induction"
+    },
+    {
+      "id": "phenylephrine-effect",
+      "label": "Phenylephrine 100 mcg IV effect",
+      "description": "Phenylephrine 100 mcg IV bolus: SBP rises to the high 90s within about a minute with mild reflex slowing of the heart rate. May be repeated.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 98, "dbp": 56, "hr": 64 }, "overSec": 45 }
+      ],
+      "phaseHint": "post_induction"
+    },
+    {
+      "id": "ephedrine-effect",
+      "label": "Ephedrine 5-10 mg IV effect",
+      "description": "Ephedrine 5-10 mg IV bolus: mixed direct and indirect sympathomimetic effect raises both blood pressure and heart rate over 1-2 minutes.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 100, "dbp": 58, "hr": 86 }, "overSec": 60 }
+      ],
+      "phaseHint": "post_induction"
+    },
+    {
+      "id": "fluid-bolus-effect",
+      "label": "Crystalloid bolus 500 mL effect",
+      "description": "A 500 mL lactated Ringer's bolus improves preload; blood pressure rises gradually over about 4 minutes.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "sbp": 94, "dbp": 54, "hr": 74 }, "overSec": 240 }
+      ],
+      "phaseHint": "post_induction"
+    },
+    {
+      "id": "reduce-volatile-effect",
+      "label": "Sevoflurane reduced to 1%",
+      "description": "Inspired sevoflurane turned down to 1%; end-tidal falls toward 1.2% and vasodilation lessens. Depth lightens toward the upper end of the surgical range.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "agentFi": 1.0, "agentEt": 1.2, "sbp": 88, "dbp": 50, "depth": 52 }, "overSec": 120 }
+      ],
+      "phaseHint": "post_induction"
+    },
+    {
+      "id": "surgical-incision",
+      "label": "Surgical incision",
+      "description": "Skin incision provides sympathetic stimulation; blood pressure and heart rate rise if depth is adequate but hemodynamics were marginal.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "sbp": 118, "dbp": 66, "hr": 84 }, "overSec": 60 }
+      ],
+      "phaseHint": "maintenance"
+    },
+    {
+      "id": "vitals-stabilize",
+      "label": "Hemodynamics stabilize",
+      "description": "With vasopressor support, fluid, and an adjusted anesthetic, vitals return to an acceptable baseline for the case.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "sbp": 114, "dbp": 64, "hr": 72, "spo2": 99, "etco2": 36, "depth": 48 }, "overSec": 180 }
+      ],
+      "phaseHint": "resolution"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "preoxygenate",
+      "label": "Preoxygenate to EtO2 > 80% (3 min or 8 vital-capacity breaths)",
+      "phase": "preinduction",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "verify-iv",
+      "label": "Verify IV patency and running fluids before induction",
+      "phase": "preinduction",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "titrate-induction-dose",
+      "label": "Titrate a reduced propofol dose (about 1-1.5 mg/kg) given age and ACE inhibitor use",
+      "description": "Verbalizes that the patient's age, hypertension, and morning lisinopril increase hypotension risk and adjusts dosing/plan accordingly.",
+      "phase": "induction",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "recognize-hypotension",
+      "label": "Recognize post-induction hypotension (MAP < 65) and verbalize it",
+      "phase": "post_induction",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "administer-vasopressor",
+      "label": "Administer a vasopressor (phenylephrine 100 mcg IV or ephedrine 5-10 mg IV)",
+      "description": "Chooses phenylephrine if heart rate is adequate, ephedrine if relatively bradycardic; redoses as needed.",
+      "phase": "post_induction",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "give-fluid-bolus",
+      "label": "Give a crystalloid fluid bolus (250-500 mL)",
+      "phase": "post_induction",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "reduce-volatile-agent",
+      "label": "Reduce the volatile agent while hypotensive",
+      "phase": "post_induction",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "recheck-bp-cycle",
+      "label": "Shorten the NIBP cycle (1-2 min) and recheck the pressure",
+      "phase": "post_induction",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "consider-causes",
+      "label": "Verbalize a differential for the hypotension",
+      "description": "Considers drug effect, hypovolemia, anaphylaxis, measurement error, cardiac ischemia, and high intrathoracic pressure.",
+      "phase": "maintenance",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "reassess-response",
+      "label": "Reassess after each intervention and confirm MAP > 65 before proceeding",
+      "phase": "resolution",
+      "critical": false,
+      "points": 5
+    }
+  ],
+  "expectedProgression": [
+    "Learners meet the patient, review the chart (noting lisinopril taken today), apply monitors, and preoxygenate.",
+    "Standard IV induction produces expected modest blood pressure decline and a surgical depth index (~40).",
+    "About 3 minutes in, blood pressure falls to 72/40 with a blunted heart rate response before surgical stimulation.",
+    "Learners should recognize the hypotension quickly, shorten the NIBP cycle, and treat with vasopressor boluses plus a fluid bolus.",
+    "Reducing sevoflurane and repeating vasopressor doses restores MAP above 65 mmHg.",
+    "If untreated, faculty fires the worsening-hypotension event; escalating treatment is then required.",
+    "Incision provides sympathetic stimulation, after which hemodynamics stabilize and the case proceeds."
+  ],
+  "correctManagement": [
+    "Preoxygenate with a tight mask seal until end-tidal O2 exceeds 80%.",
+    "Reduce the propofol induction dose (about 1-1.5 mg/kg) and give it slowly in an elderly hypertensive on an ACE inhibitor.",
+    "Recognize hypotension early: verbalize MAP, shorten the NIBP cycle to 1-2 minutes.",
+    "Give phenylephrine 100 mcg IV when heart rate is adequate; choose ephedrine 5-10 mg IV if heart rate is low.",
+    "Bolus 250-500 mL of crystalloid to address relative hypovolemia after an overnight fast.",
+    "Reduce inspired sevoflurane while pressure is low, accepting a transiently lighter depth before incision.",
+    "Reassess blood pressure after each intervention and repeat vasopressor doses to keep MAP above 65 mmHg.",
+    "Verbalize a differential (drug effect, hypovolemia, anaphylaxis, ischemia, measurement error) and confirm no rash, no bronchospasm, normal ECG.",
+    "Communicate with the surgical team about readiness for incision once hemodynamics are acceptable."
+  ],
+  "commonErrors": [
+    "Giving a full 2 mg/kg propofol push rapidly without adjusting for age and ACE inhibitor exposure.",
+    "Leaving the NIBP cycle at 5 minutes and missing the depth of the pressure drop.",
+    "Treating with fluid alone and waiting for it to work while MAP stays below 60 mmHg.",
+    "Deepening the anesthetic or giving opioid during hypotension because of a fixed plan for incision.",
+    "Repeatedly cycling the cuff without giving any treatment (verification paralysis).",
+    "Failing to consider anaphylaxis or other causes when hypotension does not respond as expected.",
+    "Not reassessing after the first phenylephrine dose and assuming a single bolus fixed the problem."
+  ],
+  "debrief": {
+    "points": [
+      "Post-induction hypotension is common and largely predictable: age, chronic hypertension, ACE inhibitor/ARB continuation, and hypovolemia are the classic risk factors.",
+      "ACE inhibitors blunt the renin-angiotensin response to vasodilation, so hypotension is deeper and more refractory; some centers hold them the morning of surgery.",
+      "Vasopressor choice: phenylephrine for vasodilation with adequate heart rate; ephedrine when heart rate is also low; small doses, repeated, with reassessment.",
+      "Monitoring frequency should match acuity: a 5-minute cuff cycle can hide 4 minutes of profound hypotension.",
+      "The volatile agent is itself a vasodilator; temporarily reducing it is a legitimate hemodynamic intervention before stimulation.",
+      "MAP below about 65 mmHg is associated with organ injury (myocardial injury, acute kidney injury); duration matters as much as depth.",
+      "A brief verbalized differential protects against anchoring on 'it's just the propofol' when the real cause is anaphylaxis or bleeding."
+    ],
+    "questions": [
+      "What features of this patient made post-induction hypotension likely, and what would you change about the induction plan next time?",
+      "How did you decide between phenylephrine and ephedrine, and what would push you toward the other drug?",
+      "At what MAP or duration of hypotension do you become concerned about organ injury, and why?",
+      "What monitoring changes did you make (or wish you had made) once the pressure dropped?",
+      "What other diagnoses did you consider for hypotension after induction, and what would have made you act on them?",
+      "How would your management have changed if the hypotension had not responded to two rounds of vasopressor and fluid?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "preparation",
+      "label": "Preparation and Induction Technique",
+      "actionIds": ["preoxygenate", "verify-iv", "titrate-induction-dose"]
+    },
+    {
+      "id": "recognition",
+      "label": "Recognition and Monitoring",
+      "actionIds": ["recognize-hypotension", "recheck-bp-cycle", "consider-causes"]
+    },
+    {
+      "id": "management",
+      "label": "Hemodynamic Management",
+      "actionIds": ["administer-vasopressor", "give-fluid-bolus", "reduce-volatile-agent", "reassess-response"]
+    }
+  ],
+  "estimatedMinutes": 15
+}

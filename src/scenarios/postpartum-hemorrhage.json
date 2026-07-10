@@ -1,0 +1,360 @@
+{
+  "id": "postpartum-hemorrhage",
+  "version": "1.0.0",
+  "title": "Postpartum Hemorrhage with Hemorrhagic Shock",
+  "summary": "A 31-year-old woman develops uterine atony minutes after cesarean delivery of a macrosomic infant under spinal anesthesia. Bleeding outpaces the blood pressure cuff: learners must trust the quantified blood loss and heart rate trend, escalate uterotonics and tranexamic acid, activate the massive transfusion protocol, and manage an awake, deteriorating patient with the obstetric team.",
+  "tags": {
+    "topics": ["hemorrhage", "obstetric anesthesia", "transfusion", "hemorrhagic shock", "crisis management"],
+    "difficulty": "advanced",
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+  },
+  "estimatedMinutes": 30,
+  "monitoring": { "nibpIntervalSec": 120 },
+  "learningObjectives": [
+    "Recognize postpartum hemorrhage from quantified blood loss and the heart rate trend before the intermittent cuff pressure confirms it — young parturients compensate until they collapse.",
+    "Escalate uterotonics in rapid succession: oxytocin first-line, then methylergonovine 0.2 mg IM (avoid in hypertension), carboprost 250 mcg IM (avoid in asthma), and misoprostol.",
+    "Give tranexamic acid 1 g IV early — mortality benefit requires administration within 3 hours of birth.",
+    "Activate the massive transfusion protocol and resuscitate with balanced blood products, monitoring fibrinogen (kept above 200 mg/dL in obstetric hemorrhage), ionized calcium, and temperature.",
+    "Manage the anesthetic dimension: an awake patient under spinal who is bleeding out needs reassurance, and a plan for conversion to general anesthesia if shock deepens or surgical control escalates.",
+    "Communicate in closed loops with the obstetric team as control escalates from massage and uterotonics to balloon tamponade, compression sutures, and hysterectomy."
+  ],
+  "setup": [
+    "OR configured immediately post-delivery of a cesarean under spinal: patient awake with a working T4 block, infant handed off, oxytocin infusion just started, obstetricians closing the hysterotomy.",
+    "Labeled props: oxytocin infusion, methylergonovine 0.2 mg vial, carboprost 250 mcg vial, misoprostol tablets, tranexamic acid 1 g vial, calcium chloride, phenylephrine and ephedrine syringes.",
+    "A scale and sponge rack for quantitative blood loss: faculty feeds rising QBL numbers ('600... 1200... 2100 mL') when the team weighs or asks.",
+    "Blood bank props: MTP activation phone line, cooler with labeled RBC/FFP/platelet units, rapid infuser and fluid warmer.",
+    "Confederate obstetrician who reports 'the uterus is boggy' on cue, responds to closed-loop communication, and escalates through massage, balloon, B-Lynch, and (if the team stalls) the word 'hysterectomy'.",
+    "The patient is a live voice (confederate or speaker): anxious, asking questions, later drowsy and nauseated as shock deepens — her consciousness is a monitor.",
+    "NIBP cycles every 2 minutes by design: the cuff will flatter the patient between readings. The heart rate and QBL lead; the pressure lags."
+  ],
+  "patient": {
+    "name": "Amara Osei",
+    "age": 31,
+    "sex": "female",
+    "weightKg": 84,
+    "heightCm": 168,
+    "asa": 2,
+    "allergies": ["No known drug allergies"],
+    "medications": ["Prenatal vitamins", "Iron supplement"],
+    "pmh": [
+      "G3P3, now immediately post cesarean delivery for arrest of labor",
+      "Prolonged oxytocin-augmented labor before the cesarean — a primed, tired uterus",
+      "Macrosomic infant (4.4 kg) delivered 5 minutes ago",
+      "Mild anemia in the third trimester (hemoglobin 10.2 g/dL)",
+      "No hypertensive disease, no asthma — both escalation uterotonics are available"
+    ],
+    "airway": {
+      "mallampati": 2,
+      "mouthOpeningCm": 4.5,
+      "thyromentalCm": 7,
+      "neckMobility": "normal",
+      "dentition": "Intact",
+      "notes": "Awake under spinal anesthesia; airway unsecured. Term parturient — treat as a full stomach with potentially edematous airway if conversion to general anesthesia is needed."
+    },
+    "plan": "Cesarean delivery under spinal anesthesia (completed); oxytocin infusion for the third stage; closure in progress at scenario start."
+  },
+  "baselineVitals": {
+    "hr": 92,
+    "sbp": 118,
+    "dbp": 72,
+    "spo2": 98,
+    "etco2": 33,
+    "rr": 16,
+    "temp": 36.8,
+    "depth": 96,
+    "agentEt": 0,
+    "agentFi": 0,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "delivery", "label": "Post-Delivery", "description": "Infant delivered; oxytocin running; closure under way." },
+    { "id": "atony", "label": "Atony", "description": "Boggy uterus, brisk bleeding — recognition window." },
+    { "id": "hemorrhage", "label": "Ongoing Hemorrhage", "description": "Compensated shock: tachycardia leads while the cuff lags." },
+    { "id": "shock", "label": "Hemorrhagic Shock", "description": "Decompensation: hypotension, air hunger, an anxious then drowsy patient." },
+    { "id": "resuscitation", "label": "Resuscitation", "description": "Massive transfusion, uterotonic escalation, calcium, warmth." },
+    { "id": "stabilization", "label": "Stabilization", "description": "Surgical control achieved; disposition planning." }
+  ],
+  "events": [
+    {
+      "id": "atony-reported",
+      "label": "Obstetrician reports uterine atony",
+      "description": "'The uterus is boggy — there's a lot of bleeding here.' Suction canister filling; QBL 600 mL and climbing. Vitals barely move yet — this is the recognition window.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "hr": 100 }, "overSec": 60 }
+      ],
+      "autoAtSec": 90,
+      "phaseHint": "atony"
+    },
+    {
+      "id": "compensated-hemorrhage",
+      "label": "Compensated hemorrhage",
+      "description": "QBL passes 1200 mL. The heart rate climbs to the teens-over-100 and the pulse pressure narrows as catecholamines clamp down — but the last cuff reading still looks reassuring. The patient feels 'a little dizzy'.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "hr": 118, "sbp": 102, "dbp": 76, "rr": 20 }, "rhythm": "sinus_tach", "overSec": 120 }
+      ],
+      "autoAtSec": 240,
+      "phaseHint": "hemorrhage"
+    },
+    {
+      "id": "decompensated-shock",
+      "label": "Decompensated hemorrhagic shock",
+      "description": "QBL beyond 2000 mL. Compensation fails: pressure falls to the 70s, heart rate in the 130s, air hunger, nausea, and a patient who has gone quiet and pale. EtCO2 drifts down with the failing cardiac output.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "hr": 136, "sbp": 78, "dbp": 52, "spo2": 94, "rr": 26, "etco2": 26, "temp": 36.2 }, "overSec": 150 }
+      ],
+      "autoAtSec": 480,
+      "phaseHint": "shock"
+    },
+    {
+      "id": "refractory-hemorrhage",
+      "label": "Refractory hemorrhage (inadequate escalation)",
+      "description": "Without massive transfusion and uterotonic escalation, the spiral tightens: SBP in the 60s, heart rate near 150, worsening perfusion. Fire if the team is still resuscitating with crystalloid and hope.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "hr": 148, "sbp": 62, "dbp": 40, "spo2": 90, "etco2": 22 }, "overSec": 120 }
+      ],
+      "phaseHint": "shock"
+    },
+    {
+      "id": "first-line-uterotonics-response",
+      "label": "Oxytocin optimized + bimanual massage",
+      "description": "Oxytocin infusion increased with bimanual massage: the uterus firms partially and bleeding slows but does not stop — atony after a prolonged augmented labor rarely yields to first-line therapy alone.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "hr": 122, "sbp": 96, "dbp": 62 }, "overSec": 90 }
+      ],
+      "phaseHint": "hemorrhage"
+    },
+    {
+      "id": "escalated-uterotonics-response",
+      "label": "Methylergonovine + carboprost response",
+      "description": "Methylergonovine 0.2 mg IM and carboprost 250 mcg IM given in rapid succession (no hypertension, no asthma — both safe here): the obstetrician reports real tone returning; bleeding slows substantially.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "hr": 112, "sbp": 102, "dbp": 66 }, "overSec": 120 }
+      ],
+      "phaseHint": "resuscitation"
+    },
+    {
+      "id": "txa-given",
+      "label": "Tranexamic acid 1 g IV given",
+      "description": "TXA 1 g IV over 10 minutes — the WOMAN trial mortality benefit requires it within 3 hours of birth, so it belongs early, alongside (not after) the uterotonics. Log-only marker.",
+      "category": "drug",
+      "effects": [],
+      "phaseHint": "hemorrhage"
+    },
+    {
+      "id": "transfusion-response",
+      "label": "Massive transfusion running",
+      "description": "MTP cooler arrives; warmed RBCs and plasma run through the rapid infuser in a balanced ratio. Over several minutes the pressure rebuilds, the heart rate descends, and EtCO2 recovers with the cardiac output.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "hr": 104, "sbp": 106, "dbp": 66, "spo2": 97, "etco2": 30, "temp": 36.4 }, "overSec": 240 }
+      ],
+      "phaseHint": "resuscitation"
+    },
+    {
+      "id": "calcium-given",
+      "label": "Calcium replaced during transfusion",
+      "description": "After the fourth unit, ionized calcium comes back low (citrate load): calcium chloride via a good line firms the pressure — hypocalcemia is both a coagulation and a contractility problem.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 112, "dbp": 70 }, "overSec": 60 }
+      ],
+      "phaseHint": "resuscitation"
+    },
+    {
+      "id": "converted-to-ga",
+      "label": "Converted to general anesthesia",
+      "description": "For deepening shock or escalating surgical control (B-Lynch, hysterectomy), the team induces with a reduced-dose RSI and secures the airway. The monitor picture changes: ventilated, anesthetized, agent running.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "depth": 42, "rr": 12, "etco2": 34, "agentFi": 1.5, "agentEt": 1.0 }, "overSec": 90 }
+      ],
+      "phaseHint": "shock"
+    },
+    {
+      "id": "surgical-control-achieved",
+      "label": "Surgical control achieved",
+      "description": "Balloon tamponade and compression sutures hold; the uterus stays firm; bleeding stops. Vitals consolidate over five minutes and the team plans labs, ongoing products, and ICU-level observation.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "hr": 88, "sbp": 116, "dbp": 72, "spo2": 98, "etco2": 33, "rr": 16, "temp": 36.5 }, "rhythm": "sinus", "overSec": 300 }
+      ],
+      "phaseHint": "stabilization"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-hemorrhage",
+      "label": "Recognize hemorrhage from QBL and the heart rate trend — without waiting for the cuff to confirm",
+      "description": "A young parturient holds her pressure until she has lost a quarter of her blood volume. The cuff cycles every 2 minutes and always reads the past.",
+      "phase": "atony",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "quantify-blood-loss",
+      "label": "Demand quantitative blood loss: weigh sponges, read canisters, announce a running total",
+      "phase": "atony",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "activate-protocol-help",
+      "label": "Call for help and activate the obstetric hemorrhage protocol early",
+      "phase": "hemorrhage",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "iv-access-rapid-infusion",
+      "label": "Establish a second large-bore IV with a rapid infuser and fluid warmer",
+      "phase": "hemorrhage",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "escalate-uterotonics",
+      "label": "Escalate uterotonics in rapid succession: methylergonovine 0.2 mg IM, carboprost 250 mcg IM, misoprostol — screening for hypertension and asthma",
+      "phase": "hemorrhage",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "give-txa-early",
+      "label": "Give tranexamic acid 1 g IV early (within 3 hours of birth)",
+      "phase": "hemorrhage",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "activate-mtp",
+      "label": "Activate the massive transfusion protocol and transfuse balanced products — do not chase blood loss with crystalloid",
+      "phase": "shock",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "send-serial-labs",
+      "label": "Send serial labs: CBC, coagulation panel, fibrinogen (target above 200 mg/dL), ionized calcium, blood gas",
+      "phase": "resuscitation",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "replace-calcium",
+      "label": "Replace calcium during massive transfusion (citrate toxicity)",
+      "phase": "resuscitation",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "maintain-temperature",
+      "label": "Keep the patient and products warm — hypothermia feeds the coagulopathy",
+      "phase": "resuscitation",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "manage-awake-patient",
+      "label": "Manage the awake patient: explain, reassure, treat nausea, and state the conversion-to-GA trigger out loud",
+      "phase": "shock",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "closed-loop-obstetrician",
+      "label": "Maintain closed-loop communication with the obstetrician as control escalates (massage, balloon, B-Lynch, hysterectomy) and plan ICU disposition",
+      "phase": "resuscitation",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "Ninety seconds in, the obstetrician reports a boggy uterus with brisk bleeding; the vitals barely move — recognition must come from the field and the QBL.",
+    "By 4 minutes QBL passes 1200 mL with a climbing heart rate and narrowing pulse pressure while the cuff still shows a reassuring number from two minutes ago.",
+    "Learners should announce the hemorrhage, activate the protocol, secure a second line, escalate uterotonics, and give TXA within the first minutes.",
+    "By 8 minutes untreated loss becomes decompensated shock: SBP 70s, HR 130s, an anxious patient turning quiet — MTP territory.",
+    "Balanced products through a warmer rebuild the pressure over minutes; calcium after the fourth unit; serial fibrinogen guides cryoprecipitate.",
+    "If resuscitation stalls on crystalloid, faculty fires refractory hemorrhage; if surgical control escalates, the team converts to general anesthesia with a reduced-dose RSI.",
+    "Balloon tamponade and compression sutures finally hold; the team consolidates, plans ICU-level care, and debriefs the timeline against the QBL curve."
+  ],
+  "correctManagement": [
+    "Believe the field, not the cuff: QBL and heart rate trend define the hemorrhage while NIBP lags minutes behind.",
+    "Announce the emergency, call for help, and activate the institutional obstetric hemorrhage protocol at the first stage trigger.",
+    "Optimize first-line therapy: oxytocin infusion plus bimanual massage.",
+    "Escalate uterotonics without delay and in rapid succession: methylergonovine 0.2 mg IM (avoid in hypertension), carboprost 250 mcg IM repeatable every 15 minutes to 8 doses (avoid in asthma), misoprostol 600-1000 mcg by route.",
+    "Give TXA 1 g IV within 3 hours of birth; repeat once if bleeding continues after 30 minutes.",
+    "Activate the massive transfusion protocol early; transfuse RBCs, plasma, and platelets in a balanced ratio through a warmer and rapid infuser; minimize crystalloid.",
+    "Send serial labs and treat to targets: fibrinogen above 200 mg/dL (cryoprecipitate), ionized calcium (calcium chloride), temperature above 36 °C.",
+    "Support the pressure with vasopressors as a bridge — never as a substitute for volume and blood.",
+    "Manage the awake patient deliberately: explanation, reassurance, antiemetics, and a pre-stated trigger for conversion to general anesthesia (deepening shock, escalating laparotomy).",
+    "Communicate in closed loops with the obstetric team through the escalation ladder — massage, balloon tamponade, compression sutures, arterial ligation, hysterectomy — and arrange ICU-level postoperative care."
+  ],
+  "commonErrors": [
+    "Anchoring on the last normal cuff pressure while the QBL doubles — the classic obstetric trap.",
+    "Eyeballing blood loss instead of weighing it; visual estimates run 30-50% low.",
+    "Escalating uterotonics one drug at a time with long waits in between, instead of in rapid succession.",
+    "Forgetting the contraindication screen: methylergonovine in a hypertensive patient or carboprost in an asthmatic.",
+    "Giving TXA late (or never) — the mortality benefit decays with every minute past delivery.",
+    "Resuscitating a massive hemorrhage with liters of crystalloid before blood arrives, diluting what coagulation remains.",
+    "Ignoring fibrinogen: it falls first in obstetric hemorrhage, and an ordinary 'normal' value is already abnormal in pregnancy.",
+    "Forgetting calcium during rapid transfusion, or letting the patient go cold.",
+    "Leaving the awake patient uninformed and terrified, or failing to plan when spinal anesthesia stops being enough."
+  ],
+  "debrief": {
+    "points": [
+      "Uterine atony causes most postpartum hemorrhage, and this patient wore the risk factors openly: prolonged augmented labor and a macrosomic infant. Anticipation beats reaction.",
+      "Parturients compensate ferociously: heart rate and pulse pressure move long before systolic pressure. With an intermittent cuff, the NIBP is a rear-view mirror — QBL and trend are the forward view.",
+      "The uterotonic ladder (oxytocin → methylergonovine 0.2 mg IM → carboprost 250 mcg IM → misoprostol) is climbed in rapid succession, with hypertension and asthma as the two contraindication gates.",
+      "TXA 1 g IV within 3 hours of birth reduces death from bleeding (WOMAN trial) — it is a timed drug, not a last resort.",
+      "Massive transfusion in obstetrics means balanced products early, minimal crystalloid, and fibrinogen kept above 200 mg/dL — fibrinogen falls first and predicts severity.",
+      "Massive transfusion housekeeping: ionized calcium (citrate), temperature, serial labs — the lethal triad is prevented, not treated.",
+      "An awake hemorrhaging patient is unique to obstetric anesthesia: her consciousness is a perfusion monitor, her terror is real, and the conversion-to-GA decision should be made by stated trigger, not by crash.",
+      "The anesthesia and obstetric teams run parallel escalation ladders (resuscitation and surgical control); closed-loop communication is what keeps them synchronized."
+    ],
+    "questions": [
+      "When did you first believe this was a major hemorrhage — and what number convinced you: the QBL, the heart rate, or the cuff?",
+      "Walk through your uterotonic sequence and doses. What would have changed if she were hypertensive or asthmatic?",
+      "When did TXA go in relative to delivery? What deadline were you working against?",
+      "What triggered your MTP activation, and what would an earlier or later trigger have cost?",
+      "Which lab did you follow most closely, and why does fibrinogen deserve special attention in obstetric bleeding?",
+      "How did you handle the patient herself — what did you tell her, and what was your stated trigger for going to sleep?",
+      "How did communication with the obstetrician work as their ladder escalated — and who was tracking the totals out loud?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Quantification",
+      "actionIds": ["recognize-hemorrhage", "quantify-blood-loss"]
+    },
+    {
+      "id": "resuscitation",
+      "label": "Hemostatic Resuscitation",
+      "actionIds": [
+        "iv-access-rapid-infusion",
+        "escalate-uterotonics",
+        "give-txa-early",
+        "activate-mtp",
+        "send-serial-labs",
+        "replace-calcium",
+        "maintain-temperature"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Teamwork",
+      "actionIds": ["activate-protocol-help", "closed-loop-obstetrician"]
+    },
+    {
+      "id": "anesthetic-management",
+      "label": "Anesthetic Management of the Awake Patient",
+      "actionIds": ["manage-awake-patient"]
+    }
+  ]
+}

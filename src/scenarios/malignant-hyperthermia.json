@@ -1,0 +1,489 @@
+{
+  "id": "malignant-hyperthermia",
+  "version": "1.0.0",
+  "title": "Malignant Hyperthermia",
+  "summary": "A 19-year-old male undergoing general anesthesia with sevoflurane and succinylcholine for tibial ORIF develops rising end-tidal CO2, tachycardia, rigidity, and hyperthermia. Learners must recognize fulminant malignant hyperthermia, discontinue triggering agents, and treat with dantrolene and supportive measures.",
+  "tags": {
+    "topics": [
+      "temperature/metabolic",
+      "malignant hyperthermia",
+      "dantrolene",
+      "hyperkalemia",
+      "crisis management"
+    ],
+    "difficulty": "advanced",
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+  },
+  "learningObjectives": [
+    "Recognize the early clinical signs of malignant hyperthermia, especially a rising EtCO2 that is refractory to increased minute ventilation.",
+    "Differentiate malignant hyperthermia from other causes of intraoperative hypercarbia (hypoventilation, exhausted CO2 absorber, laparoscopic insufflation, thyroid storm, sepsis).",
+    "Initiate definitive treatment: discontinue triggering agents, hyperventilate with 100% oxygen at high fresh gas flows, and administer dantrolene 2.5 mg/kg IV rapidly.",
+    "Manage secondary complications of MH including hyperkalemia, dysrhythmias, mixed acidosis, and hyperthermia.",
+    "Demonstrate effective crisis resource management: calling for help, task delegation for dantrolene reconstitution, and use of the MHAUS hotline.",
+    "Plan appropriate post-crisis disposition including ICU admission and monitoring for recrudescence."
+  ],
+  "setup": [
+    "Configure the room as an orthopedic OR mid-case: draped right lower extremity, anesthesia machine running sevoflurane with a circle system, ETT secured at 22 cm.",
+    "Place the MH cart (with mock dantrolene vials, sterile water, activated charcoal filters, cold saline, and ice packs) in the hallway; it should arrive only after learners call for it.",
+    "Prepare a confederate circulating nurse who can retrieve the MH cart, mix dantrolene, and call the MHAUS hotline (1-800-644-9737) when directed.",
+    "Prepare a confederate surgeon who initially resists stopping the case and asks 'how much longer do you need?'.",
+    "Have a mock arterial blood gas result available: pH 7.06, PaCO2 78, PaO2 141, HCO3 16, lactate 7.1, K+ 6.4, CK pending.",
+    "Brief learners that induction (propofol, succinylcholine for rapid intubation after a full-stomach concern) occurred 45 minutes ago and the case is proceeding uneventfully on sevoflurane."
+  ],
+  "patient": {
+    "name": "Tyler Brooks",
+    "age": 19,
+    "sex": "male",
+    "weightKg": 74,
+    "heightCm": 180,
+    "asa": 1,
+    "allergies": ["No known drug allergies"],
+    "medications": ["Ibuprofen as needed for sports injuries"],
+    "pmh": [
+      "Healthy collegiate soccer player, no prior surgeries or anesthetics",
+      "Closed right tibial shaft fracture sustained this afternoon",
+      "Vague family history: an uncle reportedly had 'a bad problem with anesthesia' years ago, details unknown",
+      "No personal history of muscle disease, cramping, or heat intolerance"
+    ],
+    "airway": {
+      "mallampati": 1,
+      "mouthOpeningCm": 5,
+      "thyromentalCm": 7,
+      "neckMobility": "normal",
+      "dentition": "Intact, no loose teeth",
+      "notes": "Uncomplicated direct laryngoscopy, grade 1 view; intubated with succinylcholine given recent oral intake"
+    },
+    "plan": "General anesthesia with sevoflurane maintenance via 7.5 ETT for open reduction and internal fixation of right tibia. Induction 45 minutes ago with propofol and succinylcholine (recent meal). Case expected to run another 60-90 minutes."
+  },
+  "baselineVitals": {
+    "hr": 78,
+    "sbp": 112,
+    "dbp": 66,
+    "spo2": 99,
+    "etco2": 36,
+    "rr": 12,
+    "temp": 36.4,
+    "depth": 45,
+    "agentEt": 2.0,
+    "agentFi": 2.2,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    {
+      "id": "maintenance",
+      "label": "Uneventful Maintenance",
+      "description": "Stable sevoflurane maintenance 45 minutes after induction with succinylcholine; surgery proceeding on the tibia."
+    },
+    {
+      "id": "early_signs",
+      "label": "Early Signs",
+      "description": "EtCO2 rises out of proportion to ventilation, with tachycardia and subtle rigidity; learners should build a differential and suspect MH."
+    },
+    {
+      "id": "fulminant_mh",
+      "label": "Fulminant MH",
+      "description": "Runaway hypermetabolism: extreme hypercarbia, rapidly climbing temperature, tachycardia, mixed acidosis, and hyperkalemic dysrhythmia risk."
+    },
+    {
+      "id": "treatment",
+      "label": "Definitive Treatment",
+      "description": "Triggering agents off, hyperventilation with 100% O2, dantrolene administration, active cooling, and hyperkalemia management."
+    },
+    {
+      "id": "stabilization",
+      "label": "Stabilization and Disposition",
+      "description": "Vitals trend toward normal; team arranges labs, ICU admission, MHAUS consultation, and monitoring for recrudescence."
+    }
+  ],
+  "events": [
+    {
+      "id": "rising-etco2",
+      "label": "Unexplained rising EtCO2",
+      "description": "EtCO2 climbs from 36 to 55 mmHg over 5 minutes despite the learner increasing minute ventilation. Capnograph waveform remains normal in shape; CO2 absorber is fresh and there is no insufflation. This should feel refractory to ventilator adjustments.",
+      "category": "physiology",
+      "effects": [
+        {
+          "vitals": { "etco2": 55 },
+          "overSec": 300
+        }
+      ],
+      "autoAtSec": 120,
+      "phaseHint": "early_signs"
+    },
+    {
+      "id": "early-tachycardia",
+      "label": "Unexplained tachycardia",
+      "description": "Sinus tachycardia to 118 despite adequate anesthetic depth and analgesia; no surgical stimulus change, no hypovolemia. An early sympathetic sign of hypermetabolism.",
+      "category": "physiology",
+      "effects": [
+        {
+          "vitals": { "hr": 118, "sbp": 128, "dbp": 76 },
+          "rhythm": "sinus_tach",
+          "overSec": 180
+        }
+      ],
+      "autoAtSec": 300,
+      "phaseHint": "early_signs"
+    },
+    {
+      "id": "masseter-rigidity",
+      "label": "Generalized rigidity noted",
+      "description": "The surgeon comments that the leg 'feels stiff' and the anesthetist notices jaw and limb rigidity despite an appropriate depth index. Read aloud: 'The patient's muscles feel board-like; the surgeon cannot flex the knee.' Recall the earlier succinylcholine dose.",
+      "category": "physiology",
+      "effects": [
+        {
+          "vitals": { "depth": 42 },
+          "overSec": 60
+        }
+      ],
+      "autoAtSec": 420,
+      "phaseHint": "early_signs"
+    },
+    {
+      "id": "fulminant-mh",
+      "label": "Fulminant MH crisis",
+      "description": "Full hypermetabolic crisis: EtCO2 climbs above 90 mmHg, core temperature rises roughly 0.5 degrees C every few minutes toward 39.8, HR 140. Announce that the blood in the field looks dark and the ABG shows mixed respiratory and metabolic acidosis (pH 7.06, PaCO2 78, lactate 7.1, K+ 6.4).",
+      "category": "physiology",
+      "effects": [
+        {
+          "vitals": { "etco2": 92, "hr": 140, "sbp": 138, "dbp": 82, "spo2": 94 },
+          "rhythm": "sinus_tach",
+          "overSec": 420
+        },
+        {
+          "vitals": { "temp": 39.8 },
+          "overSec": 600
+        }
+      ],
+      "autoAtSec": 600,
+      "phaseHint": "fulminant_mh"
+    },
+    {
+      "id": "hyperkalemic-vtach",
+      "label": "Ventricular ectopy to VT (hyperkalemia)",
+      "description": "Faculty-triggered when learners have not yet treated hyperkalemia: peaked T waves and multifocal PVCs degrade into ventricular tachycardia with a pulse. K+ 6.9 on repeat gas.",
+      "category": "circulation",
+      "effects": [
+        {
+          "vitals": { "hr": 165, "sbp": 82, "dbp": 48 },
+          "rhythm": "vtach",
+          "overSec": 60
+        }
+      ],
+      "phaseHint": "fulminant_mh"
+    },
+    {
+      "id": "vfib-arrest",
+      "label": "Untreated deterioration: VF arrest",
+      "description": "Faculty-triggered if dantrolene is substantially delayed or hyperkalemia is ignored: the rhythm degenerates to ventricular fibrillation and the patient arrests. Proceed to ACLS with continued MH treatment.",
+      "category": "circulation",
+      "effects": [
+        {
+          "rhythm": "vfib",
+          "vitals": { "hr": 0, "sbp": 0, "dbp": 0, "spo2": 62, "etco2": 18 },
+          "overSec": 30
+        }
+      ],
+      "phaseHint": "fulminant_mh"
+    },
+    {
+      "id": "volatile-off-response",
+      "label": "Response: volatile discontinued, 100% O2 high flows",
+      "description": "Trigger when learners turn off sevoflurane, run 10+ L/min fresh gas with 100% O2, and hyperventilate (with or without charcoal filters). Agent washes out; hypercarbia slows but does not correct without dantrolene.",
+      "category": "resolution",
+      "effects": [
+        {
+          "vitals": { "agentFi": 0, "spo2": 99 },
+          "overSec": 60
+        },
+        {
+          "vitals": { "agentEt": 0 },
+          "overSec": 300
+        },
+        {
+          "vitals": { "etco2": 80 },
+          "overSec": 300,
+          "afterSec": 60
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "dantrolene-response",
+      "label": "Response: dantrolene 2.5 mg/kg IV given",
+      "description": "Trigger after the team pushes reconstituted dantrolene 2.5 mg/kg IV rapidly (about 185 mg for this 74 kg patient; each 20 mg vial mixed with 60 mL sterile water, or one 250 mg nanocrystalline vial). Over 5-10 minutes EtCO2 and HR fall; temperature plateaus, then drifts down.",
+      "category": "drug",
+      "effects": [
+        {
+          "vitals": { "etco2": 46, "hr": 96, "sbp": 118, "dbp": 70 },
+          "rhythm": "sinus_tach",
+          "overSec": 420
+        },
+        {
+          "vitals": { "temp": 39.6 },
+          "overSec": 180
+        },
+        {
+          "vitals": { "temp": 38.4 },
+          "overSec": 600,
+          "afterSec": 180
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "cooling-response",
+      "label": "Response: active cooling measures",
+      "description": "Trigger when learners begin active cooling (cold IV saline, ice to axillae/groin/neck, cooling blanket, exposed patient). Temperature falls faster toward 38; remind the team to stop cooling at 38 to avoid overshoot.",
+      "category": "resolution",
+      "effects": [
+        {
+          "vitals": { "temp": 38.0 },
+          "overSec": 600
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "hyperkalemia-treated",
+      "label": "Response: hyperkalemia treated",
+      "description": "Trigger after calcium chloride or gluconate plus insulin/dextrose (and bicarbonate) are given: ectopy resolves and any VT converts back to sinus tachycardia with recovering pressure.",
+      "category": "drug",
+      "effects": [
+        {
+          "vitals": { "hr": 112, "sbp": 116, "dbp": 68 },
+          "rhythm": "sinus_tach",
+          "overSec": 180
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "defib-rosc",
+      "label": "Response: defibrillation and ROSC",
+      "description": "Trigger after effective ACLS (CPR, defibrillation, epinephrine) plus ongoing MH and hyperkalemia treatment during a VF arrest: return of spontaneous circulation with sinus tachycardia.",
+      "category": "resolution",
+      "effects": [
+        {
+          "vitals": { "hr": 124, "sbp": 98, "dbp": 58, "spo2": 96, "etco2": 52 },
+          "rhythm": "sinus_tach",
+          "overSec": 120
+        }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "stabilized",
+      "label": "Response: stabilization on dantrolene",
+      "description": "Trigger once dantrolene, cooling, and hyperkalemia treatment are all in place: vitals settle near normal. Team should now discuss redosing criteria, ICU transfer, labs (ABG, K+, CK, coags, urine myoglobin), and MHAUS hotline follow-up.",
+      "category": "resolution",
+      "effects": [
+        {
+          "vitals": { "hr": 88, "sbp": 112, "dbp": 66, "spo2": 99, "etco2": 40, "rr": 14, "temp": 37.6, "depth": 50 },
+          "rhythm": "sinus",
+          "overSec": 300
+        }
+      ],
+      "phaseHint": "stabilization"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-etco2",
+      "label": "Recognize EtCO2 rise out of proportion to ventilation",
+      "description": "Verbalizes that EtCO2 is climbing despite increased minute ventilation and that this is abnormal for the case.",
+      "phase": "early_signs",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "rule-out-other-causes",
+      "label": "Rule out other causes of hypercarbia",
+      "description": "Checks for hypoventilation/circuit leak, exhausted CO2 absorber, rebreathing, and external CO2 sources (no insufflation in this case); considers sepsis and thyroid storm on the differential.",
+      "phase": "early_signs",
+      "critical": false,
+      "points": 8
+    },
+    {
+      "id": "discontinue-volatile",
+      "label": "Discontinue sevoflurane immediately",
+      "description": "Turns off the vaporizer as soon as MH is suspected and converts to a non-triggering technique (propofol infusion).",
+      "phase": "treatment",
+      "critical": true,
+      "points": 18
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help and the MH cart",
+      "description": "Declares an MH emergency, calls for additional personnel, requests the MH cart, and asks the surgeon to abort or expedite the case.",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "hyperventilate-100-o2",
+      "label": "Hyperventilate with 100% O2 at high fresh gas flows",
+      "description": "Sets FiO2 1.0 with fresh gas flows of at least 10 L/min and increases minute ventilation 2-3x to clear CO2.",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "give-dantrolene",
+      "label": "Give dantrolene 2.5 mg/kg IV rapid push",
+      "description": "Orders and administers dantrolene 2.5 mg/kg IV rapidly (about 185 mg for 74 kg), delegates reconstitution, and states it may be repeated every 5-10 minutes up to 10 mg/kg until signs abate.",
+      "phase": "treatment",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "charcoal-filters",
+      "label": "Apply activated charcoal filters",
+      "description": "Places activated charcoal filters on inspiratory and expiratory limbs (or changes machine/circuit if unavailable) to scrub residual volatile agent.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 6
+    },
+    {
+      "id": "active-cooling",
+      "label": "Begin active cooling for temp above 38.5",
+      "description": "Starts cold IV saline, surface cooling with ice to axillae/groin/neck, and exposes the patient; plans to stop cooling at 38 degrees C.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "treat-hyperkalemia",
+      "label": "Treat hyperkalemia",
+      "description": "Gives IV calcium (chloride 10 mg/kg or gluconate 30 mg/kg), regular insulin 10 units with dextrose 50 g, and sodium bicarbonate for the acidosis; anticipates dysrhythmias.",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "send-labs",
+      "label": "Send ABG, electrolytes, CK, and coags",
+      "description": "Obtains arterial blood gas with potassium, creatine kinase, lactate, coagulation studies, and urine myoglobin; places arterial line and urinary catheter if not present.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 8
+    },
+    {
+      "id": "avoid-ccb",
+      "label": "Avoid calcium channel blockers",
+      "description": "Explicitly avoids verapamil/diltiazem for dysrhythmias (risk of hyperkalemic cardiovascular collapse with dantrolene) and uses standard ACLS agents instead.",
+      "phase": "treatment",
+      "critical": false,
+      "points": 8
+    },
+    {
+      "id": "call-mhaus",
+      "label": "Call the MHAUS hotline",
+      "description": "Delegates a call to the MHAUS 24-hour hotline (1-800-644-9737) for expert guidance.",
+      "phase": "stabilization",
+      "critical": false,
+      "points": 6
+    },
+    {
+      "id": "plan-icu",
+      "label": "Plan ICU admission and monitoring for recrudescence",
+      "description": "Arranges ICU admission for at least 24 hours, continues dantrolene 1 mg/kg every 4-6 hours (or infusion), and monitors for recrudescence, myoglobinuric renal injury, and DIC.",
+      "phase": "stabilization",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "counsel-family-referral",
+      "label": "Discuss family implications and testing referral",
+      "description": "Verbalizes the plan to counsel the patient and family about MH susceptibility, first-degree relative risk, and referral for caffeine-halothane contracture or RYR1 genetic testing.",
+      "phase": "stabilization",
+      "critical": false,
+      "points": 5
+    }
+  ],
+  "expectedProgression": [
+    "Minutes 0-2: stable maintenance anesthesia; learners review the chart and note the vague family history and the succinylcholine dose at induction.",
+    "Minutes 2-8: EtCO2 climbs from 36 to the mid-50s despite increased minute ventilation, followed by unexplained sinus tachycardia to 118; learners should work a differential and voice suspicion of MH.",
+    "Minutes 7-10: generalized/masseter-type rigidity is reported by the surgeon, sharply raising the pretest probability of MH.",
+    "Minutes 10-17: without definitive treatment the crisis becomes fulminant: EtCO2 above 90, HR 140, temperature climbing about 0.5 degrees C every few minutes toward 39.8, and a mixed acidosis with K+ 6.4 on ABG.",
+    "If hyperkalemia is untreated, ventricular ectopy progresses to VT; prolonged delay in dantrolene leads to VF arrest requiring ACLS plus continued MH therapy.",
+    "Once sevoflurane is off, ventilation is maximized, and dantrolene 2.5 mg/kg is given, EtCO2 and HR fall over 5-10 minutes and temperature plateaus then declines, accelerated by active cooling.",
+    "Stabilization: vitals normalize, repeat labs are sent, and the team arranges ICU care, continued dantrolene dosing, MHAUS consultation, and family counseling."
+  ],
+  "correctManagement": [
+    "Recognize rising EtCO2 refractory to increased minute ventilation as the earliest and most sensitive sign of MH, especially with tachycardia and rigidity after sevoflurane and succinylcholine exposure.",
+    "Systematically exclude other causes of hypercarbia (hypoventilation, circuit valve failure, exhausted absorber, CO2 insufflation, sepsis, thyroid storm) without delaying MH treatment once suspicion is high.",
+    "Immediately discontinue the volatile agent, call for help and the MH cart, and convert to TIVA with propofol.",
+    "Hyperventilate with 100% oxygen at fresh gas flows of 10 L/min or more, increasing minute ventilation 2-3 times normal; apply activated charcoal filters to the circuit.",
+    "Administer dantrolene 2.5 mg/kg IV as a rapid push, delegating reconstitution (20 mg vials in 60 mL sterile water each, or a 250 mg nanocrystalline formulation); repeat every 5-10 minutes to effect, up to about 10 mg/kg.",
+    "Treat hyperkalemia aggressively with IV calcium, insulin with dextrose, and bicarbonate; treat ventricular dysrhythmias with standard ACLS drugs (amiodarone, lidocaine) and never with calcium channel blockers.",
+    "Begin active cooling for core temperature above 38.5-39 degrees C with cold IV saline and surface cooling, stopping at 38 to avoid hypothermic overshoot.",
+    "Place an arterial line and urinary catheter; send ABG, potassium, CK, lactate, coagulation studies, and urine myoglobin; maintain urine output above 1-2 mL/kg/h to protect against myoglobinuric renal injury.",
+    "Ask the surgical team to abort or rapidly conclude the operation.",
+    "Call the MHAUS hotline (1-800-644-9737) for expert support and report the case to the North American MH Registry.",
+    "Admit to the ICU for at least 24 hours with continued dantrolene (about 1 mg/kg every 4-6 hours) and monitoring for recrudescence (occurs in roughly a quarter of cases) and for DIC.",
+    "Counsel the patient and family on MH susceptibility, document the event prominently, and refer for contracture or RYR1/CACNA1S genetic testing."
+  ],
+  "commonErrors": [
+    "Attributing the rising EtCO2 solely to hypoventilation and repeatedly adjusting the ventilator instead of building a differential.",
+    "Treating tachycardia with beta-blockade or deepening the volatile anesthetic, which increases the trigger exposure.",
+    "Delaying dantrolene while waiting for a temperature rise; hyperthermia is a late sign of MH.",
+    "Failing to delegate dantrolene reconstitution, leaving one person mixing vials while resuscitation stalls.",
+    "Forgetting activated charcoal filters or leaving the vaporizer on while treating downstream physiology.",
+    "Using calcium channel blockers for dysrhythmias, risking profound hyperkalemic cardiovascular collapse in the presence of dantrolene.",
+    "Neglecting hyperkalemia until ventricular dysrhythmias appear.",
+    "Ending vigilance after initial stabilization: no ICU plan, no repeat dantrolene, and no monitoring for recrudescence or myoglobinuric renal injury."
+  ],
+  "debrief": {
+    "points": [
+      "MH pathophysiology: RYR1/CACNA1S mutations cause uncontrolled sarcoplasmic calcium release with volatile agents or succinylcholine, producing a hypermetabolic crisis; rising EtCO2 is the earliest reliable sign.",
+      "The significance of a vague family anesthetic history and how to elicit and act on it preoperatively (nontriggering technique, no succinylcholine, prepared machine).",
+      "Priorities and parallel processing during the crisis: agent off, help called, hyperventilation, and dantrolene should happen nearly simultaneously through delegation.",
+      "Dantrolene logistics: dosing (2.5 mg/kg, repeat to 10 mg/kg), reconstitution workload with 20 mg vials versus newer 250 mg formulations, and why every OR needs a stocked MH cart within 10 minutes.",
+      "Management of secondary threats: hyperkalemia treatment, the contraindication to calcium channel blockers, cooling endpoints, and protecting the kidneys from myoglobin.",
+      "Crisis resource management observed in the session: role clarity, closed-loop communication, use of cognitive aids (MHAUS card), and managing the surgeon's production pressure.",
+      "Post-crisis obligations: ICU monitoring for recrudescence, MHAUS hotline and registry, documentation, and family counseling with testing referral."
+    ],
+    "questions": [
+      "What was the first moment you suspected MH, and what would have helped you commit to the diagnosis sooner?",
+      "How did you weigh the other causes of rising EtCO2, and how do you decide when to stop ruling out and start treating?",
+      "Walk me through how the team divided tasks once MH was declared. What worked and what would you change?",
+      "Why is dantrolene the definitive therapy, and how would your management change if it took 20 minutes to arrive?",
+      "How would you have responded if the rhythm had degenerated to VF earlier in the crisis?",
+      "What does this patient and his family need from you after the event, in the ICU and beyond?",
+      "How would you anesthetize this patient for his next operation?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Diagnosis",
+      "actionIds": ["recognize-etco2", "rule-out-other-causes"]
+    },
+    {
+      "id": "management",
+      "label": "Crisis Management",
+      "actionIds": [
+        "discontinue-volatile",
+        "hyperventilate-100-o2",
+        "give-dantrolene",
+        "charcoal-filters",
+        "active-cooling",
+        "treat-hyperkalemia",
+        "avoid-ccb",
+        "send-labs"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Teamwork",
+      "actionIds": ["call-for-help", "call-mhaus"]
+    },
+    {
+      "id": "disposition",
+      "label": "Disposition and Follow-up",
+      "actionIds": ["plan-icu", "counsel-family-referral"]
+    }
+  ],
+  "estimatedMinutes": 25
+}

@@ -1,0 +1,350 @@
+{
+  "id": "intraop-bronchospasm",
+  "version": "1.0.0",
+  "title": "Severe Intraoperative Bronchospasm in an Asthmatic Patient",
+  "summary": "A 28-year-old man with poorly controlled asthma develops severe bronchospasm shortly after intubation, when incision begins under a still-light anesthetic. Learners must read the shark-fin capnograph, exclude mechanical causes, deepen the anesthetic, escalate bronchodilators to epinephrine, and recognize breath-stacking hypotension that only a circuit disconnect will fix.",
+  "tags": {
+    "topics": ["respiratory", "bronchospasm", "asthma", "capnography"],
+    "difficulty": "intermediate",
+    "trainingLevels": ["srna", "resident_junior", "resident_senior", "crna"]
+  },
+  "estimatedMinutes": 20,
+  "learningObjectives": [
+    "Recognize bronchospasm from the prolonged-upslope (shark-fin) capnograph, rising peak airway pressures, and wheeze — and grade severity by the falling EtCO2 and SpO2 as the chest goes silent.",
+    "Exclude the mimics first: kinked or obstructed ETT, endobronchial intubation, circuit problems, aspiration, pneumothorax, and anaphylaxis.",
+    "Treat in escalating order: 100% oxygen with hand ventilation, deepen the anesthetic, albuterol 6-8 puffs via an in-line adapter, then IV epinephrine for severe or refractory spasm.",
+    "Ventilate an obstructed chest safely: slow rate, long expiratory time, and permissive hypercapnia to avoid dynamic hyperinflation.",
+    "Recognize breath-stacking (auto-PEEP) as a cause of hypotension and treat it by disconnecting the circuit to allow full exhalation.",
+    "Know the second-line agents — ipratropium, magnesium, ketamine, hydrocortisone — and the postoperative disposition of a patient after life-threatening bronchospasm."
+  ],
+  "setup": [
+    "OR configured just after intubation for an open umbilical hernia repair: ETT secured, mechanical ventilation started, sevoflurane being introduced, surgeon prepping and eager to start.",
+    "Labeled props: albuterol MDI with in-line circuit adapter, ipratropium MDI, syringes of propofol, ketamine, epinephrine 10 mcg/mL and 100 mcg/mL dilutions, magnesium sulfate bag, hydrocortisone vial.",
+    "A suction catheter at the head of the bed so learners can concretely pass it down the ETT to exclude obstruction.",
+    "Confederate circulator who can report 'audible wheeze, almost no breath sounds now' when asked to auscultate late in the crisis.",
+    "Ventilator alarm cues: faculty should verbally report rising peak inspiratory pressures (e.g. '38... 44... 50 cmH2O') since the simulated monitor does not display airway pressure.",
+    "Preop note: poorly controlled asthma with an emergency visit for an exacerbation 3 months ago; used his albuterol inhaler in the preop bay this morning."
+  ],
+  "patient": {
+    "name": "Darnell Reed",
+    "age": 28,
+    "sex": "male",
+    "weightKg": 82,
+    "heightCm": 178,
+    "asa": 3,
+    "allergies": ["No known drug allergies"],
+    "medications": [
+      "Albuterol MDI, used most days",
+      "Fluticasone inhaler, admits poor adherence",
+      "Montelukast 10 mg nightly"
+    ],
+    "pmh": [
+      "Asthma since childhood; emergency department visit for exacerbation 3 months ago, never intubated",
+      "Vapes nicotine daily",
+      "Symptomatic umbilical hernia scheduled for open repair",
+      "Frequent night cough and albuterol use in the past month — poorly controlled by GINA criteria"
+    ],
+    "airway": {
+      "mallampati": 2,
+      "mouthOpeningCm": 4.5,
+      "thyromentalCm": 7.5,
+      "neckMobility": "normal",
+      "dentition": "Intact",
+      "notes": "Grade 1 view; 8.0 ETT secured at 22 cm; intubated 2 minutes before scenario start with breath sounds initially equal."
+    },
+    "plan": "Open umbilical hernia repair under general endotracheal anesthesia; sevoflurane maintenance being established at scenario start."
+  },
+  "baselineVitals": {
+    "hr": 88,
+    "sbp": 128,
+    "dbp": 78,
+    "spo2": 99,
+    "etco2": 36,
+    "rr": 12,
+    "temp": 36.6,
+    "depth": 50,
+    "agentEt": 0.8,
+    "agentFi": 2.5,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "post_intubation", "label": "Post-Intubation", "description": "ETT just placed; anesthetic still light while sevoflurane washes in." },
+    { "id": "onset", "label": "Bronchospasm Onset", "description": "Shark-fin capnograph, rising peak pressures, audible wheeze." },
+    { "id": "severe_bronchospasm", "label": "Severe Bronchospasm", "description": "Near-silent chest: EtCO2 barely registers, desaturation, hemodynamic strain." },
+    { "id": "treatment", "label": "Treatment", "description": "Deepening, bronchodilators, epinephrine, ventilator strategy." },
+    { "id": "resolution", "label": "Resolution", "description": "Airflow restored; capnograph normalizes; disposition planning." }
+  ],
+  "events": [
+    {
+      "id": "incision-light-anesthesia",
+      "label": "Incision under light anesthesia",
+      "description": "The surgeon begins while end-tidal sevoflurane is still low. Heart rate and pressure bump with stimulation — the airways of a poorly controlled asthmatic are primed to react.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "hr": 98, "sbp": 138, "dbp": 84 }, "overSec": 45 }
+      ],
+      "autoAtSec": 120,
+      "phaseHint": "post_intubation"
+    },
+    {
+      "id": "bronchospasm-onset",
+      "label": "Bronchospasm onset",
+      "description": "The capnograph develops a prolonged upsloping (shark-fin) expiratory phase and EtCO2 climbs as emptying slows. Peak pressures rise (report '38... 44 cmH2O'), wheeze is audible, and SpO2 drifts down.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "etco2": 43, "spo2": 94, "hr": 104 }, "capnoShape": "bronchospasm", "overSec": 90 }
+      ],
+      "autoAtSec": 210,
+      "phaseHint": "onset"
+    },
+    {
+      "id": "severe-bronchospasm",
+      "label": "Severe bronchospasm — near-silent chest",
+      "description": "Airflow nearly ceases: the capnograph trace shrinks (EtCO2 toward 18 — little gas is moving), SpO2 falls to the low 80s, and the blood pressure starts to sag as intrathoracic pressure climbs. Peak pressures 50+ cmH2O.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "etco2": 18, "spo2": 82, "hr": 118, "sbp": 108, "dbp": 64 }, "rhythm": "sinus_tach", "overSec": 120 }
+      ],
+      "autoAtSec": 390,
+      "phaseHint": "severe_bronchospasm"
+    },
+    {
+      "id": "auto-peep-hypotension",
+      "label": "Breath-stacking hypotension (auto-PEEP)",
+      "description": "Aggressive bagging without expiratory time stacks breaths: dynamic hyperinflation raises intrathoracic pressure, venous return collapses, and the pressure falls to 68/40. Fire if learners bag fast. The fix is counterintuitive — stop ventilating and open the circuit.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "sbp": 68, "dbp": 40, "hr": 128, "spo2": 78 }, "overSec": 60 }
+      ],
+      "phaseHint": "severe_bronchospasm"
+    },
+    {
+      "id": "circuit-disconnect-response",
+      "label": "Circuit disconnect — trapped gas released",
+      "description": "Disconnecting the circuit for 20-30 seconds lets the hyperinflated chest empty; venous return and blood pressure recover promptly. Resume ventilation slowly afterward.",
+      "category": "equipment",
+      "effects": [
+        { "vitals": { "sbp": 100, "dbp": 60, "hr": 112 }, "overSec": 40 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "deepen-anesthetic-response",
+      "label": "Anesthetic deepened",
+      "description": "Sevoflurane opened up (with a propofol bolus, or ketamine for its bronchodilation): spasm eases partially — EtCO2 recovers toward 26 and SpO2 to the high 80s, but the capnograph stays obstructed.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "etco2": 26, "spo2": 88, "agentEt": 2.4, "agentFi": 4.0, "depth": 40 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "albuterol-response",
+      "label": "Albuterol 6-8 puffs via in-line adapter",
+      "description": "First-line bronchodilator through the ETT (repeat as needed; much of each puff deposits in the circuit, so generous dosing is expected): wheeze loosens, EtCO2 toward 30, SpO2 to the low 90s.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "etco2": 30, "spo2": 92 }, "overSec": 120 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "epinephrine-response",
+      "label": "Epinephrine IV response (severe/refractory spasm)",
+      "description": "Titrated IV epinephrine (10-100 mcg boluses, roughly 1 mcg/kg, escalating to an infusion if needed) is the drug for life-threatening bronchospasm: airflow returns, SpO2 climbs, at the cost of tachycardia.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "spo2": 94, "etco2": 33, "hr": 124, "sbp": 122, "dbp": 74 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "ventilator-adjusted",
+      "label": "Ventilator adjusted for obstruction",
+      "description": "Rate slowed to ~8/min with a long expiratory time (I:E 1:3 to 1:4), accepting a high CO2 (permissive hypercapnia) to avoid re-stacking breaths.",
+      "category": "equipment",
+      "effects": [
+        { "vitals": { "rr": 8, "etco2": 48, "sbp": 116, "dbp": 70 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "second-line-adjuncts",
+      "label": "Second-line agents given",
+      "description": "Ipratropium via the circuit, magnesium sulfate 2 g IV over 20 minutes, ketamine 10-20 mg boluses, and hydrocortisone 200 mg IV (steroid benefit is delayed but starts now). Slow additional improvement.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "spo2": 95, "etco2": 36 }, "overSec": 180 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "bronchospasm-resolves",
+      "label": "Bronchospasm resolves",
+      "description": "The capnograph squares off to a normal plateau, EtCO2 and SpO2 normalize, and peak pressures fall. The team discusses whether to proceed and where the patient recovers.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "etco2": 38, "spo2": 98, "hr": 94, "sbp": 124, "dbp": 74, "rr": 10 }, "rhythm": "sinus", "capnoShape": "normal", "overSec": 240 }
+      ],
+      "phaseHint": "resolution"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-bronchospasm",
+      "label": "Recognize bronchospasm from the shark-fin capnograph, rising peak pressures, and wheeze",
+      "phase": "onset",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "exclude-mechanical-causes",
+      "label": "Hand-ventilate on 100% oxygen and exclude mimics: pass a suction catheter, check ETT depth, listen bilaterally",
+      "description": "Kinked/obstructed ETT, endobronchial intubation, circuit failure, aspiration, and pneumothorax must be ruled out before committing to the bronchospasm pathway.",
+      "phase": "onset",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "deepen-anesthesia",
+      "label": "Deepen the anesthetic (volatile, propofol, or ketamine) — light anesthesia is the trigger",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "give-albuterol",
+      "label": "Give albuterol 6-8 puffs via an in-line adapter and repeat as needed",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "differentiate-anaphylaxis",
+      "label": "Actively consider anaphylaxis: check the blood pressure trend, look for rash/flushing, review recent drugs",
+      "description": "Isolated bronchospasm with a maintained pressure early on argues against anaphylaxis — but say so explicitly.",
+      "phase": "onset",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help when the chest goes quiet and ask the surgeon to pause",
+      "phase": "severe_bronchospasm",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "adjust-ventilation",
+      "label": "Slow the rate, lengthen expiration (I:E 1:3-1:4), and accept hypercapnia",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "disconnect-circuit",
+      "label": "Recognize breath-stacking hypotension and disconnect the circuit to let the chest empty",
+      "phase": "severe_bronchospasm",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "give-epinephrine-severe",
+      "label": "Give titrated IV epinephrine (10-100 mcg boluses) for severe or refractory bronchospasm",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "second-line-agents",
+      "label": "Add second-line agents: ipratropium, magnesium 2 g IV over 20 min, ketamine, hydrocortisone 200 mg IV",
+      "phase": "treatment",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "plan-disposition",
+      "label": "Update the surgical team and plan disposition: extended PACU or ICU observation, continued bronchodilators, and steroids",
+      "phase": "resolution",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "Scenario opens two minutes after intubation with the anesthetic still light; incision starts around 2 minutes in.",
+    "By 3-4 minutes the capnograph develops a shark-fin upslope with climbing EtCO2 and reported peak pressures in the 40s — bronchospasm.",
+    "Learners should go to 100% oxygen, hand-ventilate to feel the compliance, exclude tube and circuit causes, deepen the anesthetic, and start albuterol.",
+    "By 6-7 minutes untreated spasm becomes severe: near-silent chest with EtCO2 in the teens and SpO2 in the low 80s — IV epinephrine territory.",
+    "If learners bag hard and fast, faculty fires breath-stacking hypotension; the circuit disconnect that fixes it is the scenario's signature counterintuitive move.",
+    "With deepening, albuterol, epinephrine, and an obstruction-friendly ventilator strategy, the spasm loosens over several minutes and the capnograph squares off.",
+    "The team then decides whether to proceed and commits to extended postoperative respiratory monitoring."
+  ],
+  "correctManagement": [
+    "Switch to 100% oxygen and hand-ventilate to assess compliance directly.",
+    "Exclude the mimics systematically: pass a suction catheter down the ETT (kink/plug), check depth against the teeth (endobronchial), listen to both sides (pneumothorax), scan the circuit, and consider aspiration and anaphylaxis.",
+    "Ask the surgeon to pause stimulation and call for help early — severe bronchospasm can arrest.",
+    "Deepen the anesthetic: open the volatile (sevoflurane is a bronchodilator), or use propofol or ketamine boluses; avoid histamine-releasing drugs.",
+    "Give albuterol 6-8 puffs via an in-line MDI adapter and repeat — circuit deposition means generous dosing.",
+    "For severe or refractory spasm, give titrated IV epinephrine 10-100 mcg boluses (about 1 mcg/kg), escalating to an infusion if needed.",
+    "Ventilate for obstruction: slow rate, long expiratory time (I:E 1:3-1:4), and permissive hypercapnia rather than normal numbers.",
+    "If the pressure falls with a tight, hyperinflated chest, disconnect the circuit for 20-30 seconds to release trapped gas, then resume gently.",
+    "Add second-line agents: ipratropium via the circuit, magnesium sulfate 2 g IV over 20 minutes, ketamine, and hydrocortisone 200 mg IV.",
+    "Afterward, decide jointly whether to proceed, keep bronchodilators and steroids running, and arrange extended PACU or ICU respiratory monitoring."
+  ],
+  "commonErrors": [
+    "Treating the ventilator instead of the patient: silencing the pressure alarm and turning the rate up, which stacks breaths and drops the blood pressure.",
+    "Skipping the mechanical checklist — a kinked tube or endobronchial intubation reads exactly like bronchospasm until a catheter and a depth check exclude it.",
+    "Leaving the anesthetic light while reaching for drugs: stimulation under light anesthesia is the driver, and deepening is the fastest treatment.",
+    "Giving 2 albuterol puffs and expecting an effect — most of each puff deposits in the circuit before reaching the bronchi.",
+    "Delaying IV epinephrine in a silent chest out of arrhythmia fear.",
+    "Chasing a normal EtCO2 with aggressive ventilation instead of accepting hypercapnia.",
+    "Missing anaphylaxis when hypotension joins bronchospasm — the two crises share treatment (epinephrine) but not workup and disposition.",
+    "Sending a patient who needed epinephrine for bronchospasm to routine day-surgery discharge."
+  ],
+  "debrief": {
+    "points": [
+      "The capnograph is the earliest objective bronchospasm monitor: a prolonged upslope appears before desaturation, and in severe spasm the EtCO2 falls because almost no gas moves — a low number can mean a worse chest, not a better one.",
+      "Bronchospasm under anesthesia is usually triggered by airway instrumentation or surgical stimulation under a light anesthetic in a susceptible patient; deepening is both treatment and prevention.",
+      "The mechanical differential (tube kink, plug, endobronchial intubation, circuit fault, pneumothorax, aspiration, anaphylaxis) must be actively excluded — no drug fixes a kinked tube.",
+      "Escalation ladder: 100% O2 and hand ventilation → deepen → albuterol via in-line adapter (6-8 puffs, repeated) → IV epinephrine 10-100 mcg titrated → infusion. Second line: ipratropium, magnesium 2 g IV, ketamine, hydrocortisone.",
+      "Ventilating an obstructed chest is about expiratory time: slow rate, I:E 1:3-1:4, permissive hypercapnia. A 'normal' minute ventilation is the enemy.",
+      "Dynamic hyperinflation (auto-PEEP) causes hypotension by strangling venous return; the treatment — disconnecting the circuit — feels wrong and saves the patient. It is also a differential for PEA in any obstructed, ventilated patient.",
+      "Epinephrine treats both severe bronchospasm and anaphylaxis, which buys time even when the diagnosis is uncertain — but the two diagnoses diverge in workup (tryptase, allergy referral) and must be distinguished afterward.",
+      "A patient who needed epinephrine for bronchospasm needs extended monitoring, continued bronchodilators, steroids, and an explicit handoff — not a routine discharge pathway."
+    ],
+    "questions": [
+      "What was the first signal that this was bronchospasm, and how did the capnograph shape drive your diagnosis?",
+      "Which mechanical mimics did you exclude, and how — what did the suction catheter and depth check each rule out?",
+      "Why is deepening the anesthetic first-line treatment here? Which agents would you pick and which would you avoid?",
+      "When did IV epinephrine become the right drug, and what dose did you start with?",
+      "The blood pressure fell as the chest got tighter — walk through why, and why disconnecting the circuit fixed it.",
+      "What ventilator settings did you choose afterward, and what CO2 were you willing to accept?",
+      "How would you tell this apart from anaphylaxis, and what changes if you can't?",
+      "What does this patient need postoperatively, and what do you tell the next team?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Differential",
+      "actionIds": ["recognize-bronchospasm", "exclude-mechanical-causes", "differentiate-anaphylaxis"]
+    },
+    {
+      "id": "management",
+      "label": "Bronchodilation and Ventilation",
+      "actionIds": [
+        "deepen-anesthesia",
+        "give-albuterol",
+        "give-epinephrine-severe",
+        "adjust-ventilation",
+        "disconnect-circuit",
+        "second-line-agents"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Disposition",
+      "actionIds": ["call-for-help", "plan-disposition"]
+    }
+  ]
+}

@@ -1,0 +1,345 @@
+{
+  "id": "venous-air-embolism",
+  "version": "1.0.0",
+  "title": "Venous Air Embolism During Sitting Craniotomy",
+  "summary": "A 57-year-old man in the sitting position for a posterior fossa craniotomy entrains air through an open venous channel during bone work. The only early clue is an abrupt, otherwise unexplained fall in EtCO2 on an otherwise pristine monitor. Learners must call the diagnosis from the capnograph, get the surgeon flooding the field, reposition, aspirate the central line, and support the circulation before air lock becomes PEA.",
+  "tags": {
+    "topics": ["embolic", "venous air embolism", "neurosurgery", "capnography", "crisis management"],
+    "difficulty": "advanced",
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+  },
+  "estimatedMinutes": 25,
+  "monitoring": { "artLine": true },
+  "learningObjectives": [
+    "Recognize venous air embolism from an abrupt, unexplained fall in EtCO2 — the earliest routine-monitor sign — during at-risk surgery (sitting position, operative site above the heart, open venous channels).",
+    "State the detection hierarchy (TEE and precordial Doppler are more sensitive than capnography) and why the capnograph is nonetheless the everyday sentinel.",
+    "Execute the immediate response: notify the surgeon to flood the field and wax bone edges, stop further entrainment, and go to 100% oxygen (discontinuing nitrous oxide if in use).",
+    "Use positioning physiology: lower the operative site to or below heart level, with left-lateral/head-down (Durant) positioning for hemodynamically significant air, plus gentle jugular venous compression to slow entrainment.",
+    "Aspirate air from the multi-orifice central venous catheter and support the circulation with volume and vasopressors; treat cardiovascular collapse from air lock as PEA with immediate CPR.",
+    "Communicate the crisis and the abort/expedite decision with the surgical team, and plan postoperative disposition."
+  ],
+  "setup": [
+    "OR configured mid-craniotomy: patient in the sitting position with head pins, ETT in place, mechanical ventilation, sevoflurane maintenance (no nitrous oxide), arterial line transducing at the tragus, and a multi-orifice central venous catheter positioned at the cavo-atrial junction with an aspiration syringe on a stopcock.",
+    "The scenario relies on live beat-to-beat arterial pressure — confirm artLine mode so learners see the hemodynamic collapse in real time.",
+    "Labeled syringes: phenylephrine, ephedrine, epinephrine 10 mcg/mL and 100 mcg/mL dilutions; pressurized crystalloid line.",
+    "Confederate neurosurgeon at the field who, when notified, can flood the field with saline, apply bone wax, and report 'I see an open channel in the bone edge' — and who keeps drilling obliviously if nobody speaks up.",
+    "Precordial Doppler prop (optional): faculty can voice the classic change in Doppler sounds as a confirmatory cue for programs that use one.",
+    "Preop imaging note: posterior fossa meningioma near the transverse sinus — the anatomic reason this case entrains air."
+  ],
+  "patient": {
+    "name": "Gerald Whitfield",
+    "age": 57,
+    "sex": "male",
+    "weightKg": 90,
+    "heightCm": 180,
+    "asa": 3,
+    "allergies": ["No known drug allergies"],
+    "medications": ["Amlodipine 5 mg daily", "Levetiracetam 500 mg twice daily (perioperative seizure prophylaxis)"],
+    "pmh": [
+      "Posterior fossa meningioma abutting the transverse sinus, presenting with headache and ataxia",
+      "Hypertension, controlled",
+      "Patent foramen ovale excluded on preoperative bubble study (documented — ask learners why that mattered for position choice)",
+      "No prior anesthetics of note"
+    ],
+    "airway": {
+      "mallampati": 2,
+      "mouthOpeningCm": 4.5,
+      "thyromentalCm": 7.5,
+      "neckMobility": "normal",
+      "dentition": "Intact",
+      "notes": "Grade 1 view at intubation; 8.0 armored ETT secured at 23 cm; head fixed in pins, flexed for posterior fossa access — the airway is inaccessible mid-case."
+    },
+    "plan": "Sitting-position suboccipital craniotomy for posterior fossa meningioma under general endotracheal anesthesia; arterial line zeroed at the tragus; multi-orifice CVC for air aspiration; no nitrous oxide."
+  },
+  "baselineVitals": {
+    "hr": 72,
+    "sbp": 124,
+    "dbp": 76,
+    "spo2": 99,
+    "etco2": 33,
+    "rr": 12,
+    "temp": 36.3,
+    "depth": 45,
+    "agentEt": 1.9,
+    "agentFi": 2.1,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "maintenance", "label": "Maintenance", "description": "Stable sitting craniotomy; dura not yet open." },
+    { "id": "entrainment", "label": "Air Entrainment", "description": "Bone work opens a venous channel; EtCO2 falls while everything else looks fine." },
+    { "id": "massive_vae", "label": "Massive VAE", "description": "Ongoing entrainment: hemodynamic deterioration toward air-lock PEA." },
+    { "id": "treatment", "label": "Treatment", "description": "Flood the field, reposition, aspirate the line, support the circulation." },
+    { "id": "stabilization", "label": "Stabilization", "description": "Entrainment controlled; recovery and disposition planning." }
+  ],
+  "events": [
+    {
+      "id": "bone-work-begins",
+      "label": "Drilling near the transverse sinus",
+      "description": "The surgeon starts bone work at the skull edge near the transverse sinus. No vital change yet — this marks the exposure to the entrainment risk.",
+      "category": "surgical",
+      "effects": [],
+      "autoAtSec": 90,
+      "phaseHint": "maintenance"
+    },
+    {
+      "id": "subtle-etco2-decline",
+      "label": "Abrupt unexplained EtCO2 fall",
+      "description": "EtCO2 drops from 33 to 26 over a minute with a stable pressure, rate, and saturation. Nothing else has changed: no circuit leak, no ventilator change. This isolated capnograph signal IS the diagnosis — and the anchoring trap.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "etco2": 26 }, "overSec": 60 }
+      ],
+      "autoAtSec": 240,
+      "phaseHint": "entrainment"
+    },
+    {
+      "id": "progressive-vae",
+      "label": "Progressive air entrainment",
+      "description": "Air keeps entering: EtCO2 falls toward 18 as dead space grows, the arterial trace sags beat by beat, the heart rate climbs, and saturation drifts down. The surgeon, unprompted, keeps drilling.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "etco2": 18, "sbp": 92, "dbp": 58, "hr": 104, "spo2": 94 }, "rhythm": "sinus_tach", "overSec": 120 }
+      ],
+      "autoAtSec": 420,
+      "phaseHint": "massive_vae"
+    },
+    {
+      "id": "air-lock-pea",
+      "label": "Cardiovascular collapse: air-lock PEA",
+      "description": "A large air bolus locks the right ventricular outflow tract: the arterial trace flattens, organized complexes continue without a pulse, EtCO2 collapses. Fire if entrainment continues unrecognized. CPR (which also helps break up the air lock) and arrest-dose epinephrine are required.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "hr": 44, "sbp": 0, "dbp": 0, "spo2": 0, "etco2": 6 }, "rhythm": "pea", "overSec": 20 }
+      ],
+      "phaseHint": "massive_vae"
+    },
+    {
+      "id": "field-flooded",
+      "label": "Surgeon floods the field and waxes bone",
+      "description": "On notification the surgeon floods the field with saline, applies bone wax to the open channel, and lowers the exposure. Entrainment stops: EtCO2 begins to recover and the pressure steadies — partial improvement, not yet resolution.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "etco2": 24, "sbp": 100, "dbp": 62, "hr": 98 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "fio2-100",
+      "label": "100% oxygen",
+      "description": "FiO2 to 1.0 (and nitrous oxide off, had it been running — N2O expands intravascular air). Saturation recovers; the denitrogenation also shrinks the embolus over time.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "spo2": 98 }, "overSec": 45 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "durant-reposition",
+      "label": "Table adjusted: site below heart, left-lateral tilt",
+      "description": "The table is lowered to bring the operative site to heart level with head-down, left-lateral (Durant) tilt for the hemodynamically significant air load — raising venous pressure at the wound and moving air away from the RV outflow tract.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "sbp": 106, "dbp": 66, "etco2": 27 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "cvc-aspiration",
+      "label": "Air aspirated from the central line",
+      "description": "Aspiration from the multi-orifice CVC at the cavo-atrial junction returns frothy air — diagnostic and therapeutic. The pressure and EtCO2 improve further.",
+      "category": "equipment",
+      "effects": [
+        { "vitals": { "etco2": 30, "sbp": 110, "dbp": 68, "hr": 90 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "vasopressor-support",
+      "label": "Volume and vasopressor support",
+      "description": "Pressurized crystalloid plus vasopressor/inotrope boluses support right-heart perfusion while the embolus clears.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 118, "dbp": 72, "hr": 86 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "rosc-after-cpr",
+      "label": "ROSC after CPR and epinephrine",
+      "description": "CPR fragments the air lock and epinephrine restores output: the arterial trace returns with a rising EtCO2. Fire after effective CPR plus arrest-dose epinephrine if collapse occurred.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "hr": 110, "sbp": 88, "dbp": 54, "spo2": 95, "etco2": 38 }, "rhythm": "sinus_tach", "overSec": 30 }
+      ],
+      "phaseHint": "massive_vae"
+    },
+    {
+      "id": "stabilization-achieved",
+      "label": "Stabilization achieved",
+      "description": "No further entrainment; hemodynamics and EtCO2 normalize. The team decides whether to expedite or abort, and plans postoperative ICU monitoring and a discussion of position for any return trip.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "hr": 78, "sbp": 122, "dbp": 74, "spo2": 99, "etco2": 33, "rr": 12 }, "rhythm": "sinus", "overSec": 300 }
+      ],
+      "phaseHint": "stabilization"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-vae",
+      "label": "Announce suspected venous air embolism from the abrupt unexplained EtCO2 fall during bone work",
+      "description": "In a sitting craniotomy, an isolated EtCO2 drop is VAE until proven otherwise.",
+      "phase": "entrainment",
+      "critical": true,
+      "points": 20
+    },
+    {
+      "id": "verbalize-differential",
+      "label": "Verbalize and rapidly exclude the differential for a falling EtCO2: circuit disconnect/leak, ventilator change, low cardiac output, other embolism",
+      "phase": "entrainment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "notify-surgeon-flood",
+      "label": "Notify the surgeon immediately: flood the field with saline, wax the bone, control the entry site",
+      "phase": "entrainment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "oxygen-100",
+      "label": "Go to 100% oxygen (and discontinue nitrous oxide if in use)",
+      "phase": "entrainment",
+      "critical": true,
+      "points": 10
+    },
+    {
+      "id": "reposition-patient",
+      "label": "Lower the operative site to or below heart level; use head-down, left-lateral (Durant) tilt for significant air",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "jugular-compression",
+      "label": "Apply gentle bilateral jugular venous compression to slow entrainment and help the surgeon find the open channel",
+      "phase": "treatment",
+      "critical": false,
+      "points": 5
+    },
+    {
+      "id": "aspirate-cvc",
+      "label": "Aspirate air from the multi-orifice central venous catheter",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "hemodynamic-support",
+      "label": "Support the circulation: pressurized fluids and vasopressor/inotrope boluses for the failing right heart",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help once the diagnosis is declared — this crisis has simultaneous tasks",
+      "phase": "massive_vae",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "start-cpr-if-pea",
+      "label": "Treat cardiovascular collapse as PEA: immediate CPR (which also fragments the air lock) and arrest-dose epinephrine",
+      "phase": "massive_vae",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "plan-disposition",
+      "label": "Decide abort vs expedite with the surgeon and plan ICU-level postoperative monitoring; document the event and the position discussion",
+      "phase": "stabilization",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "Stable sitting craniotomy; bone work near the transverse sinus begins about 90 seconds in.",
+    "At about 4 minutes the EtCO2 falls from 33 to 26 with everything else pristine — the diagnostic window. Strong learners announce VAE here.",
+    "Unrecognized, entrainment progresses by 7 minutes: EtCO2 to 18, sagging arterial trace, tachycardia, mild desaturation.",
+    "The correct cascade: tell the surgeon (flood/wax), 100% O2, lower the site with left-lateral head-down tilt, jugular compression, aspirate the CVC, support the pressure, call for help.",
+    "Each intervention buys partial recovery; together they stop entrainment and clear the air over several minutes.",
+    "If the team anchors elsewhere, faculty fires air-lock PEA: CPR and epinephrine, then ROSC once entrainment is controlled.",
+    "Stabilization ends with the abort/expedite decision, ICU planning, and a debrief anchored on the capnograph trend."
+  ],
+  "correctManagement": [
+    "Treat an abrupt unexplained EtCO2 fall during at-risk surgery as venous air embolism until proven otherwise; check the circuit in seconds, not minutes.",
+    "Notify the surgeon immediately — flooding the field, waxing bone edges, and lowering the exposure stops further entrainment and is the single most important step.",
+    "Ventilate with 100% oxygen; discontinue nitrous oxide (it diffuses into and expands air emboli).",
+    "Lower the operative site to or below right atrial level; for hemodynamically significant air use head-down, left-lateral (Durant) positioning to keep air out of the RV outflow tract.",
+    "Apply gentle bilateral jugular venous compression to raise venous pressure at the wound and slow entrainment.",
+    "Aspirate the multi-orifice central venous catheter — recovered air is both diagnostic and therapeutic.",
+    "Support the right heart: pressurized volume plus vasopressor/inotrope boluses (epinephrine for collapse physiology).",
+    "If output is lost, treat as PEA: immediate CPR (external compressions also help fragment the air lock) and epinephrine 1 mg IV per ACLS.",
+    "Once stable, decide with the surgeon whether to expedite or abort, and admit to ICU-level monitoring; hyperbaric therapy is a consideration for large or paradoxical emboli.",
+    "Document the event, and record the detection and position discussion for any future surgery."
+  ],
+  "commonErrors": [
+    "Explaining away the EtCO2 fall — 'sampling line,' 'ventilator,' 'she's just light' — while air keeps entraining. The isolated capnograph signal is the diagnosis.",
+    "Diagnosing VAE but not telling the surgeon in plain words to flood the field — the anesthesia-side maneuvers cannot outrun an open venous channel.",
+    "Leaving the patient sitting with the wound above the heart throughout the crisis.",
+    "Forgetting the central line placed for exactly this purpose, or aspirating a single-orifice distal port slowly and giving up.",
+    "Treating hypotension with vasopressors alone while entrainment continues — treating the number, not the cause.",
+    "Continuing nitrous oxide (where used), which expands every bubble already in the circulation.",
+    "Delaying CPR when the arterial trace flattens because 'the ECG still looks organized' — that is the definition of PEA.",
+    "Skipping the postoperative conversation: ICU monitoring, documentation, and the position/PFO discussion for future procedures."
+  ],
+  "debrief": {
+    "points": [
+      "VAE occurs whenever the operative site sits above the heart with noncollapsible venous channels open — sitting craniotomy is the classic setting, but shoulder arthroscopy, cesarean delivery, and laparoscopy all produce it.",
+      "Detection hierarchy: TEE is most sensitive, then precordial Doppler, then EtCO2 — but capnography is on every anesthetic, which makes the abrupt unexplained EtCO2 fall the everyday sentinel sign. Air raises dead space: perfusion falls while ventilation continues, so exhaled CO2 drops.",
+      "The response is simultaneous, not sequential: surgeon floods/waxes, 100% O2, site below the heart, jugular compression, CVC aspiration, hemodynamic support — which is why calling for help belongs early.",
+      "Positioning physiology: raising venous pressure at the wound stops entrainment; left-lateral head-down keeps a large bubble away from the RV outflow tract.",
+      "Nitrous oxide expands air emboli and must be discontinued instantly; 100% oxygen both supports the patient and shrinks the bubble by denitrogenation.",
+      "Massive VAE kills by air lock — mechanical RV outflow obstruction producing PEA. CPR is both circulation and treatment: compressions help fragment the air.",
+      "A preoperative bubble study for PFO matters in sitting cases because paradoxical embolism converts a venous event into stroke or coronary embolism.",
+      "The capnograph trend plot is the debrief's spine: when the EtCO2 broke, when someone said 'VAE' out loud, and the gap between the two is the whole lesson."
+    ],
+    "questions": [
+      "When the EtCO2 first fell, what was your differential — and what made VAE rise to the top (or not)?",
+      "Why does air in the pulmonary circulation lower the end-tidal CO2? What other monitors would have caught it earlier?",
+      "What did you say to the surgeon, and how long after the EtCO2 break did you say it?",
+      "Walk through the positioning moves and the physiology behind each one.",
+      "What role did the central line play, and what does recovering frothy air tell you?",
+      "If the arterial trace had flattened with an organized ECG, what would you have done in the first ten seconds?",
+      "Why was the preoperative bubble study relevant to this case, and how would a PFO have changed your management?",
+      "Would you let the case continue after stabilization? Who decides, and on what grounds?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Diagnosis",
+      "actionIds": ["recognize-vae", "verbalize-differential"]
+    },
+    {
+      "id": "management",
+      "label": "Entrainment Control and Resuscitation",
+      "actionIds": [
+        "notify-surgeon-flood",
+        "oxygen-100",
+        "reposition-patient",
+        "jugular-compression",
+        "aspirate-cvc",
+        "hemodynamic-support",
+        "start-cpr-if-pea"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Disposition",
+      "actionIds": ["call-for-help", "plan-disposition"]
+    }
+  ]
+}
