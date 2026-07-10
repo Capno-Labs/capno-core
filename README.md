@@ -1,6 +1,6 @@
 # CAPNO Studio — Anesthesia Simulation Lab Platform
 
-[![CI](https://github.com/Capno-Labs/capno/actions/workflows/ci.yml/badge.svg)](https://github.com/Capno-Labs/capno/actions/workflows/ci.yml)
+[![CI](https://github.com/Capno-Labs/capno-core/actions/workflows/ci.yml/badge.svg)](https://github.com/Capno-Labs/capno-core/actions/workflows/ci.yml)
 
 CAPNO Studio is an open, installable web app for running realistic anesthesia scenarios in a simulation lab. Faculty drive a simulated patient monitor in real time — vitals, rhythms, and prebuilt clinical events — while students follow on a full-screen OR-style **student monitor** on a projector, wall display, or iPad. Scenarios come from the built-in **case library and editor**, and every session ends in a structured, printable **debrief report** with a timeline, action assessment, scoring rubric, and suggested debrief questions.
 

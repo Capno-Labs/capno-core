@@ -104,7 +104,7 @@ export default function HomePage() {
           capno.app
         </a>{' '}
         ·{' '}
-        <a className="underline hover:text-slate-400" href="https://github.com/Capno-Labs/capno">
+        <a className="underline hover:text-slate-400" href="https://github.com/Capno-Labs/capno-core">
           GitHub
         </a>{' '}
         ·{' '}
