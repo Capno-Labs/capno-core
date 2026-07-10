@@ -173,12 +173,11 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — covers Vercel, self-hosted Node
 ## Roadmap ideas
 
 - Server-authoritative session host (WebSocket adapter) for multi-room installations
-- Learner self-service session review; LMS (LTI) integration
+- Learner self-service session review
 - Vital-sign *physiology models* (drug PK/PD, baroreflex) layered on the ramp engine
 - Waveform artifact library (motion, electrocautery, disconnects) and audible alarms/beep tones
 - Multi-monitor layouts (anesthesia machine screen, ventilator loops, agent analyzer)
 - Scenario branching graphs with guarded transitions (currently: phases + faculty judgment)
-- Cross-session analytics dashboards per cohort/institution (premium)
 
 ## License
 

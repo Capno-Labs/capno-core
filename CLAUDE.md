@@ -40,10 +40,16 @@ monitor ticks and reacts to a slider change and an event.
    either, update: the other one, `docs/scenario.schema.md`, every file in
    `src/scenarios/`, the editor's `blankScenario()`, and the
    `SCHEMA_REFERENCE` prompt constant in `src/lib/llm/generator.ts`.
-3. **The faculty controller is the single authority.** The engine runs only
-   in `controllerStore`; student displays render broadcast snapshots and send
-   nothing except `hello`. Do not add student→faculty mutations or a second
-   tick loop.
+3. **One authority per session.** Faculty authority is the principle; the
+   browser `controllerStore` is today's implementation of it. Exactly one
+   authoritative engine instance drives a session — a server-authoritative
+   host (see the README roadmap) may take that role *instead* someday, but
+   never alongside it, and never as a second tick loop for the same session.
+   Student displays render broadcast snapshots and send nothing except
+   `hello` — no student→faculty mutations of simulation state. Session
+   *metadata* recorded on the faculty side (e.g., a learner roster attached
+   to a session and its archive) is compatible with this invariant; learner
+   input through the student display is not.
 4. **Snapshots stay JSON-serializable.** No Dates, Maps, functions, or class
    instances in `SimSnapshot` — a test enforces round-tripping, and both the
    sync channel and localStorage archive depend on it.
@@ -51,8 +57,12 @@ monitor ticks and reacts to a slider change and an event.
    optional and must stay behind `supabaseConfigured()` checks; LLM features
    (`src/lib/llm/`) are optional and must stay behind `llmConfigured()` /
    `useLlmConfigured()` — unconfigured means zero AI affordances rendered and
-   zero network calls. Bundled scenarios are statically imported — never
-   fetched.
+   zero network calls. "By default" means *unconfigured*: a deployment that
+   ships pre-configured (e.g., a hosted build providing Supabase and an LLM
+   gateway through env vars) is a legitimate state of this same code, not a
+   violation. The requirement is that the code paths stay optional — not
+   that no build may enable them. Bundled scenarios are statically
+   imported — never fetched.
 6. **No new heavy dependencies without strong reason.** PDF export is print
    CSS on purpose; waveforms are hand-drawn canvas on purpose. Do not add
    jsPDF, chart libraries, or UI kits for incremental work.
@@ -66,6 +76,32 @@ monitor ticks and reacts to a slider change and an event.
 8. **Safety text stays.** "Simulation only — not for clinical use"
    disclaimers (home page, debrief report, README) must not be removed. The
    faculty PIN is advisory, not security — never describe it otherwise.
+
+## Where features belong (open core vs. hosted)
+
+Capno is an open-core project: this repo is the complete, self-hostable
+simulator; Capno Labs builds a hosted product on top of it (consuming this
+core unmodified) that adds organization-level services. The placement test:
+
+- **Belongs here:** value realized inside a single session on one lab
+  setup — engine physiology, monitor fidelity, scenario authoring, the
+  debrief for that session, local archives, offline operation.
+- **Belongs in the hosted layer, not here:** value that emerges across
+  sessions, learners, or an organization (cohort/institution analytics,
+  longitudinal learner records, LMS/LTI, SSO), or that requires an operated
+  service (managed hosting, managed LLM keys, a curated content library).
+- **Extension points belong here and are welcome:** config gates like
+  `supabaseConfigured()`/`llmConfigured()`, adapter interfaces
+  (`SyncChannel`), and metadata fields the hosted layer builds on. Build
+  the socket in core; the premium bulb goes elsewhere.
+- **No clawbacks:** anything already shipped in this repo stays free.
+  Scope is enforced by declining to *add* out-of-scope features, never by
+  removing or degrading what exists.
+
+These rules (and the invariants above) govern this repository only — the
+hosted layer makes its own dependency and UI choices. If a request sits on
+the boundary, stop and ask the maintainer (see Working style) instead of
+guessing in either direction.
 
 ## Known traps
 
@@ -115,7 +151,10 @@ monitor ticks and reacts to a slider change and an event.
 lowercase `a-z0-9_-`, ensure every `rubric.actionIds` entry exists in
 `expectedActions` and every action `phase` exists in `phases`. Deterioration
 events may have `autoAtSec`; treatment-response events must not. Register it
-(see trap #1) and run `npm test`.
+(see trap #1) and run `npm test`. Where new curriculum ships is a
+maintainer placement decision (see "Where features belong") — community
+contributions are welcome, but for anything beyond fixes to the bundled
+set, open an issue before writing content.
 
 **Add a numeric vital:** extend `NumericVitals` + `NUMERIC_VITAL_KEYS`
 (types.ts), `VITAL_META` (vitals.ts), the zod partial (schema.ts), every
