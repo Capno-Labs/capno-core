@@ -114,6 +114,15 @@ export type TrainingLevel =
   | 'crna'
   | 'attending';
 
+export const TRAINING_LEVEL_LABELS: Record<TrainingLevel, string> = {
+  medical_student: 'Medical student',
+  srna: 'SRNA',
+  resident_junior: 'Junior resident',
+  resident_senior: 'Senior resident',
+  crna: 'CRNA',
+  attending: 'Attending',
+};
+
 export interface ScenarioTags {
   topics: string[];
   difficulty: Difficulty;

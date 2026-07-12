@@ -1,4 +1,5 @@
 import inductionHypotension from '@/scenarios/induction-hypotension.json';
+import { DOMAINS } from '../engine/lint';
 import { parseScenario, validateScenario } from '../engine/schema';
 import type { Scenario } from '../engine/types';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
@@ -35,7 +36,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "version": "1.0.0",
   "title": "...", "summary": "...",
   "tags": {
-    "topics": ["free-form", "at least 1"],
+    "topics": ["<domain>", "<crisis name>", "free-form specifics"],  // topics[0]: one curriculum domain (see rules)
     "difficulty": "beginner|intermediate|advanced",
     "trainingLevels": ["medical_student|srna|resident_junior|resident_senior|crna|attending", "at least 1"]
   },
@@ -51,7 +52,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "baselineVitals": {
     "hr": 0-300, "sbp": n, "dbp": n, "spo2": 0-100, "etco2": n, "rr": n,
     "temp": 25-45 (Celsius), "depth": 0-100, "agentEt": %, "agentFi": %,
-    "rhythm": "sinus|sinus_brady|sinus_tach|afib|svt|vtach|vfib|pea|asystole",
+    "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole",
     "capnoShape"?: "normal|bronchospasm"   // capnograph morphology; default normal
   },
   "phases": [{ "id": "...", "label": "...", "description"?: "..." }],   // ordered phases of care, at least 1
@@ -78,6 +79,7 @@ const GENERATOR_RULES = `You author training scenarios for Capno, an anesthesia 
 
 Hard rules:
 - All ids lowercase, matching [a-z0-9][a-z0-9_-]*. Event ids unique.
+- tags.topics[0] MUST be exactly one curriculum domain: ${DOMAINS.join('|')}. topics[1] should name the crisis (e.g. "anaphylaxis", "myocardial ischemia"); later tags are free-form specifics.
 - Every rubric[].actionIds entry MUST be an existing expectedActions id.
 - Every expectedActions[].phase (when present) MUST be an existing phases id.
 - Deterioration/progression events may use autoAtSec; treatment-response events must NOT (faculty fire them when learners act). Include at least one "resolution"-category event so faculty can reflect successful treatment.
@@ -128,9 +130,11 @@ export function buildRepairMessage(errors: string[]): ChatMessage {
 
 /** Tag as an unreviewed draft and make sure it can't shadow a built-in. */
 export function postProcess(scenario: Scenario): Scenario {
+  // Appended, not prepended: topics[0] is the curriculum domain by
+  // convention and the draft tag must not displace it.
   const topics = scenario.tags.topics.includes(AI_GENERATED_TAG)
     ? scenario.tags.topics
-    : [AI_GENERATED_TAG, ...scenario.tags.topics];
+    : [...scenario.tags.topics, AI_GENERATED_TAG];
   const id = BUILT_IN_IDS.includes(scenario.id) ? `${scenario.id}-ai` : scenario.id;
   return { ...scenario, id, tags: { ...scenario.tags, topics } };
 }

@@ -36,7 +36,9 @@ describe('generateScenario', () => {
     if (!result.ok) return;
     expect(result.attempts).toBe(1);
     expect(result.scenario.id).toBe('test-draft');
-    expect(result.scenario.tags.topics[0]).toBe(AI_GENERATED_TAG);
+    // Appended, never prepended: topics[0] stays the curriculum domain.
+    expect(result.scenario.tags.topics.at(-1)).toBe(AI_GENERATED_TAG);
+    expect(result.scenario.tags.topics[0]).not.toBe(AI_GENERATED_TAG);
   });
 
   it('repairs after a referential-integrity failure, feeding errors back verbatim', async () => {
