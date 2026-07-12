@@ -19,6 +19,38 @@ export interface LintWarning {
   message: string;
 }
 
+/**
+ * The closed curriculum domain vocabulary (see docs/curriculum.md). By
+ * convention one of these appears in `tags.topics` — the case library
+ * groups scenarios by it. Deliberately a convention, not schema: scenarios
+ * with free-form topics stay valid and land in the library's
+ * "Custom & drafts" section.
+ */
+export const DOMAINS = [
+  'airway',
+  'respiratory',
+  'cardiac',
+  'hemodynamics',
+  'hemorrhage',
+  'embolic',
+  'hypersensitivity',
+  'toxicity',
+  'temperature/metabolic',
+  'neuro',
+  'equipment',
+] as const;
+
+export type Domain = (typeof DOMAINS)[number];
+
+/**
+ * The scenario's curriculum domain: the first topic tag that is in the
+ * closed vocabulary. Position-independent so tags added around the domain
+ * (e.g. the `ai-generated` draft tag) don't hide it.
+ */
+export function domainOf(scenario: Scenario): Domain | undefined {
+  return scenario.tags.topics.find((t): t is Domain => (DOMAINS as readonly string[]).includes(t));
+}
+
 function fmtTime(sec: number): string {
   return `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 }
@@ -27,6 +59,16 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
   const warnings: LintWarning[] = [];
   const phaseIds = new Set(scenario.phases.map((p) => p.id));
   const runEndSec = scenario.estimatedMinutes * 60;
+
+  // Info, not warning: older custom scenarios legitimately predate the
+  // domain vocabulary and must keep linting clean enough to work with.
+  if (domainOf(scenario) === undefined) {
+    warnings.push({
+      severity: 'info',
+      path: 'tags.topics',
+      message: `no topic names a curriculum domain (${DOMAINS.join(', ')}) — the case library groups scenarios by domain, so this one will appear under "Custom & drafts"`,
+    });
+  }
 
   let prevAutoAt: number | undefined;
   let flaggedOutOfOrder = false;
