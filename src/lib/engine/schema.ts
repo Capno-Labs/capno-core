@@ -44,7 +44,9 @@ const vitalsSchema = numericVitalsPartial.required().extend({
   capnoShape: capnoShapeSchema.optional(),
 });
 
-const vitalEffectSchema = z.object({
+// Exported for standalone effect validation (event templates); shape is
+// unchanged — the full document boundary remains scenarioSchema.
+export const vitalEffectSchema = z.object({
   vitals: numericVitalsPartial.optional(),
   rhythm: rhythmSchema.optional(),
   capnoShape: capnoShapeSchema.optional(),
