@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
 import { BootOverlay } from '@/components/monitor/BootOverlay';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
 import { SyncHealthBadge } from '@/components/SyncHealthBadge';
@@ -59,7 +60,7 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen items-center justify-center px-6">
         <form onSubmit={submit} className="card w-full max-w-sm space-y-4 text-center">
-          <div className="font-mono text-4xl text-vital-ecg">⌁⌁⌁</div>
+          <CapnoGlyph className="mx-auto h-10 w-auto text-vital-etco2" />
           <h1 className="text-xl font-bold">Join a session</h1>
           <p className="text-sm text-slate-400">
             Enter the 4-character session code shown on the faculty controller.
@@ -114,7 +115,9 @@ function StudentContent() {
     }
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <div className="animate-pulse font-mono text-3xl text-vital-ecg">⌁⌁⌁</div>
+        <div className="animate-pulse">
+          <CapnoGlyph className="h-9 w-auto text-vital-etco2" />
+        </div>
         <div className="flex gap-2" aria-hidden>
           {sessionId.split('').map((char, i) => (
             <div
