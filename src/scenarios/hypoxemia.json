@@ -113,7 +113,7 @@
       "description": "FiO2 to 1.0 at high flow and switching to hand ventilation buys time and lets the team feel the poor, one-lung compliance directly. SpO2 improves modestly but the underlying problem remains.",
       "category": "drug",
       "effects": [
-        { "vitals": { "spo2": 90, "agentFi": 8.0 }, "overSec": 45 }
+        { "vitals": { "spo2": 90 }, "overSec": 45 }
       ],
       "phaseHint": "diagnosis"
     },
