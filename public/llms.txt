@@ -1,0 +1,31 @@
+# CAPNO Studio
+
+> Open-source anesthesia simulation lab that runs in a browser: a
+> faculty-controlled patient monitor, scenario engine, and structured scored
+> debriefing for anesthesia education. Offline-first PWA, Apache-2.0 core by
+> Capno Labs LLC. For simulation and education only — not a medical device,
+> never for clinical use.
+
+Key facts:
+
+- Faculty drive vitals, rhythms, and clinical events live from a controller; students watch a mirrored full-screen patient monitor with ECG, plethysmograph, and capnography waveforms.
+- Students join with a 4-character session code — no accounts, no installs.
+- Works fully offline by default (same-device sync via BroadcastChannel); an optional Supabase backend enables realtime cross-device sync and institution accounts.
+- Twelve reviewed starter scenarios plus a form-based scenario editor with a live JSON pane, validation, version history, and import/export.
+- Every session ends in a scored, printable debrief with a timeline, vitals trends, and action assessment.
+- Optional AI assistance (scenario drafting, sim co-pilot) is bring-your-own-key; unconfigured, there are zero AI features and zero network calls.
+- This repository is the complete, self-hostable simulator. Capno Labs' hosted deployment runs at https://studio.capno.app; self-hosted instances run on their own domains.
+
+## Documentation
+
+- [README](https://github.com/Capno-Labs/capno-core/blob/main/README.md): architecture, quick start, configuration
+- [Faculty guide](https://github.com/Capno-Labs/capno-core/blob/main/docs/faculty-guide.md): room setup, driving scenarios, assessment, debrief
+- [Student guide](https://github.com/Capno-Labs/capno-core/blob/main/docs/student-guide.md): joining a session, reading the monitor
+- [Deployment guide](https://github.com/Capno-Labs/capno-core/blob/main/docs/DEPLOYMENT.md): Vercel, self-hosted Node, fully offline labs
+- [Curriculum](https://github.com/Capno-Labs/capno-core/blob/main/docs/curriculum.md): library taxonomy and clinical sources
+- [Scenario schema](https://github.com/Capno-Labs/capno-core/blob/main/docs/scenario.schema.md): the scenario JSON format
+
+## Links
+
+- [Source code](https://github.com/Capno-Labs/capno-core): Apache-2.0
+- [Product site](https://capno.app): hosted product, pricing, FAQ

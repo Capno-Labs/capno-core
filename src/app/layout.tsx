@@ -3,13 +3,30 @@ import './globals.css';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { Toaster } from '@/components/ui/Toaster';
 
+// Public origin of this deployment (optional — self-hosts work without it).
+// When set, social-share metadata resolves to absolute URLs.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
 export const metadata: Metadata = {
+  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
   title: {
     default: 'CAPNO Studio — Anesthesia Simulation Lab',
     template: '%s · CAPNO Studio',
   },
   description:
     'Open anesthesia simulation platform: faculty-controlled patient monitor, scenario engine, and structured debriefing.',
+  openGraph: {
+    type: 'website',
+    siteName: 'CAPNO Studio',
+    title: 'CAPNO Studio — Anesthesia Simulation Lab',
+    description:
+      'Open anesthesia simulation platform: faculty-controlled patient monitor, scenario engine, and structured debriefing.',
+    images: ['/og.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/og.png'],
+  },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
