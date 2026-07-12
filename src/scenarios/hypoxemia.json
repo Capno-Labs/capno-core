@@ -1,0 +1,305 @@
+{
+  "id": "hypoxemia",
+  "version": "1.0.0",
+  "title": "Unexplained Intraoperative Hypoxemia",
+  "summary": "A 54-year-old woman under general anesthesia for a laparoscopic hysterectomy desaturates after the abdomen is insufflated and she is placed in steep Trendelenburg. Learners must run the systematic hypoxemia drill — 100% oxygen and hand ventilation, exclude the machine and circuit, work through the tube and lung differential — and discover that pneumoperitoneum and head-down positioning have migrated the endotracheal tube into the right mainstem bronchus, then correct it and re-expand the collapsed lung.",
+  "tags": {
+    "topics": ["respiratory", "hypoxemia", "mainstem intubation", "capnography", "laparoscopy"],
+    "difficulty": "intermediate",
+    "trainingLevels": ["srna", "resident_junior", "resident_senior", "crna"]
+  },
+  "estimatedMinutes": 20,
+  "learningObjectives": [
+    "Run a systematic response to intraoperative hypoxemia: 100% oxygen at high flow, hand-ventilate to feel compliance, and confirm oxygenation is real before chasing causes.",
+    "Exclude the machine and delivery system early — gas analyzer FiO2, a disconnected or misprogrammed circuit, and the SpO2 probe/waveform — and be ready to ventilate from a self-inflating bag on a separate oxygen source.",
+    "Work the tube-and-lung differential in order: mainstem intubation, mucus plug or kink, bronchospasm, aspiration, pneumothorax, pulmonary edema, and embolism.",
+    "Recognize that pneumoperitoneum plus steep Trendelenburg displaces the carina cephalad and migrates the endotracheal tube toward the right mainstem, and confirm it by unequal breath sounds and tube depth.",
+    "Correct a mainstem intubation by auscultating, withdrawing the tube to restore bilateral breath sounds, and re-securing it, then recruit the atelectatic lung.",
+    "Escalate appropriately: call for help, ask the surgeon to desufflate and level the table if hypoxemia persists, and know when a differential item (pneumothorax, embolism) demands a different intervention."
+  ],
+  "setup": [
+    "OR mid-case for a laparoscopic hysterectomy: general endotracheal anesthesia, mechanical ventilation, abdomen about to be insufflated and the table about to go steep head-down.",
+    "The ETT was taped at 21 cm at the lip after an uncomplicated intubation with initially equal breath sounds — set this up so the depth is 'correct' before positioning.",
+    "Labeled props: a suction catheter for the ETT, a stethoscope, a self-inflating (Ambu) bag with a separate E-cylinder, and an oxygen analyzer readout the faculty can quote.",
+    "The simulated monitor does not display airway pressure — faculty should report peak inspiratory pressure ('rising to 34 cmH2O') and breath sounds ('absent on the left, present on the right') when learners auscultate.",
+    "Confederate surgeon who can confirm the insufflation pressure and Trendelenburg angle and can desufflate or level the table when asked.",
+    "Preop note: BMI 34, otherwise healthy; no cardiopulmonary disease — the point is that the cause is mechanical, not the patient."
+  ],
+  "patient": {
+    "name": "Renata Alvarez",
+    "age": 54,
+    "sex": "female",
+    "weightKg": 92,
+    "heightCm": 165,
+    "asa": 2,
+    "allergies": ["No known drug allergies"],
+    "medications": [
+      "Lisinopril 10 mg daily",
+      "Levothyroxine 75 mcg daily"
+    ],
+    "pmh": [
+      "Obesity (BMI 34)",
+      "Well-controlled hypertension",
+      "Hypothyroidism",
+      "Menorrhagia from fibroids, for laparoscopic hysterectomy"
+    ],
+    "airway": {
+      "mallampati": 3,
+      "mouthOpeningCm": 4,
+      "thyromentalCm": 6.5,
+      "neckMobility": "normal",
+      "dentition": "Intact",
+      "notes": "7.0 ETT taped at 21 cm at the lip; grade 2 view; equal bilateral breath sounds documented after intubation."
+    },
+    "plan": "Laparoscopic total hysterectomy under general endotracheal anesthesia; steep Trendelenburg with pneumoperitoneum for pelvic exposure."
+  },
+  "baselineVitals": {
+    "hr": 74,
+    "sbp": 122,
+    "dbp": 70,
+    "spo2": 99,
+    "etco2": 34,
+    "rr": 12,
+    "temp": 36.5,
+    "depth": 50,
+    "agentEt": 0.9,
+    "agentFi": 2.0,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "stable", "label": "Stable Maintenance", "description": "Uncomplicated laparoscopic case before positioning; equal breath sounds, SpO2 99%." },
+    { "id": "positioning", "label": "Insufflation and Positioning", "description": "Pneumoperitoneum and steep Trendelenburg shift the carina cephalad." },
+    { "id": "desaturation", "label": "Desaturation", "description": "SpO2 drifts down with rising peak pressure — unexplained hypoxemia." },
+    { "id": "diagnosis", "label": "Systematic Diagnosis", "description": "Oxygen, hand ventilation, machine/circuit exclusion, and the tube-and-lung differential." },
+    { "id": "treatment", "label": "Treatment", "description": "Correct the mainstem intubation and re-expand the collapsed lung." },
+    { "id": "resolution", "label": "Resolution", "description": "Bilateral breath sounds restored; oxygenation recovers; secure and document." }
+  ],
+  "events": [
+    {
+      "id": "insufflation-trendelenburg",
+      "label": "Insufflation and steep Trendelenburg",
+      "description": "The abdomen is insufflated to 15 mmHg and the table goes steep head-down. The diaphragm and carina move cephalad toward the fixed tube tip; peak pressures rise a little and compliance falls.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "etco2": 38, "hr": 80 }, "overSec": 60 }
+      ],
+      "autoAtSec": 120,
+      "phaseHint": "positioning"
+    },
+    {
+      "id": "gradual-desaturation",
+      "label": "Gradual unexplained desaturation",
+      "description": "SpO2 drifts from 99% into the low 90s over a couple of minutes with the ETT now in the right mainstem — the left lung is no longer ventilated. Faculty: 'peak pressure up to 34 cmH2O.' EtCO2 rises as dead space and shunt grow.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "spo2": 91, "etco2": 44, "hr": 88 }, "overSec": 150 }
+      ],
+      "autoAtSec": 240,
+      "phaseHint": "desaturation"
+    },
+    {
+      "id": "worsening-hypoxemia",
+      "label": "Hypoxemia worsens (unrecognized)",
+      "description": "Left untreated the shunt deepens: SpO2 falls into the low 80s, the patient becomes tachycardic, and there is now real urgency. Fire if the mainstem is not found and corrected.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "spo2": 83, "hr": 104, "sbp": 138, "etco2": 47 }, "rhythm": "sinus_tach", "overSec": 120 }
+      ],
+      "phaseHint": "desaturation"
+    },
+    {
+      "id": "hundred-percent-oxygen",
+      "label": "100% oxygen and hand ventilation",
+      "description": "FiO2 to 1.0 at high flow and switching to hand ventilation buys time and lets the team feel the poor, one-lung compliance directly. SpO2 improves modestly but the underlying problem remains.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "spo2": 90, "agentFi": 8.0 }, "overSec": 45 }
+      ],
+      "phaseHint": "diagnosis"
+    },
+    {
+      "id": "machine-circuit-check",
+      "label": "Machine, circuit, and probe excluded",
+      "description": "Gas analyzer confirms delivered FiO2, the circuit and capnograph show no disconnection, and the SpO2 waveform and probe are good. A marker step — it changes no vitals but rules out the delivery system and the reading.",
+      "category": "equipment",
+      "effects": [],
+      "phaseHint": "diagnosis"
+    },
+    {
+      "id": "auscultate-suction",
+      "label": "Auscultate and suction the tube",
+      "description": "Passing a suction catheter finds a patent tube with no plug; auscultation reveals the finding — 'breath sounds absent on the left, present on the right.' A marker step that localizes the problem to the tube position.",
+      "category": "airway",
+      "effects": [],
+      "phaseHint": "diagnosis"
+    },
+    {
+      "id": "withdraw-ett-response",
+      "label": "Endotracheal tube withdrawn to mid-trachea",
+      "description": "Recognizing the right mainstem intubation, the tube is withdrawn a few centimeters until breath sounds return bilaterally and re-secured. The left lung is ventilated again and oxygenation begins to recover.",
+      "category": "airway",
+      "effects": [
+        { "vitals": { "spo2": 95, "etco2": 39, "hr": 88 }, "overSec": 60 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "recruitment-response",
+      "label": "Recruitment and desufflation",
+      "description": "A recruitment maneuver re-expands the atelectatic left lung, and asking the surgeon to briefly desufflate and lessen the head-down tilt improves ventilation further. SpO2 climbs toward normal.",
+      "category": "equipment",
+      "effects": [
+        { "vitals": { "spo2": 98, "etco2": 36, "hr": 80, "sbp": 124 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "oxygenation-restored",
+      "label": "Oxygenation restored",
+      "description": "With the tube repositioned, the lung recruited, and PEEP optimized, SpO2 returns to 99% on a reduced FiO2 and peak pressures normalize. The team re-checks tube depth after any further position change and documents the event.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "spo2": 99, "etco2": 35, "hr": 74, "sbp": 122, "dbp": 70, "rr": 12, "agentFi": 2.0 }, "rhythm": "sinus", "overSec": 180 }
+      ],
+      "phaseHint": "resolution"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "increase-fio2",
+      "label": "Increase FiO2 to 100% at high flow immediately",
+      "phase": "desaturation",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "hand-ventilate",
+      "label": "Switch to hand ventilation to assess compliance and confirm chest movement",
+      "phase": "diagnosis",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "exclude-machine-circuit",
+      "label": "Exclude the machine and circuit: gas-analyzer FiO2, disconnection, capnograph, SpO2 probe/waveform",
+      "description": "Be ready to ventilate from a self-inflating bag on a separate oxygen source if the machine is in doubt.",
+      "phase": "diagnosis",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "auscultate-check-depth",
+      "label": "Auscultate both lungs and check ETT depth; pass a suction catheter for patency",
+      "phase": "diagnosis",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "state-differential",
+      "label": "State a hypoxemia differential: mainstem intubation, plug/kink, bronchospasm, aspiration, pneumothorax, edema, embolism",
+      "phase": "diagnosis",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "identify-mainstem",
+      "label": "Identify the right mainstem intubation from unequal breath sounds after Trendelenburg/insufflation",
+      "phase": "diagnosis",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "withdraw-tube",
+      "label": "Withdraw the ETT until breath sounds are bilateral and re-secure it",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "recruit-lung",
+      "label": "Recruit the atelectatic lung and optimize PEEP; ask the surgeon to desufflate/level the table if needed",
+      "phase": "treatment",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help and communicate with the surgical team as hypoxemia persists",
+      "phase": "desaturation",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "prevent-recurrence",
+      "label": "Re-check tube depth after position changes and document the event and plan",
+      "phase": "resolution",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "The case is stable until the abdomen is insufflated and the table goes steep Trendelenburg, shifting the carina cephalad toward a tube that was taped at a correct depth.",
+    "Over the next couple of minutes SpO2 drifts into the low 90s with rising peak pressure — unexplained hypoxemia, not a patient with lung disease.",
+    "Learners should immediately go to 100% oxygen and hand-ventilate, then exclude the machine, circuit, and probe before touching the patient's physiology.",
+    "Working the differential, auscultation reveals absent left-sided breath sounds and the tube depth confirms a right mainstem intubation from the positional migration.",
+    "If the mainstem is not found, the shunt deepens and SpO2 falls into the low 80s with tachycardia — the prompt to escalate and call for help.",
+    "Withdrawing the tube until breath sounds are bilateral, recruiting the collapsed lung, and easing the insufflation/tilt restores oxygenation.",
+    "The team optimizes PEEP, re-checks tube depth after any further positioning, and documents the event."
+  ],
+  "correctManagement": [
+    "Increase FiO2 to 1.0 at high fresh-gas flow the moment SpO2 falls, and switch to hand ventilation to feel compliance and confirm both sides move.",
+    "Exclude the delivery system first: confirm delivered FiO2 on the gas analyzer, rule out circuit disconnection and misprogramming on the capnograph, and check the SpO2 probe and waveform; be ready to ventilate from a self-inflating bag on a separate oxygen source.",
+    "Work the tube-and-lung differential systematically: mainstem intubation, mucus plug or kink, bronchospasm, aspiration, pneumothorax, pulmonary edema, and embolism.",
+    "Auscultate both lung fields and check the tube depth; passing a suction catheter confirms patency and excludes a plug.",
+    "Recognize that pneumoperitoneum and steep Trendelenburg migrate the tube toward the right mainstem — unequal breath sounds with a deep tube confirm it.",
+    "Withdraw the tube a few centimeters until breath sounds are bilateral and re-secure it at the new depth.",
+    "Recruit the atelectatic lung, optimize PEEP, and ask the surgeon to briefly desufflate and reduce the head-down tilt if oxygenation is slow to recover.",
+    "Call for help early if hypoxemia is severe or persistent, and re-check tube depth after any further position change; document the event and the plan."
+  ],
+  "commonErrors": [
+    "Turning up FiO2 and waiting, without hand-ventilating or systematically searching for the cause.",
+    "Skipping the machine/circuit/probe exclusion and treating a delivery-system or artifact problem as patient hypoxemia (or vice versa).",
+    "Never auscultating — the single maneuver that localizes a mainstem intubation — or not re-checking tube depth after steep positioning and insufflation.",
+    "Anchoring on bronchospasm or 'the patient's obesity' and missing the mechanical, positional cause.",
+    "Advancing rather than withdrawing the tube, or failing to re-secure it at the corrected depth.",
+    "Forgetting to recruit the collapsed lung and optimize PEEP after correcting the tube, so oxygenation lags.",
+    "Not communicating with the surgeon about desufflation and table position while the patient is hypoxemic."
+  ],
+  "debrief": {
+    "points": [
+      "Intraoperative hypoxemia needs a systematic drill, not a reflex: 100% oxygen and hand ventilation first, then exclude the machine, circuit, and probe, then work the tube-and-lung differential in order.",
+      "The capnograph and airway pressure are part of the hypoxemia work-up: a disconnection shows on the CO2 trace, and a rising peak pressure with unilateral breath sounds points at the tube.",
+      "Pneumoperitoneum and steep Trendelenburg move the carina cephalad by roughly 1-2 cm, so a tube taped at a correct depth can migrate into the right mainstem after positioning — re-checking depth after position changes is prevention.",
+      "Auscultation is the decisive, immediately available test for mainstem intubation: absent breath sounds on one side with a deep tube. The fix is to withdraw, not advance.",
+      "A collapsed lung does not re-expand instantly: after repositioning the tube, a recruitment maneuver and optimized PEEP restore oxygenation, and easing insufflation and tilt helps.",
+      "The differential still matters — pneumothorax, aspiration, embolism, and pulmonary edema each need a different intervention, so the systematic search prevents fixation on the wrong cause.",
+      "Closed-loop communication with the surgeon (insufflation pressure, table angle, desufflation) is part of the treatment, not an afterthought."
+    ],
+    "questions": [
+      "What were your first three actions when the SpO2 started to fall, and why in that order?",
+      "How did you exclude the anesthesia machine, circuit, and the SpO2 reading itself before treating the patient?",
+      "What was on your hypoxemia differential, and how did each finding move an item up or down the list?",
+      "What made this a right mainstem intubation, and why did insufflation and Trendelenburg cause it here?",
+      "Why withdraw rather than advance the tube, and how did you confirm you had it right?",
+      "After correcting the tube, why did oxygenation still need recruitment and PEEP, and what did you ask the surgeon to do?",
+      "How would you prevent this on the next steep-Trendelenburg laparoscopic case?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Systematic Recognition",
+      "actionIds": ["increase-fio2", "hand-ventilate", "exclude-machine-circuit", "state-differential"]
+    },
+    {
+      "id": "management",
+      "label": "Diagnosis and Correction",
+      "actionIds": ["auscultate-check-depth", "identify-mainstem", "withdraw-tube", "recruit-lung"]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Prevention",
+      "actionIds": ["call-for-help", "prevent-recurrence"]
+    }
+  ]
+}

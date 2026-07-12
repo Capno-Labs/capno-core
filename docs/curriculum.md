@@ -56,8 +56,8 @@ keeps the library organized — scenarios without one land under
 | Domain | Meaning | Scenarios |
 | --- | --- | --- |
 | `airway` | Obstruction, failed airway, front-of-neck access, airway fire | laryngospasm-lma, difficult-airway-cico |
-| `respiratory` | Gas-exchange and ventilation crises | intraop-bronchospasm |
-| `cardiac` | Rhythm disturbances, ischemia, and arrest | bradycardia-asystole |
+| `respiratory` | Gas-exchange and ventilation crises | intraop-bronchospasm, hypoxemia |
+| `cardiac` | Rhythm disturbances, ischemia, and arrest | bradycardia-asystole, myocardial-ischemia |
 | `hemodynamics` | Pressure/perfusion management short of hemorrhage | induction-hypotension |
 | `hemorrhage` | Major bleeding and transfusion (incl. obstetric, transfusion reactions) | postpartum-hemorrhage |
 | `embolic` | Air, thrombus, amniotic fluid, cement embolism | venous-air-embolism |
@@ -85,7 +85,9 @@ training-year progression:
 | induction-hypotension | hemodynamics | beginner | Recognize and treat post-induction hypotension |
 | laryngospasm-lma | airway | intermediate | CPAP → deepen → succinylcholine escalation |
 | bradycardia-asystole | cardiac | intermediate | Remove the vagal stimulus; ACLS bradycardia → asystole |
+| myocardial-ischemia | cardiac | advanced | Supply-vs-demand; rate control and perfusion pressure before nitrates |
 | intraop-bronchospasm | respiratory | intermediate | Shark-fin capnograph; deepen, bronchodilate, avoid auto-PEEP |
+| hypoxemia | respiratory | intermediate | Systematic hypoxemia drill; find and correct the mainstem migration |
 | anaphylaxis | hypersensitivity | advanced | Early epinephrine, aggressive volume, tryptase follow-up |
 | malignant-hyperthermia | temperature/metabolic | advanced | Trigger removal, dantrolene, hypermetabolic supportive care |
 | last-nerve-block | toxicity | advanced | Lipid emulsion, modified ACLS for LAST |
@@ -120,12 +122,12 @@ grandfathered unchanged.
 | `airway` | airway fire (`airway-fire`) | A | advanced | open |
 | `airway` | ETT failure — obstruction/migration/cuff leak (`ett-failure`) | B | intermediate | open |
 | `respiratory` | bronchospasm | A | intermediate | ✓ shipped (`intraop-bronchospasm`) |
-| `respiratory` | unexplained hypoxemia (`hypoxemia`) | A | intermediate | open |
+| `respiratory` | unexplained hypoxemia (`hypoxemia`) | A | intermediate | ✓ shipped (`hypoxemia`) |
 | `respiratory` | pneumothorax, incl. tension variant (`pneumothorax`) | A | advanced | open |
 | `respiratory` | mainstem intubation (`mainstem-intubation`) | B | beginner | open |
 | `respiratory` | hypoventilation / hypercapnia (`hypoventilation`) | B | beginner | open |
 | `cardiac` | unstable bradycardia → asystole (`bradycardia`) | A | intermediate | ✓ shipped (`bradycardia-asystole`) |
-| `cardiac` | myocardial ischemia (`myocardial-ischemia`) | A | advanced | open |
+| `cardiac` | myocardial ischemia (`myocardial-ischemia`) | A | advanced | ✓ shipped (`myocardial-ischemia`) |
 | `cardiac` | VF / pulseless VT arrest (`vf-arrest`) | A | advanced | open |
 | `cardiac` | PEA arrest (`pea-arrest`) | A | advanced | open |
 | `cardiac` | unstable SVT (`unstable-svt`) | A | intermediate | open |
@@ -165,10 +167,10 @@ grandfathered unchanged.
 | `equipment` | OR fire — patient/drapes (`or-fire`) | A | advanced | open |
 | `equipment` | infusion pump / line-swap error (`infusion-error`) | B | intermediate | open |
 
-Coverage: 51 catalog entries — 10 shipped (all Tier A), 21 open Tier A
-gaps, 20 Tier B extensions. Where new curriculum ships (this repo's free
-set vs. elsewhere) is a maintainer placement decision — see `CLAUDE.md`,
-"Where features belong".
+Coverage: 51 catalog entries — 12 shipped free (all Tier A), 19 open Tier A
+gaps, 20 Tier B extensions. The maintainer's placement decision: these 12
+ship free in this repo; the remaining open entries are delivered through
+the hosted curated library (see `CLAUDE.md`, "Where features belong").
 
 ## Clinical sources by scenario
 
@@ -195,6 +197,22 @@ clinical content is authored against published guidance:
 - **venous-air-embolism** — Mirski et al., *Diagnosis and treatment of
   vascular air embolism*, Anesthesiology 2007;106:164–77; OpenAnesthesia
   and StatPearls VAE summaries; AHA 2020 ACLS for the PEA arm.
+- **myocardial-ischemia** — Stanford Anesthesia Cognitive Aid Group,
+  *Emergency Manual* (Myocardial Ischemia event: oxygen, rate control,
+  coronary perfusion pressure, nitroglycerin); ACC/AHA perioperative
+  cardiovascular management guidance and ACC/AHA ACS guidelines
+  (nitroglycerin start 5–10 mcg/min, avoid if hypotensive; aspirin
+  162–325 mg); esmolol 0.5 mg/kg IV over 1 min then 50–300 mcg/kg/min
+  (StatPearls; intraoperative bolus-esmolol studies); AHA 2020 ACLS for the
+  ventricular-fibrillation arm (defibrillate 120–200 J biphasic,
+  epinephrine 1 mg q3–5 min, amiodarone 300 mg then 150 mg).
+- **hypoxemia** — Stanford *Emergency Manual* (Hypoxemia event: 100% O2 at
+  10–15 L/min, hand-ventilate, exclude gas analyzer/circuit/probe,
+  auscultate and suction the ETT, differential of mainstem intubation /
+  plug / aspiration / pneumothorax); BJA Education / ATOTW reviews of
+  intraoperative hypoxemia; literature on endotracheal tube migration in
+  Trendelenburg with pneumoperitoneum (cephalad carinal shift of ~1–2 cm,
+  tube tip should sit 2.5–4 cm above the carina).
 - **anaphylaxis, malignant-hyperthermia, last-nerve-block,
   laryngospasm-lma, induction-hypotension** — see the original scenario
   PRs; management follows the corresponding society guidance (e.g. ASRA

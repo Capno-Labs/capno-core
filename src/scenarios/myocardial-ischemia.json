@@ -1,0 +1,331 @@
+{
+  "id": "myocardial-ischemia",
+  "version": "1.0.0",
+  "title": "Intraoperative Myocardial Ischemia",
+  "summary": "A 68-year-old man with coronary disease undergoing open lower-extremity revascularization develops demand ischemia when light anesthesia and blood loss drive tachycardia and hypertension. Learners must read the ST-segment change and new ectopy, restore the myocardial oxygen supply-demand balance with oxygen, analgesia/depth, rate control, and coronary perfusion pressure, use nitroglycerin without dropping the pressure too far, and be ready for the ventricular fibrillation that follows if ischemia is left to run.",
+  "tags": {
+    "topics": ["cardiac", "myocardial ischemia", "coronary artery disease", "demand ischemia", "crisis management"],
+    "difficulty": "advanced",
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+  },
+  "estimatedMinutes": 25,
+  "monitoring": { "nibpIntervalSec": 120 },
+  "learningObjectives": [
+    "Recognize intraoperative myocardial ischemia from new ST-segment depression, T-wave change, or ischemic ectopy against the clinical backdrop of tachycardia, hypertension, hypotension, or anemia.",
+    "Reason explicitly in supply-versus-demand terms: reduce demand (heart rate, contractility, wall tension) while protecting supply (oxygenation, hemoglobin, coronary perfusion pressure, diastolic time).",
+    "Treat in the right order for the hemodynamic picture: 100% oxygen and adequate depth/analgesia first, then rate control for tachycardia, a vasopressor to defend coronary perfusion pressure, and nitroglycerin only when the pressure allows.",
+    "Know the verified doses: esmolol 0.5 mg/kg IV over 1 minute then 50-300 mcg/kg/min, IV nitroglycerin started at 5-10 mcg/min and titrated, phenylephrine 100 mcg boluses or a norepinephrine infusion, and aspirin 162-325 mg when appropriate.",
+    "Manage the hypotensive ischemia trap: nitroglycerin and beta-blockade both lower an already-low pressure, so restore perfusion pressure and treat anemia before nitrates.",
+    "Escalate to the ACLS shockable-arrest pathway without delay if ischemia degenerates into ventricular fibrillation, and plan the postoperative work-up (12-lead ECG, troponin, cardiology) and disposition."
+  ],
+  "setup": [
+    "OR mid-case for an open femoral-popliteal bypass in a vasculopath: general endotracheal anesthesia established, moderate ongoing surgical blood loss, arterial line transducing.",
+    "This is an arterial-line case: the monitor shows live beat-to-beat pressure (set monitoring.artLine if you prefer, or narrate cuff readings).",
+    "The simulated monitor does not draw ST segments — faculty must verbally report the ECG: 'lead II and V5 now show 2 mm of new horizontal ST depression', and later 'multiform PVCs appearing'.",
+    "Labeled props: esmolol, metoprolol, phenylephrine 100 mcg/mL, norepinephrine infusion, nitroglycerin infusion, aspirin 325 mg, heparin, and a defibrillator with pads on the patient.",
+    "Confederate circulator/surgeon who can quantify blood loss ('another 400 mL in the field') and pause when asked.",
+    "Preop note: prior drug-eluting stent to the RCA two years ago, still on aspirin; exertional angina climbing stairs; last echo EF 45%."
+  ],
+  "patient": {
+    "name": "Walter Bishop",
+    "age": 68,
+    "sex": "male",
+    "weightKg": 84,
+    "heightCm": 175,
+    "asa": 4,
+    "allergies": ["No known drug allergies"],
+    "medications": [
+      "Aspirin 81 mg daily",
+      "Atorvastatin 80 mg nightly",
+      "Metoprolol succinate 50 mg daily (held this morning)",
+      "Lisinopril 20 mg daily"
+    ],
+    "pmh": [
+      "Coronary artery disease with drug-eluting stent to the right coronary artery 2 years ago",
+      "Exertional angina (2 flights of stairs); last transthoracic echo ejection fraction 45%",
+      "Peripheral arterial disease with rest pain, for femoral-popliteal bypass",
+      "Type 2 diabetes and hypertension; former smoker, 40 pack-years"
+    ],
+    "airway": {
+      "mallampati": 2,
+      "mouthOpeningCm": 4.5,
+      "thyromentalCm": 7,
+      "neckMobility": "normal",
+      "dentition": "Intact",
+      "notes": "Already intubated with a 8.0 ETT at 22 cm; grade 1 view at induction."
+    },
+    "plan": "Open femoral-popliteal bypass under general endotracheal anesthesia with an arterial line; goal is a controlled heart rate and a coronary-protective blood pressure throughout."
+  },
+  "baselineVitals": {
+    "hr": 72,
+    "sbp": 130,
+    "dbp": 72,
+    "spo2": 99,
+    "etco2": 35,
+    "rr": 10,
+    "temp": 36.4,
+    "depth": 52,
+    "agentEt": 0.9,
+    "agentFi": 1.5,
+    "rhythm": "sinus"
+  },
+  "phases": [
+    { "id": "stable", "label": "Stable Maintenance", "description": "Controlled anesthetic, rate and pressure near baseline in a patient with coronary disease." },
+    { "id": "provocation", "label": "Provocation", "description": "Light anesthesia and blood loss drive tachycardia and hypertension — rising myocardial oxygen demand." },
+    { "id": "ischemia", "label": "Ischemia", "description": "New ST-segment depression and ectopy: demand has outstripped supply." },
+    { "id": "treatment", "label": "Treatment", "description": "Restore the supply-demand balance: oxygen, depth, rate control, perfusion pressure, nitroglycerin." },
+    { "id": "arrest", "label": "Arrest (if unmanaged)", "description": "Ischemia degenerates into ventricular fibrillation — shockable-arrest pathway." },
+    { "id": "resolution", "label": "Resolution", "description": "ST segments recover; plan the work-up and disposition." }
+  ],
+  "events": [
+    {
+      "id": "blood-loss-light-anesthesia",
+      "label": "Blood loss under light anesthesia",
+      "description": "Ongoing surgical bleeding and a light plane leave the patient tachycardic and hypertensive — the exact combination that raises myocardial oxygen demand while shortening the diastolic coronary filling time.",
+      "category": "surgical",
+      "effects": [
+        { "vitals": { "hr": 104, "sbp": 168, "dbp": 92 }, "rhythm": "sinus_tach", "overSec": 90 }
+      ],
+      "autoAtSec": 150,
+      "phaseHint": "provocation"
+    },
+    {
+      "id": "st-depression-onset",
+      "label": "New ST-segment depression",
+      "description": "Faculty report: 'lead II and V5 now show 2 mm of new horizontal ST depression.' Demand ischemia has begun; heart rate stays high and the pressure is strained.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "hr": 110, "sbp": 158, "dbp": 88, "spo2": 97 }, "rhythm": "sinus_tach", "overSec": 60 }
+      ],
+      "autoAtSec": 300,
+      "phaseHint": "ischemia"
+    },
+    {
+      "id": "ischemic-ectopy",
+      "label": "Ischemic ectopy and pump strain",
+      "description": "Multiform PVCs appear and the pressure begins to sag as the ischemic ventricle contracts poorly (faculty: 'frequent multiform PVCs, ST depression now 3 mm'). This is the window before ventricular fibrillation.",
+      "category": "physiology",
+      "effects": [
+        { "vitals": { "hr": 118, "sbp": 96, "dbp": 58, "spo2": 95, "etco2": 31 }, "rhythm": "pvc", "overSec": 120 }
+      ],
+      "autoAtSec": 480,
+      "phaseHint": "ischemia"
+    },
+    {
+      "id": "vf-arrest",
+      "label": "Ventricular fibrillation arrest",
+      "description": "Unrelieved ischemia degenerates into VF: the arterial trace collapses to a flat, pulseless waveform and EtCO2 falls. Fire only if ischemia is left unmanaged. Start the ACLS shockable-arrest pathway — defibrillate.",
+      "category": "circulation",
+      "effects": [
+        { "vitals": { "hr": 0, "sbp": 0, "dbp": 0, "spo2": 0, "etco2": 10 }, "rhythm": "vfib", "overSec": 15 }
+      ],
+      "phaseHint": "arrest"
+    },
+    {
+      "id": "defibrillation-rosc",
+      "label": "Defibrillation and ROSC",
+      "description": "High-quality CPR, a 200 J biphasic shock, epinephrine 1 mg, and amiodarone 300 mg restore an organized rhythm and a pulse (faculty: 'sinus rhythm, ST changes improving'). Fire after the team defibrillates.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "hr": 96, "sbp": 104, "dbp": 62, "spo2": 96, "etco2": 34 }, "rhythm": "sinus", "overSec": 30 }
+      ],
+      "phaseHint": "arrest"
+    },
+    {
+      "id": "deepen-analgesia-response",
+      "label": "Depth and analgesia restored",
+      "description": "Deepening the anesthetic and giving opioid blunts the sympathetic drive: heart rate and pressure ease toward less ischemic territory.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "hr": 98, "sbp": 140, "dbp": 82, "depth": 46 }, "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "esmolol-response",
+      "label": "Esmolol rate control",
+      "description": "Esmolol 0.5 mg/kg IV over 1 minute, then a 50-300 mcg/kg/min infusion, brings the rate down and lengthens diastolic coronary filling — the single most effective demand-reducing move when the pressure tolerates it.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "hr": 78, "sbp": 132, "dbp": 78 }, "rhythm": "sinus", "overSec": 90 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "perfusion-pressure-response",
+      "label": "Coronary perfusion pressure defended",
+      "description": "Phenylephrine 100 mcg boluses (or a norepinephrine infusion) restores diastolic and mean pressure, protecting coronary supply — the prerequisite before any nitroglycerin in a patient whose pressure has fallen.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 138, "dbp": 80, "hr": 92 }, "overSec": 60 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "nitroglycerin-response",
+      "label": "Nitroglycerin infusion",
+      "description": "With an adequate pressure restored, IV nitroglycerin started at 5-10 mcg/min and titrated dilates the coronaries and drops wall tension; the ST depression improves. Watch the pressure — nitrates can undo the perfusion you just defended.",
+      "category": "drug",
+      "effects": [
+        { "vitals": { "sbp": 126, "dbp": 74, "hr": 84, "etco2": 34 }, "overSec": 120 }
+      ],
+      "phaseHint": "treatment"
+    },
+    {
+      "id": "ischemia-resolves",
+      "label": "Ischemia resolves",
+      "description": "Faculty: 'ST segments back to baseline, ectopy gone.' With demand controlled and supply protected, the ECG normalizes. The team turns to the 12-lead, troponin, and disposition.",
+      "category": "resolution",
+      "effects": [
+        { "vitals": { "hr": 76, "sbp": 128, "dbp": 74, "spo2": 99, "etco2": 35, "rr": 10 }, "rhythm": "sinus", "overSec": 240 }
+      ],
+      "phaseHint": "resolution"
+    }
+  ],
+  "expectedActions": [
+    {
+      "id": "recognize-ischemia",
+      "label": "Recognize myocardial ischemia from the new ST-segment depression and ectopy",
+      "phase": "ischemia",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "supply-demand-framing",
+      "label": "State the supply-versus-demand problem: high rate and pressure with ongoing blood loss",
+      "description": "Naming the mechanism drives the correct order of treatment.",
+      "phase": "ischemia",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "oxygen-and-depth",
+      "label": "Ensure 100% oxygen and adequate anesthetic depth/analgesia to cut sympathetic demand",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "rate-control",
+      "label": "Control the heart rate (esmolol 0.5 mg/kg IV then 50-300 mcg/kg/min) once the pressure tolerates it",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "defend-perfusion-pressure",
+      "label": "Defend coronary perfusion pressure with a vasopressor (phenylephrine 100 mcg or norepinephrine) and treat anemia/blood loss",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "nitroglycerin-when-safe",
+      "label": "Give nitroglycerin (start 5-10 mcg/min IV, titrate) only once the blood pressure allows",
+      "description": "Recognize the hypotensive-ischemia trap: nitrates and beta-blockers both lower an already-low pressure.",
+      "phase": "treatment",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "call-for-help",
+      "label": "Call for help, alert the surgeon, and ask them to pause stimulation and control bleeding",
+      "phase": "ischemia",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "manage-vf-arrest",
+      "label": "If VF occurs, start CPR and defibrillate immediately (200 J biphasic), epinephrine 1 mg, amiodarone 300 mg",
+      "phase": "arrest",
+      "critical": true,
+      "points": 15
+    },
+    {
+      "id": "twelve-lead-troponin",
+      "label": "Obtain a 12-lead ECG and troponin, give aspirin 162-325 mg if appropriate, and consult cardiology",
+      "phase": "resolution",
+      "critical": false,
+      "points": 10
+    },
+    {
+      "id": "plan-disposition",
+      "label": "Plan disposition: ICU monitoring, continued rate/pressure control, and a joint decision to proceed or abort",
+      "phase": "resolution",
+      "critical": false,
+      "points": 10
+    }
+  ],
+  "expectedProgression": [
+    "The case is stable until light anesthesia and ongoing blood loss drive the heart rate over 100 with hypertension — rising myocardial oxygen demand in a patient with fixed coronary supply.",
+    "Around 5 minutes new ST-segment depression appears (faculty-reported); the diagnosis is demand ischemia, not a primary rhythm problem.",
+    "Learners should go to 100% oxygen, deepen anesthesia and add analgesia, ask the surgeon to pause and control bleeding, and start rate control while defending the pressure.",
+    "If ischemia is untreated, ectopy and pump strain appear and the pressure falls — the hypotensive-ischemia trap where nitrates and beta-blockers are dangerous until perfusion pressure is restored.",
+    "Unmanaged, the rhythm degenerates into ventricular fibrillation; the team must pivot instantly to the ACLS shockable-arrest pathway and defibrillate.",
+    "With demand controlled (depth, rate) and supply protected (pressure, hemoglobin, then nitroglycerin), the ST segments recover.",
+    "The team obtains a 12-lead and troponin, gives aspirin if appropriate, involves cardiology, and plans ICU disposition and whether to continue surgery."
+  ],
+  "correctManagement": [
+    "Increase FiO2 to 100% and confirm oxygenation and hemoglobin are adequate — protect myocardial oxygen supply first.",
+    "Deepen the anesthetic and treat pain to remove the sympathetic drive behind the tachycardia and hypertension.",
+    "Ask the surgeon to pause stimulation and control bleeding; call for help and the code cart early.",
+    "Reduce demand with rate control: esmolol 0.5 mg/kg IV over 1 minute, then a 50-300 mcg/kg/min infusion (or titrated metoprolol), provided the pressure tolerates it.",
+    "Defend coronary perfusion pressure with phenylephrine 100 mcg boluses or a norepinephrine infusion, and replace blood loss — diastolic pressure and hemoglobin are supply.",
+    "Once the pressure is adequate, start IV nitroglycerin at 5-10 mcg/min and titrate to relieve ischemia, watching for hypotension; avoid nitrates while the patient is hypotensive.",
+    "Give aspirin 162-325 mg when the surgical field allows and there is no contraindication.",
+    "If ventricular fibrillation develops, start high-quality CPR and defibrillate immediately (200 J biphasic / per device), epinephrine 1 mg IV every 3-5 minutes, amiodarone 300 mg then 150 mg for refractory VF.",
+    "After stabilization obtain a 12-lead ECG and troponin, involve cardiology, and plan ICU monitoring and the intraoperative decision to proceed or abort."
+  ],
+  "commonErrors": [
+    "Treating the number, not the mechanism: pushing nitroglycerin or a beta-blocker into a falling pressure and precipitating hypotensive ischemia or arrest.",
+    "Leaving the anesthetic light and the patient in pain while reaching for cardiac drugs — the sympathetic drive is the engine of the ischemia.",
+    "Ignoring ongoing blood loss and anemia, which starve myocardial oxygen supply no matter what drugs are given.",
+    "Chasing the tachycardia with a beta-blocker before restoring perfusion pressure in a hypotensive patient.",
+    "Missing new ectopy and ST changes because the simulated monitor doesn't draw ST segments — the faculty cue must be acted on.",
+    "Delaying defibrillation when ischemia degenerates into VF, or forgetting this is now a shockable-arrest algorithm.",
+    "Forgetting the after-care: no 12-lead, no troponin, no cardiology, and a routine PACU disposition for a patient who had intraoperative ischemia."
+  ],
+  "debrief": {
+    "points": [
+      "Intraoperative myocardial ischemia is usually a supply-demand imbalance, not a coronary occlusion: tachycardia, hypertension, hypotension, anemia, and light anesthesia are the common drivers, and each is treatable.",
+      "The ECG is the intraoperative monitor for ischemia — new horizontal or downsloping ST depression, T-wave change, or fresh ectopy in a lead II/V5 configuration. Five-lead monitoring with V5 markedly improves sensitivity.",
+      "Order matters and depends on the pressure: oxygen, depth, and analgesia always; rate control and nitroglycerin only when the pressure tolerates them; a vasopressor to defend coronary perfusion pressure when it doesn't.",
+      "Verified doses: esmolol 0.5 mg/kg IV over 1 minute then 50-300 mcg/kg/min; IV nitroglycerin 5-10 mcg/min titrated; phenylephrine 100 mcg boluses or norepinephrine infusion; aspirin 162-325 mg.",
+      "The hypotensive-ischemia trap is the teaching point: both nitroglycerin and beta-blockade lower an already-low pressure, so restore perfusion pressure and hemoglobin first.",
+      "Ischemia can degenerate into ventricular fibrillation; recognizing the transition and defibrillating without delay (200 J biphasic, epinephrine 1 mg q3-5 min, amiodarone 300 mg) is the same reflex as any shockable arrest.",
+      "After-care defines quality: 12-lead ECG, serial troponin, aspirin, cardiology involvement, ICU monitoring, and an explicit proceed-versus-abort decision with the surgeon."
+    ],
+    "questions": [
+      "What was the first sign of ischemia, and how did you separate demand ischemia from a primary arrhythmia?",
+      "Walk through your supply-versus-demand reasoning — what were you doing to each side of the balance?",
+      "Why is the order of oxygen/depth, then rate control, then nitroglycerin important, and how did the blood pressure change it?",
+      "The pressure fell as the ischemia worsened — why is that the most dangerous moment for nitroglycerin and beta-blockers?",
+      "What esmolol and nitroglycerin doses did you choose, and how did you titrate them?",
+      "When it became VF, how quickly did you pivot to the shockable-arrest algorithm, and what did you do first?",
+      "What does this patient need after the ST segments recover, and what do you tell the surgeon and the next team?"
+    ]
+  },
+  "rubric": [
+    {
+      "id": "recognition",
+      "label": "Recognition and Mechanism",
+      "actionIds": ["recognize-ischemia", "supply-demand-framing"]
+    },
+    {
+      "id": "management",
+      "label": "Supply-Demand Management",
+      "actionIds": [
+        "oxygen-and-depth",
+        "rate-control",
+        "defend-perfusion-pressure",
+        "nitroglycerin-when-safe",
+        "manage-vf-arrest"
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication and Disposition",
+      "actionIds": ["call-for-help", "twelve-lead-troponin", "plan-disposition"]
+    }
+  ]
+}
