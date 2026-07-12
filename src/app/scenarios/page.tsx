@@ -7,8 +7,11 @@ import { ConfirmButton } from '@/components/ui/ConfirmButton';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, getPushedAt, isQueued } from '@/lib/cloud/outbox';
 import { mergeCloudScenarios, pullScenarios } from '@/lib/cloud/scenarioCloud';
+import { DOMAINS, domainOf } from '@/lib/engine/lint';
 import { parseScenario, validateScenario } from '@/lib/engine/schema';
-import type { Difficulty, Scenario } from '@/lib/engine/types';
+import type { Difficulty, Scenario, TrainingLevel } from '@/lib/engine/types';
+import { TRAINING_LEVEL_LABELS } from '@/lib/engine/types';
+import { AI_GENERATED_TAG } from '@/lib/llm/generator';
 import {
   BUILT_IN_SCENARIOS,
   QUICK_START_ID,
@@ -25,6 +28,12 @@ const DIFFICULTY_STYLES: Record<Difficulty, string> = {
   advanced: 'bg-red-900/60 text-red-300',
 };
 
+/** Section id for scenarios without a curriculum-domain tag. */
+const CUSTOM_SECTION = 'Custom & drafts';
+
+const SOURCE_OPTIONS = ['built-in', 'custom', 'cloud', 'ai draft'] as const;
+type SourceFilter = (typeof SOURCE_OPTIONS)[number];
+
 function downloadScenario(s: Scenario) {
   const blob = new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -40,8 +49,10 @@ export default function ScenarioLibraryPage() {
   // Custom scenarios come from localStorage, so resolve after mount.
   const [scenarios, setScenarios] = useState<Scenario[]>(BUILT_IN_SCENARIOS);
   const [customIds, setCustomIds] = useState<Set<string>>(new Set());
-  const [topic, setTopic] = useState<string>('all');
+  const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set());
   const [difficulty, setDifficulty] = useState<string>('all');
+  const [trainingLevel, setTrainingLevel] = useState<string>('all');
+  const [source, setSource] = useState<string>('all');
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
   const authStatus = useAuthStore((s) => s.status);
@@ -107,19 +118,58 @@ export default function ScenarioLibraryPage() {
     return { label: 'local only', className: 'bg-slate-800 text-slate-400' };
   };
 
-  const topics = useMemo(
-    () => Array.from(new Set(scenarios.flatMap((s) => s.tags.topics))).sort(),
-    [scenarios],
-  );
+  const matchesSource = (s: Scenario, wanted: SourceFilter): boolean => {
+    switch (wanted) {
+      case 'built-in':
+        return builtInIds.has(s.id) && !customIds.has(s.id);
+      case 'custom':
+        return customIds.has(s.id);
+      case 'cloud':
+        return Boolean(getPushedAt('scenario', s.id));
+      case 'ai draft':
+        return s.tags.topics.includes(AI_GENERATED_TAG);
+    }
+  };
+
+  const toggleDomain = (d: string) => {
+    setSelectedDomains((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+  };
 
   const q = query.trim().toLowerCase();
   const filtered = scenarios.filter(
     (s) =>
-      (topic === 'all' || s.tags.topics.includes(topic)) &&
+      (selectedDomains.size === 0 ||
+        (() => {
+          const d = domainOf(s);
+          return d !== undefined && selectedDomains.has(d);
+        })()) &&
       (difficulty === 'all' || s.tags.difficulty === difficulty) &&
+      (trainingLevel === 'all' ||
+        s.tags.trainingLevels.includes(trainingLevel as TrainingLevel)) &&
+      (source === 'all' || matchesSource(s, source as SourceFilter)) &&
       (q === '' ||
         `${s.title} ${s.summary} ${s.tags.topics.join(' ')}`.toLowerCase().includes(q)),
   );
+
+  // Grouped by curriculum domain while browsing; searching flattens so no
+  // match hides below the fold. Scenarios without a domain tag are never
+  // hidden — they get their own section.
+  const bySlug = (a: Scenario, b: Scenario) =>
+    (a.tags.topics[1] ?? a.id).localeCompare(b.tags.topics[1] ?? b.id);
+  const sections: Array<{ title: string; items: Scenario[] }> = [];
+  if (q === '') {
+    for (const d of DOMAINS) {
+      const items = filtered.filter((s) => domainOf(s) === d).sort(bySlug);
+      if (items.length > 0) sections.push({ title: d, items });
+    }
+    const unclassified = filtered.filter((s) => domainOf(s) === undefined);
+    if (unclassified.length > 0) sections.push({ title: CUSTOM_SECTION, items: unclassified });
+  }
 
   return (
     <FacultyGate>
@@ -171,37 +221,101 @@ export default function ScenarioLibraryPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <input
-            className="input w-56"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search scenarios…"
-            aria-label="Search scenarios"
-          />
-          <select className="input w-auto" value={topic} onChange={(e) => setTopic(e.target.value)} aria-label="Filter by topic">
-            <option value="all">All topics</option>
-            {topics.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
+        <div className="sticky top-0 z-10 -mx-4 space-y-2 border-b border-slate-800/60 bg-slate-950/95 px-4 py-2 backdrop-blur">
+          <div className="flex flex-wrap gap-2">
+            <input
+              className="input w-56"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search scenarios…"
+              aria-label="Search scenarios"
+            />
+            <select
+              className="input w-auto"
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              aria-label="Filter by difficulty"
+            >
+              <option value="all">All difficulties</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+            <select
+              className="input w-auto"
+              value={trainingLevel}
+              onChange={(e) => setTrainingLevel(e.target.value)}
+              aria-label="Filter by training level"
+            >
+              <option value="all">All training levels</option>
+              {Object.entries(TRAINING_LEVEL_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="input w-auto"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              aria-label="Filter by source"
+            >
+              <option value="all">All sources</option>
+              {SOURCE_OPTIONS.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by domain">
+            {DOMAINS.map((d) => (
+              <button
+                key={d}
+                aria-pressed={selectedDomains.has(d)}
+                onClick={() => toggleDomain(d)}
+                className={`rounded px-2 py-1 text-xs font-semibold transition ${
+                  selectedDomains.has(d)
+                    ? 'bg-sky-600 text-white'
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                }`}
+              >
+                {d}
+              </button>
             ))}
-          </select>
-          <select
-            className="input w-auto"
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            aria-label="Filter by difficulty"
-          >
-            <option value="all">All difficulties</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
+            {selectedDomains.size > 0 && (
+              <button
+                className="px-1.5 py-1 text-xs text-slate-500 hover:text-slate-300"
+                onClick={() => setSelectedDomains(new Set())}
+              >
+                ✕ clear
+              </button>
+            )}
+          </div>
         </div>
 
-        <ul className="space-y-3">
-          {filtered.map((s) => (
+        {q === '' ? (
+          sections.map((sec) => (
+            <section key={sec.title} className="space-y-3">
+              <h2 className="label !mb-0">
+                {sec.title}{' '}
+                <span className="font-normal normal-case text-slate-600">({sec.items.length})</span>
+              </h2>
+              <ul className="space-y-3">{sec.items.map(scenarioCard)}</ul>
+            </section>
+          ))
+        ) : (
+          <ul className="space-y-3">{filtered.map(scenarioCard)}</ul>
+        )}
+        {filtered.length === 0 && (
+          <p className="card text-sm text-slate-400">No scenarios match those filters.</p>
+        )}
+      </main>
+    </FacultyGate>
+  );
+
+  function scenarioCard(s: Scenario) {
+    return (
             <li key={s.id} className="card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -217,7 +331,14 @@ export default function ScenarioLibraryPage() {
                       </span>
                     )}
                     {s.tags.topics.map((t) => (
-                      <span key={t} className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-400">
+                      <span
+                        key={t}
+                        className={`rounded px-1.5 py-0.5 ${
+                          t === domainOf(s)
+                            ? 'bg-slate-700 font-semibold text-slate-200'
+                            : 'bg-slate-800 text-slate-400'
+                        }`}
+                      >
                         {t}
                       </span>
                     ))}
@@ -284,12 +405,6 @@ export default function ScenarioLibraryPage() {
                 </div>
               )}
             </li>
-          ))}
-          {filtered.length === 0 && (
-            <li className="card text-sm text-slate-400">No scenarios match those filters.</li>
-          )}
-        </ul>
-      </main>
-    </FacultyGate>
-  );
+    );
+  }
 }

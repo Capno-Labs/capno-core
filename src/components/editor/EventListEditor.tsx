@@ -15,6 +15,7 @@ import { CAPNO_SHAPE_LABELS, NUMERIC_VITAL_KEYS, RHYTHM_LABELS } from '@/lib/eng
 import type { LintWarning } from '@/lib/engine/lint';
 import { VITAL_META } from '@/lib/engine/vitals';
 import { CATEGORIES, CATEGORY_DOT } from '@/components/eventCategories';
+import { EVENT_TEMPLATES, type EventTemplate } from '@/lib/engine/eventTemplates';
 import { EventTimeline } from './EventTimeline';
 
 /**
@@ -237,6 +238,160 @@ export function EventListEditor({
     onChange([...events, { id: '', label: '', ...preset }]);
   };
 
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateFilter, setTemplateFilter] = useState('');
+
+  // Templates stamp an ordinary inline event: effects are deep-copied so
+  // later edits never touch the registry, and the id stays blank — the
+  // author must name it, same rule as the presets.
+  const insertTemplate = (t: EventTemplate) => {
+    addPreset({
+      label: t.label,
+      description: t.description,
+      category: t.category,
+      effects: structuredClone(t.effects),
+    });
+  };
+
+  // Grouping is display-order only: cards always render with their original
+  // array index (openCards/autoStash are index-keyed and the JSON pane
+  // mirrors array order), grouping just changes which heading they sit under.
+  const phaseGrouped = phases.length > 1 && events.some((e) => e.phaseHint !== undefined);
+  const groups: Array<{ key: string; title: string; indices: number[] }> = [];
+  if (phaseGrouped) {
+    for (const p of phases) {
+      const indices = events.flatMap((e, i) => (e.phaseHint === p.id ? [i] : []));
+      if (indices.length > 0) groups.push({ key: p.id, title: p.label || p.id, indices });
+    }
+    const phaseIds = new Set(phases.map((p) => p.id));
+    const unassigned = events.flatMap((e, i) =>
+      e.phaseHint === undefined || !phaseIds.has(e.phaseHint) ? [i] : [],
+    );
+    if (unassigned.length > 0) groups.push({ key: '·unassigned', title: 'No phase hint', indices: unassigned });
+  }
+
+  const tq = templateFilter.trim().toLowerCase();
+  const visibleTemplates = EVENT_TEMPLATES.filter(
+    (t) =>
+      tq === '' ||
+      `${t.label} ${t.description} ${t.domain} ${t.category} ${t.source}`.toLowerCase().includes(tq),
+  );
+  const TEMPLATE_KINDS: Array<{ kind: EventTemplate['kind']; title: string }> = [
+    { kind: 'deterioration', title: 'Deterioration' },
+    { kind: 'treatment-response', title: 'Treatment response' },
+    { kind: 'resolution', title: 'Resolution' },
+    { kind: 'marker', title: 'Marker' },
+  ];
+
+  const addEventControls = (
+    <>
+      {events.length === 0 && (
+        <div className="space-y-1 rounded bg-slate-800/60 p-3 text-xs text-slate-400">
+          <p className="font-semibold text-slate-300">No events yet — events are the script of the case.</p>
+          <p>
+            <span className="text-sky-300">Automatic</span> events fire on a timer and drive the
+            scripted deterioration. <span className="text-slate-300">Faculty-fired</span> events are
+            responses the instructor triggers when learners act (drug given, airway secured).{' '}
+            <span className="text-slate-300">Marker</span> events change nothing — they just write a
+            log line. Start with a preset below.
+          </p>
+        </div>
+      )}
+      <div className="space-y-1">
+        <span className="label">Add event</span>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn-secondary" onClick={() => addPreset({ category: 'physiology', autoAtSec: 0, effects: [{}] })}>
+            + Deterioration (automatic)
+          </button>
+          <button className="btn-secondary" onClick={() => addPreset({ category: 'drug', effects: [{}] })}>
+            + Treatment response (faculty-fired)
+          </button>
+          <button className="btn-secondary" onClick={() => addPreset({ category: 'other', effects: [] })}>
+            + Marker / log-only
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              const vitals: Partial<NumericVitals> = {};
+              for (const key of NUMERIC_VITAL_KEYS) vitals[key] = baselineVitals[key];
+              addPreset({
+                category: 'resolution',
+                effects: [{ vitals, rhythm: baselineVitals.rhythm }],
+              });
+            }}
+          >
+            + Recovery to baseline (faculty-fired)
+          </button>
+          <button
+            className="btn-secondary"
+            aria-expanded={showTemplates}
+            onClick={() => setShowTemplates((v) => !v)}
+          >
+            {showTemplates ? '− From template…' : '+ From template…'}
+          </button>
+        </div>
+        <p className="text-xs text-slate-500">
+          Presets only set up structure — you type every clinical value. Recovery pre-fills your
+          baseline vitals; edit or blank any you don’t want to change.
+        </p>
+      </div>
+      {showTemplates && (
+        <div className="space-y-2 rounded bg-slate-800/60 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="label !mb-0">Event templates</span>
+            <input
+              className="input w-56 !px-2 !py-1 text-sm"
+              value={templateFilter}
+              onChange={(e) => setTemplateFilter(e.target.value)}
+              placeholder="Filter templates…"
+              aria-label="Filter templates"
+            />
+          </div>
+          <p className="text-xs text-slate-500">
+            Templates copy reviewed vital values from the bundled scenarios (source shown per
+            template) — verify them for your patient and baseline. The inserted event needs an id,
+            and you choose its trigger.
+          </p>
+          {TEMPLATE_KINDS.map(({ kind, title }) => {
+            const items = visibleTemplates.filter((t) => t.kind === kind);
+            if (items.length === 0) return null;
+            return (
+              <div key={kind} className="space-y-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  {title}
+                </span>
+                <ul className="space-y-1">
+                  {items.map((t) => (
+                    <li
+                      key={t.id}
+                      className="flex flex-wrap items-center gap-2 rounded bg-slate-900/60 px-2 py-1.5 ring-1 ring-slate-800"
+                    >
+                      <span
+                        className={`inline-block h-2 w-2 shrink-0 rounded-full ${CATEGORY_DOT[t.category]}`}
+                        title={t.category}
+                      />
+                      <span className="text-sm font-semibold text-slate-200">{t.label}</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-slate-500" title={t.description}>
+                        {t.effects.length === 0 ? 'log only' : t.effects.map(effectSummary).join(' | ')}
+                      </span>
+                      <span className="text-[10px] text-slate-600">{t.source}</span>
+                      <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => insertTemplate(t)}>
+                        Insert
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+          {visibleTemplates.length === 0 && (
+            <p className="text-xs text-slate-500">No templates match “{templateFilter}”.</p>
+          )}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-2">
       {events.length > 0 && (
@@ -246,7 +401,25 @@ export function EventListEditor({
           onSelect={(i) => setOpen(i, true)}
         />
       )}
-      {events.map((event, i) => (
+      {phaseGrouped
+        ? groups.map((g) => (
+            <div key={g.key} className="space-y-2">
+              <div className="label !mb-0 pt-1">
+                {g.title}{' '}
+                <span className="font-normal normal-case text-slate-600">
+                  ({g.indices.length} · {g.indices.filter((i) => events[i].autoAtSec !== undefined).length} auto)
+                </span>
+              </div>
+              {g.indices.map((i) => eventCard(events[i], i))}
+            </div>
+          ))
+        : events.map((event, i) => eventCard(event, i))}
+      {addEventControls}
+    </div>
+  );
+
+  function eventCard(event: ScenarioEvent, i: number) {
+    return (
         <details
           key={i}
           className="rounded bg-slate-800/60 p-2"
@@ -429,50 +602,6 @@ export function EventListEditor({
             </div>
           </div>
         </details>
-      ))}
-      {events.length === 0 && (
-        <div className="space-y-1 rounded bg-slate-800/60 p-3 text-xs text-slate-400">
-          <p className="font-semibold text-slate-300">No events yet — events are the script of the case.</p>
-          <p>
-            <span className="text-sky-300">Automatic</span> events fire on a timer and drive the
-            scripted deterioration. <span className="text-slate-300">Faculty-fired</span> events are
-            responses the instructor triggers when learners act (drug given, airway secured).{' '}
-            <span className="text-slate-300">Marker</span> events change nothing — they just write a
-            log line. Start with a preset below.
-          </p>
-        </div>
-      )}
-      <div className="space-y-1">
-        <span className="label">Add event</span>
-        <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary" onClick={() => addPreset({ category: 'physiology', autoAtSec: 0, effects: [{}] })}>
-            + Deterioration (automatic)
-          </button>
-          <button className="btn-secondary" onClick={() => addPreset({ category: 'drug', effects: [{}] })}>
-            + Treatment response (faculty-fired)
-          </button>
-          <button className="btn-secondary" onClick={() => addPreset({ category: 'other', effects: [] })}>
-            + Marker / log-only
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              const vitals: Partial<NumericVitals> = {};
-              for (const key of NUMERIC_VITAL_KEYS) vitals[key] = baselineVitals[key];
-              addPreset({
-                category: 'resolution',
-                effects: [{ vitals, rhythm: baselineVitals.rhythm }],
-              });
-            }}
-          >
-            + Recovery to baseline (faculty-fired)
-          </button>
-        </div>
-        <p className="text-xs text-slate-500">
-          Presets only set up structure — you type every clinical value. Recovery pre-fills your
-          baseline vitals; edit or blank any you don’t want to change.
-        </p>
-      </div>
-    </div>
-  );
+    );
+  }
 }

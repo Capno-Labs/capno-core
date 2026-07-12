@@ -11,6 +11,8 @@ import intraopBronchospasm from '@/scenarios/intraop-bronchospasm.json';
 import difficultAirwayCico from '@/scenarios/difficult-airway-cico.json';
 import postpartumHemorrhage from '@/scenarios/postpartum-hemorrhage.json';
 import venousAirEmbolism from '@/scenarios/venous-air-embolism.json';
+import myocardialIschemia from '@/scenarios/myocardial-ischemia.json';
+import hypoxemia from '@/scenarios/hypoxemia.json';
 
 /**
  * Built-in scenario library. Files are statically imported so they ship in
@@ -29,6 +31,8 @@ const RAW: unknown[] = [
   difficultAirwayCico,
   postpartumHemorrhage,
   venousAirEmbolism,
+  myocardialIschemia,
+  hypoxemia,
 ];
 
 export const BUILT_IN_SCENARIOS: Scenario[] = RAW.map((raw) => parseScenario(raw));

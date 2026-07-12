@@ -7,7 +7,7 @@ import inductionHypotension from '@/scenarios/induction-hypotension.json';
 
 describe('scenario schema', () => {
   it('validates all built-in scenarios (registry throws on load if invalid)', () => {
-    expect(BUILT_IN_SCENARIOS).toHaveLength(10);
+    expect(BUILT_IN_SCENARIOS).toHaveLength(12);
     const ids = BUILT_IN_SCENARIOS.map((s) => s.id);
     expect(ids).toEqual(
       expect.arrayContaining([
@@ -21,6 +21,8 @@ describe('scenario schema', () => {
         'difficult-airway-cico',
         'postpartum-hemorrhage',
         'venous-air-embolism',
+        'myocardial-ischemia',
+        'hypoxemia',
       ]),
     );
   });

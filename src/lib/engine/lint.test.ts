@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lintScenario } from './lint';
+import { DOMAINS, domainOf, lintScenario } from './lint';
 import { parseScenario } from './schema';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 
@@ -58,6 +58,38 @@ describe('lintScenario', () => {
     const found = lintScenario(s).filter((w) => w.message.includes('out of time order'));
     expect(found).toHaveLength(1);
     expect(found[0].severity).toBe('info');
+  });
+
+  it('resolves a curriculum domain for every built-in scenario, with no domain finding', () => {
+    for (const s of BUILT_IN_SCENARIOS) {
+      expect(domainOf(s), s.id).toBeDefined();
+      expect(
+        lintScenario(s).filter((w) => w.path === 'tags.topics'),
+        s.id,
+      ).toEqual([]);
+    }
+  });
+
+  it('notes topics without a curriculum domain as info', () => {
+    const s = clone();
+    s.tags.topics = ['general', 'my-custom-case'];
+    expect(domainOf(s)).toBeUndefined();
+    const found = lintScenario(s).find((w) => w.path === 'tags.topics');
+    expect(found?.severity).toBe('info');
+    expect(found?.message).toContain('Custom & drafts');
+  });
+
+  it('finds the domain regardless of tag position (ai-generated drafts)', () => {
+    const s = clone();
+    s.tags.topics = ['ai-generated', 'cardiac', 'myocardial ischemia'];
+    expect(domainOf(s)).toBe('cardiac');
+    expect(lintScenario(s).filter((w) => w.path === 'tags.topics')).toEqual([]);
+  });
+
+  it('exposes the 11-domain closed vocabulary', () => {
+    expect(DOMAINS).toHaveLength(11);
+    expect(DOMAINS).toContain('neuro');
+    expect(DOMAINS).toContain('equipment');
   });
 
   it('returns nothing for a clean faculty-fired event with effects', () => {
