@@ -44,22 +44,28 @@ simulation training:
 ## Topic taxonomy
 
 Convention: **`tags.topics[0]` is exactly one domain** from this closed
-vocabulary; the remaining entries are free-form specifics (mechanism, key
-drug or skill, cross-cutting themes like `crisis management`). The
-`/scenarios` library page builds its topic filter from these tags, so
-keeping the first tag canonical keeps the filter clean.
+vocabulary, and **`topics[1]` names the crisis** from the catalog below
+when the scenario instantiates a catalog entry; the remaining entries are
+free-form specifics (mechanism, key drug or skill, cross-cutting themes
+like `crisis management`). The `/scenarios` library page groups scenarios
+by domain (via `domainOf()` in `src/lib/engine/lint.ts`, which matches the
+first domain tag wherever it appears), so keeping a canonical domain tag
+keeps the library organized — scenarios without one land under
+"Custom & drafts".
 
 | Domain | Meaning | Scenarios |
 | --- | --- | --- |
-| `airway` | Obstruction, failed airway, front-of-neck access | laryngospasm-lma, difficult-airway-cico |
+| `airway` | Obstruction, failed airway, front-of-neck access, airway fire | laryngospasm-lma, difficult-airway-cico |
 | `respiratory` | Gas-exchange and ventilation crises | intraop-bronchospasm |
-| `cardiac` | Rhythm disturbances and arrest | bradycardia-asystole |
+| `cardiac` | Rhythm disturbances, ischemia, and arrest | bradycardia-asystole |
 | `hemodynamics` | Pressure/perfusion management short of hemorrhage | induction-hypotension |
-| `hemorrhage` | Major bleeding and transfusion (incl. obstetric) | postpartum-hemorrhage |
-| `embolic` | Air, thrombus, amniotic fluid embolism | venous-air-embolism |
+| `hemorrhage` | Major bleeding and transfusion (incl. obstetric, transfusion reactions) | postpartum-hemorrhage |
+| `embolic` | Air, thrombus, amniotic fluid, cement embolism | venous-air-embolism |
 | `hypersensitivity` | Anaphylaxis and allergic reactions | anaphylaxis |
-| `toxicity` | Drug toxicity (LAST, overdose) | last-nerve-block |
-| `temperature/metabolic` | MH, hypermetabolic and metabolic crises | malignant-hyperthermia |
+| `toxicity` | Drug toxicity (LAST, overdose, reversal failure) | last-nerve-block |
+| `temperature/metabolic` | MH, hypermetabolic, electrolyte and metabolic crises | malignant-hyperthermia |
+| `neuro` | High spinal, delayed emergence, seizure, awareness | — |
+| `equipment` | Machine/pipeline/power failure, OR fire, infusion error | — |
 
 ## Difficulty tiers and training levels
 
@@ -86,6 +92,83 @@ training-year progression:
 | difficult-airway-cico | airway | advanced | Attempt discipline, declared CICO, scalpel cricothyroidotomy |
 | postpartum-hemorrhage | hemorrhage | advanced | QBL over the cuff; uterotonics, TXA, massive transfusion |
 | venous-air-embolism | embolic | advanced | The unexplained EtCO2 fall; stop entrainment, support the RV |
+
+## The full catalog and coverage map
+
+The master list of intraoperative crises the library aims to cover,
+anchored to the Stanford *Emergency Manual* (~25 perioperative crises) and
+the ABA MOCA scenario domains, with recognized extensions. **Tier A** =
+Emergency Manual / MOCA core; **Tier B** = recognized extensions.
+
+Catalog entries are names only. Per the source-verification rule
+(`CLAUDE.md` invariant 7), a scenario authored from this list must be
+verified against published guidelines or standard texts at authoring time,
+with citations added to this file and the PR.
+
+Conventions: scenario id = `<crisis-slug>[-<variant-qualifier>]`
+(e.g. `pneumothorax-tension`, `anaphylaxis-rocuronium`); variants of one
+crisis are separate whole scenarios sharing the slug prefix and
+`topics[1]`. The ten shipped ids predate this convention and are
+grandfathered unchanged.
+
+| Domain | Crisis (slug) | Tier | Suggested difficulty | Status |
+| --- | --- | --- | --- | --- |
+| `airway` | laryngospasm | A | intermediate | ✓ shipped (`laryngospasm-lma`) |
+| `airway` | cannot intubate, cannot oxygenate (`cico`) | A | advanced | ✓ shipped (`difficult-airway-cico`) |
+| `airway` | difficult intubation, non-CICO (`difficult-intubation`) | A | intermediate | open |
+| `airway` | aspiration of gastric contents (`aspiration`) | A | intermediate | open |
+| `airway` | airway fire (`airway-fire`) | A | advanced | open |
+| `airway` | ETT failure — obstruction/migration/cuff leak (`ett-failure`) | B | intermediate | open |
+| `respiratory` | bronchospasm | A | intermediate | ✓ shipped (`intraop-bronchospasm`) |
+| `respiratory` | unexplained hypoxemia (`hypoxemia`) | A | intermediate | open |
+| `respiratory` | pneumothorax, incl. tension variant (`pneumothorax`) | A | advanced | open |
+| `respiratory` | mainstem intubation (`mainstem-intubation`) | B | beginner | open |
+| `respiratory` | hypoventilation / hypercapnia (`hypoventilation`) | B | beginner | open |
+| `cardiac` | unstable bradycardia → asystole (`bradycardia`) | A | intermediate | ✓ shipped (`bradycardia-asystole`) |
+| `cardiac` | myocardial ischemia (`myocardial-ischemia`) | A | advanced | open |
+| `cardiac` | VF / pulseless VT arrest (`vf-arrest`) | A | advanced | open |
+| `cardiac` | PEA arrest (`pea-arrest`) | A | advanced | open |
+| `cardiac` | unstable SVT (`unstable-svt`) | A | intermediate | open |
+| `cardiac` | acute right-heart failure (`rv-failure`) | A | advanced | open |
+| `cardiac` | oculocardiac reflex (`oculocardiac-reflex`) | B | beginner | open |
+| `hemodynamics` | post-induction hypotension (`induction-hypotension`) | A | beginner | ✓ shipped |
+| `hemodynamics` | refractory / undifferentiated hypotension (`refractory-hypotension`) | A | advanced | open |
+| `hemodynamics` | hypertensive emergency (`hypertensive-emergency`) | B | intermediate | open |
+| `hemodynamics` | autonomic hyperreflexia (`autonomic-hyperreflexia`) | B | intermediate | open |
+| `hemodynamics` | vasoplegia / septic shock (`septic-shock`) | B | advanced | open |
+| `hemorrhage` | postpartum hemorrhage | A | advanced | ✓ shipped (`postpartum-hemorrhage`) |
+| `hemorrhage` | massive surgical/trauma hemorrhage + MTP (`massive-hemorrhage`) | A | advanced | open |
+| `hemorrhage` | acute hemolytic transfusion reaction (`hemolytic-transfusion-reaction`) | A | advanced | open |
+| `hemorrhage` | TRALI / TACO (`trali-taco`) | B | advanced | open |
+| `embolic` | venous air embolism | A | advanced | ✓ shipped (`venous-air-embolism`) |
+| `embolic` | intraoperative pulmonary thromboembolism (`pulmonary-embolism`) | A | advanced | open |
+| `embolic` | amniotic fluid embolism (`amniotic-fluid-embolism`) | B | advanced | open |
+| `embolic` | bone cement implantation syndrome (`bone-cement-syndrome`) | B | advanced | open |
+| `hypersensitivity` | anaphylaxis | A | advanced | ✓ shipped (`anaphylaxis`; agent variants open) |
+| `toxicity` | local anesthetic systemic toxicity (`last`) | A | advanced | ✓ shipped (`last-nerve-block`) |
+| `toxicity` | opioid-induced ventilatory impairment (`oivi`) | B | intermediate | open |
+| `toxicity` | residual neuromuscular blockade (`residual-nmb`) | B | intermediate | open |
+| `toxicity` | methemoglobinemia | B | advanced | open |
+| `temperature/metabolic` | malignant hyperthermia | A | advanced | ✓ shipped (`malignant-hyperthermia`) |
+| `temperature/metabolic` | hyperkalemia | A | advanced | open |
+| `temperature/metabolic` | hypoglycemia | B | intermediate | open |
+| `temperature/metabolic` | TURP syndrome / acute hyponatremia (`turp-syndrome`) | B | advanced | open |
+| `temperature/metabolic` | thyroid storm (`thyroid-storm`) | B | advanced | open |
+| `temperature/metabolic` | severe hypothermia (`hypothermia`) | B | intermediate | open |
+| `neuro` | high / total spinal (`high-spinal`) | A | advanced | open |
+| `neuro` | delayed emergence (`delayed-emergence`) | A | intermediate | open |
+| `neuro` | intraoperative seizure (`seizure`) | B | intermediate | open |
+| `neuro` | intraoperative awareness (`awareness`) | B | intermediate | open |
+| `equipment` | O₂ pipeline failure / crossover (`o2-pipeline-failure`) | A | advanced | open |
+| `equipment` | ventilator failure / circuit disconnect (`ventilator-failure`) | A | intermediate | open |
+| `equipment` | OR power failure (`power-failure`) | A | intermediate | open |
+| `equipment` | OR fire — patient/drapes (`or-fire`) | A | advanced | open |
+| `equipment` | infusion pump / line-swap error (`infusion-error`) | B | intermediate | open |
+
+Coverage: 51 catalog entries — 10 shipped (all Tier A), 21 open Tier A
+gaps, 20 Tier B extensions. Where new curriculum ships (this repo's free
+set vs. elsewhere) is a maintainer placement decision — see `CLAUDE.md`,
+"Where features belong".
 
 ## Clinical sources by scenario
 
@@ -119,7 +202,8 @@ clinical content is authored against published guidance:
 
 ## Adding scenarios to the curriculum
 
-Pick the domain first (`topics[0]`), match the tier table above, follow the
-authoring recipe in `CLAUDE.md`, keep the field reference
-(`docs/scenario.schema.md`) at hand, and cite your clinical sources in the
-PR description and — ideally — in this file.
+Pick the crisis from the catalog above first (it fixes the domain for
+`topics[0]`, the crisis slug for `topics[1]`, and the id convention),
+match the tier table, follow the authoring recipe in `CLAUDE.md`, keep the
+field reference (`docs/scenario.schema.md`) at hand, and cite your
+clinical sources in the PR description and — ideally — in this file.
