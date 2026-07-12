@@ -36,10 +36,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Immutable build assets + icons: cache-first.
+  // Immutable build assets + icons + brand art: cache-first.
   if (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/brand/') ||
     url.pathname === '/manifest.webmanifest'
   ) {
     event.respondWith(
