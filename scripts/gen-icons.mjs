@@ -1,8 +1,9 @@
 /**
- * Generates Capno PWA icons (PNG) with zero dependencies by writing the PNG
- * format directly (zlib from node core). Icon: the brand mark — one amber
- * capnogram breath on a monitor-black tile (see docs/brand.md and
- * public/brand/capno-icon.svg, same 512-space geometry).
+ * Generates Capno PWA icons and the Open Graph share image (PNG) with zero
+ * dependencies by writing the PNG format directly (zlib from node core).
+ * Icon: the brand mark — one amber capnogram breath on a monitor-black tile
+ * (see docs/brand.md and public/brand/capno-icon.svg, same 512-space
+ * geometry).
  * Run: `npm run icons` (outputs are committed).
  */
 import { deflateSync } from 'node:zlib';
@@ -62,6 +63,25 @@ const WAVE = [
   [96, 325], [154, 325], [172, 199], [328, 187], [342, 325], [416, 325],
 ].map(([x, y]) => [x / 512, y / 512]);
 
+/** Stroke a polyline with round joints via a per-pixel setter. */
+function strokePolyline(set, pts, thick, color) {
+  const drawSegment = (x0, y0, x1, y1) => {
+    const steps = Math.ceil(Math.hypot(x1 - x0, y1 - y0)) * 2;
+    for (let s = 0; s <= steps; s++) {
+      const x = x0 + ((x1 - x0) * s) / steps;
+      const y = y0 + ((y1 - y0) * s) / steps;
+      for (let dy = -thick; dy <= thick; dy++) {
+        for (let dx = -thick; dx <= thick; dx++) {
+          if (dx * dx + dy * dy <= thick * thick) set(Math.round(x + dx), Math.round(y + dy), color);
+        }
+      }
+    }
+  };
+  for (let i = 0; i < pts.length - 1; i++) {
+    drawSegment(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+  }
+}
+
 /**
  * shape: 'tile' (rounded corners, transparent outside — home-screen icons),
  * 'square' (full bleed — apple-touch, which must stay opaque, and the
@@ -94,23 +114,38 @@ function drawIcon(size, shape) {
 
   const pts = WAVE.map(([x, y]) => [x * size, y * size]);
   const thick = Math.max(2, Math.round(STROKE_HALF * size));
-  const drawSegment = (x0, y0, x1, y1) => {
-    const steps = Math.ceil(Math.hypot(x1 - x0, y1 - y0)) * 2;
-    for (let s = 0; s <= steps; s++) {
-      const x = x0 + ((x1 - x0) * s) / steps;
-      const y = y0 + ((y1 - y0) * s) / steps;
-      for (let dy = -thick; dy <= thick; dy++) {
-        for (let dx = -thick; dx <= thick; dx++) {
-          if (dx * dx + dy * dy <= thick * thick) set(Math.round(x + dx), Math.round(y + dy), AMBER);
-        }
-      }
-    }
-  };
-  for (let i = 0; i < pts.length - 1; i++) {
-    drawSegment(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
-  }
+  strokePolyline(set, pts, thick, AMBER);
 
   return encodePng(size, size, img);
+}
+
+/**
+ * 1200×630 Open Graph share card (public/og.png): the brand mark centered
+ * on full-bleed monitor black. No text — this encoder draws no type, and
+ * og:title carries the wordmark alongside the image.
+ */
+function drawOg(width, height) {
+  const img = Buffer.alloc(width * height * 4);
+  const set = (x, y, [r, g, b], a = 255) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const i = (y * width + x) * 4;
+    img[i] = r;
+    img[i + 1] = g;
+    img[i + 2] = b;
+    img[i + 3] = a;
+  };
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) set(x, y, TILE);
+  }
+
+  // The 512-space brand geometry rendered in a centered box.
+  const box = 460;
+  const offX = (width - box) / 2;
+  const offY = (height - box) / 2;
+  const pts = WAVE.map(([x, y]) => [offX + x * box, offY + y * box]);
+  strokePolyline(set, pts, Math.max(2, Math.round(STROKE_HALF * box)), AMBER);
+
+  return encodePng(width, height, img);
 }
 
 for (const [name, size, shape] of [
@@ -122,3 +157,8 @@ for (const [name, size, shape] of [
   writeFileSync(join(outDir, name), drawIcon(size, shape));
   console.log(`wrote public/icons/${name}`);
 }
+
+// Public root (not /icons/), so the service worker's cache-first icon rule
+// never serves a stale share image.
+writeFileSync(join(outDir, '..', 'og.png'), drawOg(1200, 630));
+console.log('wrote public/og.png');
