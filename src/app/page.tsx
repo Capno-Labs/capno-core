@@ -43,7 +43,7 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-8 px-6 py-12">
       <header className="text-center">
-        <h1 className="sr-only">CAPNO Studio</h1>
+        <h1 className="sr-only">CAPNO Studio — anesthesia simulation lab</h1>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/brand/capno-lockup-stacked.svg"
