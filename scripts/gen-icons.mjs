@@ -1,7 +1,9 @@
 /**
  * Generates Capno PWA icons (PNG) with zero dependencies by writing the PNG
- * format directly (zlib from node core). Icon: dark navy tile with a green
- * ECG-style pulse line. Run: `npm run icons` (outputs are committed).
+ * format directly (zlib from node core). Icon: the brand mark — one amber
+ * capnogram breath on a monitor-black tile (see docs/brand.md and
+ * public/brand/capno-icon.svg, same 512-space geometry).
+ * Run: `npm run icons` (outputs are committed).
  */
 import { deflateSync } from 'node:zlib';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -50,11 +52,23 @@ function encodePng(width, height, rgba) {
 }
 
 // ── Icon drawing ──────────────────────────────────────────────────────────────
-function drawIcon(size) {
+// Geometry in the authored 512×512 space of public/brand/capno-icon.svg:
+// one capnogram breath (upstroke, ascending plateau, downstroke), round caps.
+const TILE = [5, 8, 13]; // #05080d monitor black
+const AMBER = [250, 204, 21]; // #facc15 EtCO₂ yellow
+const TILE_RADIUS = 114 / 512;
+const STROKE_HALF = 17 / 512; // stroke-width 34
+const WAVE = [
+  [96, 325], [154, 325], [172, 199], [328, 187], [342, 325], [416, 325],
+].map(([x, y]) => [x / 512, y / 512]);
+
+/**
+ * shape: 'tile' (rounded corners, transparent outside — home-screen icons),
+ * 'square' (full bleed — apple-touch, which must stay opaque, and the
+ * maskable icon, whose wave sits inside the 80% safe circle).
+ */
+function drawIcon(size, shape) {
   const img = Buffer.alloc(size * size * 4);
-  const bg = [11, 18, 32]; // #0b1220
-  const edge = [5, 8, 13]; // #05080d
-  const green = [34, 224, 95]; // #22e05f
 
   const set = (x, y, [r, g, b], a = 255) => {
     if (x < 0 || y < 0 || x >= size || y >= size) return;
@@ -65,27 +79,21 @@ function drawIcon(size) {
     img[i + 3] = a;
   };
 
-  // Background with subtle vignette.
-  const cx = size / 2;
+  const radius = TILE_RADIUS * size;
+  const inTile = (x, y) => {
+    if (shape === 'square') return true;
+    const dx = Math.max(radius - x - 0.5, x + 0.5 - (size - radius), 0);
+    const dy = Math.max(radius - y - 0.5, y + 0.5 - (size - radius), 0);
+    return dx * dx + dy * dy <= radius * radius;
+  };
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const d = Math.hypot(x - cx, y - cx) / cx;
-      const t = Math.min(1, d * d);
-      set(x, y, [
-        Math.round(bg[0] + (edge[0] - bg[0]) * t),
-        Math.round(bg[1] + (edge[1] - bg[1]) * t),
-        Math.round(bg[2] + (edge[2] - bg[2]) * t),
-      ]);
+      if (inTile(x, y)) set(x, y, TILE);
     }
   }
 
-  // ECG pulse polyline across the middle (normalized coordinates).
-  const pts = [
-    [0.06, 0.5], [0.3, 0.5], [0.36, 0.42], [0.42, 0.58],
-    [0.48, 0.18], [0.55, 0.78], [0.6, 0.5], [0.94, 0.5],
-  ].map(([x, y]) => [x * size, y * size]);
-
-  const thick = Math.max(2, Math.round(size * 0.045));
+  const pts = WAVE.map(([x, y]) => [x * size, y * size]);
+  const thick = Math.max(2, Math.round(STROKE_HALF * size));
   const drawSegment = (x0, y0, x1, y1) => {
     const steps = Math.ceil(Math.hypot(x1 - x0, y1 - y0)) * 2;
     for (let s = 0; s <= steps; s++) {
@@ -93,7 +101,7 @@ function drawIcon(size) {
       const y = y0 + ((y1 - y0) * s) / steps;
       for (let dy = -thick; dy <= thick; dy++) {
         for (let dx = -thick; dx <= thick; dx++) {
-          if (dx * dx + dy * dy <= thick * thick) set(Math.round(x + dx), Math.round(y + dy), green);
+          if (dx * dx + dy * dy <= thick * thick) set(Math.round(x + dx), Math.round(y + dy), AMBER);
         }
       }
     }
@@ -105,11 +113,12 @@ function drawIcon(size) {
   return encodePng(size, size, img);
 }
 
-for (const [name, size] of [
-  ['icon-192.png', 192],
-  ['icon-512.png', 512],
-  ['apple-touch-icon.png', 180],
+for (const [name, size, shape] of [
+  ['icon-192.png', 192, 'tile'],
+  ['icon-512.png', 512, 'tile'],
+  ['icon-512-maskable.png', 512, 'square'],
+  ['apple-touch-icon.png', 180, 'square'],
 ]) {
-  writeFileSync(join(outDir, name), drawIcon(size));
+  writeFileSync(join(outDir, name), drawIcon(size, shape));
   console.log(`wrote public/icons/${name}`);
 }

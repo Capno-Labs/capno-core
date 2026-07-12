@@ -43,15 +43,13 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-8 px-6 py-12">
       <header className="text-center">
-        <div className="mb-3 font-mono text-5xl text-vital-ecg [text-shadow:0_0_12px_rgba(34,224,95,0.45)]">
-          ⌁⌁⌁
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-          CAPNO{' '}
-          <span className="bg-gradient-to-r from-vital-ecg via-sky-400 to-violet-400 bg-clip-text text-transparent">
-            Studio
-          </span>
-        </h1>
+        <h1 className="sr-only">CAPNO Studio</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/capno-lockup-stacked.svg"
+          alt=""
+          className="mx-auto h-40 w-auto [filter:drop-shadow(0_0_16px_rgba(250,204,21,0.25))] md:h-48"
+        />
         <p className="mx-auto mt-3 max-w-xl text-slate-400">
           Open anesthesia simulation platform — faculty-controlled patient monitor, scenario
           engine, and structured debriefing for the sim lab.
