@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
 import type { ActionStatus, ArchivedSession, LogEntry } from '@/lib/engine/types';
 import { useCountUp } from '@/lib/hooks/useCountUp';
 import { TrendStrip } from './TrendStrip';
@@ -64,7 +65,8 @@ export function DebriefReport({
     <article className="print-report card space-y-8 !p-6 md:!p-8">
       {/* Header */}
       <header className="border-b border-slate-700 pb-4">
-        <p className="text-xs uppercase tracking-widest text-slate-500">
+        <p className="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500">
+          <CapnoGlyph className="h-4 w-auto shrink-0" />
           CAPNO Studio debrief report · simulation only — not a clinical record
         </p>
         <h1 className="mt-1 text-2xl font-bold">{scenario.title}</h1>

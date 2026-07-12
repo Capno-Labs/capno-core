@@ -21,8 +21,8 @@ export function BootOverlay({ onDone }: { onDone: () => void }) {
       aria-hidden
       className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-monitor-bg motion-safe:animate-crt-fade motion-reduce:hidden"
     >
-      <div className="h-px w-2/3 origin-left bg-vital-ecg shadow-[0_0_12px_2px_rgba(34,224,95,0.6)] motion-safe:animate-crt-line" />
-      <span className="font-mono text-xs uppercase tracking-[0.3em] text-vital-ecg/70">
+      <div className="h-px w-2/3 origin-left bg-vital-etco2 shadow-[0_0_12px_2px_rgba(250,204,21,0.6)] motion-safe:animate-crt-line" />
+      <span className="font-mono text-xs uppercase tracking-[0.3em] text-slate-500">
         CAPNO monitor
       </span>
     </div>
