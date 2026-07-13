@@ -182,6 +182,6 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — covers Vercel, self-hosted Node
 
 ## License
 
-Core: [Apache-2.0](LICENSE). The twelve starter scenarios are provided under the same license for academic use. Institutional/hosted features are intended to live outside this repository.
+Core: [Apache-2.0](LICENSE). The twelve starter scenarios are provided under the same license — no additional restrictions. Institutional/hosted features are intended to live outside this repository.
 
 © 2026 Capno Labs LLC · Apache-2.0
