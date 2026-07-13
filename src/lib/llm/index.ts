@@ -11,6 +11,7 @@ export {
   type CopilotResult,
 } from './copilot';
 export { OPENROUTER_BASE_URL, createOpenRouterProvider } from './openrouter';
+export { createGatewayProvider, gatewayConfigured, managedLlmEligible } from './gateway';
 export {
   AI_GENERATED_TAG,
   buildGeneratorMessages,

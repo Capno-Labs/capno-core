@@ -2,7 +2,9 @@
 
 import { create } from 'zustand';
 import type { LlmSettings } from '../llm/types';
+import { gatewayConfigured } from '../llm/gateway';
 import { clearLlmSettings, loadLlmSettings, saveLlmSettings } from '../llm/settings';
+import { useAuthStore } from '../cloud/authStore';
 
 /**
  * Reactive wrapper around the localStorage-backed LLM settings so components
@@ -38,9 +40,15 @@ export const useLlmSettingsStore = create<LlmSettingsState>((set) => ({
   },
 }));
 
-/** True once hydrated with a usable key + model. Gates every LLM affordance. */
+/**
+ * True once a usable key + model is hydrated, OR the build ships a managed
+ * gateway and the user is signed in (the reactive mirror of
+ * `llmConfigured()` — see gateway.ts). Gates every LLM affordance.
+ */
 export function useLlmConfigured(): boolean {
-  return useLlmSettingsStore(
+  const byo = useLlmSettingsStore(
     (s) => s.hydrated && Boolean(s.settings?.apiKey.trim() && s.settings?.model.trim()),
   );
+  const signedIn = useAuthStore((s) => s.status === 'signed_in');
+  return byo || (gatewayConfigured() && signedIn);
 }

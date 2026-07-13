@@ -24,7 +24,7 @@ export interface LlmRequest {
 }
 
 export interface LlmProvider {
-  readonly kind: 'openrouter' | 'fake';
+  readonly kind: 'openrouter' | 'gateway' | 'fake';
   /** Resolves to the assistant message content; throws on HTTP/API failure. */
   complete(request: LlmRequest): Promise<string>;
 }

@@ -1,4 +1,5 @@
 import { migrateLegacyKey } from '../legacyStorage';
+import { createGatewayProvider, managedLlmEligible } from './gateway';
 import { createOpenRouterProvider } from './openrouter';
 import type { LlmProvider, LlmSettings } from './types';
 
@@ -10,6 +11,10 @@ import type { LlmProvider, LlmSettings } from './types';
  * The key deliberately lives in localStorage (entered by faculty at
  * runtime), never in a NEXT_PUBLIC_ env var — env vars are inlined into
  * the shipped bundle at build time.
+ *
+ * Exception that proves the rule: a hosted build may ship a managed
+ * gateway URL + model name via env (no secret involved — see gateway.ts);
+ * saved BYO settings always win over the managed path.
  */
 
 const KEY = 'capno:llm-settings:v1';
@@ -44,13 +49,16 @@ export function clearLlmSettings(): void {
   window.localStorage.removeItem(KEY);
 }
 
-export function llmConfigured(): boolean {
-  const settings = loadLlmSettings();
+function byoUsable(settings: LlmSettings | null): settings is LlmSettings {
   return Boolean(settings && settings.apiKey.trim() && settings.model.trim());
+}
+
+export function llmConfigured(): boolean {
+  return byoUsable(loadLlmSettings()) || managedLlmEligible();
 }
 
 export function getLlmProvider(): LlmProvider | null {
   const settings = loadLlmSettings();
-  if (!settings || !settings.apiKey.trim() || !settings.model.trim()) return null;
-  return createOpenRouterProvider(settings);
+  if (byoUsable(settings)) return createOpenRouterProvider(settings); // BYO always wins
+  return managedLlmEligible() ? createGatewayProvider() : null;
 }

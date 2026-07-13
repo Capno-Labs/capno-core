@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
-import { createOpenRouterProvider } from '@/lib/llm';
+import { createOpenRouterProvider, gatewayConfigured } from '@/lib/llm';
 import { toast } from '@/lib/store/toastStore';
 import { useLlmSettingsStore } from '@/lib/store/llmSettingsStore';
 
@@ -72,6 +72,14 @@ export default function SettingsPage() {
               (sim co-pilot, scenario drafting) send scenario data and your typed prompts to
               OpenRouter using your own API key and model choice.
             </p>
+            {gatewayConfigured() && !settings && (
+              <p className="mt-2 rounded border border-emerald-900 bg-emerald-950/40 p-2 text-sm text-emerald-300">
+                Managed AI is active on this deployment: signed-in accounts get the sim
+                co-pilot and scenario drafting with no key — prompts go through your
+                institution&apos;s gateway instead of your own OpenRouter account. Saving a
+                key below overrides the managed gateway for this browser.
+              </p>
+            )}
           </div>
 
           <label className="block space-y-1">
