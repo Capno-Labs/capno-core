@@ -145,7 +145,12 @@ export default function SettingsPage() {
               disabled={!settings}
               onClick={() => {
                 clear();
-                toast('AI settings cleared — AI features disabled.', 'info');
+                toast(
+                  gatewayConfigured()
+                    ? 'Your key was cleared — signed-in accounts still get managed AI through your institution.'
+                    : 'AI settings cleared — AI features disabled.',
+                  'info',
+                );
               }}
             >
               Clear
