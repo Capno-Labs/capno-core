@@ -14,6 +14,7 @@ import { PreStartPanel } from '@/components/controller/PreStartPanel';
 import { SessionControls } from '@/components/controller/SessionControls';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
+import { nextUnfiredEvent } from '@/lib/engine/flow';
 import { useBeforeUnload } from '@/lib/hooks/useBeforeUnload';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { getScenario } from '@/lib/scenarios';
@@ -32,7 +33,7 @@ function fmtClock(sec: number): string {
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
-  const { engine, snapshot, loadScenario, teardown, setAlarmsSilenced, start, pause } =
+  const { engine, snapshot, loadScenario, teardown, setAlarmsSilenced, start, pause, triggerEvent } =
     useControllerStore();
   const [notFound, setNotFound] = useState(false);
 
@@ -48,10 +49,20 @@ export default function FacultyRunPage() {
 
   useBeforeUnload(snapshot?.status === 'running' || snapshot?.status === 'paused');
 
-  // Space = start/pause. Deliberately the only shortcut: number keys firing
-  // clinical events from a stray keypress would be worse than the convenience.
+  // Space = start/pause; N = fire the next event in narrative order. N is
+  // the only event-firing key, it always matches the Flow panel's visible
+  // "Next up" highlight, and the hook already guards against key repeat and
+  // focused inputs — a grid of number keys would be a stray-keypress hazard,
+  // one deliberate key is a pacing tool.
   useKeyboardShortcuts(
-    { ' ': () => (snapshot?.status === 'running' ? pause() : start()) },
+    {
+      ' ': () => (snapshot?.status === 'running' ? pause() : start()),
+      n: () => {
+        if (!engine || !snapshot) return;
+        const next = nextUnfiredEvent(engine.scenario.events, new Set(snapshot.firedEventIds));
+        if (next) triggerEvent(next.id);
+      },
+    },
     !!snapshot && snapshot.status !== 'ended',
   );
 

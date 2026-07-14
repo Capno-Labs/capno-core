@@ -171,7 +171,7 @@ export function FlowPanel() {
             <span className="flex shrink-0 items-center gap-1.5">
               {isNext && (
                 <span className="rounded bg-sky-600 px-1 py-0.5 text-[9px] font-bold uppercase text-white">
-                  Next up
+                  Next up · N
                 </span>
               )}
               {fired.has(ev.id) && <span title="already fired">✓</span>}
@@ -275,7 +275,8 @@ export function FlowPanel() {
         </button>
       )}
       <p className="text-[10px] text-slate-500">
-        Events can be re-fired; hover/long-press for details. {ACTION_LEGEND}
+        Events can be re-fired; hover/long-press for details. Press N to fire the next event.{' '}
+        {ACTION_LEGEND}
       </p>
     </section>
   );
