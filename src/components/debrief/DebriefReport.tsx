@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
+import { deriveTurningPoints, type TurningPoint } from '@/lib/debrief/turningPoints';
 import type { ActionStatus, ArchivedSession, LogEntry } from '@/lib/engine/types';
 import { useCountUp } from '@/lib/hooks/useCountUp';
 import { TrendStrip } from './TrendStrip';
@@ -25,6 +26,12 @@ export interface DebriefAmend {
 }
 
 const AMENDABLE_STATUSES: ActionStatus[] = ['done', 'delayed', 'incorrect', 'missed'];
+
+const SEVERITY_CLASS: Record<TurningPoint['severity'], string> = {
+  info: 'text-slate-300',
+  warning: 'text-amber-300',
+  critical: 'text-red-300',
+};
 
 const KIND_LABEL: Record<LogEntry['kind'], string> = {
   session: 'Session',
@@ -53,6 +60,7 @@ export function DebriefReport({
   const [learnersDraft, setLearnersDraft] = useState<string | null>(null);
   const shownPercent = useCountUp(score.percent);
   const tier = tierClasses(score.percent);
+  const turningPoints = useMemo(() => deriveTurningPoints(session), [session]);
 
   const statusGroups = {
     done: snapshot.actions.filter((a) => a.status === 'done'),
@@ -114,17 +122,9 @@ export function DebriefReport({
         )}
       </header>
 
-      {/* Vitals trends */}
-      {session.history && session.history.length >= 2 && (
-        <section>
-          <h2 className="mb-2 text-lg font-bold">Vitals trends</h2>
-          <TrendStrip history={session.history} log={snapshot.log} />
-        </section>
-      )}
-
-      {/* Score summary */}
+      {/* Outcome summary */}
       <section>
-        <h2 className="mb-3 text-lg font-bold">Score</h2>
+        <h2 className="mb-3 text-lg font-bold">Outcome summary</h2>
         <div className="flex flex-wrap items-center gap-6">
           <div className="text-center motion-safe:animate-pop-in">
             <div className={`text-5xl font-bold tabular-nums ${tier.text}`}>
@@ -166,35 +166,57 @@ export function DebriefReport({
         </div>
       </section>
 
-      {/* Critical actions */}
+      {/* What happened: vitals trends + timeline */}
       <section>
-        <h2 className="mb-2 text-lg font-bold">Critical actions</h2>
-        {score.criticalMissed.length > 0 ? (
-          <ul className="list-disc space-y-1 pl-5 text-sm">
-            {score.criticalMissed.map((a) => (
-              <li key={a.id} className="text-red-300">
-                <strong>Not completed:</strong> {a.label}
-              </li>
-            ))}
-            {score.criticalDone.map((a) => (
-              <li key={a.id} className="text-emerald-300">
-                Completed: {a.label}
+        <h2 className="mb-2 text-lg font-bold">What happened</h2>
+        {session.history && session.history.length >= 2 && (
+          <div className="mb-4">
+            <h3 className="label mb-2">Vitals trends</h3>
+            <TrendStrip history={session.history} log={snapshot.log} />
+          </div>
+        )}
+        <h3 className="label mb-1">Timeline</h3>
+        <table className="w-full text-sm">
+          <tbody>
+            {snapshot.log
+              .filter((e) => e.kind !== 'vital_change' || snapshot.log.length < 80)
+              .map((e, i) => (
+                <tr key={i} className="border-b border-slate-800 align-top">
+                  <td className="w-14 py-1 font-mono tabular-nums text-slate-500">{fmt(e.t)}</td>
+                  <td className="w-20 py-1 text-xs uppercase text-slate-500">{KIND_LABEL[e.kind]}</td>
+                  <td className="py-1">
+                    {e.label}
+                    {e.detail && <span className="text-slate-500"> — {e.detail}</span>}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </section>
+
+      {/* Key clinical turning points */}
+      {turningPoints.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-bold">Key clinical turning points</h2>
+          <ul className="space-y-1 text-sm">
+            {turningPoints.map((p, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="w-14 shrink-0 font-mono tabular-nums text-slate-500">
+                  {fmt(p.t)}
+                </span>
+                <span className={SEVERITY_CLASS[p.severity]}>
+                  {p.label}
+                  {p.detail && <span className="text-slate-500"> — {p.detail}</span>}
+                </span>
               </li>
             ))}
           </ul>
-        ) : (
-          <p
-            className="keep-badge-bg inline-block rounded-lg bg-emerald-950/60 px-3 py-1.5 text-sm text-emerald-300 ring-1 ring-emerald-700 motion-safe:animate-pop-in"
-            style={{ animationDelay: '700ms' }}
-          >
-            All {score.criticalDone.length} critical actions completed. ✓
-          </p>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Actions taken */}
       <section>
-        <h2 className="mb-2 text-lg font-bold">Learner actions</h2>
+        <h2 className="mb-2 text-lg font-bold">What the learner did</h2>
         {amend && (
           <p className="no-print mb-2 text-xs text-slate-500">
             Live marking is hard mid-scenario — amend any status below; the score updates and is
@@ -249,25 +271,30 @@ export function DebriefReport({
         </div>
       </section>
 
-      {/* Timeline */}
+      {/* Critical actions, promoted */}
       <section>
-        <h2 className="mb-2 text-lg font-bold">Timeline</h2>
-        <table className="w-full text-sm">
-          <tbody>
-            {snapshot.log
-              .filter((e) => e.kind !== 'vital_change' || snapshot.log.length < 80)
-              .map((e, i) => (
-                <tr key={i} className="border-b border-slate-800 align-top">
-                  <td className="w-14 py-1 font-mono tabular-nums text-slate-500">{fmt(e.t)}</td>
-                  <td className="w-20 py-1 text-xs uppercase text-slate-500">{KIND_LABEL[e.kind]}</td>
-                  <td className="py-1">
-                    {e.label}
-                    {e.detail && <span className="text-slate-500"> — {e.detail}</span>}
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <h2 className="mb-2 text-lg font-bold">Missed or delayed critical actions</h2>
+        {score.criticalMissed.length > 0 ? (
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {score.criticalMissed.map((a) => (
+              <li key={a.id} className="text-red-300">
+                <strong>Not completed:</strong> {a.label}
+              </li>
+            ))}
+            {score.criticalDone.map((a) => (
+              <li key={a.id} className="text-emerald-300">
+                Completed: {a.label}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p
+            className="keep-badge-bg inline-block rounded-lg bg-emerald-950/60 px-3 py-1.5 text-sm text-emerald-300 ring-1 ring-emerald-700 motion-safe:animate-pop-in"
+            style={{ animationDelay: '700ms' }}
+          >
+            All {score.criticalDone.length} critical actions completed. ✓
+          </p>
+        )}
       </section>
 
       {/* Faculty notes */}
