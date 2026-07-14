@@ -168,6 +168,53 @@ describe('SimulationEngine', () => {
     expect(e.snapshot().phaseChangedAtSec).toBe(0);
   });
 
+  it('does not cross-cancel events that share a label (id is the identity)', () => {
+    // Labels are display-only and the schema does not force them unique.
+    const s: Scenario = {
+      ...scenario(),
+      events: [
+        {
+          id: 'auto-dup',
+          label: 'Same label',
+          category: 'physiology',
+          autoAtSec: 60,
+          effects: [{ vitals: { hr: 150 } }],
+        },
+        { id: 'manual-dup', label: 'Same label', category: 'other', effects: [] },
+      ],
+    };
+    const e = new SimulationEngine(s, 'TEST');
+    e.start();
+    e.tick(10);
+    e.triggerEvent('manual-dup'); // must NOT cancel auto-dup's scheduled copy
+    e.tick(60);
+    expect(e.snapshot().firedEventIds).toContain('auto-dup');
+    expect(e.getVitals().hr).toBe(150);
+  });
+
+  it('toggle-off keeps the staged effects of an auto event that already fired', () => {
+    const s: Scenario = {
+      ...scenario(),
+      events: [
+        {
+          id: 'two-stage',
+          label: 'Two-stage deterioration',
+          category: 'physiology',
+          autoAtSec: 30,
+          effects: [{ vitals: { hr: 120 } }, { vitals: { hr: 150 }, afterSec: 60 }],
+        },
+      ],
+    };
+    const e = new SimulationEngine(s, 'TEST');
+    e.start();
+    e.tick(31); // stage 1 fires and is logged; stage 2 queued for t=90
+    expect(e.snapshot().firedEventIds).toContain('two-stage');
+    expect(e.getVitals().hr).toBe(120);
+    e.setAutoEvents(false); // cancels unfired autos only — not a fired event's tail
+    e.tick(60);
+    expect(e.getVitals().hr).toBe(150);
+  });
+
   it('keeps the autoEvents flag across reset()', () => {
     const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
     e.start();

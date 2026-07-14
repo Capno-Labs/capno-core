@@ -55,7 +55,10 @@ export class SimulationEngine {
   private pendingEffects: {
     atSec: number;
     effect: VitalEffect;
+    /** Display label for the log; never used as identity. */
     sourceLabel: string;
+    /** Owning event id — cancellation and attribution key. Absent for presets. */
+    eventId?: string;
     /** Queued by the autoAtSec schedule (vs. a manual trigger's afterSec delay). */
     fromAuto?: boolean;
   }[] = [];
@@ -113,7 +116,7 @@ export class SimulationEngine {
       this.addLog('session', 'Scenario started');
       // Queue scenario-defined automatic events (skip any already fired
       // manually while idle — e.g. fired from the events panel during setup).
-      if (this.autoEventsEnabled) this.queueAutoEvents(-1);
+      if (this.autoEventsEnabled) this.queueAutoEvents();
     } else {
       this.addLog('session', 'Scenario resumed');
     }
@@ -155,7 +158,12 @@ export class SimulationEngine {
       if (on) {
         this.queueAutoEvents(this.elapsedSec);
       } else {
-        this.pendingEffects = this.pendingEffects.filter((p) => !p.fromAuto);
+        // Cancel only autos that have NOT fired yet: an already-fired event's
+        // later-staged (afterSec) effects are part of a logged development
+        // and must complete regardless of the schedule toggle.
+        this.pendingEffects = this.pendingEffects.filter(
+          (p) => !p.fromAuto || (p.eventId !== undefined && this.firedEventIds.has(p.eventId)),
+        );
       }
     }
     if (this.status !== 'idle') {
@@ -167,8 +175,9 @@ export class SimulationEngine {
     return this.autoEventsEnabled;
   }
 
-  /** Queue effects for unfired autoAtSec events strictly after `afterSec`. */
-  private queueAutoEvents(afterSec: number): void {
+  /** Queue effects for unfired autoAtSec events strictly after `afterSec`
+   *  (default: all of them — used at start). */
+  private queueAutoEvents(afterSec = Number.NEGATIVE_INFINITY): void {
     for (const ev of this.scenario.events) {
       if (ev.autoAtSec === undefined || ev.autoAtSec <= afterSec) continue;
       if (this.firedEventIds.has(ev.id)) continue;
@@ -177,6 +186,7 @@ export class SimulationEngine {
           atSec: ev.autoAtSec + (effect.afterSec ?? 0),
           effect,
           sourceLabel: ev.label,
+          eventId: ev.id,
           fromAuto: true,
         });
       }
@@ -243,13 +253,14 @@ export class SimulationEngine {
     const due = this.pendingEffects.filter((p) => p.atSec <= this.elapsedSec);
     this.pendingEffects = this.pendingEffects.filter((p) => p.atSec > this.elapsedSec);
     for (const p of due) {
-      // Auto events log once via their owning event on first effect application.
-      const autoEvent = this.scenario.events.find(
-        (e) => e.label === p.sourceLabel && e.autoAtSec !== undefined && !this.firedEventIds.has(e.id),
-      );
-      if (autoEvent) {
-        this.firedEventIds.add(autoEvent.id);
-        this.addLog('event', autoEvent.label, 'automatic');
+      // Auto events log once, via their owning event id, on first effect
+      // application (labels are display-only and may not be unique).
+      if (p.fromAuto && p.eventId !== undefined && !this.firedEventIds.has(p.eventId)) {
+        const autoEvent = this.scenario.events.find((e) => e.id === p.eventId);
+        if (autoEvent) {
+          this.firedEventIds.add(autoEvent.id);
+          this.addLog('event', autoEvent.label, 'automatic');
+        }
       }
       this.applyEffectNow(p.effect);
     }
@@ -344,15 +355,21 @@ export class SimulationEngine {
   triggerEvent(eventId: string): ScenarioEvent | undefined {
     const ev = this.scenario.events.find((e) => e.id === eventId);
     if (!ev) return undefined;
-    // Firing an auto event early cancels its scheduled copy — otherwise the
-    // queued effects would re-apply at autoAtSec and stomp later adjustments.
-    this.pendingEffects = this.pendingEffects.filter((p) => p.sourceLabel !== ev.label);
+    // Firing an event cancels its own scheduled/staged copies (by id — labels
+    // may not be unique) — otherwise queued effects would re-apply at
+    // autoAtSec and stomp later adjustments.
+    this.pendingEffects = this.pendingEffects.filter((p) => p.eventId !== ev.id);
     this.firedEventIds.add(ev.id);
     this.addLog('event', ev.label, ev.description);
     for (const effect of ev.effects) {
       const delay = effect.afterSec ?? 0;
       if (delay > 0) {
-        this.pendingEffects.push({ atSec: this.elapsedSec + delay, effect, sourceLabel: ev.label });
+        this.pendingEffects.push({
+          atSec: this.elapsedSec + delay,
+          effect,
+          sourceLabel: ev.label,
+          eventId: ev.id,
+        });
       } else {
         this.applyEffectNow(effect);
       }
