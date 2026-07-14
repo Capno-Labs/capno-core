@@ -370,11 +370,17 @@ already exist:
 4. ✅ **Vitals presets**, starting with Recovery/Normalize (item 4) —
    clinical values flagged for faculty review. — *implemented; preset
    targets in `src/lib/engine/presets.ts` pending faculty review*
-5. **Script rail enhancements** (item 5): preview effects first (UI-only),
-   then delay/skip (engine changes + tests).
+5. ⊘ **Script rail enhancements** (item 5) — *superseded.* Preview effects
+   shipped with the Flow panel; the delay/skip engine changes are no longer
+   justified now that autos are manual-by-default, `pinNextEvent` redirects
+   pacing, and ad-hoc events cover improvisation. Decision record in
+   `docs/ux-batch-2.md`.
 6. **Debrief narrative reorganization** + turning-points section (item 7)
-   and post-hoc note editing (item 6, debrief half).
-7. **Guided demo tour** (item 9) and **visual identity pass** (item 8).
+   and post-hoc note editing (item 6, debrief half). — *specced in
+   `docs/ux-batch-2.md`; in progress*
+7. **Guided demo tour** (item 9) — *specced in `docs/ux-batch-2.md`; in
+   progress.* ✅ **Visual identity pass** (item 8) — *shipped with the brand
+   work (capnogram mark, icons, OG image).*
 
 Every step lands as small commits with `npm test`, `npm run typecheck`,
 and `npm run build` green, plus the manual two-tab sync smoke test for
