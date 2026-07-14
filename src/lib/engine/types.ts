@@ -197,6 +197,13 @@ export interface ScenarioEvent {
   autoAtSec?: number;
   /** Optional phase hint shown to faculty ("usually triggered during…"). */
   phaseHint?: string;
+  /**
+   * Expected learner actions this event embodies or responds to (e.g. an
+   * epinephrine-response event ← the "give epinephrine" action). Ids must
+   * exist in the scenario's expectedActions; display/grouping only — linking
+   * never fires events or marks actions by itself.
+   */
+  actionIds?: string[];
 }
 
 export type ActionStatus = 'pending' | 'done' | 'delayed' | 'missed' | 'incorrect';

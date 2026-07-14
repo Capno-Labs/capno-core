@@ -60,6 +60,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "id": "unique", "label": "...", "description"?: "...",
     "category": "physiology|airway|circulation|drug|equipment|surgical|resolution|other",
     "autoAtSec"?: n,               // ONLY for scripted deterioration; omit for faculty-triggered responses
+    "actionIds"?: ["<existing expectedActions ids this event embodies or responds to>"],
     "effects": [{ "vitals"?: { partial numeric vitals }, "rhythm"?: "...",
                   "capnoShape"?: "normal|bronchospasm",
                   "overSec"?: rampSeconds, "afterSec"?: delaySeconds }]
@@ -82,6 +83,7 @@ Hard rules:
 - tags.topics[0] MUST be exactly one curriculum domain: ${DOMAINS.join('|')}. topics[1] should name the crisis (e.g. "anaphylaxis", "myocardial ischemia"); later tags are free-form specifics.
 - Every rubric[].actionIds entry MUST be an existing expectedActions id.
 - Every expectedActions[].phase (when present) MUST be an existing phases id.
+- Every events[].actionIds entry MUST be an existing expectedActions id. Link treatment-response events to the actions they respond to; leave generic actions (e.g. calling for help) unlinked.
 - Deterioration/progression events may use autoAtSec; treatment-response events must NOT (faculty fire them when learners act). Include at least one "resolution"-category event so faculty can reflect successful treatment.
 - Keep vitals physiologically coherent and within the stated ranges.
 - Write teaching content (learningObjectives, expectedProgression, correctManagement, commonErrors, debrief) in concise clinical language for the stated training level.`;

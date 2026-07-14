@@ -55,6 +55,7 @@ Faculty-triggerable (or automatic) occurrences:
   "category": "circulation",     // physiology | airway | circulation | drug |
                                  // equipment | surgical | resolution | other
   "autoAtSec": 300,              // optional: fires itself at elapsed t (else faculty-only)
+  "actionIds": ["give-epinephrine-early"],  // optional: linked expectedActions ids
   "effects": [
     { "vitals": { "sbp": 55, "dbp": 30 }, "overSec": 120 },  // ramp over 120 s
     { "rhythm": "sinus_tach" },                               // rhythm switches instantly
@@ -79,6 +80,14 @@ events use the same ramp mechanism, last write wins per vital.
 - **`phaseHint` is a display hint, not a reference.** It is shown verbatim
   on the faculty run screen and is not validated against `phases` (the
   editor offers a dropdown of phase ids but tolerates free text).
+- **`actionIds` links an event to the learner actions it embodies or
+  responds to** (e.g. an epinephrine-response event links the "give
+  epinephrine" action), so the run screen can show those actions next to
+  the event's fire button. Every entry must be an existing
+  `expectedActions` id — this *is* validated. Linking is display/grouping
+  only: firing an event never marks an action, and marking an action never
+  fires an event. Actions linked by no event appear in the run screen's
+  general checklist.
 - **Write events in narrative order.** The run screen sorts automatic events
   by time, but the file reads best when the story reads top to bottom.
 

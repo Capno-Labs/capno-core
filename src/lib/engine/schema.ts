@@ -106,6 +106,7 @@ const eventSchema = z.object({
   effects: z.array(vitalEffectSchema),
   autoAtSec: z.number().min(0).optional(),
   phaseHint: z.string().optional(),
+  actionIds: z.array(z.string()).optional(),
 });
 
 const expectedActionSchema = z.object({
@@ -198,6 +199,15 @@ export const scenarioSchema = z
         });
       }
       eventIds.add(e.id);
+      (e.actionIds ?? []).forEach((aid, ai) => {
+        if (!actionIds.has(aid)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['events', i, 'actionIds', ai],
+            message: `event references unknown action "${aid}"`,
+          });
+        }
+      });
     });
   });
 

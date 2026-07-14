@@ -77,6 +77,16 @@ describe('scenario schema', () => {
     expect(validateScenario(withMonitoring).ok).toBe(false);
   });
 
+  it('accepts event actionIds that exist and rejects unknown ones', () => {
+    const s = JSON.parse(JSON.stringify(inductionHypotension));
+    s.events[0].actionIds = [s.expectedActions[0].id];
+    expect(validateScenario(s).ok).toBe(true);
+    s.events[0].actionIds = ['no-such-action'];
+    const result = validateScenario(s);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('no-such-action');
+  });
+
   it('rejects duplicate event ids', () => {
     const bad = JSON.parse(JSON.stringify(inductionHypotension));
     bad.events.push({ ...bad.events[0] });
