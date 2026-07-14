@@ -25,6 +25,31 @@ function fmtClock(sec: number): string {
 }
 
 /**
+ * Time-budget readout next to the clock: remaining time against the
+ * scenario's budget (targetDurationSec, falling back to estimatedMinutes),
+ * amber in the final stretch, red counting up once over. Display only —
+ * nothing in the engine reacts to the budget.
+ */
+function BudgetBadge({ elapsedSec, budgetSec }: { elapsedSec: number; budgetSec: number }) {
+  const remaining = budgetSec - elapsedSec;
+  const finalStretch = Math.max(60, budgetSec * 0.1);
+  const cls =
+    remaining <= 0
+      ? 'text-red-400'
+      : remaining <= finalStretch
+        ? 'text-amber-400'
+        : 'text-slate-500';
+  return (
+    <span
+      className={`font-mono text-sm font-semibold tabular-nums ${cls}`}
+      title={`Session budget ${fmtClock(budgetSec)}`}
+    >
+      {remaining <= 0 ? `+${fmtClock(-remaining)} over` : `${fmtClock(remaining)} left`}
+    </span>
+  );
+}
+
+/**
  * Faculty controller for a live session. A sticky command bar (title, clock,
  * phase, session controls) sits over a two-column cockpit: live monitor
  * preview + session/phase/vitals on the left, the case flow (events with
@@ -80,6 +105,8 @@ export default function FacultyRunPage() {
   if (!engine || !snapshot) return null;
 
   const currentPhaseLabel = engine.scenario.phases.find((p) => p.id === snapshot.phaseId)?.label;
+  const budgetSec =
+    engine.scenario.targetDurationSec ?? engine.scenario.estimatedMinutes * 60;
 
   return (
     <FacultyGate>
@@ -97,8 +124,13 @@ export default function FacultyRunPage() {
                 <h1 className="truncate text-xl font-bold">{engine.scenario.title}</h1>
               </div>
               <div className="shrink-0 text-right">
-                <span className="font-mono text-xl font-bold tabular-nums text-slate-200">
-                  {fmtClock(snapshot.elapsedSec)}
+                <span className="flex items-baseline gap-2">
+                  <span className="font-mono text-xl font-bold tabular-nums text-slate-200">
+                    {fmtClock(snapshot.elapsedSec)}
+                  </span>
+                  {budgetSec > 0 && snapshot.status !== 'idle' && (
+                    <BudgetBadge elapsedSec={snapshot.elapsedSec} budgetSec={budgetSec} />
+                  )}
                 </span>
                 <p className="text-[10px] uppercase tracking-wider text-slate-500">
                   {snapshot.status}
