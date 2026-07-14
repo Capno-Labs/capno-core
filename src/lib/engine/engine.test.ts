@@ -152,6 +152,22 @@ describe('SimulationEngine', () => {
     expect(e.snapshot().firedEventIds).toContain(second.id);
   });
 
+  it('records the elapsed time of each phase change', () => {
+    const e = newEngine();
+    if (e.scenario.phases.length < 2) return;
+    expect(e.snapshot().phaseChangedAtSec).toBe(0);
+    e.start();
+    e.tick(90);
+    e.setPhase(e.scenario.phases[1].id);
+    expect(e.snapshot().phaseChangedAtSec).toBe(90);
+    // Re-setting the same phase does not restart the timer.
+    e.tick(30);
+    e.setPhase(e.scenario.phases[1].id);
+    expect(e.snapshot().phaseChangedAtSec).toBe(90);
+    e.reset();
+    expect(e.snapshot().phaseChangedAtSec).toBe(0);
+  });
+
   it('keeps the autoEvents flag across reset()', () => {
     const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
     e.start();

@@ -58,6 +58,7 @@ function fixtureSnapshot(): SimSnapshot {
     status: 'running',
     elapsedSec: 120,
     phaseId: 'main',
+    phaseChangedAtSec: 0,
     vitals: { ...DEFAULT_VITALS },
     nibp: null,
     alarms: [],

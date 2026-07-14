@@ -338,6 +338,8 @@ export interface SimSnapshot {
   status: SimStatus;
   elapsedSec: number;
   phaseId: string;
+  /** Elapsed time at the last phase change — drives the stepper's timer. */
+  phaseChangedAtSec: number;
   vitals: Vitals;
   /** Last cuff reading; null when the scenario uses an arterial line. */
   nibp: NibpReading | null;

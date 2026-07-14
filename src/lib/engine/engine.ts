@@ -42,6 +42,8 @@ export class SimulationEngine {
   private status: SimStatus = 'idle';
   private elapsedSec = 0;
   private phaseId: string;
+  /** Elapsed time at the last phase change, for the stepper's phase timer. */
+  private phaseChangedAtSec = 0;
   private rhythm: Rhythm;
   private capnoShape: CapnoShape;
 
@@ -187,6 +189,7 @@ export class SimulationEngine {
     this.status = 'idle';
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
+    this.phaseChangedAtSec = 0;
     const { rhythm, capnoShape, ...numeric } = this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
@@ -381,6 +384,7 @@ export class SimulationEngine {
     const phase = this.scenario.phases.find((p) => p.id === phaseId);
     if (!phase || phaseId === this.phaseId) return;
     this.phaseId = phaseId;
+    this.phaseChangedAtSec = this.elapsedSec;
     this.addLog('phase', `Phase: ${phase.label}`);
   }
 
@@ -440,6 +444,7 @@ export class SimulationEngine {
       status: this.status,
       elapsedSec: Math.floor(this.elapsedSec),
       phaseId: this.phaseId,
+      phaseChangedAtSec: Math.floor(this.phaseChangedAtSec),
       vitals,
       nibp: this.lastNibp ? { ...this.lastNibp, atSec: Math.floor(this.lastNibp.atSec) } : null,
       alarms: evaluateAlarms(alarmVitals),
