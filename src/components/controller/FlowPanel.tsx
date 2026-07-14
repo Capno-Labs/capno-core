@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ACTION_LEGEND, ActionMarkRow } from '@/components/controller/ActionMarkRow';
 import { CATEGORY_DOT, CATEGORY_STYLES } from '@/components/eventCategories';
 import { nextUnfiredEvent } from '@/lib/engine/flow';
 import type { ExpectedAction, ScenarioEvent } from '@/lib/engine/types';
+import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 const IMMINENT_SEC = 30;
@@ -41,19 +42,9 @@ export function FlowPanel() {
     }
   }, [running]);
 
-  // "/" jumps to the flow filter from anywhere on the run screen.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
-      if (target?.isContentEditable) return;
-      e.preventDefault();
-      filterRef.current?.focus();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  // "/" jumps to the flow filter from anywhere on the run screen, with the
+  // same guards as every other shortcut.
+  useKeyboardShortcuts({ '/': () => filterRef.current?.focus() });
 
   if (!engine || !snapshot) return null;
 
@@ -106,40 +97,48 @@ export function FlowPanel() {
     ? scenario.expectedActions.filter((a) => !a.critical).length
     : 0;
 
-  const timingHint = (ev: ScenarioEvent) => {
-    if (fired.has(ev.id)) return null;
+  // One computation per card feeds both the hint text and the amber "about
+  // to fire" treatment, so they can never disagree. A past-due unfired auto
+  // will never auto-fire (the engine schedules only future events when the
+  // toggle flips on mid-run), so it shows as a suggestion, not a countdown.
+  const timing = (ev: ScenarioEvent): { hint: ReactNode; imminent: boolean } => {
+    if (fired.has(ev.id)) return { hint: null, imminent: false };
     if (ev.autoAtSec === undefined) {
-      return (
-        <span className="font-mono text-[10px] text-slate-500">
-          {ev.phaseHint ? `when ready · ${ev.phaseHint}` : 'when ready'}
-        </span>
-      );
-    }
-    if (!snapshot.autoEventsEnabled) {
-      return (
-        <span className="font-mono text-[10px] text-slate-500">
-          suggested ~{clock(ev.autoAtSec)}
-        </span>
-      );
+      return {
+        hint: (
+          <span className="font-mono text-[10px] text-slate-500">
+            {ev.phaseHint ? `when ready · ${ev.phaseHint}` : 'when ready'}
+          </span>
+        ),
+        imminent: false,
+      };
     }
     const remaining = ev.autoAtSec - snapshot.elapsedSec;
+    if (!snapshot.autoEventsEnabled || remaining <= 0) {
+      return {
+        hint: (
+          <span className="font-mono text-[10px] text-slate-500">
+            suggested ~{clock(ev.autoAtSec)}
+          </span>
+        ),
+        imminent: false,
+      };
+    }
     const imminent = running && remaining <= IMMINENT_SEC;
-    return (
-      <span className={`font-mono text-[10px] ${imminent ? 'text-amber-300' : 'text-sky-400'}`}>
-        {running ? `auto in ${clock(remaining)}` : `auto at ${clock(ev.autoAtSec)}`}
-      </span>
-    );
+    return {
+      hint: (
+        <span className={`font-mono text-[10px] ${imminent ? 'text-amber-300' : 'text-sky-400'}`}>
+          {running ? `auto in ${clock(remaining)}` : `auto at ${clock(ev.autoAtSec)}`}
+        </span>
+      ),
+      imminent,
+    };
   };
 
   const eventCard = (ev: ScenarioEvent) => {
     const isNext = next?.id === ev.id;
     const actions = linkedActions(ev);
-    const imminent =
-      snapshot.autoEventsEnabled &&
-      running &&
-      ev.autoAtSec !== undefined &&
-      !fired.has(ev.id) &&
-      ev.autoAtSec - snapshot.elapsedSec <= IMMINENT_SEC;
+    const { hint, imminent } = timing(ev);
     return (
       <div
         key={ev.id}
@@ -177,7 +176,7 @@ export function FlowPanel() {
               {fired.has(ev.id) && <span title="already fired">✓</span>}
             </span>
           </span>
-          {timingHint(ev) && <span className="mt-0.5 block">{timingHint(ev)}</span>}
+          {hint && <span className="mt-0.5 block">{hint}</span>}
         </button>
         {actions.length > 0 && (
           <ul className="space-y-1">
@@ -229,8 +228,11 @@ export function FlowPanel() {
       )}
 
       <div className="space-y-1.5">
+        {/* The "Next up" card is pinned even when the filter would hide it —
+            the N hotkey fires it, so it must never be invisible. */}
+        {next && !visibleEvents.some((ev) => ev.id === next.id) && eventCard(next)}
         {visibleEvents.map(eventCard)}
-        {visibleEvents.length === 0 && (
+        {visibleEvents.length === 0 && !next && (
           <p className="text-xs text-slate-500">No events match “{filter}”.</p>
         )}
       </div>

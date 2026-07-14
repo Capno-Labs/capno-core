@@ -80,14 +80,16 @@ export default function FacultyRunPage() {
 
   // Space = start/pause; N = fire the next event in narrative order. N is
   // the only event-firing key, it always matches the Flow panel's visible
-  // "Next up" highlight, and the hook already guards against key repeat and
-  // focused inputs — a grid of number keys would be a stray-keypress hazard,
-  // one deliberate key is a pacing tool.
+  // "Next up" highlight (the panel pins that card even when a filter would
+  // hide it), it only works while the session is live, and the hook guards
+  // against key repeat and focused inputs — a grid of number keys would be
+  // a stray-keypress hazard, one deliberate key is a pacing tool.
   useKeyboardShortcuts(
     {
       ' ': () => (snapshot?.status === 'running' ? pause() : start()),
       n: () => {
         if (!engine || !snapshot) return;
+        if (snapshot.status !== 'running' && snapshot.status !== 'paused') return;
         const next = nextUnfiredEvent(engine.scenario.events, new Set(snapshot.firedEventIds));
         if (next) triggerEvent(next.id);
       },
