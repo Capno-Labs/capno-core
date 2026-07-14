@@ -338,8 +338,9 @@ export interface SimSnapshot {
   status: SimStatus;
   elapsedSec: number;
   phaseId: string;
-  /** Elapsed time at the last phase change — drives the stepper's timer. */
-  phaseChangedAtSec: number;
+  /** Elapsed time at the last phase change — drives the stepper's timer.
+   *  Optional: absent in snapshots archived before phase timers existed. */
+  phaseChangedAtSec?: number;
   vitals: Vitals;
   /** Last cuff reading; null when the scenario uses an arterial line. */
   nibp: NibpReading | null;
@@ -350,8 +351,9 @@ export interface SimSnapshot {
   log: LogEntry[];
   notes: FacultyNote[];
   firedEventIds: string[];
-  /** Whether autoAtSec events fire on their own timeline this session. */
-  autoEventsEnabled: boolean;
+  /** Whether autoAtSec events fire on their own timeline this session.
+   *  Optional: absent in snapshots archived before the toggle existed. */
+  autoEventsEnabled?: boolean;
 }
 
 export interface FacultyNote {

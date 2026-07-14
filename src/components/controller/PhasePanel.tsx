@@ -17,7 +17,7 @@ export function PhasePanel() {
   const { engine, snapshot, setPhase } = useControllerStore();
   if (!engine || !snapshot) return null;
 
-  const inPhaseSec = snapshot.elapsedSec - snapshot.phaseChangedAtSec;
+  const inPhaseSec = snapshot.elapsedSec - (snapshot.phaseChangedAtSec ?? 0);
 
   return (
     <section className="card">
