@@ -173,6 +173,13 @@ export function FlowPanel() {
             </span>
           </span>
           {hint && <span className="mt-0.5 block">{hint}</span>}
+          {/* iOS never shows the hover title, so the one event faculty need
+              context for right now gets its description in the card. */}
+          {isNext && ev.description && (
+            <span className="line-clamp-2 mt-0.5 block text-[10px] font-normal leading-tight text-slate-400">
+              {ev.description}
+            </span>
+          )}
         </button>
         {actions.length > 0 && (
           <ul className="space-y-1">
@@ -273,7 +280,8 @@ export function FlowPanel() {
         </button>
       )}
       <p className="text-[10px] text-slate-500">
-        Events can be re-fired; hover/long-press for details. Press N to fire the next event.{' '}
+        Events can be re-fired; the next event shows its description, hover for the rest. Press N
+        to fire the next event.{' '}
         {ACTION_LEGEND}
       </p>
     </section>
