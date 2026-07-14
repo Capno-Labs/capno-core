@@ -167,11 +167,7 @@ export function FlowPanel() {
       <div
         key={ev.id}
         className={`space-y-1.5 rounded-md p-1.5 ring-1 ${
-          isNext
-            ? 'bg-slate-900 ring-2 ring-sky-500'
-            : imminent
-              ? 'bg-amber-950/40 ring-amber-600'
-              : 'bg-slate-900/60 ring-slate-800'
+          imminent ? 'bg-amber-950/40 ring-amber-600' : 'bg-slate-900/60 ring-slate-800'
         }`}
       >
         <button
