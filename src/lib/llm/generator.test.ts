@@ -106,6 +106,14 @@ describe('postProcess', () => {
     expect(result.scenario.id).toBe('anaphylaxis-ai');
   });
 
+  it('suffixes the reserved quick-start id so a draft cannot shadow the pinned freeform session', async () => {
+    const provider = new FakeProvider([JSON.stringify(validDraft({ id: 'quick-start' }))]);
+    const result = await generateScenario(provider, 'x');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.scenario.id).toBe('quick-start-ai');
+  });
+
   it('does not duplicate the ai-generated tag', async () => {
     const draft = validDraft();
     (draft.tags as { topics: string[] }).topics = [AI_GENERATED_TAG, 'hypotension'];

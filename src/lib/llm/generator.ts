@@ -2,6 +2,7 @@ import inductionHypotension from '@/scenarios/induction-hypotension.json';
 import { DOMAINS } from '../engine/lint';
 import { parseScenario, validateScenario } from '../engine/schema';
 import type { Scenario } from '../engine/types';
+import { QUICK_START_ID } from '../scenarios/quickStart';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 import { extractJson } from './copilot';
 import type { ChatMessage, LlmProvider } from './types';
@@ -29,8 +30,12 @@ export function prepareDocument(text: string): { text: string; truncated: boolea
   return { text: normalized.slice(0, DOCUMENT_CHAR_LIMIT), truncated: true };
 }
 
-/** Ids of the reviewed built-in scenarios a draft must never shadow. */
-const BUILT_IN_IDS = BUILT_IN_SCENARIOS.map((s) => s.id);
+/**
+ * Ids a draft must never shadow: the reviewed built-ins, plus the pinned
+ * quick-start scenario (which getScenario resolves custom-first, so a custom
+ * save under that id would silently replace the freeform session).
+ */
+const RESERVED_IDS = [...BUILT_IN_SCENARIOS.map((s) => s.id), QUICK_START_ID];
 
 export type GenerateResult =
   | { ok: true; scenario: Scenario; attempts: number }
@@ -166,7 +171,7 @@ export function postProcess(scenario: Scenario): Scenario {
   const topics = scenario.tags.topics.includes(AI_GENERATED_TAG)
     ? scenario.tags.topics
     : [...scenario.tags.topics, AI_GENERATED_TAG];
-  const id = BUILT_IN_IDS.includes(scenario.id) ? `${scenario.id}-ai` : scenario.id;
+  const id = RESERVED_IDS.includes(scenario.id) ? `${scenario.id}-ai` : scenario.id;
   return { ...scenario, id, tags: { ...scenario.tags, topics } };
 }
 

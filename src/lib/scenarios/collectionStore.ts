@@ -72,39 +72,50 @@ export function createCollection(title: string, description?: string): ScenarioC
 }
 
 /** Retitle in place — the id stays stable so bundles and refs keep working. */
-export function renameCollection(id: string, title: string): void {
+export function renameCollection(id: string, title: string): SaveCollectionResult {
   const collection = getCollection(id);
-  if (!collection || !title.trim()) return;
-  saveCollection({ ...collection, title: title.trim() });
+  if (!collection || !title.trim()) return { ok: true };
+  return saveCollection({ ...collection, title: title.trim() });
 }
 
 export function deleteCollection(id: string): void {
   writeAll(readAll().filter((c) => c.id !== id));
 }
 
-export function addToCollection(collectionId: string, scenarioId: string): void {
+export function addToCollection(collectionId: string, scenarioId: string): SaveCollectionResult {
   const collection = getCollection(collectionId);
-  if (!collection || collection.scenarioIds.includes(scenarioId)) return;
-  saveCollection({ ...collection, scenarioIds: [...collection.scenarioIds, scenarioId] });
+  if (!collection || collection.scenarioIds.includes(scenarioId)) return { ok: true };
+  return saveCollection({ ...collection, scenarioIds: [...collection.scenarioIds, scenarioId] });
 }
 
-export function removeFromCollection(collectionId: string, scenarioId: string): void {
+export function removeFromCollection(
+  collectionId: string,
+  scenarioId: string,
+): SaveCollectionResult {
   const collection = getCollection(collectionId);
-  if (!collection) return;
-  saveCollection({
+  if (!collection) return { ok: true };
+  return saveCollection({
     ...collection,
     scenarioIds: collection.scenarioIds.filter((id) => id !== scenarioId),
   });
 }
 
-/** Swap a scenario one slot up (-1) or down (+1) within its collection. */
-export function moveInCollection(collectionId: string, scenarioId: string, dir: -1 | 1): void {
+/**
+ * Swap two scenarios' positions within a collection. The UI passes the
+ * *visible* neighbor, so a swap always changes the on-screen order even when
+ * unresolved refs sit between the two entries in the stored array.
+ */
+export function swapInCollection(
+  collectionId: string,
+  idA: string,
+  idB: string,
+): SaveCollectionResult {
   const collection = getCollection(collectionId);
-  if (!collection) return;
+  if (!collection) return { ok: true };
   const ids = [...collection.scenarioIds];
-  const from = ids.indexOf(scenarioId);
-  const to = from + dir;
-  if (from < 0 || to < 0 || to >= ids.length) return;
-  [ids[from], ids[to]] = [ids[to], ids[from]];
-  saveCollection({ ...collection, scenarioIds: ids });
+  const a = ids.indexOf(idA);
+  const b = ids.indexOf(idB);
+  if (a < 0 || b < 0 || a === b) return { ok: true };
+  [ids[a], ids[b]] = [ids[b], ids[a]];
+  return saveCollection({ ...collection, scenarioIds: ids });
 }

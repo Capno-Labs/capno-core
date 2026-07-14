@@ -148,6 +148,9 @@ export function planBundleImport(
   },
 ): BundleImportPlan {
   const id = uniquifyId(bundle.collection.id, ctx.existingCollectionIds);
+  // Hand-edited/merged bundles may repeat a ref; the UI's remove/reorder
+  // controls assume each id appears at most once, so first occurrence wins.
+  const scenarioIds = [...new Set(bundle.collection.scenarioIds)];
 
   const scenariosToSave: Scenario[] = [];
   const newScenarioIds: string[] = [];
@@ -164,7 +167,7 @@ export function planBundleImport(
   }
 
   const bundledIds = new Set(bundle.scenarios.map((s) => s.id));
-  const missingRefs = bundle.collection.scenarioIds.filter(
+  const missingRefs = scenarioIds.filter(
     (ref) =>
       ref !== QUICK_START_ID &&
       !ctx.builtInIds.has(ref) &&
@@ -173,7 +176,7 @@ export function planBundleImport(
   );
 
   return {
-    collection: { ...bundle.collection, id },
+    collection: { ...bundle.collection, id, scenarioIds },
     collectionIdRemapped: id !== bundle.collection.id,
     scenariosToSave,
     newScenarioIds,

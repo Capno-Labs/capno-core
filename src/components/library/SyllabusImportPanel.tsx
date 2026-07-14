@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
 import { generateScenario, prepareDocument, DOCUMENT_CHAR_LIMIT } from '@/lib/llm/generator';
 import { getLlmProvider } from '@/lib/llm/settings';
 import { extractSyllabusLabs, uniquifyDraftId, type SyllabusLab } from '@/lib/llm/syllabus';
 import {
   BUILT_IN_SCENARIOS,
+  QUICK_START_ID,
   addToCollection,
   createCollection,
   listCustomScenarios,
@@ -82,7 +84,12 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
     abortRef.current = controller;
     setStep('extracting');
     const result = await extractSyllabusLabs(provider, docText, { signal: controller.signal });
-    if (controller.signal.aborted) return;
+    if (controller.signal.aborted) {
+      // Back to the input step (document kept) — otherwise the panel is
+      // stranded on a spinner with a dead Cancel button.
+      setStep('input');
+      return;
+    }
     if (!result.ok) {
       setStep('input');
       toast(`Could not read the syllabus: ${result.errors[0]}`, 'error');
@@ -103,14 +110,22 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
     abortRef.current = controller;
     setStep('drafting');
 
+    // Never shadow reviewed built-ins, the pinned quick-start, existing
+    // custom scenarios, or an earlier draft of this run.
     const taken = new Set([
       ...BUILT_IN_SCENARIOS.map((s) => s.id),
+      QUICK_START_ID,
       ...listCustomScenarios().map((s) => s.id),
     ]);
     // Created lazily on the first successful draft so a fully failed run
     // doesn't leave an empty collection behind.
     let collectionId: string | null = null;
+    const fallbackTitle = collectionTitle.trim() || 'Syllabus drafts';
     const results: DraftOutcome[] = [];
+    const pushOutcome = (o: DraftOutcome) => {
+      results.push(o);
+      setOutcomes([...results]);
+    };
 
     // Sequential on purpose: keeps provider rate limits happy and makes
     // aborting mid-run keep every completed draft.
@@ -125,30 +140,34 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
       });
       if (controller.signal.aborted) break;
       if (!result.ok) {
-        results.push({ title: lab.title, ok: false, error: result.errors[0] });
-        setOutcomes([...results]);
+        pushOutcome({ title: lab.title, ok: false, error: result.errors[0] });
         continue;
       }
       const id = uniquifyDraftId(result.scenario.id, taken);
       const saved = saveCustomScenario({ ...result.scenario, id });
       if (!saved.ok) {
-        results.push({ title: lab.title, ok: false, error: saved.error });
-        setOutcomes([...results]);
+        pushOutcome({ title: lab.title, ok: false, error: saved.error });
         toast(saved.error, 'error');
         break;
       }
       taken.add(id);
+      if (cloudEligible()) enqueue('scenario', id);
+      // The draft is saved either way — record it before the collection
+      // write so a create failure can't mislabel the run as fully failed.
+      pushOutcome({ title: lab.title, ok: true });
       if (!collectionId) {
-        const created = createCollection(collectionTitle.trim() || 'Syllabus drafts');
+        const created = createCollection(fallbackTitle);
         if (!created) {
-          toast('Could not save the collection — device storage may be full.', 'error');
+          toast(
+            'The draft was saved, but the collection could not be created — device storage may be full.',
+            'error',
+          );
           break;
         }
         collectionId = created.id;
       }
-      addToCollection(collectionId, id);
-      results.push({ title: lab.title, ok: true });
-      setOutcomes([...results]);
+      const added = addToCollection(collectionId, id);
+      if (!added.ok) toast(added.error, 'error');
       onChanged(); // drafts appear in the library as they land
     }
 
@@ -156,11 +175,10 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
     const okCount = results.filter((r) => r.ok).length;
     if (okCount > 0) {
       toast(
-        `Drafted ${okCount} of ${selected.length} scenario${selected.length === 1 ? '' : 's'} into “${
-          collectionTitle.trim() || 'Syllabus drafts'
-        }” — review before use with learners`,
+        `Drafted ${okCount} of ${selected.length} scenario${selected.length === 1 ? '' : 's'} into “${fallbackTitle}” — review before use with learners`,
         'success',
       );
+      if (cloudEligible()) void drain();
     }
     onChanged();
   };
@@ -172,6 +190,8 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
       </button>
     );
   }
+
+  const selectedCount = checked.filter(Boolean).length;
 
   return (
     <section className="card w-full space-y-3">
@@ -278,10 +298,9 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
             <button
               className="btn-primary"
               onClick={() => void draftAll()}
-              disabled={checked.every((c) => !c)}
+              disabled={selectedCount === 0}
             >
-              Draft {checked.filter(Boolean).length} scenario
-              {checked.filter(Boolean).length === 1 ? '' : 's'}
+              Draft {selectedCount} scenario{selectedCount === 1 ? '' : 's'}
             </button>
             <button className="btn-ghost" onClick={reset}>
               Back

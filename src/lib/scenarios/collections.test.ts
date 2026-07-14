@@ -162,6 +162,15 @@ describe('planBundleImport', () => {
     expect(plan.scenariosToSave).toEqual([]);
   });
 
+  it('dedupes repeated refs (first occurrence wins) so remove/reorder stay well-defined', () => {
+    const bundle = roundTrip(
+      collection({ scenarioIds: [BUILT_IN.id, 'my-custom-case', BUILT_IN.id] }),
+      [customScenario('my-custom-case')],
+    );
+    const plan = planBundleImport(bundle, ctx());
+    expect(plan.collection.scenarioIds).toEqual([BUILT_IN.id, 'my-custom-case']);
+  });
+
   it('reports refs that resolve nowhere, but never built-ins or quick-start', () => {
     const bundle = roundTrip(
       collection({ scenarioIds: [BUILT_IN.id, QUICK_START_ID, 'ghost-case'] }),

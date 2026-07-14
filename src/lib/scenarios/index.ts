@@ -28,7 +28,7 @@ export {
   deleteCollection,
   addToCollection,
   removeFromCollection,
-  moveInCollection,
+  swapInCollection,
 } from './collectionStore';
 
 import { BUILT_IN_SCENARIOS, getBuiltInScenario } from './registry';

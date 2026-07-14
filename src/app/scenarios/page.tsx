@@ -7,7 +7,7 @@ import { CollectionSection } from '@/components/library/CollectionSection';
 import { SyllabusImportPanel } from '@/components/library/SyllabusImportPanel';
 import { ConfirmButton } from '@/components/ui/ConfirmButton';
 import { useAuthStore } from '@/lib/cloud/authStore';
-import { cloudEligible, drain, getPushedAt, isQueued } from '@/lib/cloud/outbox';
+import { cloudEligible, drain, enqueue, getPushedAt, isQueued } from '@/lib/cloud/outbox';
 import { mergeCloudScenarios, pullScenarios } from '@/lib/cloud/scenarioCloud';
 import { DOMAINS, domainOf } from '@/lib/engine/lint';
 import { parseScenario, validateScenario } from '@/lib/engine/schema';
@@ -27,7 +27,6 @@ import {
   listCollections,
   listCustomScenarios,
   looksLikeCollectionBundle,
-  moveInCollection,
   parseCollectionBundle,
   planBundleImport,
   removeFromCollection,
@@ -35,6 +34,7 @@ import {
   saveCollection,
   saveCustomScenario,
   serializeCollectionBundle,
+  swapInCollection,
 } from '@/lib/scenarios';
 import { toast } from '@/lib/store/toastStore';
 
@@ -118,7 +118,15 @@ export default function ScenarioLibraryPage() {
       return;
     }
     const parsed = parseScenario(raw);
-    saveCustomScenario(parsed);
+    const saved = saveCustomScenario(parsed);
+    if (!saved.ok) {
+      toast(`Import failed: ${saved.error}`, 'error');
+      return;
+    }
+    if (cloudEligible()) {
+      enqueue('scenario', parsed.id);
+      void drain();
+    }
     refresh();
     toast(`Imported “${parsed.title}”`, 'success');
   };
@@ -143,7 +151,10 @@ export default function ScenarioLibraryPage() {
         refresh();
         return;
       }
+      // Imported scenarios sync like editor saves for signed-in faculty.
+      if (cloudEligible()) enqueue('scenario', scenario.id);
     }
+    if (cloudEligible() && plan.scenariosToSave.length > 0) void drain();
     const saved = saveCollection(plan.collection);
     if (!saved.ok) {
       toast(saved.error, 'error');
@@ -189,6 +200,11 @@ export default function ScenarioLibraryPage() {
     downloadFile(`${c.id}.collection.json`, serializeCollectionBundle(c, customById));
   };
 
+  /** Toast a store write failure (storage full) instead of swallowing it. */
+  const surface = (result: { ok: true } | { ok: false; error: string }) => {
+    if (!result.ok) toast(result.error, 'error');
+  };
+
   const handleCreateCollection = () => {
     const title = newTitle.trim();
     if (!title) return;
@@ -197,7 +213,10 @@ export default function ScenarioLibraryPage() {
       toast('Could not save the collection — device storage may be full.', 'error');
       return;
     }
-    if (pendingAddId) addToCollection(created.id, pendingAddId);
+    if (pendingAddId) {
+      const added = addToCollection(created.id, pendingAddId);
+      if (!added.ok) toast(added.error, 'error');
+    }
     setPendingAddId(null);
     setNewTitle('');
     setCreateOpen(false);
@@ -261,6 +280,25 @@ export default function ScenarioLibraryPage() {
     return byId;
   }, [scenarios]);
 
+  // Collection sections: resolved in stored order, filtered like everything
+  // else. While filtering, empty collections hide like empty domain sections;
+  // unfiltered they stay visible so cases can be added. Searching hides them
+  // entirely (search flattens to one list).
+  const collectionSections =
+    q === ''
+      ? collections
+          .map((c) => ({
+            collection: c,
+            items: c.scenarioIds
+              .map((id) => scenarioById.get(id))
+              .filter((s): s is Scenario => Boolean(s))
+              .filter(matchesFilters),
+            missingIds: filtersActive ? [] : c.scenarioIds.filter((id) => !scenarioById.has(id)),
+          }))
+          .filter(({ items }) => !filtersActive || items.length > 0)
+      : [];
+  const anyCollectionItemVisible = collectionSections.some(({ items }) => items.length > 0);
+
   // Grouped by curriculum domain while browsing; searching flattens so no
   // match hides below the fold. Scenarios without a domain tag are never
   // hidden — they get their own section.
@@ -290,7 +328,15 @@ export default function ScenarioLibraryPage() {
             <Link href="/editor" className="btn-secondary">
               ✏️ New scenario
             </Link>
-            <button className="btn-ghost" onClick={() => setCreateOpen((v) => !v)}>
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                // Toggling from the header abandons any card-initiated
+                // pending add — otherwise it leaks into the next creation.
+                setPendingAddId(null);
+                setCreateOpen((v) => !v);
+              }}
+            >
               📚 New collection
             </button>
             <button className="btn-ghost" onClick={() => fileInput.current?.click()}>
@@ -442,47 +488,34 @@ export default function ScenarioLibraryPage() {
           </div>
         </div>
 
-        {q === '' &&
-          collections.map((c) => {
-            const items = c.scenarioIds
-              .map((id) => scenarioById.get(id))
-              .filter((s): s is Scenario => Boolean(s))
-              .filter(matchesFilters);
-            const missingIds = filtersActive
-              ? []
-              : c.scenarioIds.filter((id) => !scenarioById.has(id));
-            // While filtering, empty collections hide like empty domain
-            // sections; unfiltered, they stay visible so cases can be added.
-            if (filtersActive && items.length === 0) return null;
-            return (
-              <CollectionSection
-                key={c.id}
-                collection={c}
-                items={items}
-                missingIds={missingIds}
-                showControls={!filtersActive}
-                renderCard={(s) => scenarioCard(s)}
-                onRename={(title) => {
-                  renameCollection(c.id, title);
-                  refresh();
-                }}
-                onDelete={() => {
-                  deleteCollection(c.id);
-                  refresh();
-                  toast(`Collection deleted — its scenarios are untouched`, 'success');
-                }}
-                onExport={() => exportCollection(c)}
-                onMove={(scenarioId, dir) => {
-                  moveInCollection(c.id, scenarioId, dir);
-                  refresh();
-                }}
-                onRemove={(scenarioId) => {
-                  removeFromCollection(c.id, scenarioId);
-                  refresh();
-                }}
-              />
-            );
-          })}
+        {collectionSections.map(({ collection: c, items, missingIds }) => (
+          <CollectionSection
+            key={c.id}
+            collection={c}
+            items={items}
+            missingIds={missingIds}
+            showControls={!filtersActive}
+            renderCard={(s) => scenarioCard(s, c.id)}
+            onRename={(title) => {
+              surface(renameCollection(c.id, title));
+              refresh();
+            }}
+            onDelete={() => {
+              deleteCollection(c.id);
+              refresh();
+              toast(`Collection deleted — its scenarios are untouched`, 'success');
+            }}
+            onExport={() => exportCollection(c)}
+            onSwap={(idA, idB) => {
+              surface(swapInCollection(c.id, idA, idB));
+              refresh();
+            }}
+            onRemove={(scenarioId) => {
+              surface(removeFromCollection(c.id, scenarioId));
+              refresh();
+            }}
+          />
+        ))}
 
         {q === '' ? (
           sections.map((sec) => (
@@ -493,7 +526,7 @@ export default function ScenarioLibraryPage() {
               </h2>
               <ul className="space-y-3">
                 {sec.items.map((s) => (
-                  <li key={s.id}>{scenarioCard(s)}</li>
+                  <li key={s.id}>{scenarioCard(s, 'domain')}</li>
                 ))}
               </ul>
             </section>
@@ -501,18 +534,22 @@ export default function ScenarioLibraryPage() {
         ) : (
           <ul className="space-y-3">
             {filtered.map((s) => (
-              <li key={s.id}>{scenarioCard(s)}</li>
+              <li key={s.id}>{scenarioCard(s, 'search')}</li>
             ))}
           </ul>
         )}
-        {filtered.length === 0 && (
+        {filtered.length === 0 && !anyCollectionItemVisible && (
           <p className="card text-sm text-slate-400">No scenarios match those filters.</p>
         )}
       </main>
     </FacultyGate>
   );
 
-  function scenarioCard(s: Scenario) {
+  // sectionKey scopes the expand toggle: the same scenario can render in a
+  // collection section AND its domain section, and expanding one copy must
+  // not expand the other.
+  function scenarioCard(s: Scenario, sectionKey: string) {
+    const expandKey = `${sectionKey}:${s.id}`;
     return (
             <div className="card">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -588,10 +625,11 @@ export default function ScenarioLibraryPage() {
                         setCreateOpen(true);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       } else if (value) {
-                        addToCollection(value, s.id);
+                        const added = addToCollection(value, s.id);
                         refresh();
                         const c = collections.find((x) => x.id === value);
-                        toast(`Added to “${c?.title ?? value}”`, 'success');
+                        if (added.ok) toast(`Added to “${c?.title ?? value}”`, 'success');
+                        else toast(added.error, 'error');
                       }
                     }}
                   >
@@ -609,11 +647,11 @@ export default function ScenarioLibraryPage() {
 
               <button
                 className="mt-2 text-xs text-sky-400 hover:text-sky-300"
-                onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+                onClick={() => setExpanded(expanded === expandKey ? null : expandKey)}
               >
-                {expanded === s.id ? 'Hide details ▲' : 'Objectives & setup ▼'}
+                {expanded === expandKey ? 'Hide details ▲' : 'Objectives & setup ▼'}
               </button>
-              {expanded === s.id && (
+              {expanded === expandKey && (
                 <div className="mt-3 grid gap-4 border-t border-slate-800 pt-3 text-sm sm:grid-cols-2">
                   <div>
                     <h3 className="label">Learning objectives</h3>

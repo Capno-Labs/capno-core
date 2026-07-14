@@ -24,7 +24,7 @@ export function CollectionSection({
   onRename,
   onDelete,
   onExport,
-  onMove,
+  onSwap,
   onRemove,
 }: {
   collection: ScenarioCollection;
@@ -36,7 +36,8 @@ export function CollectionSection({
   onRename: (title: string) => void;
   onDelete: () => void;
   onExport: () => void;
-  onMove: (scenarioId: string, dir: -1 | 1) => void;
+  /** Swap two visible neighbors — always changes on-screen order even with unresolved refs between them in storage. */
+  onSwap: (idA: string, idB: string) => void;
   onRemove: (scenarioId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -117,7 +118,7 @@ export function CollectionSection({
               <div className="flex shrink-0 flex-col items-center justify-center gap-1">
                 <button
                   className="btn-ghost !px-1.5 !py-0.5 text-xs"
-                  onClick={() => onMove(s.id, -1)}
+                  onClick={() => onSwap(s.id, items[i - 1].id)}
                   disabled={i === 0}
                   title="Move up"
                   aria-label={`Move ${s.title} up`}
@@ -126,7 +127,7 @@ export function CollectionSection({
                 </button>
                 <button
                   className="btn-ghost !px-1.5 !py-0.5 text-xs"
-                  onClick={() => onMove(s.id, 1)}
+                  onClick={() => onSwap(s.id, items[i + 1].id)}
                   disabled={i === items.length - 1}
                   title="Move down"
                   aria-label={`Move ${s.title} down`}
@@ -153,8 +154,8 @@ export function CollectionSection({
               className="flex items-center justify-between gap-2 rounded border border-dashed border-slate-800 px-3 py-2 text-xs text-slate-500"
             >
               <span>
-                <code>{id}</code> — not on this device (import a bundle containing it, or remove
-                the reference)
+                <code>{id}</code> — not on this device: it was deleted here or belongs to a
+                bundle not yet imported. Import a bundle containing it, or remove the reference.
               </span>
               <button
                 className="btn-ghost !px-1.5 !py-0.5"
