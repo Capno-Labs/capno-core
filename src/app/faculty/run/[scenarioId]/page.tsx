@@ -12,6 +12,7 @@ import { PatientCard } from '@/components/controller/PatientCard';
 import { PhasePanel } from '@/components/controller/PhasePanel';
 import { PreStartPanel } from '@/components/controller/PreStartPanel';
 import { SessionControls } from '@/components/controller/SessionControls';
+import { StateSummary } from '@/components/controller/StateSummary';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
 import { nextUnfiredEvent, sessionBudgetSec } from '@/lib/engine/flow';
@@ -195,6 +196,7 @@ export default function FacultyRunPage() {
               </div>
               <MonitorDisplay snapshot={snapshot} compact />
             </div>
+            <StateSummary snapshot={snapshot} />
             <PatientCard patient={engine.scenario.patient} />
             <PhasePanel />
             <VitalControls />
