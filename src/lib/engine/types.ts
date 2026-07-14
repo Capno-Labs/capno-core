@@ -361,6 +361,9 @@ export interface SimSnapshot {
 export interface FacultyNote {
   t: number;
   text: string;
+  /** True when the note was added at debrief, not during the live session.
+   *  Optional: absent on notes from archives that predate post-hoc editing. */
+  postHoc?: boolean;
 }
 
 // ── Scoring ──────────────────────────────────────────────────────────────────

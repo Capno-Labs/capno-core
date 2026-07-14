@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
 import { deriveTurningPoints, type TurningPoint } from '@/lib/debrief/turningPoints';
-import type { ActionStatus, ArchivedSession, LogEntry } from '@/lib/engine/types';
+import type { ActionStatus, ArchivedSession, FacultyNote, LogEntry } from '@/lib/engine/types';
 import { useCountUp } from '@/lib/hooks/useCountUp';
 import { TrendStrip } from './TrendStrip';
 
@@ -23,6 +23,7 @@ function fmt(t: number): string {
 export interface DebriefAmend {
   markAction: (actionId: string, status: ActionStatus) => void;
   setLearners: (names: string[]) => void;
+  setNotes: (notes: FacultyNote[]) => void;
 }
 
 const AMENDABLE_STATUSES: ActionStatus[] = ['done', 'delayed', 'incorrect', 'missed'];
@@ -58,6 +59,22 @@ export function DebriefReport({
   const { scenario, snapshot, score } = session;
   const actionById = new Map(scenario.expectedActions.map((a) => [a.id, a]));
   const [learnersDraft, setLearnersDraft] = useState<string | null>(null);
+  // Note editing: which note is being edited ('new' = adding) and its draft text.
+  const [noteDraft, setNoteDraft] = useState<{ idx: number | 'new'; text: string } | null>(null);
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
+
+  const saveNoteDraft = () => {
+    if (!amend || noteDraft === null) return;
+    const text = noteDraft.text.trim();
+    if (text) {
+      amend.setNotes(
+        noteDraft.idx === 'new'
+          ? [...snapshot.notes, { t: snapshot.elapsedSec, text, postHoc: true }]
+          : snapshot.notes.map((n, i) => (i === noteDraft.idx ? { ...n, text } : n)),
+      );
+    }
+    setNoteDraft(null);
+  };
   const shownPercent = useCountUp(score.percent);
   const tier = tierClasses(score.percent);
   const turningPoints = useMemo(() => deriveTurningPoints(session), [session]);
@@ -298,16 +315,101 @@ export function DebriefReport({
       </section>
 
       {/* Faculty notes */}
-      {snapshot.notes.length > 0 && (
-        <section>
+      {(snapshot.notes.length > 0 || amend) && (
+        <section className={snapshot.notes.length === 0 ? 'no-print' : undefined}>
           <h2 className="mb-2 text-lg font-bold">Faculty notes</h2>
           <ul className="list-disc space-y-1 pl-5 text-sm">
-            {snapshot.notes.map((n, i) => (
-              <li key={i}>
-                <span className="font-mono text-slate-500">{fmt(n.t)}</span> — {n.text}
-              </li>
-            ))}
+            {snapshot.notes.map((n, i) =>
+              noteDraft !== null && noteDraft.idx === i ? (
+                <li key={i} className="no-print">
+                  <div className="flex max-w-md gap-2">
+                    <input
+                      className="input"
+                      value={noteDraft.text}
+                      onChange={(e) => setNoteDraft({ idx: i, text: e.target.value })}
+                      onKeyDown={(e) => e.key === 'Enter' && saveNoteDraft()}
+                      autoFocus
+                      aria-label="Edit note text"
+                    />
+                    <button className="btn-secondary shrink-0" onClick={saveNoteDraft}>
+                      Save
+                    </button>
+                    <button
+                      className="shrink-0 text-xs text-slate-500 hover:text-slate-300"
+                      onClick={() => setNoteDraft(null)}
+                    >
+                      cancel
+                    </button>
+                  </div>
+                </li>
+              ) : (
+                <li key={i}>
+                  <span className="font-mono text-slate-500">{fmt(n.t)}</span> — {n.text}
+                  {n.postHoc && (
+                    <span className="keep-badge-bg ml-2 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-400 ring-1 ring-slate-700">
+                      added at debrief
+                    </span>
+                  )}
+                  {amend && (
+                    <span className="no-print ml-2 space-x-2 text-xs">
+                      <button
+                        className="text-sky-400 hover:text-sky-300"
+                        onClick={() => {
+                          setConfirmDeleteIdx(null);
+                          setNoteDraft({ idx: i, text: n.text });
+                        }}
+                      >
+                        edit
+                      </button>
+                      <button
+                        className="text-red-400 hover:text-red-300"
+                        onClick={() => {
+                          if (confirmDeleteIdx === i) {
+                            setConfirmDeleteIdx(null);
+                            amend.setNotes(snapshot.notes.filter((_, j) => j !== i));
+                          } else {
+                            setConfirmDeleteIdx(i);
+                          }
+                        }}
+                      >
+                        {confirmDeleteIdx === i ? 'confirm delete?' : 'delete'}
+                      </button>
+                    </span>
+                  )}
+                </li>
+              ),
+            )}
+            {snapshot.notes.length === 0 && <li className="text-slate-500">none yet</li>}
           </ul>
+          {amend &&
+            (noteDraft !== null && noteDraft.idx === 'new' ? (
+              <div className="no-print mt-2 flex max-w-md gap-2">
+                <input
+                  className="input"
+                  placeholder="Add a debrief note"
+                  value={noteDraft.text}
+                  onChange={(e) => setNoteDraft({ idx: 'new', text: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && saveNoteDraft()}
+                  autoFocus
+                />
+                <button className="btn-secondary shrink-0" onClick={saveNoteDraft}>
+                  Save
+                </button>
+                <button
+                  className="shrink-0 text-xs text-slate-500 hover:text-slate-300"
+                  onClick={() => setNoteDraft(null)}
+                >
+                  cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="no-print mt-2 text-xs text-sky-400 hover:text-sky-300"
+                onClick={() => setNoteDraft({ idx: 'new', text: '' })}
+              >
+                + Add note
+              </button>
+            ))}
         </section>
       )}
 
