@@ -2,7 +2,7 @@ import type { EventCategory } from '@/lib/engine/types';
 
 /**
  * Shared color language for event categories, used by both the faculty run
- * screen (EventPanel) and the scenario editor so authoring and running look
+ * screen (FlowPanel) and the scenario editor so authoring and running look
  * the same. Full literal class strings so Tailwind's scanner picks them up.
  */
 

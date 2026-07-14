@@ -4,15 +4,13 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
-import { ActionChecklist } from '@/components/controller/ActionChecklist';
 import { CopilotPanel } from '@/components/controller/CopilotPanel';
-import { EventPanel } from '@/components/controller/EventPanel';
+import { FlowPanel } from '@/components/controller/FlowPanel';
 import { LogPanel } from '@/components/controller/LogPanel';
 import { NotesPanel } from '@/components/controller/NotesPanel';
 import { PatientCard } from '@/components/controller/PatientCard';
 import { PhasePanel } from '@/components/controller/PhasePanel';
 import { PreStartPanel } from '@/components/controller/PreStartPanel';
-import { ScriptRail } from '@/components/controller/ScriptRail';
 import { SessionControls } from '@/components/controller/SessionControls';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
@@ -27,9 +25,10 @@ function fmtClock(sec: number): string {
 
 /**
  * Faculty controller for a live session. A sticky command bar (title, clock,
- * phase, session controls, script rail) sits over a two-column cockpit:
- * live monitor preview + session/phase/vitals on the left, events/actions/
- * notes/log on the right; stacks on narrow screens (iPad portrait).
+ * phase, session controls) sits over a two-column cockpit: live monitor
+ * preview + session/phase/vitals on the left, the case flow (events with
+ * their linked learner actions) + notes/log on the right; stacks on narrow
+ * screens (iPad portrait).
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
@@ -74,9 +73,9 @@ export default function FacultyRunPage() {
   return (
     <FacultyGate>
       <main className="mx-auto max-w-[1600px] space-y-3 p-3 md:p-4 !pt-0">
-        {/* Sticky command bar: title, clock, phase, session controls, and the
-            script rail stay visible while faculty scroll the panels. Kept to
-            two compact rows so the monitor preview survives on an iPad. */}
+        {/* Sticky command bar: title, clock, phase, and session controls stay
+            visible while faculty scroll the panels. Kept to one compact row
+            so the monitor preview survives on an iPad. */}
         <div className="sticky top-0 z-20 -mx-3 space-y-2 border-b border-slate-800 bg-slate-950/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
@@ -100,8 +99,6 @@ export default function FacultyRunPage() {
             </div>
             <SessionControls />
           </header>
-
-          <ScriptRail />
         </div>
 
         <PreStartPanel />
@@ -128,11 +125,10 @@ export default function FacultyRunPage() {
             <VitalControls />
           </div>
 
-          {/* Right column: events, actions, notes, log */}
+          {/* Right column: case flow (events + linked actions), notes, log */}
           <div className="space-y-3">
             <CopilotPanel />
-            <EventPanel />
-            <ActionChecklist />
+            <FlowPanel />
             <NotesPanel />
             <LogPanel />
           </div>

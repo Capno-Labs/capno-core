@@ -12,8 +12,9 @@ teaching material.
 
 Capno has two live views:
 
-- **Faculty controller** — your screen. Runs the simulation, shows the script,
-  sliders, events, and the learner-action checklist. Students should not see it.
+- **Faculty controller** — your screen. Runs the simulation, shows the vitals
+  sliders and the case flow (events with their learner actions). Students
+  should not see it.
 - **Student display** — the patient monitor, on a projector, wall display, or
   iPad. It only *shows* what you drive; students can't change anything from it.
 
@@ -103,11 +104,10 @@ Top-bar controls:
 
 Orientation on the controller:
 
-- **Script rail** (top): the next few scenario events in order. Automatic
-  events show a live "auto in M:SS" countdown and flash when imminent; manual
-  events show "when ready" with a phase hint. **Tap any chip to fire it now** —
-  firing early cancels its scheduled copy. When it reads "Script complete",
-  improvise from the vitals panel or end the session.
+- **Flow panel** (right column): every scenario event as a card in narrative
+  order with its linked learner actions underneath, and the first unfired
+  event highlighted as **Next up**. This is the case's driving surface — see
+  §6.
 - **Live monitor (what students see)**: an exact preview of the student
   display, with a **🔔 silence alarms** toggle that silences the alarm state on
   every connected display.
@@ -138,24 +138,33 @@ to cycle the cuff). A stale BP during a fast deterioration is a deliberate
 teaching point, not a bug. Scenarios with an arterial line show continuous
 pressure instead (the tile reads **ART**).
 
-## 6. Events
+## 6. The Flow panel
 
-The **Events** grid is the scenario's one-tap library — deteriorations,
-treatment responses, complications — colour-coded by category. Hover (or
-long-press) a button for its description.
+The **Flow** panel is the scenario's driving surface: every event —
+deteriorations, treatment responses, complications — as a one-tap card in
+narrative order, colour-coded by category. Hover (or long-press) a card for
+its description; type **/** to jump to the filter.
 
+- The first unfired event carries a **Next up** highlight, so the whole
+  sequence is one press after another.
 - Firing an event applies its vital effects over the event's built-in ramp and
   logs it to the timeline.
-- Events with a schedule show an "auto at M:SS" hint and fire themselves;
-  treatment-response events are always manual — fire them when the learners
-  actually give the treatment.
+- **Auto events are off by default** — nothing fires on its own, and scripted
+  deteriorations show their authored time as "suggested ~M:SS" so you keep the
+  pace. Flip **Auto events** in the top bar to restore the authored timeline
+  (cards then show a live "auto in M:SS" countdown, amber when imminent);
+  firing an auto event early cancels its scheduled copy.
 - Fired events show a ✓ but can be fired again if the scenario calls for it.
 
 ## 7. Assessing learners
 
-The **Learner actions** checklist lists the scenario's expected actions grouped
-by phase. ● marks a critical action. As the team works, tap a status on each
-action:
+Learner actions live in the Flow panel too. Actions linked to an event (the
+treatments that event responds to) sit directly under that event's card;
+everything else — vigilance, communication, planning — is in **Other learner
+actions** below, grouped by phase. ● marks a critical action, and the
+**Critical only** toggle (which arms itself when the scenario starts) trims
+the action rows to the critical ones with bigger tap targets. As the team
+works, tap a status on each action:
 
 - **✓ done** — full credit
 - **◐ delayed** — half credit
