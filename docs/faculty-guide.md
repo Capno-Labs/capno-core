@@ -8,6 +8,12 @@ debrief. It covers how the software works — clinical content (drug doses,
 treatment sequences) comes from the scenarios themselves, which are reviewed
 teaching material.
 
+> **First time here?** The home page's **Try the guided demo →** link opens
+> the demo case with a short coach-mark walkthrough of the whole loop —
+> connect, start, pace events, drive vitals, mark actions, end into the
+> debrief. Skippable at any step (Esc works); replay it anytime with the
+> **↻ Restart tour** button in the controller's top bar.
+
 ## 1. Lab setup at a glance
 
 Capno has two live views:
@@ -192,13 +198,19 @@ happens, newest first.
 ## 8. Ending the session and debriefing
 
 Press **■ End session → Confirm end → debrief**. The session is archived on
-this device and the report opens. It contains: session header (add **Learners**
-names via *edit* — comma-separated), vitals trend strip with event markers,
-overall and per-category **Score**, **Critical actions** completed/not
-completed, **Learner actions** by status (with amend dropdowns — changes
-rescore and save immediately), the full **Timeline**, your **Faculty notes**,
-the scenario's **Debrief guide** (discussion points and suggested questions),
-and a **Reference** section (correct management, common errors).
+this device and the report opens, organized as a narrative: session header
+(add **Learners** names via *edit* — comma-separated), **Outcome summary**
+(overall and per-category score), **What happened** (vitals trend strip with
+event markers plus the full timeline), **Key clinical turning points** (a
+derived list of fired events, phase and rhythm changes, alarm-threshold
+crossings, and recoveries — in cuff mode BP points follow the NIBP readings
+the monitor actually showed), **What the learner did** (actions by status,
+with amend dropdowns — changes rescore and save immediately), **Missed or
+delayed critical actions**, your **Faculty notes** (editable here: fix or
+remove a note, or **+ Add note** — additions are chipped "added at debrief"
+so the record stays honest), the scenario's **Debrief guide** (discussion
+points and suggested questions), and a **Reference** section (correct
+management, common errors).
 
 **🖨 Export PDF** opens the browser's print dialog — choose "Save as PDF". The
 amend controls are hidden in print.

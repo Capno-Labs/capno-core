@@ -1,6 +1,10 @@
 # UX batch 2 — demo tour, debrief narrative, note editing (spec)
 
-> **Status: in progress.** This batch closes out the remaining items of
+> **Status: implemented.** All three pieces below shipped (decision record,
+> debrief upgrades, guided demo tour) and were verified end-to-end in the
+> browser: the tour walks all eight steps against the live cockpit, the
+> two-tab sync smoke passes, and post-hoc notes persist across reloads.
+> This batch closes out the remaining items of
 > `docs/ux-ui-improvement-spec.md` (priorities 5–7) and the loop with the
 > hosted layer's launch spec, whose non-goals section explicitly leaves
 > "capno-core's own UX roadmap (script-rail, debrief narrative, demo tour)"

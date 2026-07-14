@@ -375,12 +375,12 @@ already exist:
    justified now that autos are manual-by-default, `pinNextEvent` redirects
    pacing, and ad-hoc events cover improvisation. Decision record in
    `docs/ux-batch-2.md`.
-6. **Debrief narrative reorganization** + turning-points section (item 7)
-   and post-hoc note editing (item 6, debrief half). — *specced in
-   `docs/ux-batch-2.md`; in progress*
-7. **Guided demo tour** (item 9) — *specced in `docs/ux-batch-2.md`; in
-   progress.* ✅ **Visual identity pass** (item 8) — *shipped with the brand
-   work (capnogram mark, icons, OG image).*
+6. ✅ **Debrief narrative reorganization** + turning-points section (item 7)
+   and post-hoc note editing (item 6, debrief half). — *implemented; see
+   `docs/ux-batch-2.md`*
+7. ✅ **Guided demo tour** (item 9) — *implemented; see `docs/ux-batch-2.md`.*
+   ✅ **Visual identity pass** (item 8) — *shipped with the brand work
+   (capnogram mark, icons, OG image).*
 
 Every step lands as small commits with `npm test`, `npm run typecheck`,
 and `npm run build` green, plus the manual two-tab sync smoke test for
