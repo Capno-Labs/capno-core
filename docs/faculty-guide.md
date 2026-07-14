@@ -95,12 +95,20 @@ Top-bar controls:
   windows) is effectively always green; a **Cloud** dot appears only on
   Supabase installations — green means other devices receive live vitals,
   amber is connecting, red means cross-device displays may be stale.
-- **▶ Start** begins the clock; it becomes **⏸ Pause** / **▶ Resume**.
+- **▶ Start** begins the clock; it becomes **⏸ Pause** / **▶ Resume**. Next to
+  the clock, a countdown shows time remaining against the scenario's slot
+  budget (amber in the final stretch, red once over).
 - **+1 min / +5 min** skip uneventful scenario time — vitals ramps, scheduled
   events, and the clock all jump forward together.
+- **Auto events: off/on** — off (the default) means nothing fires on its own;
+  you press every event. On restores the scenario's authored auto-fire
+  timeline. Flipping it mid-run is safe: past-due events never retro-fire.
 - **↺ Reset** (with a "Confirm reset" step) returns the scenario to baseline.
 - **■ End session** (with a "Confirm end → debrief" step) archives the session
   and opens the debrief report.
+
+Keyboard: **Space** starts/pauses, **N** fires the next event, **/** jumps to
+the Flow filter. Keys are ignored while you're typing in any field.
 
 Orientation on the controller:
 

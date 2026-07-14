@@ -107,7 +107,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
     }
 
     if (event.autoAtSec !== undefined) {
-      // Flag once per scenario: the script rail sorts by time anyway, but
+      // Flag once per scenario: the run screen sorts timed events anyway, but
       // narrative order in the file helps faculty read the scenario.
       if (!flaggedOutOfOrder && prevAutoAt !== undefined && event.autoAtSec < prevAutoAt) {
         warnings.push({

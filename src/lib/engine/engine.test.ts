@@ -77,7 +77,7 @@ describe('SimulationEngine', () => {
       : null;
     e.start();
     e.tick(10);
-    e.triggerEvent(auto.id); // faculty fires it early from the script rail
+    e.triggerEvent(auto.id); // faculty fires it early from the Flow panel
     // Faculty overrides a vital the event touched; the scheduled auto copy
     // must NOT re-apply at autoAtSec and stomp the override.
     const override = targetKey ? clampVital(targetKey, 42) : 0;

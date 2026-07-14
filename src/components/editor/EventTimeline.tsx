@@ -4,10 +4,10 @@ import type { ScenarioEvent } from '@/lib/engine/types';
 import { CATEGORY_DOT } from '@/components/eventCategories';
 
 /**
- * Read-only "run preview" for the events editor: shows events the way the
- * faculty script rail will order them at runtime — automatic events sorted
- * by fire time, faculty-fired events in author order. Clicking a chip opens
- * that event's card in the list below.
+ * Read-only "run preview" for the events editor: timed events sorted by fire
+ * time, faculty-fired events in author order — the order the run screen's
+ * Flow panel presents when auto events are on. Clicking a chip opens that
+ * event's card in the list below.
  */
 
 const fmtTime = (sec: number) =>
@@ -60,7 +60,7 @@ export function EventTimeline({
   return (
     <div className="space-y-2 rounded bg-slate-900/60 p-2 ring-1 ring-slate-800">
       <p className="text-[10px] uppercase tracking-wider text-slate-500">
-        Run preview — how the faculty script rail will order these events
+        Run preview — the timed schedule and the faculty-fired sequence
       </p>
       <div>
         <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-400">
