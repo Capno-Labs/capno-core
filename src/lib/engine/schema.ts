@@ -89,7 +89,10 @@ const idSchema = z
   .min(1)
   .regex(/^[a-z0-9][a-z0-9_-]*$/, 'ids must be lowercase alphanumeric with - or _');
 
-const eventSchema = z.object({
+// Exported for standalone validation of a single event (the run screen's
+// live add-event form); shape is unchanged — the full document boundary
+// remains scenarioSchema.
+export const eventSchema = z.object({
   id: idSchema,
   label: z.string().min(1),
   description: z.string().optional(),
