@@ -157,6 +157,12 @@ export interface Phase {
   id: string;
   label: string;
   description?: string;
+  /**
+   * Expected time budget for this phase in seconds — pacing display only
+   * (the phase stepper shows elapsed-in-phase vs. target); never drives
+   * engine behavior.
+   */
+  targetDurationSec?: number;
 }
 
 /**
@@ -268,6 +274,12 @@ export interface Scenario {
   rubric: RubricCategory[];
   /** Approximate run time in minutes, for the library view. */
   estimatedMinutes: number;
+  /**
+   * Hard time budget for a scheduled lab slot in seconds — pacing display
+   * only (the run screen counts down against it); never drives engine
+   * behavior. Distinct from estimatedMinutes, which is a library estimate.
+   */
+  targetDurationSec?: number;
   /** BP monitoring mode. Absent = NIBP cuff cycling at the default interval. */
   monitoring?: MonitoringConfig;
 }

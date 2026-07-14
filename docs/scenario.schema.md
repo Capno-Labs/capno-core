@@ -17,6 +17,7 @@ scenario from the library for a complete working example.
 | `learningObjectives` | string[] | ≥1. Shown in library details and debrief. |
 | `setup` | string[] | Room/equipment/confederate instructions for faculty. |
 | `estimatedMinutes` | number | Library display only. |
+| `targetDurationSec` | number? | Optional hard time budget for a scheduled lab slot. The run screen counts down against it and flags overruns; pacing display only, never drives engine behavior. |
 | `monitoring` | object? | BP display mode. Absent = NIBP cuff cycling every 180 s. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff on demand. |
 
 ## `patient`
@@ -39,9 +40,12 @@ Display-only; the EtCO2 number is unaffected.
 
 ## `phases`
 
-Ordered list of `{ id, label, description? }` — phases of care (e.g.
-preinduction → induction → maintenance…). The faculty controller steps
-through them; expected actions group by phase.
+Ordered list of `{ id, label, description?, targetDurationSec? }` — phases
+of care (e.g. preinduction → induction → maintenance…). The faculty
+controller steps through them; expected actions group by phase. The
+optional `targetDurationSec` is a pacing budget for that phase: the phase
+stepper shows elapsed-in-phase against it and flags overruns (display
+only, no engine behavior).
 
 ## `events`
 

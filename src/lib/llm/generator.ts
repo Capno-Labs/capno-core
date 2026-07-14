@@ -55,7 +55,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole",
     "capnoShape"?: "normal|bronchospasm"   // capnograph morphology; default normal
   },
-  "phases": [{ "id": "...", "label": "...", "description"?: "..." }],   // ordered phases of care, at least 1
+  "phases": [{ "id": "...", "label": "...", "description"?: "...", "targetDurationSec"?: n }],   // ordered phases of care, at least 1; target = optional pacing budget in seconds
   "events": [{
     "id": "unique", "label": "...", "description"?: "...",
     "category": "physiology|airway|circulation|drug|equipment|surgical|resolution|other",
@@ -73,6 +73,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "debrief": { "points": ["facilitator discussion points"], "questions": ["open-ended questions"] },
   "rubric": [{ "id": "...", "label": "...", "actionIds": ["<existing expectedAction ids>"] }],
   "estimatedMinutes": n,
+  "targetDurationSec"?: n,           // optional hard time budget for a scheduled lab slot (pacing display)
   "monitoring"?: { "artLine"?: bool, "nibpIntervalSec"?: 15-1800 }   // absent = NIBP cuff every 180 s
 }`;
 

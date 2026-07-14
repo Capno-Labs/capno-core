@@ -87,6 +87,18 @@ describe('scenario schema', () => {
     expect(result.errors.join(' ')).toContain('no-such-action');
   });
 
+  it('accepts positive pacing targets and rejects non-positive ones', () => {
+    const s = JSON.parse(JSON.stringify(inductionHypotension));
+    s.targetDurationSec = 2700;
+    s.phases[0].targetDurationSec = 300;
+    expect(validateScenario(s).ok).toBe(true);
+    s.targetDurationSec = 0;
+    expect(validateScenario(s).ok).toBe(false);
+    s.targetDurationSec = 2700;
+    s.phases[0].targetDurationSec = -60;
+    expect(validateScenario(s).ok).toBe(false);
+  });
+
   it('rejects duplicate event ids', () => {
     const bad = JSON.parse(JSON.stringify(inductionHypotension));
     bad.events.push({ ...bad.events[0] });
