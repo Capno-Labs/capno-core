@@ -3,10 +3,12 @@ import inductionHypotension from '@/scenarios/induction-hypotension.json';
 import type { Scenario } from '../engine/types';
 import {
   AI_GENERATED_TAG,
+  DOCUMENT_CHAR_LIMIT,
   buildGeneratorMessages,
   condenseExample,
   generateScenario,
   postProcess,
+  prepareDocument,
 } from './generator';
 import type { LlmProvider, LlmRequest } from './types';
 
@@ -123,6 +125,27 @@ describe('prompt assembly', () => {
     expect(system.content).toMatch(/rubric\[\].actionIds entry MUST/);
     expect(system.content).toContain('"induction-hypotension"');
     expect(user.content).toBe('Create a scenario: MH crisis, intermediate');
+  });
+
+  it('wraps a grounding document in the user message with verbatim-dose rules', () => {
+    const [system, user] = buildGeneratorMessages('the OB lab', 'Week 3: PPH lab.\nOxytocin 40 units in 500 mL.');
+    expect(system.content).toMatch(/SOURCE DOCUMENT/);
+    expect(system.content).toMatch(/use them verbatim/);
+    expect(user.content).toMatch(/Create a scenario: the OB lab/);
+    expect(user.content).toContain('Oxytocin 40 units in 500 mL.');
+  });
+
+  it('omits document rules entirely when no document is supplied', () => {
+    const [system, user] = buildGeneratorMessages('MH crisis');
+    expect(system.content).not.toMatch(/SOURCE DOCUMENT/);
+    expect(user.content).not.toMatch(/SOURCE DOCUMENT/);
+  });
+
+  it('prepareDocument normalizes line endings and truncates at the limit', () => {
+    expect(prepareDocument('a\r\nb  \nc\r')).toEqual({ text: 'a\nb\nc', truncated: false });
+    const long = prepareDocument('x'.repeat(DOCUMENT_CHAR_LIMIT + 5));
+    expect(long.truncated).toBe(true);
+    expect(long.text).toHaveLength(DOCUMENT_CHAR_LIMIT);
   });
 
   it('condenseExample truncates long teaching arrays but keeps structure', () => {

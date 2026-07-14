@@ -19,6 +19,16 @@ import type { ChatMessage, LlmProvider } from './types';
 export const AI_GENERATED_TAG = 'ai-generated';
 const DEFAULT_MAX_ATTEMPTS = 3;
 
+/** Keeps a pasted syllabus/handout within a sane prompt budget (~6k tokens). */
+export const DOCUMENT_CHAR_LIMIT = 24_000;
+
+/** Normalize pasted/uploaded document text and cap it for prompt use. */
+export function prepareDocument(text: string): { text: string; truncated: boolean } {
+  const normalized = text.replace(/\r\n?/g, '\n').replace(/[ \t]+\n/g, '\n').trim();
+  if (normalized.length <= DOCUMENT_CHAR_LIMIT) return { text: normalized, truncated: false };
+  return { text: normalized.slice(0, DOCUMENT_CHAR_LIMIT), truncated: true };
+}
+
 /** Ids of the reviewed built-in scenarios a draft must never shadow. */
 const BUILT_IN_IDS = BUILT_IN_SCENARIOS.map((s) => s.id);
 
@@ -109,14 +119,32 @@ export function condenseExample(scenario: Scenario): unknown {
   };
 }
 
-export function buildGeneratorMessages(userPrompt: string): ChatMessage[] {
+// Grounding instructions for drafts derived from a faculty-supplied document
+// (a syllabus page or lab handout). The document is course material the
+// faculty already teaches from — the draft must follow it, not improvise
+// around it. Reviewed like any other draft (invariant 7).
+const DOCUMENT_RULES = `Ground the scenario in the SOURCE DOCUMENT below:
+- Derive learning objectives, phases, expected actions, expected progression, correct management, and debrief content from the document.
+- Where the document specifies drugs, doses, vital-sign values, or treatment sequences, use them verbatim — do not substitute alternatives.
+- Where the document is silent, follow standard practice and the schema rules above.
+- If the document covers multiple sessions or cases, build only the one the request asks for.`;
+
+export function buildGeneratorMessages(userPrompt: string, document?: string): ChatMessage[] {
   const example = JSON.stringify(condenseExample(parseScenario(inductionHypotension)));
+  const doc = document?.trim();
   return [
     {
       role: 'system',
-      content: `${GENERATOR_RULES}\n\n${SCHEMA_REFERENCE}\n\nExample scenario (teaching-content arrays truncated with "…" — yours must be complete):\n${example}`,
+      content: `${GENERATOR_RULES}\n\n${SCHEMA_REFERENCE}\n\nExample scenario (teaching-content arrays truncated with "…" — yours must be complete):\n${example}${
+        doc ? `\n\n${DOCUMENT_RULES}` : ''
+      }`,
     },
-    { role: 'user', content: `Create a scenario: ${userPrompt}` },
+    {
+      role: 'user',
+      content: doc
+        ? `Create a scenario: ${userPrompt}\n\nSOURCE DOCUMENT (verbatim):\n"""\n${doc}\n"""`
+        : `Create a scenario: ${userPrompt}`,
+    },
   ];
 }
 
@@ -147,10 +175,16 @@ export function postProcess(scenario: Scenario): Scenario {
 export async function generateScenario(
   provider: LlmProvider,
   userPrompt: string,
-  opts?: { maxAttempts?: number; signal?: AbortSignal; onAttempt?: (attempt: number) => void },
+  opts?: {
+    maxAttempts?: number;
+    signal?: AbortSignal;
+    onAttempt?: (attempt: number) => void;
+    /** Optional syllabus/handout text to ground the draft in (see DOCUMENT_RULES). */
+    document?: string;
+  },
 ): Promise<GenerateResult> {
   const maxAttempts = opts?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
-  const messages = buildGeneratorMessages(userPrompt);
+  const messages = buildGeneratorMessages(userPrompt, opts?.document);
   let errors: string[] = [];
   let raw = '';
 
