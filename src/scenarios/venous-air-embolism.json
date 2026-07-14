@@ -86,6 +86,7 @@
       "label": "Abrupt unexplained EtCO2 fall",
       "description": "EtCO2 drops from 33 to 26 over a minute with a stable pressure, rate, and saturation. Nothing else has changed: no circuit leak, no ventilator change. This isolated capnograph signal IS the diagnosis — and the anchoring trap.",
       "category": "physiology",
+      "actionIds": ["recognize-vae"],
       "effects": [
         { "vitals": { "etco2": 26 }, "overSec": 60 }
       ],
@@ -118,6 +119,7 @@
       "label": "Surgeon floods the field and waxes bone",
       "description": "On notification the surgeon floods the field with saline, applies bone wax to the open channel, and lowers the exposure. Entrainment stops: EtCO2 begins to recover and the pressure steadies — partial improvement, not yet resolution.",
       "category": "surgical",
+      "actionIds": ["notify-surgeon-flood"],
       "effects": [
         { "vitals": { "etco2": 24, "sbp": 100, "dbp": 62, "hr": 98 }, "overSec": 90 }
       ],
@@ -128,6 +130,7 @@
       "label": "100% oxygen",
       "description": "FiO2 to 1.0 (and nitrous oxide off, had it been running — N2O expands intravascular air). Saturation recovers; the denitrogenation also shrinks the embolus over time.",
       "category": "drug",
+      "actionIds": ["oxygen-100"],
       "effects": [
         { "vitals": { "spo2": 98 }, "overSec": 45 }
       ],
@@ -138,6 +141,7 @@
       "label": "Table adjusted: site below heart, left-lateral tilt",
       "description": "The table is lowered to bring the operative site to heart level with head-down, left-lateral (Durant) tilt for the hemodynamically significant air load — raising venous pressure at the wound and moving air away from the RV outflow tract.",
       "category": "physiology",
+      "actionIds": ["reposition-patient"],
       "effects": [
         { "vitals": { "sbp": 106, "dbp": 66, "etco2": 27 }, "overSec": 90 }
       ],
@@ -148,6 +152,7 @@
       "label": "Air aspirated from the central line",
       "description": "Aspiration from the multi-orifice CVC at the cavo-atrial junction returns frothy air — diagnostic and therapeutic. The pressure and EtCO2 improve further.",
       "category": "equipment",
+      "actionIds": ["aspirate-cvc"],
       "effects": [
         { "vitals": { "etco2": 30, "sbp": 110, "dbp": 68, "hr": 90 }, "overSec": 90 }
       ],
@@ -158,6 +163,7 @@
       "label": "Volume and vasopressor support",
       "description": "Pressurized crystalloid plus vasopressor/inotrope boluses support right-heart perfusion while the embolus clears.",
       "category": "drug",
+      "actionIds": ["hemodynamic-support"],
       "effects": [
         { "vitals": { "sbp": 118, "dbp": 72, "hr": 86 }, "overSec": 90 }
       ],
@@ -168,6 +174,7 @@
       "label": "ROSC after CPR and epinephrine",
       "description": "CPR fragments the air lock and epinephrine restores output: the arterial trace returns with a rising EtCO2. Fire after effective CPR plus arrest-dose epinephrine if collapse occurred.",
       "category": "resolution",
+      "actionIds": ["start-cpr-if-pea"],
       "effects": [
         { "vitals": { "hr": 110, "sbp": 88, "dbp": 54, "spo2": 95, "etco2": 38 }, "rhythm": "sinus_tach", "overSec": 30 }
       ],
@@ -178,6 +185,7 @@
       "label": "Stabilization achieved",
       "description": "No further entrainment; hemodynamics and EtCO2 normalize. The team decides whether to expedite or abort, and plans postoperative ICU monitoring and a discussion of position for any return trip.",
       "category": "resolution",
+      "actionIds": ["plan-disposition"],
       "effects": [
         { "vitals": { "hr": 78, "sbp": 122, "dbp": 74, "spo2": 99, "etco2": 33, "rr": 12 }, "rhythm": "sinus", "overSec": 300 }
       ],

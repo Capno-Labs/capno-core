@@ -85,6 +85,7 @@
       "label": "Early anaphylaxis signs",
       "description": "Blood pressure drifts down and heart rate climbs over about 90 seconds. Flushing and early urticaria are visible on the chest if learners look under the drapes. Peak airway pressure creeps up slightly.",
       "category": "physiology",
+      "actionIds": ["recognize-anaphylaxis"],
       "effects": [
         { "vitals": { "sbp": 92, "dbp": 52, "hr": 104, "etco2": 32 }, "rhythm": "sinus_tach", "overSec": 90 }
       ],
@@ -127,6 +128,7 @@
       "label": "Epinephrine 50-100 mcg IV bolus response",
       "description": "Epinephrine bolus produces partial recovery within a minute: SBP to the mid 80s, some bronchodilation (EtCO2 toward 28, SpO2 93%). Repeat boluses are expected while an infusion is prepared.",
       "category": "drug",
+      "actionIds": ["give-epinephrine-early"],
       "effects": [
         { "vitals": { "sbp": 85, "dbp": 48, "hr": 128, "spo2": 93, "etco2": 28 }, "overSec": 60 }
       ],
@@ -137,6 +139,7 @@
       "label": "Epinephrine infusion + rapid fluids response",
       "description": "Epinephrine infusion 2-10 mcg/min plus 1-2 L crystalloid under pressure: blood pressure and oxygenation stabilize over about 5 minutes; heart rate trends down as perfusion is restored.",
       "category": "drug",
+      "actionIds": ["escalate-epi-infusion", "rapid-iv-fluids"],
       "effects": [
         { "vitals": { "sbp": 104, "dbp": 60, "hr": 108, "spo2": 97, "etco2": 33 }, "overSec": 300 }
       ],
@@ -147,6 +150,7 @@
       "label": "Albuterol / bronchodilator response",
       "description": "Albuterol 8-10 puffs via the ETT (or deepened volatile once pressure allows) eases bronchospasm: capnograph shape normalizes, EtCO2 toward 31, SpO2 improves.",
       "category": "drug",
+      "actionIds": ["give-bronchodilator"],
       "effects": [
         { "vitals": { "etco2": 31, "spo2": 95, "rr": 12 }, "capnoShape": "normal", "overSec": 120 }
       ],
@@ -157,6 +161,7 @@
       "label": "Vasopressin 1-2 units IV response",
       "description": "For catecholamine-refractory vasoplegia, vasopressin 1-2 unit IV boluses raise SBP toward the mid 90s over 1-2 minutes.",
       "category": "drug",
+      "actionIds": ["consider-vasopressin"],
       "effects": [
         { "vitals": { "sbp": 94, "dbp": 55 }, "overSec": 90 }
       ],
@@ -177,6 +182,7 @@
       "label": "Stabilization achieved",
       "description": "On an epinephrine infusion with fluids running, vitals stabilize: SBP ~110, HR trending to the 90s, SpO2 98%, normal capnograph. The team plans tryptase levels and ICU admission.",
       "category": "resolution",
+      "actionIds": ["plan-tryptase-icu"],
       "effects": [
         { "vitals": { "sbp": 110, "dbp": 64, "hr": 96, "spo2": 98, "etco2": 34, "rr": 12, "agentFi": 1.5, "agentEt": 1.3, "depth": 48 }, "rhythm": "sinus", "capnoShape": "normal", "overSec": 300 }
       ],

@@ -80,6 +80,7 @@
       "label": "Obstetrician reports uterine atony",
       "description": "'The uterus is boggy — there's a lot of bleeding here.' Suction canister filling; QBL 600 mL and climbing. Vitals barely move yet — this is the recognition window.",
       "category": "surgical",
+      "actionIds": ["recognize-hemorrhage", "quantify-blood-loss"],
       "effects": [
         { "vitals": { "hr": 100 }, "overSec": 60 }
       ],
@@ -133,6 +134,7 @@
       "label": "Methylergonovine + carboprost response",
       "description": "Methylergonovine 0.2 mg IM and carboprost 250 mcg IM given in rapid succession (no hypertension, no asthma — both safe here): the obstetrician reports real tone returning; bleeding slows substantially.",
       "category": "drug",
+      "actionIds": ["escalate-uterotonics"],
       "effects": [
         { "vitals": { "hr": 112, "sbp": 102, "dbp": 66 }, "overSec": 120 }
       ],
@@ -143,6 +145,7 @@
       "label": "Tranexamic acid 1 g IV given",
       "description": "TXA 1 g IV over 10 minutes — the WOMAN trial mortality benefit requires it within 3 hours of birth, so it belongs early, alongside (not after) the uterotonics. Log-only marker.",
       "category": "drug",
+      "actionIds": ["give-txa-early"],
       "effects": [],
       "phaseHint": "hemorrhage"
     },
@@ -151,6 +154,7 @@
       "label": "Massive transfusion running",
       "description": "MTP cooler arrives; warmed RBCs and plasma run through the rapid infuser in a balanced ratio. Over several minutes the pressure rebuilds, the heart rate descends, and EtCO2 recovers with the cardiac output.",
       "category": "drug",
+      "actionIds": ["activate-mtp"],
       "effects": [
         { "vitals": { "hr": 104, "sbp": 106, "dbp": 66, "spo2": 97, "etco2": 30, "temp": 36.4 }, "overSec": 240 }
       ],
@@ -161,6 +165,7 @@
       "label": "Calcium replaced during transfusion",
       "description": "After the fourth unit, ionized calcium comes back low (citrate load): calcium chloride via a good line firms the pressure — hypocalcemia is both a coagulation and a contractility problem.",
       "category": "drug",
+      "actionIds": ["replace-calcium"],
       "effects": [
         { "vitals": { "sbp": 112, "dbp": 70 }, "overSec": 60 }
       ],
@@ -171,6 +176,7 @@
       "label": "Converted to general anesthesia",
       "description": "For deepening shock or escalating surgical control (B-Lynch, hysterectomy), the team induces with a reduced-dose RSI and secures the airway. The monitor picture changes: ventilated, anesthetized, agent running.",
       "category": "airway",
+      "actionIds": ["manage-awake-patient"],
       "effects": [
         { "vitals": { "depth": 42, "rr": 12, "etco2": 34, "agentFi": 1.5, "agentEt": 1.0 }, "overSec": 90 }
       ],
@@ -181,6 +187,7 @@
       "label": "Surgical control achieved",
       "description": "Balloon tamponade and compression sutures hold; the uterus stays firm; bleeding stops. Vitals consolidate over five minutes and the team plans labs, ongoing products, and ICU-level observation.",
       "category": "resolution",
+      "actionIds": ["closed-loop-obstetrician"],
       "effects": [
         { "vitals": { "hr": 88, "sbp": 116, "dbp": 72, "spo2": 98, "etco2": 33, "rr": 16, "temp": 36.5 }, "rhythm": "sinus", "overSec": 300 }
       ],

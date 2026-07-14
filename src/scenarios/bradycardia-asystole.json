@@ -89,6 +89,7 @@
       "label": "Vagal bradycardia onset",
       "description": "Peritoneal stretch triggers a vagal reflex: heart rate falls into the 40s over a minute with drifting blood pressure. The NIBP has not cycled yet — the ECG and pleth carry the story.",
       "category": "physiology",
+      "actionIds": ["recognize-bradycardia"],
       "effects": [
         { "vitals": { "hr": 44, "sbp": 92, "dbp": 54 }, "rhythm": "sinus_brady", "overSec": 60 }
       ],
@@ -121,6 +122,7 @@
       "label": "High-quality CPR in progress",
       "description": "Good compressions generate an EtCO2 in the mid-teens. Fire once compressions start; remind learners that EtCO2 below 10 mmHg suggests inadequate compression quality.",
       "category": "circulation",
+      "actionIds": ["start-cpr-immediately"],
       "effects": [
         { "vitals": { "etco2": 15 }, "overSec": 20 }
       ],
@@ -131,6 +133,7 @@
       "label": "Pneumoperitoneum released",
       "description": "The surgeon desufflates on request. With the vagal stimulus removed the heart rate begins to recover toward the high 40s — partial improvement while drugs take effect.",
       "category": "surgical",
+      "actionIds": ["ask-desufflation"],
       "effects": [
         { "vitals": { "hr": 48, "sbp": 88, "dbp": 52 }, "overSec": 60 }
       ],
@@ -141,6 +144,7 @@
       "label": "Atropine 1 mg IV response",
       "description": "Atropine 1 mg IV (ACLS 2020 dose; repeat every 3-5 min to a 3 mg maximum) lifts the heart rate to the 70s and restores the pressure over about 90 seconds.",
       "category": "drug",
+      "actionIds": ["give-atropine"],
       "effects": [
         { "vitals": { "hr": 78, "sbp": 108, "dbp": 64 }, "rhythm": "sinus", "overSec": 90 }
       ],
@@ -151,6 +155,7 @@
       "label": "Epinephrine infusion response",
       "description": "For atropine-refractory bradycardia, an epinephrine infusion 2-10 mcg/min raises the rate to the high 80s and supports the pressure.",
       "category": "drug",
+      "actionIds": ["prepare-pacing"],
       "effects": [
         { "vitals": { "hr": 88, "sbp": 112, "dbp": 68 }, "rhythm": "sinus", "overSec": 120 }
       ],
@@ -161,6 +166,7 @@
       "label": "Transcutaneous pacing with capture",
       "description": "Pacing pads placed and electrical capture confirmed at a set rate of 80/min with a corresponding pulse (the monitor shows a regular rhythm at the paced rate).",
       "category": "equipment",
+      "actionIds": ["prepare-pacing"],
       "effects": [
         { "vitals": { "hr": 80, "sbp": 104, "dbp": 62 }, "rhythm": "sinus", "overSec": 45 }
       ],
@@ -171,6 +177,7 @@
       "label": "ROSC after CPR and epinephrine",
       "description": "An abrupt sustained rise in EtCO2 heralds return of spontaneous circulation; a slow sinus rhythm returns with a palpable pulse. Fire after effective CPR plus arrest-dose epinephrine.",
       "category": "resolution",
+      "actionIds": ["arrest-epinephrine"],
       "effects": [
         { "vitals": { "hr": 52, "sbp": 92, "dbp": 56, "spo2": 96, "etco2": 44 }, "rhythm": "sinus_brady", "overSec": 30 }
       ],
@@ -181,6 +188,7 @@
       "label": "Stabilization achieved",
       "description": "Heart rate and pressure normalize; EtCO2 settles. The team discusses whether to proceed (typically yes, with slow re-insufflation at lower pressure and vagolytic cover) and documents the event.",
       "category": "resolution",
+      "actionIds": ["post-event-plan"],
       "effects": [
         { "vitals": { "hr": 76, "sbp": 116, "dbp": 70, "spo2": 99, "etco2": 36, "rr": 12 }, "rhythm": "sinus", "overSec": 240 }
       ],

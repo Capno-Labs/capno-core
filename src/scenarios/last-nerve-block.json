@@ -126,6 +126,7 @@
       "label": "Prodromal neurologic symptoms",
       "description": "Patient states: 'My lips feel numb... there's a ringing in my ears... I feel funny, something is wrong.' She becomes restless and mildly agitated with a metallic taste. HR and BP drift up from the excitatory phase.",
       "category": "physiology",
+      "actionIds": ["recognize-prodrome"],
       "effects": [
         {
           "vitals": { "hr": 94, "sbp": 158, "dbp": 86, "rr": 18 },
@@ -184,6 +185,7 @@
       "label": "Response: benzodiazepine controls seizure",
       "description": "Trigger after midazolam 2 mg IV (or equivalent benzodiazepine): convulsions stop, respirations return with assisted bag-mask ventilation and 100% O2, and SpO2 recovers.",
       "category": "drug",
+      "actionIds": ["benzo-seizure"],
       "effects": [
         {
           "vitals": { "rr": 12, "spo2": 96, "etco2": 34, "hr": 110, "depth": 70 },
@@ -197,6 +199,7 @@
       "label": "Response: 20% lipid emulsion bolus given",
       "description": "Trigger after learners push 20% lipid emulsion 1.5 mL/kg (about 90 mL for 58 kg) over 2-3 minutes. Over the next 5 minutes the QRS narrows, VT converts to sinus tachycardia, and blood pressure climbs out of the critical range.",
       "category": "drug",
+      "actionIds": ["lipid-bolus"],
       "effects": [
         {
           "vitals": { "sbp": 95, "dbp": 55, "hr": 108, "spo2": 97, "etco2": 32 },
@@ -211,6 +214,7 @@
       "label": "Response: lipid infusion with effective CPR (ROSC)",
       "description": "Trigger during an arrest once high-quality CPR, the lipid bolus (repeatable up to 3 doses), and an infusion of 0.25 mL/kg/min (about 15 mL/min) are running: return of spontaneous circulation with improving perfusion. Maximum total lipid about 12 mL/kg.",
       "category": "resolution",
+      "actionIds": ["lipid-infusion", "cpr-if-pulseless"],
       "effects": [
         {
           "vitals": { "hr": 115, "sbp": 88, "dbp": 52, "spo2": 95, "etco2": 30, "rr": 10 },
@@ -225,6 +229,7 @@
       "label": "Response: small-dose epinephrine",
       "description": "Trigger when learners give epinephrine in reduced boluses of 1 mcg/kg or less (about 50 mcg here) per ASRA: modest BP support without precipitating refractory dysrhythmia. If learners give 1 mg boluses instead, warn of worsening ventricular dysrhythmias and impaired lipid efficacy.",
       "category": "drug",
+      "actionIds": ["reduced-epi"],
       "effects": [
         {
           "vitals": { "sbp": 92, "dbp": 54, "hr": 118 },
@@ -252,6 +257,7 @@
       "label": "Response: sustained stabilization",
       "description": "Trigger once the lipid infusion continues at least 10 minutes past hemodynamic recovery and the team has a monitoring plan: vitals settle, the patient begins to arouse, and the team discusses ICU-level observation for 4-6 hours or more and cancellation of the arthroplasty.",
       "category": "resolution",
+      "actionIds": ["prolonged-monitoring", "cancel-case-communicate"],
       "effects": [
         {
           "vitals": { "hr": 92, "sbp": 118, "dbp": 66, "spo2": 98, "etco2": 34, "rr": 14, "depth": 80 },

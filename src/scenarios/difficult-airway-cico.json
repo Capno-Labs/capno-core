@@ -101,6 +101,7 @@
       "label": "Intubation attempts fail (grade 4 view)",
       "description": "Videolaryngoscopy with optimization — position, external laryngeal manipulation, bougie — still gives a grade 4 view. Fire after the learners' intubation attempts; saturation slips with each one. DAS allows a maximum of 3+1 attempts before declaring failed intubation.",
       "category": "airway",
+      "actionIds": ["limit-attempts-declare-failed"],
       "effects": [
         { "vitals": { "spo2": 86, "hr": 100 }, "overSec": 30 }
       ],
@@ -111,6 +112,7 @@
       "label": "Supraglottic airway fails to ventilate",
       "description": "A second-generation SGA seats poorly: no capnograph trace, no chest rise, large leak. Reposition or re-size up to 3 attempts — this one will not rescue. Saturation continues to fall.",
       "category": "airway",
+      "actionIds": ["place-sga"],
       "effects": [
         { "vitals": { "spo2": 79, "hr": 108 }, "rhythm": "sinus_tach", "overSec": 30 }
       ],
@@ -132,6 +134,7 @@
       "label": "Two-person mask ventilation fails — CICO",
       "description": "Optimal two-person mask ventilation with airway adjuncts and confirmed full paralysis moves no gas: flat capnograph, SpO2 into the 60s. This is cannot intubate, cannot oxygenate — the team must hear those words.",
       "category": "airway",
+      "actionIds": ["two-person-mask", "declare-cico"],
       "effects": [
         { "vitals": { "spo2": 66, "etco2": 0, "hr": 120 }, "overSec": 45 }
       ],
@@ -152,6 +155,7 @@
       "label": "Partial oxygenation between attempts",
       "description": "A brief window of partial mask ventilation (jaw thrust, two airways, two hands) buys a small recovery — a reward for prioritizing oxygenation between attempts, not a solution.",
       "category": "airway",
+      "actionIds": ["oxygenate-between-attempts"],
       "effects": [
         { "vitals": { "spo2": 84, "etco2": 14, "hr": 104 }, "overSec": 45 }
       ],
@@ -162,6 +166,7 @@
       "label": "Scalpel cricothyroidotomy succeeds",
       "description": "Vertical skin incision, stabilize the larynx, transverse stab through the cricothyroid membrane, bougie, size 6.0 cuffed tube — a capnograph trace confirms ventilation. Saturation recovers over the next minute or two; the first CO2 readings are high after the apneic period.",
       "category": "airway",
+      "actionIds": ["perform-fona", "confirm-capnography"],
       "effects": [
         { "vitals": { "spo2": 92, "etco2": 48, "rr": 12, "hr": 98 }, "rhythm": "sinus", "overSec": 90 }
       ],
@@ -172,6 +177,7 @@
       "label": "Reoxygenation and stabilization",
       "description": "Ventilation through the surgical airway normalizes gas exchange; anesthesia is re-established and the team plans next steps: secure the airway definitively, ICU, ENT involvement, documentation.",
       "category": "resolution",
+      "actionIds": ["post-event-plan"],
       "effects": [
         { "vitals": { "spo2": 98, "etco2": 38, "hr": 86, "sbp": 134, "dbp": 82, "rr": 12, "depth": 45, "agentFi": 2.0, "agentEt": 1.4 }, "overSec": 240 }
       ],
