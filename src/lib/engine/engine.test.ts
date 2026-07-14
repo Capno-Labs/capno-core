@@ -533,3 +533,67 @@ describe('live-added events and the next-up pin', () => {
     expect(e.scenario.events.some((ev) => ev.id === 'adhoc-1')).toBe(false);
   });
 });
+
+describe('diastolic never exceeds systolic', () => {
+  it('caps a dbp target at the systolic target', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('sbp', 110, 0);
+    e.setVital('dbp', 150, 0);
+    expect(e.getVitals().dbp).toBe(110);
+  });
+
+  it('lowering sbp below the dbp target drags dbp down with it', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('sbp', 120, 0);
+    e.setVital('dbp', 80, 0);
+    e.setVital('sbp', 60, 0);
+    const v = e.getVitals();
+    expect(v.sbp).toBe(60);
+    expect(v.dbp).toBe(60);
+  });
+
+  it('never lets dbp cross sbp mid-ramp, then dbp still reaches its target', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('sbp', 100, 0);
+    e.setVital('dbp', 60, 0);
+    // sbp climbs slowly to 140 while dbp races toward 130: unpinned, dbp
+    // would overtake sbp on the way up.
+    e.setVital('sbp', 140, 100);
+    e.setVital('dbp', 130, 1);
+    for (let i = 0; i < 120; i++) {
+      e.tick(1);
+      const v = e.getVitals();
+      expect(v.dbp).toBeLessThanOrEqual(v.sbp);
+    }
+    // Once sbp finishes climbing, dbp resumes and lands on its own target.
+    expect(e.getVitals().sbp).toBe(140);
+    expect(e.getVitals().dbp).toBe(130);
+  });
+
+  it('caps an event effect that puts dbp above sbp', () => {
+    const e = newEngine();
+    e.addEvent({
+      id: 'bad-bp',
+      label: 'Effect with impossible BP',
+      category: 'circulation',
+      effects: [{ vitals: { sbp: 90, dbp: 120 }, overSec: 0 }],
+    });
+    e.start();
+    e.triggerEvent('bad-bp');
+    expect(e.getVitals().sbp).toBe(90);
+    expect(e.getVitals().dbp).toBe(90);
+  });
+
+  it('normalizes a malformed authored baseline at construction', () => {
+    const bad = {
+      ...scenario(),
+      baselineVitals: { ...scenario().baselineVitals, sbp: 100, dbp: 130 },
+    };
+    const e = new SimulationEngine(bad, 'TEST');
+    expect(e.getVitals().dbp).toBe(100);
+    expect(e.snapshot().nibp?.dbp).toBe(100); // seeds the first cuff reading too
+  });
+});

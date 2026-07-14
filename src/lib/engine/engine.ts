@@ -108,10 +108,13 @@ export class SimulationEngine {
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.current = { ...numeric };
+    // Baselines are authored content: guarantee dbp ≤ sbp here too (this
+    // value seeds the first NIBP reading before any tick can pin it).
+    this.current.dbp = Math.min(this.current.dbp, this.current.sbp);
     this.actions = scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = scenario.monitoring?.artLine ?? false;
     if (this.usesCuff()) {
-      this.lastNibp = { sbp: numeric.sbp, dbp: numeric.dbp, atSec: 0 };
+      this.lastNibp = { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 };
     }
   }
 
@@ -219,6 +222,7 @@ export class SimulationEngine {
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.current = { ...numeric };
+    this.current.dbp = Math.min(this.current.dbp, this.current.sbp);
     this.ramps.clear();
     this.pendingEffects = [];
     this.log = [];
@@ -231,7 +235,7 @@ export class SimulationEngine {
     this.actions = this.scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = this.scenario.monitoring?.artLine ?? false;
     this.lastNibp = this.usesCuff()
-      ? { sbp: this.scenario.baselineVitals.sbp, dbp: this.scenario.baselineVitals.dbp, atSec: 0 }
+      ? { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 }
       : null;
     this.history = [];
     this.lastHistorySec = Number.NEGATIVE_INFINITY;
@@ -283,15 +287,23 @@ export class SimulationEngine {
       this.applyEffectNow(p.effect);
     }
 
-    // Ramp numeric vitals toward targets.
+    // Ramp numeric vitals toward targets. dbp keeps its ramp until below —
+    // the systolic pin can pull it back under a target it already reached.
     for (const [key, ramp] of this.ramps) {
       const cur = this.current[key];
       const step = ramp.ratePerSec * dtSec;
       const next =
         cur < ramp.target ? Math.min(ramp.target, cur + step) : Math.max(ramp.target, cur - step);
       this.current[key] = next;
-      if (next === ramp.target) this.ramps.delete(key);
+      if (next === ramp.target && key !== 'dbp') this.ramps.delete(key);
     }
+    // Independent per-key ramps can transiently cross even when both
+    // endpoints are valid (a fast dbp rise under a slow sbp rise): pin
+    // diastolic below systolic. A pinned dbp ramp stays alive so diastolic
+    // resumes toward its target as systolic climbs.
+    if (this.current.dbp > this.current.sbp) this.current.dbp = this.current.sbp;
+    const dbpRamp = this.ramps.get('dbp');
+    if (dbpRamp && this.current.dbp === dbpRamp.target) this.ramps.delete('dbp');
 
     // Automatic NIBP cuff cycle.
     if (this.lastNibp && this.elapsedSec - this.lastNibp.atSec >= this.nibpIntervalSec()) {
@@ -347,7 +359,13 @@ export class SimulationEngine {
 
   /** Set a single numeric vital target, ramping over `overSec` seconds. */
   setVital(key: keyof NumericVitals, target: number, overSec = 0): void {
-    const clamped = clampVital(key, target);
+    let clamped = clampVital(key, target);
+    // Diastolic can never exceed systolic: a dbp target is capped at the
+    // systolic target; lowering sbp below the diastolic target drags dbp
+    // down with it (the instructor's intent is hypotension, not a block).
+    if (key === 'dbp') {
+      clamped = Math.min(clamped, this.effectiveTarget('sbp'));
+    }
     this.startRamp(key, clamped, overSec);
     const meta = VITAL_META[key];
     this.addLog(
@@ -355,6 +373,14 @@ export class SimulationEngine {
       `${meta.label} → ${roundVital(key, clamped)}${meta.unit ? ' ' + meta.unit : ''}`,
       overSec > 0 ? `over ${overSec}s` : undefined,
     );
+    if (key === 'sbp' && this.effectiveTarget('dbp') > clamped) {
+      this.startRamp('dbp', clamped, overSec);
+      this.addLog(
+        'vital_change',
+        `${VITAL_META.dbp.label} → ${roundVital('dbp', clamped)} ${VITAL_META.dbp.unit}`,
+        'kept ≤ systolic',
+      );
+    }
   }
 
   setRhythm(rhythm: Rhythm): void {
@@ -550,7 +576,18 @@ export class SimulationEngine {
         const target = effect.vitals[key];
         if (target !== undefined) this.startRamp(key, clampVital(key, target), effect.overSec ?? 0);
       }
+      // Authored effects can't put diastolic above systolic either: cap the
+      // dbp ramp target at the effective systolic target.
+      const sbpTarget = this.effectiveTarget('sbp');
+      if (this.effectiveTarget('dbp') > sbpTarget) {
+        this.startRamp('dbp', sbpTarget, effect.overSec ?? 0);
+      }
     }
+  }
+
+  /** Where a vital is headed: its ramp target if ramping, else its value now. */
+  private effectiveTarget(key: keyof NumericVitals): number {
+    return this.ramps.get(key)?.target ?? this.current[key];
   }
 
   private startRamp(key: keyof NumericVitals, target: number, overSec: number): void {
