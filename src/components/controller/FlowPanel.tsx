@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ACTION_LEGEND, ActionMarkRow } from '@/components/controller/ActionMarkRow';
+import { AddEventForm } from '@/components/controller/AddEventForm';
 import { CATEGORY_DOT, CATEGORY_STYLES } from '@/components/eventCategories';
 import { nextUnfiredEvent } from '@/lib/engine/flow';
 import type { ExpectedAction, ScenarioEvent } from '@/lib/engine/types';
@@ -18,15 +19,19 @@ const IMMINENT_SEC = 30;
  * instead of hunting between an event grid and a separate checklist. Actions
  * no event links appear in "Other learner actions" below, grouped by phase.
  *
- * The first unfired event is highlighted as "Next up". "Critical only" trims
+ * The first unfired event is highlighted as "Next up"; a per-card "make
+ * next" pin lets the instructor point the highlight (and the N hotkey) at a
+ * different unfired event without moving cards. "Critical only" trims
  * actions (never events) to critical ones with larger, labelled tap targets;
- * it arms itself once when the scenario first starts running.
+ * it arms itself once when the scenario first starts running. The "+ Add"
+ * button improvises a session-only event (see AddEventForm).
  */
 export function FlowPanel() {
-  const { engine, snapshot, triggerEvent, markAction } = useControllerStore();
+  const { engine, snapshot, triggerEvent, markAction, pinNextEvent } = useControllerStore();
   const [filter, setFilter] = useState('');
   const [flashId, setFlashId] = useState<string | null>(null);
   const [criticalOnly, setCriticalOnly] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const autoArmed = useRef(false);
   const filterRef = useRef<HTMLInputElement | null>(null);
   const running = snapshot?.status === 'running';
@@ -45,10 +50,15 @@ export function FlowPanel() {
   if (!engine || !snapshot) return null;
 
   const scenario = engine.scenario;
+  // The working event list (authored + live-added); the authored set marks
+  // which cards get the "added live" chip.
+  const events = engine.getEvents();
+  const authoredIds = new Set(scenario.events.map((e) => e.id));
+  const pinned = engine.getPinnedNextEventId();
   const fired = new Set(snapshot.firedEventIds);
   const actionsById = new Map(scenario.expectedActions.map((a) => [a.id, a]));
   const recordFor = (id: string) => snapshot.actions.find((a) => a.actionId === id);
-  const next = nextUnfiredEvent(scenario.events, fired);
+  const next = nextUnfiredEvent(events, fired, pinned);
 
   const fire = (id: string) => {
     triggerEvent(id);
@@ -66,7 +76,7 @@ export function FlowPanel() {
     (ev.actionIds ?? []).some((id) =>
       actionsById.get(id)?.label.toLowerCase().includes(q),
     );
-  const visibleEvents = scenario.events.filter(eventMatches);
+  const visibleEvents = events.filter(eventMatches);
 
   const linkedActions = (ev: ScenarioEvent): ExpectedAction[] =>
     (ev.actionIds ?? [])
@@ -74,7 +84,7 @@ export function FlowPanel() {
       .filter((a): a is ExpectedAction => a !== undefined && (!criticalOnly || a.critical));
 
   // Actions no event claims: the general checklist, grouped by phase.
-  const claimed = new Set(scenario.events.flatMap((e) => e.actionIds ?? []));
+  const claimed = new Set(events.flatMap((e) => e.actionIds ?? []));
   const actionVisible = (a: ExpectedAction) =>
     !claimed.has(a.id) &&
     (!criticalOnly || a.critical) &&
@@ -133,8 +143,26 @@ export function FlowPanel() {
 
   const eventCard = (ev: ScenarioEvent) => {
     const isNext = next?.id === ev.id;
+    const isFired = fired.has(ev.id);
+    const isPinned = pinned === ev.id;
     const actions = linkedActions(ev);
     const { hint, imminent } = timing(ev);
+    // Pin controls live OUTSIDE the fire button (the whole card header is
+    // that button — nesting buttons is invalid HTML). "Make next" is hidden
+    // on the card that is already next: pinning it would change nothing.
+    const pinControl = !isFired && (isPinned || !isNext) && (
+      <button
+        className="text-[10px] font-semibold text-slate-500 hover:text-sky-300"
+        onClick={(e) => {
+          pinNextEvent(isPinned ? null : ev.id);
+          // Drop focus: the shortcut hook ignores keys while a button is
+          // focused, and this click just promised the N key works.
+          e.currentTarget.blur();
+        }}
+      >
+        {isPinned ? '⤫ unpin' : '⤒ make next'}
+      </button>
+    );
     return (
       <div
         key={ev.id}
@@ -164,12 +192,20 @@ export function FlowPanel() {
               <span className="truncate">{ev.label}</span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
+              {!authoredIds.has(ev.id) && (
+                <span
+                  className="rounded bg-violet-950 px-1 py-0.5 text-[9px] font-bold uppercase text-violet-300 ring-1 ring-violet-800"
+                  title="Improvised during this session — not part of the authored scenario"
+                >
+                  added live
+                </span>
+              )}
               {isNext && (
                 <span className="rounded bg-sky-600 px-1 py-0.5 text-[9px] font-bold uppercase text-white">
                   Next up · N
                 </span>
               )}
-              {fired.has(ev.id) && <span title="already fired">✓</span>}
+              {isFired && <span title="already fired">✓</span>}
             </span>
           </span>
           {hint && <span className="mt-0.5 block">{hint}</span>}
@@ -183,6 +219,7 @@ export function FlowPanel() {
             </span>
           )}
         </button>
+        {pinControl && <div className="flex justify-end px-1">{pinControl}</div>}
         {actions.length > 0 && (
           <ul className="space-y-1">
             {actions.map((a) => (
@@ -206,22 +243,37 @@ export function FlowPanel() {
         <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
           Flow
           <span className="ml-2 font-normal normal-case text-slate-600">
-            {fired.size}/{scenario.events.length} fired
+            {fired.size}/{events.length} fired
           </span>
         </h2>
-        <button
-          className={`rounded px-2 py-1 text-xs font-semibold transition ${
-            criticalOnly
-              ? 'bg-red-900/60 text-red-300 ring-1 ring-red-700'
-              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-          }`}
-          onClick={() => setCriticalOnly(!criticalOnly)}
-          aria-pressed={criticalOnly}
-        >
-          ● Critical only
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className={`rounded px-2 py-1 text-xs font-semibold transition ${
+              showAddForm
+                ? 'bg-sky-900/60 text-sky-300 ring-1 ring-sky-700'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+            onClick={() => setShowAddForm(!showAddForm)}
+            aria-pressed={showAddForm}
+            aria-expanded={showAddForm}
+          >
+            + Add event
+          </button>
+          <button
+            className={`rounded px-2 py-1 text-xs font-semibold transition ${
+              criticalOnly
+                ? 'bg-red-900/60 text-red-300 ring-1 ring-red-700'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+            onClick={() => setCriticalOnly(!criticalOnly)}
+            aria-pressed={criticalOnly}
+          >
+            ● Critical only
+          </button>
+        </div>
       </div>
-      {scenario.events.length > 8 && (
+      {showAddForm && <AddEventForm onDone={() => setShowAddForm(false)} />}
+      {events.length > 8 && (
         <input
           ref={filterRef}
           className="input"
@@ -283,7 +335,7 @@ export function FlowPanel() {
       )}
       <p className="text-[10px] text-slate-500">
         Events can be re-fired; the next event shows its description, hover for the rest. Press N
-        to fire the next event.{' '}
+        to fire the next event; “make next” points N at a different card.{' '}
         {ACTION_LEGEND}
       </p>
     </section>

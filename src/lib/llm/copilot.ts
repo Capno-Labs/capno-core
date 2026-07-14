@@ -108,7 +108,10 @@ Rules:
 - Session start/pause/reset/end and alarm silencing are NOT available; if asked, return {"commands":[],"reply":"<explain>"}.
 - If the request is ambiguous or impossible, return no commands and explain briefly in reply.`;
 
-/** Compact, id+label-only context so the model can resolve names → ids. */
+/** Compact, id+label-only context so the model can resolve names → ids.
+ *  Deliberately reads the authored scenario, not the engine's working event
+ *  list: events the instructor adds live stay invisible to the co-pilot
+ *  (it can neither see nor fire them — no new engine surface). */
 function buildContext(scenario: Scenario, snapshot: SimSnapshot): string {
   return JSON.stringify({
     status: snapshot.status,

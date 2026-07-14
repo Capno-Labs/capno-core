@@ -34,6 +34,14 @@ export interface EventTemplate {
   source: string;
 }
 
+/** Display order + group titles for template pickers (editor and run screen). */
+export const TEMPLATE_KINDS: Array<{ kind: EventTemplate['kind']; title: string }> = [
+  { kind: 'deterioration', title: 'Deterioration' },
+  { kind: 'treatment-response', title: 'Treatment response' },
+  { kind: 'resolution', title: 'Resolution' },
+  { kind: 'marker', title: 'Marker' },
+];
+
 export const EVENT_TEMPLATES: EventTemplate[] = [
   // ── Deterioration ──────────────────────────────────────────────────────
   {

@@ -2,6 +2,8 @@
 
 import { create } from 'zustand';
 import { generateSessionId, isValidSessionCode, SimulationEngine } from '../engine/engine';
+import { adhocEventId } from '../engine/flow';
+import { eventSchema } from '../engine/schema';
 import { resolvePresetEffect, VITALS_PRESETS } from '../engine/presets';
 import { scoreSession } from '../engine/scoring';
 import type {
@@ -10,6 +12,7 @@ import type {
   NumericVitals,
   Rhythm,
   Scenario,
+  ScenarioEvent,
   SimSnapshot,
 } from '../engine/types';
 import { cloudEligible, drain, enqueue } from '../cloud/outbox';
@@ -52,6 +55,15 @@ interface ControllerState {
   setRhythm: (rhythm: Rhythm) => void;
   setCapnoShape: (shape: CapnoShape) => void;
   triggerEvent: (eventId: string) => void;
+  /**
+   * Add an instructor-improvised event to the running session. Ad-hoc events
+   * are fire-when-ready only — the Omit keeps autoAtSec and rubric links out
+   * at the type level. Returns the generated event id, or null if no session
+   * is loaded.
+   */
+  addAdhocEvent: (event: Omit<ScenarioEvent, 'id' | 'autoAtSec' | 'actionIds'>) => string | null;
+  /** Pin which event "next up" and the N hotkey point at (null clears). */
+  pinNextEvent: (eventId: string | null) => void;
   setPhase: (phaseId: string) => void;
   markAction: (actionId: string, status: ActionStatus) => void;
   addNote: (text: string) => void;
@@ -133,7 +145,9 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       const result = archiveSession({
         sessionId: snapshot.sessionId,
         sessionCode: get().sessionCode,
-        scenario: engine.scenario,
+        // The effective scenario (authored + live-added events) keeps the
+        // archive self-consistent with firedEventIds and the debrief log.
+        scenario: engine.getEffectiveScenario(),
         snapshot,
         endedAtIso: new Date().toISOString(),
         score,
@@ -162,6 +176,21 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setRhythm: (rhythm) => withEngine((e) => e.setRhythm(rhythm)),
     setCapnoShape: (shape) => withEngine((e) => e.setCapnoShape(shape)),
     triggerEvent: (eventId) => withEngine((e) => e.triggerEvent(eventId)),
+    addAdhocEvent: (event) => {
+      const { engine } = get();
+      if (!engine) return null;
+      const id = adhocEventId(engine.getEvents());
+      const candidate = { ...event, id };
+      // Zod at the boundary: the form pre-validates for friendly messages,
+      // but the store is the choke point every caller goes through — an
+      // invalid event would poison the archive (getEffectiveScenario must
+      // stay scenarioSchema-valid for export/import and cloud pull).
+      if (!eventSchema.safeParse(candidate).success) return null;
+      if (!engine.addEvent(candidate)) return null;
+      publish();
+      return id;
+    },
+    pinNextEvent: (eventId) => withEngine((e) => e.pinNextEvent(eventId)),
     setPhase: (phaseId) => withEngine((e) => e.setPhase(phaseId)),
     markAction: (actionId, status) => withEngine((e) => e.markAction(actionId, status)),
     addNote: (text) => withEngine((e) => e.addNote(text)),

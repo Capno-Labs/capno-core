@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateSessionId, isValidSessionCode, SimulationEngine } from './engine';
+import { parseScenario } from './schema';
 import { clampVital } from './vitals';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
-import type { NumericVitals, Scenario } from './types';
+import type { NumericVitals, Scenario, ScenarioEvent } from './types';
 
 const scenario = (): Scenario => BUILT_IN_SCENARIOS[0];
 
@@ -429,5 +430,106 @@ describe('NIBP cycling', () => {
     const back = e.snapshot();
     expect(back.nibp).not.toBeNull(); // immediate cuff reading on removal
     expect(back.nibp?.sbp).toBe(60);
+  });
+});
+
+describe('live-added events and the next-up pin', () => {
+  const adhoc = {
+    id: 'adhoc-1',
+    label: 'Improvised bleeding',
+    category: 'circulation' as const,
+    effects: [{ vitals: { sbp: 80 }, overSec: 0 }],
+  };
+
+  it('addEvent appends to the working list without mutating the scenario', () => {
+    const e = newEngine();
+    const authoredCount = e.scenario.events.length;
+    expect(e.addEvent(adhoc)).toBe(true);
+    expect(e.getEvents()).toHaveLength(authoredCount + 1);
+    expect(e.getEvents().at(-1)?.id).toBe('adhoc-1');
+    // The source scenario is untouched — the core persistence guarantee.
+    expect(e.scenario.events).toHaveLength(authoredCount);
+    expect(e.scenario.events.some((ev) => ev.id === 'adhoc-1')).toBe(false);
+    expect(e.snapshot().log.some((l) => l.kind === 'session' && l.label.includes(adhoc.label))).toBe(
+      true,
+    );
+  });
+
+  it('addEvent strips autoAtSec and actionIds at runtime', () => {
+    const e = newEngine();
+    // The store action's Omit type doesn't bind non-literal callers, so the
+    // engine must enforce the fire-when-ready contract itself.
+    const smuggled = { ...adhoc, autoAtSec: 5, actionIds: ['nope'] } as ScenarioEvent;
+    expect(e.addEvent(smuggled)).toBe(true);
+    const added = e.getEvents().find((ev) => ev.id === adhoc.id)!;
+    expect(added.autoAtSec).toBeUndefined();
+    expect(added.actionIds).toBeUndefined();
+    e.start();
+    e.tick(60);
+    expect(e.snapshot().firedEventIds).not.toContain(adhoc.id);
+  });
+
+  it('addEvent rejects a duplicate id', () => {
+    const e = newEngine();
+    expect(e.addEvent(adhoc)).toBe(true);
+    expect(e.addEvent({ ...adhoc, label: 'Different label' })).toBe(false);
+    expect(e.getEvents().filter((ev) => ev.id === 'adhoc-1')).toHaveLength(1);
+    expect(e.addEvent({ ...adhoc, id: e.scenario.events[0].id })).toBe(false);
+  });
+
+  it('an added event fires like any authored event', () => {
+    const e = newEngine();
+    e.addEvent(adhoc);
+    e.start();
+    expect(e.triggerEvent('adhoc-1')?.label).toBe(adhoc.label);
+    expect(e.getVitals().sbp).toBe(80);
+    const snap = e.snapshot();
+    expect(snap.firedEventIds).toContain('adhoc-1');
+    expect(snap.log.some((l) => l.kind === 'event' && l.label === adhoc.label)).toBe(true);
+  });
+
+  it('added events never auto-fire', () => {
+    const e = newEngine(); // autoEvents defaults to true in the engine
+    e.addEvent(adhoc);
+    e.start();
+    e.tick(600);
+    e.skipAhead(3600);
+    expect(e.snapshot().firedEventIds).not.toContain('adhoc-1');
+  });
+
+  it('pinNextEvent round-trips, ignores unknown ids, and clears on reset', () => {
+    const e = newEngine();
+    const target = e.scenario.events[1].id;
+    expect(e.getPinnedNextEventId()).toBeNull();
+    e.pinNextEvent(target);
+    expect(e.getPinnedNextEventId()).toBe(target);
+    e.pinNextEvent('no-such-event');
+    expect(e.getPinnedNextEventId()).toBe(target);
+    e.pinNextEvent(null);
+    expect(e.getPinnedNextEventId()).toBeNull();
+    e.pinNextEvent(target);
+    e.reset();
+    expect(e.getPinnedNextEventId()).toBeNull();
+  });
+
+  it('reset keeps added events but clears their fired state', () => {
+    const e = newEngine();
+    e.addEvent(adhoc);
+    e.start();
+    e.triggerEvent('adhoc-1');
+    e.reset();
+    expect(e.getEvents().some((ev) => ev.id === 'adhoc-1')).toBe(true);
+    expect(e.snapshot().firedEventIds).not.toContain('adhoc-1');
+  });
+
+  it('getEffectiveScenario includes added events and stays schema-valid', () => {
+    const e = newEngine();
+    e.addEvent(adhoc);
+    const effective = e.getEffectiveScenario();
+    expect(effective.events.some((ev) => ev.id === 'adhoc-1')).toBe(true);
+    // The archive/export/import boundary re-validates with the full schema.
+    expect(() => parseScenario(JSON.parse(JSON.stringify(effective)))).not.toThrow();
+    // Still a shallow overlay: the authored scenario object is unchanged.
+    expect(e.scenario.events.some((ev) => ev.id === 'adhoc-1')).toBe(false);
   });
 });

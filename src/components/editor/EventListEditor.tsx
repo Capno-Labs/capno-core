@@ -16,7 +16,7 @@ import { CAPNO_SHAPE_LABELS, NUMERIC_VITAL_KEYS, RHYTHM_LABELS } from '@/lib/eng
 import type { LintWarning } from '@/lib/engine/lint';
 import { VITAL_META } from '@/lib/engine/vitals';
 import { CATEGORIES, CATEGORY_DOT } from '@/components/eventCategories';
-import { EVENT_TEMPLATES, type EventTemplate } from '@/lib/engine/eventTemplates';
+import { EVENT_TEMPLATES, TEMPLATE_KINDS, type EventTemplate } from '@/lib/engine/eventTemplates';
 import { EventTimeline } from './EventTimeline';
 
 /**
@@ -31,8 +31,9 @@ import { EventTimeline } from './EventTimeline';
 const fmtTime = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
-/** One-line recap of what an effect does, so multi-effect events scan fast. */
-function effectSummary(effect: VitalEffect): string {
+/** One-line recap of what an effect does, so multi-effect events scan fast.
+ *  Exported for the run screen's live add-event form (template picker). */
+export function effectSummary(effect: VitalEffect): string {
   const parts: string[] = [];
   for (const key of NUMERIC_VITAL_KEYS) {
     const v = effect.vitals?.[key];
@@ -47,7 +48,9 @@ function effectSummary(effect: VitalEffect): string {
   return parts.join(' · ') + (timing.length > 0 ? ` · ${timing.join(', ')}` : '');
 }
 
-function EffectEditor({
+/** Purely presentational effect form; exported so the run screen's live
+ *  add-event form edits effects exactly like the case editor does. */
+export function EffectEditor({
   effect,
   onChange,
   onRemove,
@@ -290,13 +293,6 @@ export function EventListEditor({
       tq === '' ||
       `${t.label} ${t.description} ${t.domain} ${t.category} ${t.source}`.toLowerCase().includes(tq),
   );
-  const TEMPLATE_KINDS: Array<{ kind: EventTemplate['kind']; title: string }> = [
-    { kind: 'deterioration', title: 'Deterioration' },
-    { kind: 'treatment-response', title: 'Treatment response' },
-    { kind: 'resolution', title: 'Resolution' },
-    { kind: 'marker', title: 'Marker' },
-  ];
-
   const addEventControls = (
     <>
       {events.length === 0 && (
