@@ -74,15 +74,44 @@ export function PhaseListEditor({
               </button>
             </div>
           </div>
-          <div>
-            <span className="label">Description (optional)</span>
-            <input
-              className="input"
-              value={phase.description ?? ''}
-              onChange={(e) =>
-                patch(i, { description: e.target.value === '' ? undefined : e.target.value })
-              }
-            />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <span className="label">Description (optional)</span>
+              <input
+                className="input"
+                value={phase.description ?? ''}
+                onChange={(e) =>
+                  patch(i, { description: e.target.value === '' ? undefined : e.target.value })
+                }
+              />
+            </div>
+            <div className="w-28 shrink-0">
+              <span
+                className="label"
+                title="Pacing budget for this phase — the run screen's phase stepper turns amber once the team is over it."
+              >
+                Target (min)
+              </span>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                step="any"
+                placeholder="optional"
+                value={phase.targetDurationSec !== undefined ? phase.targetDurationSec / 60 : ''}
+                onChange={(e) => {
+                  // Fractional minutes are fine (0.5 = a 30 s budget); anything
+                  // non-positive means "no budget", never a silent clamp.
+                  const n = Number(e.target.value);
+                  patch(i, {
+                    targetDurationSec:
+                      e.target.value === '' || !(n > 0)
+                        ? undefined
+                        : Math.max(1, Math.round(n * 60)),
+                  });
+                }}
+              />
+            </div>
           </div>
         </div>
       ))}

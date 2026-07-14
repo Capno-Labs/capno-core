@@ -27,7 +27,11 @@ export function useKeyboardShortcuts(
       ) {
         return;
       }
-      const action = bindingsRef.current[e.key];
+      // Case-fold single-character keys so CapsLock (or Shift) can't silently
+      // kill an advertised letter shortcut.
+      const action =
+        bindingsRef.current[e.key] ??
+        (e.key.length === 1 ? bindingsRef.current[e.key.toLowerCase()] : undefined);
       if (action) {
         e.preventDefault();
         action();

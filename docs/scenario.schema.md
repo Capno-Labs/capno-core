@@ -17,6 +17,7 @@ scenario from the library for a complete working example.
 | `learningObjectives` | string[] | ≥1. Shown in library details and debrief. |
 | `setup` | string[] | Room/equipment/confederate instructions for faculty. |
 | `estimatedMinutes` | number | Library display only. |
+| `targetDurationSec` | number? | Optional hard time budget for a scheduled lab slot. The run screen counts down against it and flags overruns; pacing display only, never drives engine behavior. |
 | `monitoring` | object? | BP display mode. Absent = NIBP cuff cycling every 180 s. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff on demand. |
 
 ## `patient`
@@ -39,9 +40,12 @@ Display-only; the EtCO2 number is unaffected.
 
 ## `phases`
 
-Ordered list of `{ id, label, description? }` — phases of care (e.g.
-preinduction → induction → maintenance…). The faculty controller steps
-through them; expected actions group by phase.
+Ordered list of `{ id, label, description?, targetDurationSec? }` — phases
+of care (e.g. preinduction → induction → maintenance…). The faculty
+controller steps through them; expected actions group by phase. The
+optional `targetDurationSec` is a pacing budget for that phase: the phase
+stepper shows elapsed-in-phase against it and flags overruns (display
+only, no engine behavior).
 
 ## `events`
 
@@ -55,6 +59,7 @@ Faculty-triggerable (or automatic) occurrences:
   "category": "circulation",     // physiology | airway | circulation | drug |
                                  // equipment | surgical | resolution | other
   "autoAtSec": 300,              // optional: fires itself at elapsed t (else faculty-only)
+  "actionIds": ["give-epinephrine-early"],  // optional: linked expectedActions ids
   "effects": [
     { "vitals": { "sbp": 55, "dbp": 30 }, "overSec": 120 },  // ramp over 120 s
     { "rhythm": "sinus_tach" },                               // rhythm switches instantly
@@ -79,6 +84,14 @@ events use the same ramp mechanism, last write wins per vital.
 - **`phaseHint` is a display hint, not a reference.** It is shown verbatim
   on the faculty run screen and is not validated against `phases` (the
   editor offers a dropdown of phase ids but tolerates free text).
+- **`actionIds` links an event to the learner actions it embodies or
+  responds to** (e.g. an epinephrine-response event links the "give
+  epinephrine" action), so the run screen can show those actions next to
+  the event's fire button. Every entry must be an existing
+  `expectedActions` id — this *is* validated. Linking is display/grouping
+  only: firing an event never marks an action, and marking an action never
+  fires an event. Actions linked by no event appear in the run screen's
+  general checklist.
 - **Write events in narrative order.** The run screen sorts automatic events
   by time, but the file reads best when the story reads top to bottom.
 

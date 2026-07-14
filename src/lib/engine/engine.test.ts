@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SimulationEngine } from './engine';
+import { generateSessionId, isValidSessionCode, SimulationEngine } from './engine';
 import { clampVital } from './vitals';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 import type { NumericVitals, Scenario } from './types';
@@ -77,7 +77,7 @@ describe('SimulationEngine', () => {
       : null;
     e.start();
     e.tick(10);
-    e.triggerEvent(auto.id); // faculty fires it early from the script rail
+    e.triggerEvent(auto.id); // faculty fires it early from the Flow panel
     // Faculty overrides a vital the event touched; the scheduled auto copy
     // must NOT re-apply at autoAtSec and stomp the override.
     const override = targetKey ? clampVital(targetKey, 42) : 0;
@@ -109,6 +109,129 @@ describe('SimulationEngine', () => {
     expect(e.snapshot().firedEventIds).not.toContain(auto.id);
     e.tick(2);
     expect(e.snapshot().firedEventIds).toContain(auto.id);
+  });
+
+  it('never fires autos when constructed with autoEvents: false', () => {
+    const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
+    const auto = e.scenario.events.find((x) => x.autoAtSec !== undefined);
+    if (!auto) return;
+    e.start();
+    e.tick(auto.autoAtSec! + 60);
+    e.skipAhead(600);
+    expect(e.snapshot().firedEventIds).not.toContain(auto.id);
+    expect(e.snapshot().autoEventsEnabled).toBe(false);
+    // Manual triggering still works with autos off.
+    e.triggerEvent(auto.id);
+    expect(e.snapshot().firedEventIds).toContain(auto.id);
+  });
+
+  it('setAutoEvents(false) mid-run cancels scheduled autos', () => {
+    const e = newEngine();
+    const auto = e.scenario.events.find((x) => x.autoAtSec !== undefined && x.autoAtSec > 30);
+    if (!auto) return;
+    e.start();
+    e.tick(10);
+    e.setAutoEvents(false);
+    e.tick(auto.autoAtSec! + 60);
+    expect(e.snapshot().firedEventIds).not.toContain(auto.id);
+    expect(e.snapshot().log.some((l) => l.label === 'Auto events off')).toBe(true);
+  });
+
+  it('setAutoEvents(true) mid-run schedules future autos but not past-due ones', () => {
+    const autos = scenario()
+      .events.filter((x) => x.autoAtSec !== undefined)
+      .sort((a, b) => a.autoAtSec! - b.autoAtSec!);
+    if (autos.length < 2) return;
+    const [first, second] = autos;
+    const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
+    e.start();
+    e.tick(first.autoAtSec! + 1); // first is now past due, still unfired
+    e.setAutoEvents(true);
+    e.tick(second.autoAtSec! - first.autoAtSec! + 60);
+    expect(e.snapshot().firedEventIds).not.toContain(first.id); // no retro-fire
+    expect(e.snapshot().firedEventIds).toContain(second.id);
+  });
+
+  it('records the elapsed time of each phase change', () => {
+    const e = newEngine();
+    if (e.scenario.phases.length < 2) return;
+    expect(e.snapshot().phaseChangedAtSec).toBe(0);
+    e.start();
+    e.tick(90);
+    e.setPhase(e.scenario.phases[1].id);
+    expect(e.snapshot().phaseChangedAtSec).toBe(90);
+    // Re-setting the same phase does not restart the timer.
+    e.tick(30);
+    e.setPhase(e.scenario.phases[1].id);
+    expect(e.snapshot().phaseChangedAtSec).toBe(90);
+    e.reset();
+    expect(e.snapshot().phaseChangedAtSec).toBe(0);
+  });
+
+  it('does not cross-cancel events that share a label (id is the identity)', () => {
+    // Labels are display-only and the schema does not force them unique.
+    const s: Scenario = {
+      ...scenario(),
+      events: [
+        {
+          id: 'auto-dup',
+          label: 'Same label',
+          category: 'physiology',
+          autoAtSec: 60,
+          effects: [{ vitals: { hr: 150 } }],
+        },
+        { id: 'manual-dup', label: 'Same label', category: 'other', effects: [] },
+      ],
+    };
+    const e = new SimulationEngine(s, 'TEST');
+    e.start();
+    e.tick(10);
+    e.triggerEvent('manual-dup'); // must NOT cancel auto-dup's scheduled copy
+    e.tick(60);
+    expect(e.snapshot().firedEventIds).toContain('auto-dup');
+    expect(e.getVitals().hr).toBe(150);
+  });
+
+  it('toggle-off keeps the staged effects of an auto event that already fired', () => {
+    const s: Scenario = {
+      ...scenario(),
+      events: [
+        {
+          id: 'two-stage',
+          label: 'Two-stage deterioration',
+          category: 'physiology',
+          autoAtSec: 30,
+          effects: [{ vitals: { hr: 120 } }, { vitals: { hr: 150 }, afterSec: 60 }],
+        },
+      ],
+    };
+    const e = new SimulationEngine(s, 'TEST');
+    e.start();
+    e.tick(31); // stage 1 fires and is logged; stage 2 queued for t=90
+    expect(e.snapshot().firedEventIds).toContain('two-stage');
+    expect(e.getVitals().hr).toBe(120);
+    e.setAutoEvents(false); // cancels unfired autos only — not a fired event's tail
+    e.tick(60);
+    expect(e.getVitals().hr).toBe(150);
+  });
+
+  it('validates session codes against the generator format', () => {
+    expect(isValidSessionCode(generateSessionId())).toBe(true);
+    expect(isValidSessionCode('ROOM42')).toBe(false); // 6 chars — the join input caps at 4
+    expect(isValidSessionCode('KX3O')).toBe(false); // O is not in the confusable-free alphabet
+    expect(isValidSessionCode('')).toBe(false);
+  });
+
+  it('keeps the autoEvents flag across reset()', () => {
+    const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
+    e.start();
+    e.reset();
+    expect(e.snapshot().autoEventsEnabled).toBe(false);
+    const auto = e.scenario.events.find((x) => x.autoAtSec !== undefined);
+    if (!auto) return;
+    e.start();
+    e.tick(auto.autoAtSec! + 60);
+    expect(e.snapshot().firedEventIds).not.toContain(auto.id);
   });
 
   it('marks actions and records the time', () => {

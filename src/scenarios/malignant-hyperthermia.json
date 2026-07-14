@@ -101,6 +101,7 @@
       "label": "Unexplained rising EtCO2",
       "description": "EtCO2 climbs from 36 to 55 mmHg over 5 minutes despite the learner increasing minute ventilation. Capnograph waveform remains normal in shape; CO2 absorber is fresh and there is no insufflation. This should feel refractory to ventilator adjustments.",
       "category": "physiology",
+      "actionIds": ["recognize-etco2"],
       "effects": [
         {
           "vitals": { "etco2": 55 },
@@ -191,6 +192,7 @@
       "label": "Response: volatile discontinued, 100% O2 high flows",
       "description": "Trigger when learners turn off sevoflurane, run 10+ L/min fresh gas with 100% O2, and hyperventilate (with or without charcoal filters). Agent washes out; hypercarbia slows but does not correct without dantrolene.",
       "category": "resolution",
+      "actionIds": ["discontinue-volatile", "hyperventilate-100-o2"],
       "effects": [
         {
           "vitals": { "agentFi": 0, "spo2": 99 },
@@ -213,6 +215,7 @@
       "label": "Response: dantrolene 2.5 mg/kg IV given",
       "description": "Trigger after the team pushes reconstituted dantrolene 2.5 mg/kg IV rapidly (about 185 mg for this 74 kg patient; each 20 mg vial mixed with 60 mL sterile water, or one 250 mg nanocrystalline vial). Over 5-10 minutes EtCO2 and HR fall; temperature plateaus, then drifts down.",
       "category": "drug",
+      "actionIds": ["give-dantrolene"],
       "effects": [
         {
           "vitals": { "etco2": 46, "hr": 96, "sbp": 118, "dbp": 70 },
@@ -236,6 +239,7 @@
       "label": "Response: active cooling measures",
       "description": "Trigger when learners begin active cooling (cold IV saline, ice to axillae/groin/neck, cooling blanket, exposed patient). Temperature falls faster toward 38; remind the team to stop cooling at 38 to avoid overshoot.",
       "category": "resolution",
+      "actionIds": ["active-cooling"],
       "effects": [
         {
           "vitals": { "temp": 38.0 },
@@ -249,6 +253,7 @@
       "label": "Response: hyperkalemia treated",
       "description": "Trigger after calcium chloride or gluconate plus insulin/dextrose (and bicarbonate) are given: ectopy resolves and any VT converts back to sinus tachycardia with recovering pressure.",
       "category": "drug",
+      "actionIds": ["treat-hyperkalemia"],
       "effects": [
         {
           "vitals": { "hr": 112, "sbp": 116, "dbp": 68 },
@@ -277,6 +282,7 @@
       "label": "Response: stabilization on dantrolene",
       "description": "Trigger once dantrolene, cooling, and hyperkalemia treatment are all in place: vitals settle near normal. Team should now discuss redosing criteria, ICU transfer, labs (ABG, K+, CK, coags, urine myoglobin), and MHAUS hotline follow-up.",
       "category": "resolution",
+      "actionIds": ["send-labs", "call-mhaus", "plan-icu"],
       "effects": [
         {
           "vitals": { "hr": 88, "sbp": 112, "dbp": 66, "spo2": 99, "etco2": 40, "rr": 14, "temp": 37.6, "depth": 50 },

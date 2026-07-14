@@ -58,6 +58,7 @@ function fixtureSnapshot(): SimSnapshot {
     status: 'running',
     elapsedSec: 120,
     phaseId: 'main',
+    phaseChangedAtSec: 0,
     vitals: { ...DEFAULT_VITALS },
     nibp: null,
     alarms: [],
@@ -66,6 +67,7 @@ function fixtureSnapshot(): SimSnapshot {
     log: [],
     notes: [],
     firedEventIds: ['anaphylaxis-full'],
+    autoEventsEnabled: false,
   };
 }
 
@@ -144,11 +146,11 @@ describe('parseCopilotResponse', () => {
       JSON.stringify({ commands: [{ type: 'set_vital', key: 'temp', target: 39.87 }] }),
       scenario,
     );
-    expect(result.proposals[0].command).toMatchObject({ target: 39.9, overSec: 20 });
-    expect(result.proposals[0].label).toBe('Temp → 39.9 °C over 20 s');
+    expect(result.proposals[0].command).toMatchObject({ target: 39.9, overSec: 3 });
+    expect(result.proposals[0].label).toBe('Temp → 39.9 °C over 3 s');
   });
 
-  it('defaults overSec to 20 and clamps huge ramps', () => {
+  it('defaults overSec to 3 and clamps huge ramps', () => {
     const result = parseCopilotResponse(
       JSON.stringify({
         commands: [
@@ -158,7 +160,7 @@ describe('parseCopilotResponse', () => {
       }),
       scenario,
     );
-    expect(result.proposals[0].command).toMatchObject({ overSec: 20 });
+    expect(result.proposals[0].command).toMatchObject({ overSec: 3 });
     expect(result.proposals[1].command).toMatchObject({ overSec: 600 });
     expect(result.proposals[1].warnings[0]).toMatch(/clamped to 600/);
   });

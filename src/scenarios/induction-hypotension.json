@@ -101,6 +101,7 @@
       "label": "Post-induction hypotension onset",
       "description": "Vasodilation from propofol and sevoflurane, unopposed in a chronically ACE-inhibited patient, drops the blood pressure to 72/40. Heart rate compensation is blunted.",
       "category": "physiology",
+      "actionIds": ["recognize-hypotension"],
       "effects": [
         { "vitals": { "sbp": 72, "dbp": 40, "hr": 78 }, "overSec": 90 }
       ],
@@ -122,6 +123,7 @@
       "label": "Phenylephrine 100 mcg IV effect",
       "description": "Phenylephrine 100 mcg IV bolus: SBP rises to the high 90s within about a minute with mild reflex slowing of the heart rate. May be repeated.",
       "category": "drug",
+      "actionIds": ["administer-vasopressor"],
       "effects": [
         { "vitals": { "sbp": 98, "dbp": 56, "hr": 64 }, "overSec": 45 }
       ],
@@ -132,6 +134,7 @@
       "label": "Ephedrine 5-10 mg IV effect",
       "description": "Ephedrine 5-10 mg IV bolus: mixed direct and indirect sympathomimetic effect raises both blood pressure and heart rate over 1-2 minutes.",
       "category": "drug",
+      "actionIds": ["administer-vasopressor"],
       "effects": [
         { "vitals": { "sbp": 100, "dbp": 58, "hr": 86 }, "overSec": 60 }
       ],
@@ -142,6 +145,7 @@
       "label": "Crystalloid bolus 500 mL effect",
       "description": "A 500 mL lactated Ringer's bolus improves preload; blood pressure rises gradually over about 4 minutes.",
       "category": "circulation",
+      "actionIds": ["give-fluid-bolus"],
       "effects": [
         { "vitals": { "sbp": 94, "dbp": 54, "hr": 74 }, "overSec": 240 }
       ],
@@ -152,6 +156,7 @@
       "label": "Sevoflurane reduced to 1%",
       "description": "Inspired sevoflurane turned down to 1%; end-tidal falls toward 1.2% and vasodilation lessens. Depth lightens toward the upper end of the surgical range.",
       "category": "drug",
+      "actionIds": ["reduce-volatile-agent"],
       "effects": [
         { "vitals": { "agentFi": 1.0, "agentEt": 1.2, "sbp": 88, "dbp": 50, "depth": 52 }, "overSec": 120 }
       ],

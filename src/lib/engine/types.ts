@@ -157,6 +157,12 @@ export interface Phase {
   id: string;
   label: string;
   description?: string;
+  /**
+   * Expected time budget for this phase in seconds — pacing display only
+   * (the phase stepper shows elapsed-in-phase vs. target); never drives
+   * engine behavior.
+   */
+  targetDurationSec?: number;
 }
 
 /**
@@ -197,6 +203,13 @@ export interface ScenarioEvent {
   autoAtSec?: number;
   /** Optional phase hint shown to faculty ("usually triggered during…"). */
   phaseHint?: string;
+  /**
+   * Expected learner actions this event embodies or responds to (e.g. an
+   * epinephrine-response event ← the "give epinephrine" action). Ids must
+   * exist in the scenario's expectedActions; display/grouping only — linking
+   * never fires events or marks actions by itself.
+   */
+  actionIds?: string[];
 }
 
 export type ActionStatus = 'pending' | 'done' | 'delayed' | 'missed' | 'incorrect';
@@ -261,6 +274,12 @@ export interface Scenario {
   rubric: RubricCategory[];
   /** Approximate run time in minutes, for the library view. */
   estimatedMinutes: number;
+  /**
+   * Hard time budget for a scheduled lab slot in seconds — pacing display
+   * only (the run screen counts down against it); never drives engine
+   * behavior. Distinct from estimatedMinutes, which is a library estimate.
+   */
+  targetDurationSec?: number;
   /** BP monitoring mode. Absent = NIBP cuff cycling at the default interval. */
   monitoring?: MonitoringConfig;
 }
@@ -319,6 +338,9 @@ export interface SimSnapshot {
   status: SimStatus;
   elapsedSec: number;
   phaseId: string;
+  /** Elapsed time at the last phase change — drives the stepper's timer.
+   *  Optional: absent in snapshots archived before phase timers existed. */
+  phaseChangedAtSec?: number;
   vitals: Vitals;
   /** Last cuff reading; null when the scenario uses an arterial line. */
   nibp: NibpReading | null;
@@ -329,6 +351,9 @@ export interface SimSnapshot {
   log: LogEntry[];
   notes: FacultyNote[];
   firedEventIds: string[];
+  /** Whether autoAtSec events fire on their own timeline this session.
+   *  Optional: absent in snapshots archived before the toggle existed. */
+  autoEventsEnabled?: boolean;
 }
 
 export interface FacultyNote {
@@ -371,6 +396,12 @@ export interface VitalsHistorySample {
 
 export interface ArchivedSession {
   sessionId: string;
+  /**
+   * The code students typed to join (the sync channel name). Usually equals
+   * sessionId; differs when the code was reused for back-to-back runs so the
+   * student displays never re-joined. Absent in pre-turnover archives.
+   */
+  sessionCode?: string;
   scenario: Scenario;
   snapshot: SimSnapshot;
   endedAtIso: string;

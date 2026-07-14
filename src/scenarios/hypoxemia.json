@@ -112,6 +112,7 @@
       "label": "100% oxygen and hand ventilation",
       "description": "FiO2 to 1.0 at high flow and switching to hand ventilation buys time and lets the team feel the poor, one-lung compliance directly. SpO2 improves modestly but the underlying problem remains.",
       "category": "drug",
+      "actionIds": ["increase-fio2", "hand-ventilate"],
       "effects": [
         { "vitals": { "spo2": 90 }, "overSec": 45 }
       ],
@@ -122,6 +123,7 @@
       "label": "Machine, circuit, and probe excluded",
       "description": "Gas analyzer confirms delivered FiO2, the circuit and capnograph show no disconnection, and the SpO2 waveform and probe are good. A marker step — it changes no vitals but rules out the delivery system and the reading.",
       "category": "equipment",
+      "actionIds": ["exclude-machine-circuit"],
       "effects": [],
       "phaseHint": "diagnosis"
     },
@@ -130,6 +132,7 @@
       "label": "Auscultate and suction the tube",
       "description": "Passing a suction catheter finds a patent tube with no plug; auscultation reveals the finding — 'breath sounds absent on the left, present on the right.' A marker step that localizes the problem to the tube position.",
       "category": "airway",
+      "actionIds": ["auscultate-check-depth"],
       "effects": [],
       "phaseHint": "diagnosis"
     },
@@ -138,6 +141,7 @@
       "label": "Endotracheal tube withdrawn to mid-trachea",
       "description": "Recognizing the right mainstem intubation, the tube is withdrawn a few centimeters until breath sounds return bilaterally and re-secured. The left lung is ventilated again and oxygenation begins to recover.",
       "category": "airway",
+      "actionIds": ["identify-mainstem", "withdraw-tube"],
       "effects": [
         { "vitals": { "spo2": 95, "etco2": 39, "hr": 88 }, "overSec": 60 }
       ],
@@ -148,6 +152,7 @@
       "label": "Recruitment and desufflation",
       "description": "A recruitment maneuver re-expands the atelectatic left lung, and asking the surgeon to briefly desufflate and lessen the head-down tilt improves ventilation further. SpO2 climbs toward normal.",
       "category": "equipment",
+      "actionIds": ["recruit-lung"],
       "effects": [
         { "vitals": { "spo2": 98, "etco2": 36, "hr": 80, "sbp": 124 }, "overSec": 90 }
       ],
@@ -158,6 +163,7 @@
       "label": "Oxygenation restored",
       "description": "With the tube repositioned, the lung recruited, and PEEP optimized, SpO2 returns to 99% on a reduced FiO2 and peak pressures normalize. The team re-checks tube depth after any further position change and documents the event.",
       "category": "resolution",
+      "actionIds": ["prevent-recurrence"],
       "effects": [
         { "vitals": { "spo2": 99, "etco2": 35, "hr": 74, "sbp": 122, "dbp": 70, "rr": 12, "agentFi": 2.0 }, "rhythm": "sinus", "overSec": 180 }
       ],

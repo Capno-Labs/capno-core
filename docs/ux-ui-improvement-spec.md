@@ -1,5 +1,13 @@
 # CAPNO Studio — UX/UI improvement spec (reviewed)
 
+> **Historical note (2026-07).** The controller has since been reworked for
+> timed lab days: the script rail, event grid, and action checklist described
+> below were merged into a single **Flow panel** (events in narrative order
+> with their linked learner actions), auto events became manual-by-default
+> behind a toggle, and pacing aids (slot budget, phase targets, N hotkey,
+> "Run next student" turnover) were added. Component names in this spec may
+> no longer exist; see `docs/faculty-guide.md` for current behavior.
+
 > **Status of this document.** This is the reviewed and edited version of the
 > original UX/UI improvement spec. It was checked line-by-line against the
 > codebase as of `main` (post PR #10). Edits fall into three groups:

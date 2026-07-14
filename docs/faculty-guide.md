@@ -12,8 +12,9 @@ teaching material.
 
 Capno has two live views:
 
-- **Faculty controller** — your screen. Runs the simulation, shows the script,
-  sliders, events, and the learner-action checklist. Students should not see it.
+- **Faculty controller** — your screen. Runs the simulation, shows the vitals
+  sliders and the case flow (events with their learner actions). Students
+  should not see it.
 - **Student display** — the patient monitor, on a projector, wall display, or
   iPad. It only *shows* what you drive; students can't change anything from it.
 
@@ -94,20 +95,27 @@ Top-bar controls:
   windows) is effectively always green; a **Cloud** dot appears only on
   Supabase installations — green means other devices receive live vitals,
   amber is connecting, red means cross-device displays may be stale.
-- **▶ Start** begins the clock; it becomes **⏸ Pause** / **▶ Resume**.
+- **▶ Start** begins the clock; it becomes **⏸ Pause** / **▶ Resume**. Next to
+  the clock, a countdown shows time remaining against the scenario's slot
+  budget (amber in the final stretch, red once over).
 - **+1 min / +5 min** skip uneventful scenario time — vitals ramps, scheduled
   events, and the clock all jump forward together.
+- **Auto events: off/on** — off (the default) means nothing fires on its own;
+  you press every event. On restores the scenario's authored auto-fire
+  timeline. Flipping it mid-run is safe: past-due events never retro-fire.
 - **↺ Reset** (with a "Confirm reset" step) returns the scenario to baseline.
 - **■ End session** (with a "Confirm end → debrief" step) archives the session
   and opens the debrief report.
 
+Keyboard: **Space** starts/pauses, **N** fires the next event, **/** jumps to
+the Flow filter. Keys are ignored while you're typing in any field.
+
 Orientation on the controller:
 
-- **Script rail** (top): the next few scenario events in order. Automatic
-  events show a live "auto in M:SS" countdown and flash when imminent; manual
-  events show "when ready" with a phase hint. **Tap any chip to fire it now** —
-  firing early cancels its scheduled copy. When it reads "Script complete",
-  improvise from the vitals panel or end the session.
+- **Flow panel** (right column): every scenario event as a card in narrative
+  order with its linked learner actions underneath, and the first unfired
+  event highlighted as **Next up**. This is the case's driving surface — see
+  §6.
 - **Live monitor (what students see)**: an exact preview of the student
   display, with a **🔔 silence alarms** toggle that silences the alarm state on
   every connected display.
@@ -120,9 +128,9 @@ Orientation on the controller:
 The **Vitals** panel has a slider per parameter (HR, SBP/DBP, SpO₂, EtCO₂, RR,
 Temp, anesthetic Depth, sevoflurane Fi/Et — shown as SEV on the monitor). A
 slider commits when you release it, and
-the value changes over the selected **ramp** speed — **Instant / 20 s / 1 min /
-3 min**. Use ramps for realism: a 1–3 min ramp reads as evolving physiology;
-Instant is for corrections.
+the value changes over the selected **ramp** speed — **Instant / 3 s / 10 s**
+(default 3 s). A short ramp keeps the change readable on the monitor without
+stalling a timed session; Instant is for corrections.
 
 **Rhythm** buttons switch the ECG: Sinus Rhythm, Sinus Bradycardia, Sinus
 Tachycardia, Sinus with PVCs, Sinus with PACs, Atrial Fibrillation, SVT,
@@ -138,24 +146,33 @@ to cycle the cuff). A stale BP during a fast deterioration is a deliberate
 teaching point, not a bug. Scenarios with an arterial line show continuous
 pressure instead (the tile reads **ART**).
 
-## 6. Events
+## 6. The Flow panel
 
-The **Events** grid is the scenario's one-tap library — deteriorations,
-treatment responses, complications — colour-coded by category. Hover (or
-long-press) a button for its description.
+The **Flow** panel is the scenario's driving surface: every event —
+deteriorations, treatment responses, complications — as a one-tap card in
+narrative order, colour-coded by category. Hover (or long-press) a card for
+its description; type **/** to jump to the filter.
 
+- The first unfired event carries a **Next up** highlight, so the whole
+  sequence is one press after another.
 - Firing an event applies its vital effects over the event's built-in ramp and
   logs it to the timeline.
-- Events with a schedule show an "auto at M:SS" hint and fire themselves;
-  treatment-response events are always manual — fire them when the learners
-  actually give the treatment.
+- **Auto events are off by default** — nothing fires on its own, and scripted
+  deteriorations show their authored time as "suggested ~M:SS" so you keep the
+  pace. Flip **Auto events** in the top bar to restore the authored timeline
+  (cards then show a live "auto in M:SS" countdown, amber when imminent);
+  firing an auto event early cancels its scheduled copy.
 - Fired events show a ✓ but can be fired again if the scenario calls for it.
 
 ## 7. Assessing learners
 
-The **Learner actions** checklist lists the scenario's expected actions grouped
-by phase. ● marks a critical action. As the team works, tap a status on each
-action:
+Learner actions live in the Flow panel too. Actions linked to an event (the
+treatments that event responds to) sit directly under that event's card;
+everything else — vigilance, communication, planning — is in **Other learner
+actions** below, grouped by phase. ● marks a critical action, and the
+**Critical only** toggle (which arms itself when the scenario starts) trims
+the action rows to the critical ones with bigger tap targets. As the team
+works, tap a status on each action:
 
 - **✓ done** — full credit
 - **◐ delayed** — half credit
@@ -183,6 +200,13 @@ and a **Reference** section (correct management, common errors).
 
 **🖨 Export PDF** opens the browser's print dialog — choose "Save as PDF". The
 amend controls are hidden in print.
+
+**▶ Run next student** relaunches the same scenario fresh **on the same
+session code**: connected student displays flip from "Session ended" back to
+the live monitor by themselves — nobody re-types a code between back-to-back
+lab slots. Each run still archives as its own debrief. Open it in the same
+tab (a normal click): running two controller tabs on one code would have both
+drive the student displays at once.
 
 Past sessions live under **Debrief** (or the **Past sessions** button
 in the library). Scoring policy: done = full points, delayed = half,

@@ -86,6 +86,7 @@
       "label": "LMA placed, ventilation confirmed",
       "description": "Size 4 LMA seated on first attempt; capnography confirms a good waveform with spontaneous ventilation.",
       "category": "airway",
+      "actionIds": ["confirm-lma-ventilation"],
       "effects": [
         { "vitals": { "etco2": 40, "rr": 12, "spo2": 99 }, "overSec": 30 }
       ],
@@ -106,6 +107,7 @@
       "label": "Partial laryngospasm",
       "description": "Inspiratory stridor with rocking chest movement. SpO2 drifts down slowly, EtCO2 waveform shrinks, respiratory effort increases. Triggered by light anesthesia and airway irritation.",
       "category": "airway",
+      "actionIds": ["recognize-laryngospasm"],
       "effects": [
         { "vitals": { "spo2": 92, "etco2": 22, "rr": 22, "hr": 96 }, "overSec": 90 }
       ],
@@ -128,6 +130,7 @@
       "label": "Bradycardia from hypoxia",
       "description": "Sustained hypoxia produces sinus bradycardia into the 40s — a pre-arrest sign. Faculty-triggered if hypoxia is prolonged.",
       "category": "physiology",
+      "actionIds": ["avoid-prolonged-hypoxia"],
       "effects": [
         { "vitals": { "hr": 42, "sbp": 96, "dbp": 54 }, "rhythm": "sinus_brady", "overSec": 60 }
       ],
@@ -138,6 +141,7 @@
       "label": "Response to 100% O2 + CPAP + jaw thrust",
       "description": "Firm jaw thrust with pressure at Larson's point and sustained CPAP on 100% oxygen partially breaks the spasm: some air movement returns and SpO2 rises modestly.",
       "category": "airway",
+      "actionIds": ["cpap-jaw-thrust"],
       "effects": [
         { "vitals": { "spo2": 88, "etco2": 16, "rr": 6 }, "overSec": 60 }
       ],
@@ -148,6 +152,7 @@
       "label": "Response to deepening with propofol",
       "description": "Propofol 0.5-1 mg/kg IV deepens the anesthetic and relaxes the cords; ventilation and saturation recover over 1-2 minutes if the spasm was partial or recently complete.",
       "category": "drug",
+      "actionIds": ["remove-stimulus-deepen"],
       "effects": [
         { "vitals": { "depth": 35, "spo2": 96, "etco2": 35, "rr": 12, "hr": 84, "sbp": 100, "dbp": 58 }, "overSec": 90 }
       ],
@@ -158,6 +163,7 @@
       "label": "Succinylcholine + intubation, full recovery",
       "description": "Succinylcholine 0.5-1 mg/kg IV (with atropine available) breaks refractory spasm; the trachea is intubated and the patient is ventilated with 100% oxygen. Full recovery of oxygenation and ventilation.",
       "category": "drug",
+      "actionIds": ["give-succinylcholine", "prepare-intubation"],
       "effects": [
         { "vitals": { "rr": 12, "etco2": 38 }, "overSec": 60 },
         { "vitals": { "spo2": 99, "hr": 88, "sbp": 112, "dbp": 66, "depth": 42 }, "rhythm": "sinus", "overSec": 120 }
@@ -169,6 +175,7 @@
       "label": "Negative pressure pulmonary edema (optional)",
       "description": "Minutes after resolution, pink frothy secretions appear in the airway with crackles, tachypnea, and desaturation despite a patent airway — negative pressure pulmonary edema from forceful inspiration against closed cords.",
       "category": "physiology",
+      "actionIds": ["monitor-nppe"],
       "effects": [
         { "vitals": { "spo2": 90, "rr": 24, "hr": 104, "etco2": 32 }, "overSec": 180 }
       ],

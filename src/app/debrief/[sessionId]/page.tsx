@@ -82,6 +82,13 @@ export default function DebriefSessionPage() {
             ← all sessions
           </Link>
           <div className="flex gap-2">
+            <Link
+              className="btn-primary"
+              href={`/faculty/run/${session.scenario.id}?code=${session.sessionCode ?? session.sessionId}`}
+              title="Relaunch this scenario fresh on the same session code — connected student displays reconnect without re-joining"
+            >
+              ▶ Run next student
+            </Link>
             <button className="btn-primary" onClick={() => window.print()}>
               🖨 Export PDF
             </button>

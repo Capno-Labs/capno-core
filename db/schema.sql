@@ -84,6 +84,7 @@ create table public.sessions (
   history jsonb,                             -- VitalsHistorySample[] (debrief trend strip; kept out of sim_snapshot by design)
   faculty_id uuid references public.profiles (id) on delete set null,
   learner_names text[] not null default '{}',
+  session_code text,                         -- code students joined with; differs from id's code after "Run next student" reuse
   started_at timestamptz,
   ended_at timestamptz not null default now()
 );

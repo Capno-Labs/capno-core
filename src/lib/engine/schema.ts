@@ -106,6 +106,7 @@ const eventSchema = z.object({
   effects: z.array(vitalEffectSchema),
   autoAtSec: z.number().min(0).optional(),
   phaseHint: z.string().optional(),
+  actionIds: z.array(z.string()).optional(),
 });
 
 const expectedActionSchema = z.object({
@@ -143,7 +144,16 @@ export const scenarioSchema = z
     setup: z.array(z.string()),
     patient: patientSchema,
     baselineVitals: vitalsSchema,
-    phases: z.array(z.object({ id: idSchema, label: z.string().min(1), description: z.string().optional() })).min(1),
+    phases: z
+      .array(
+        z.object({
+          id: idSchema,
+          label: z.string().min(1),
+          description: z.string().optional(),
+          targetDurationSec: z.number().positive().optional(),
+        }),
+      )
+      .min(1),
     events: z.array(eventSchema),
     expectedActions: z.array(expectedActionSchema).min(1),
     expectedProgression: z.array(z.string()),
@@ -157,6 +167,7 @@ export const scenarioSchema = z
       z.object({ id: idSchema, label: z.string().min(1), actionIds: z.array(z.string()) }),
     ),
     estimatedMinutes: z.number().positive(),
+    targetDurationSec: z.number().positive().optional(),
     monitoring: z
       .object({
         artLine: z.boolean().optional(),
@@ -198,6 +209,15 @@ export const scenarioSchema = z
         });
       }
       eventIds.add(e.id);
+      (e.actionIds ?? []).forEach((aid, ai) => {
+        if (!actionIds.has(aid)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['events', i, 'actionIds', ai],
+            message: `event references unknown action "${aid}"`,
+          });
+        }
+      });
     });
   });
 

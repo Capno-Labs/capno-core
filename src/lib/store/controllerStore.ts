@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { generateSessionId, SimulationEngine } from '../engine/engine';
+import { generateSessionId, isValidSessionCode, SimulationEngine } from '../engine/engine';
 import { resolvePresetEffect, VITALS_PRESETS } from '../engine/presets';
 import { scoreSession } from '../engine/scoring';
 import type {
@@ -29,12 +29,19 @@ interface ControllerState {
   engine: SimulationEngine | null;
   snapshot: SimSnapshot | null;
   sessionId: string;
+  /**
+   * What students type to join — the sync channel name. Equals sessionId for
+   * a fresh session; stays the same across "Run next student" turnovers while
+   * each run keeps its own sessionId (the archive key, which must be unique —
+   * archives are replaced on same-id save).
+   */
+  sessionCode: string;
   /** Set when the session archive could not be persisted (storage full). */
   archiveWarning: string | null;
   /** Per-transport sync state for the health indicator. */
   syncHealth: TransportHealth[];
 
-  loadScenario: (scenario: Scenario) => void;
+  loadScenario: (scenario: Scenario, code?: string) => void;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -49,6 +56,7 @@ interface ControllerState {
   markAction: (actionId: string, status: ActionStatus) => void;
   addNote: (text: string) => void;
   setAlarmsSilenced: (silenced: boolean) => void;
+  setAutoEvents: (on: boolean) => void;
   skipAhead: (sec: number) => void;
   cycleNibp: () => void;
   setArtLine: (on: boolean) => void;
@@ -79,20 +87,31 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     engine: null,
     snapshot: null,
     sessionId: '',
+    sessionCode: '',
     archiveWarning: null,
     syncHealth: [],
 
-    loadScenario: (scenario) => {
+    loadScenario: (scenario, code) => {
       get().teardown();
+      // The sessionId (archive key) is always fresh; a passed code reuses the
+      // sync channel so student displays from the previous run reconnect on
+      // the next snapshot without re-joining ("Run next student").
       const sessionId = generateSessionId();
-      const engine = new SimulationEngine(scenario, sessionId);
-      channel = createSyncChannels(sessionId);
+      const trimmed = code?.trim().toUpperCase() ?? '';
+      const sessionCode = isValidSessionCode(trimmed) ? trimmed : sessionId;
+      // Auto-fire defaults off in the controller: the instructor is the
+      // pacemaker on a timed lab day. The toggle is an instructor preference,
+      // so it carries over from the previous engine (scenario switches and
+      // "Run next student" turnovers keep the instructor's choice).
+      const autoEvents = get().engine?.getAutoEventsEnabled() ?? false;
+      const engine = new SimulationEngine(scenario, sessionId, { autoEvents });
+      channel = createSyncChannels(sessionCode);
       // Late-joining student displays send 'hello' to get an immediate snapshot.
       channel.onMessage((m) => {
         if (m.type === 'hello') publish();
       });
       channel.onStatus(() => set({ syncHealth: channel ? channel.getHealth() : [] }));
-      set({ engine, sessionId, syncHealth: channel.getHealth() });
+      set({ engine, sessionId, sessionCode, syncHealth: channel.getHealth() });
       tickHandle = setInterval(() => {
         engine.tick(TICK_MS / 1000);
         publish();
@@ -113,6 +132,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       const score = scoreSession(engine.scenario, snapshot.actions);
       const result = archiveSession({
         sessionId: snapshot.sessionId,
+        sessionCode: get().sessionCode,
         scenario: engine.scenario,
         snapshot,
         endedAtIso: new Date().toISOString(),
@@ -132,7 +152,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       return snapshot.sessionId;
     },
 
-    setVital: (key, value, overSec = 20) => withEngine((e) => e.setVital(key, value, overSec)),
+    setVital: (key, value, overSec = 3) => withEngine((e) => e.setVital(key, value, overSec)),
     applyPreset: (presetId) =>
       withEngine((e) => {
         const preset = VITALS_PRESETS.find((p) => p.id === presetId);
@@ -146,6 +166,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     markAction: (actionId, status) => withEngine((e) => e.markAction(actionId, status)),
     addNote: (text) => withEngine((e) => e.addNote(text)),
     setAlarmsSilenced: (silenced) => withEngine((e) => e.setAlarmsSilenced(silenced)),
+    setAutoEvents: (on) => withEngine((e) => e.setAutoEvents(on)),
     skipAhead: (sec) => withEngine((e) => e.skipAhead(sec)),
     cycleNibp: () => withEngine((e) => e.cycleNibp()),
     setArtLine: (on) => withEngine((e) => e.setArtLine(on)),
@@ -160,7 +181,14 @@ export const useControllerStore = create<ControllerState>((set, get) => {
         channel.close();
         channel = null;
       }
-      set({ engine: null, snapshot: null, sessionId: '', archiveWarning: null, syncHealth: [] });
+      set({
+        engine: null,
+        snapshot: null,
+        sessionId: '',
+        sessionCode: '',
+        archiveWarning: null,
+        syncHealth: [],
+      });
     },
   };
 });

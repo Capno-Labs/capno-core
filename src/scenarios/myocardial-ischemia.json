@@ -94,6 +94,7 @@
       "label": "New ST-segment depression",
       "description": "Faculty report: 'lead II and V5 now show 2 mm of new horizontal ST depression.' Demand ischemia has begun; heart rate stays high and the pressure is strained.",
       "category": "physiology",
+      "actionIds": ["recognize-ischemia"],
       "effects": [
         { "vitals": { "hr": 110, "sbp": 158, "dbp": 88, "spo2": 97 }, "rhythm": "sinus_tach", "overSec": 60 }
       ],
@@ -126,6 +127,7 @@
       "label": "Defibrillation and ROSC",
       "description": "High-quality CPR, a 200 J biphasic shock, epinephrine 1 mg, and amiodarone 300 mg restore an organized rhythm and a pulse (faculty: 'sinus rhythm, ST changes improving'). Fire after the team defibrillates.",
       "category": "resolution",
+      "actionIds": ["manage-vf-arrest"],
       "effects": [
         { "vitals": { "hr": 96, "sbp": 104, "dbp": 62, "spo2": 96, "etco2": 34 }, "rhythm": "sinus", "overSec": 30 }
       ],
@@ -136,6 +138,7 @@
       "label": "Depth and analgesia restored",
       "description": "Deepening the anesthetic and giving opioid blunts the sympathetic drive: heart rate and pressure ease toward less ischemic territory.",
       "category": "drug",
+      "actionIds": ["oxygen-and-depth"],
       "effects": [
         { "vitals": { "hr": 98, "sbp": 140, "dbp": 82, "depth": 46 }, "overSec": 90 }
       ],
@@ -146,6 +149,7 @@
       "label": "Esmolol rate control",
       "description": "Esmolol 0.5 mg/kg IV over 1 minute, then a 50-300 mcg/kg/min infusion, brings the rate down and lengthens diastolic coronary filling — the single most effective demand-reducing move when the pressure tolerates it.",
       "category": "drug",
+      "actionIds": ["rate-control"],
       "effects": [
         { "vitals": { "hr": 78, "sbp": 132, "dbp": 78 }, "rhythm": "sinus", "overSec": 90 }
       ],
@@ -156,6 +160,7 @@
       "label": "Coronary perfusion pressure defended",
       "description": "Phenylephrine 100 mcg boluses (or a norepinephrine infusion) restores diastolic and mean pressure, protecting coronary supply — the prerequisite before any nitroglycerin in a patient whose pressure has fallen.",
       "category": "drug",
+      "actionIds": ["defend-perfusion-pressure"],
       "effects": [
         { "vitals": { "sbp": 138, "dbp": 80, "hr": 92 }, "overSec": 60 }
       ],
@@ -166,6 +171,7 @@
       "label": "Nitroglycerin infusion",
       "description": "With an adequate pressure restored, IV nitroglycerin started at 5-10 mcg/min and titrated dilates the coronaries and drops wall tension; the ST depression improves. Watch the pressure — nitrates can undo the perfusion you just defended.",
       "category": "drug",
+      "actionIds": ["nitroglycerin-when-safe"],
       "effects": [
         { "vitals": { "sbp": 126, "dbp": 74, "hr": 84, "etco2": 34 }, "overSec": 120 }
       ],
@@ -176,6 +182,7 @@
       "label": "Ischemia resolves",
       "description": "Faculty: 'ST segments back to baseline, ectopy gone.' With demand controlled and supply protected, the ECG normalizes. The team turns to the 12-lead, troponin, and disposition.",
       "category": "resolution",
+      "actionIds": ["twelve-lead-troponin", "plan-disposition"],
       "effects": [
         { "vitals": { "hr": 76, "sbp": 128, "dbp": 74, "spo2": 99, "etco2": 35, "rr": 10 }, "rhythm": "sinus", "overSec": 240 }
       ],

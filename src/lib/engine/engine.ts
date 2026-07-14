@@ -42,6 +42,8 @@ export class SimulationEngine {
   private status: SimStatus = 'idle';
   private elapsedSec = 0;
   private phaseId: string;
+  /** Elapsed time at the last phase change, for the stepper's phase timer. */
+  private phaseChangedAtSec = 0;
   private rhythm: Rhythm;
   private capnoShape: CapnoShape;
 
@@ -50,7 +52,16 @@ export class SimulationEngine {
   /** Per-vital ramp: target value + rate (units/sec). Absent = at rest. */
   private ramps = new Map<keyof NumericVitals, { target: number; ratePerSec: number }>();
   /** Effects scheduled for a future elapsed time (from afterSec / autoAtSec). */
-  private pendingEffects: { atSec: number; effect: VitalEffect; sourceLabel: string }[] = [];
+  private pendingEffects: {
+    atSec: number;
+    effect: VitalEffect;
+    /** Display label for the log; never used as identity. */
+    sourceLabel: string;
+    /** Owning event id — cancellation and attribution key. Absent for presets. */
+    eventId?: string;
+    /** Queued by the autoAtSec schedule (vs. a manual trigger's afterSec delay). */
+    fromAuto?: boolean;
+  }[] = [];
 
   private log: LogEntry[] = [];
   private notes: FacultyNote[] = [];
@@ -66,9 +77,17 @@ export class SimulationEngine {
   private history: VitalsHistorySample[] = [];
   private lastHistorySec = Number.NEGATIVE_INFINITY;
 
-  constructor(scenario: Scenario, sessionId: string) {
+  /**
+   * When false, autoAtSec events are never queued — every event waits for a
+   * manual trigger. Defaults to true so the core keeps its authored-timeline
+   * semantics; UIs that want the instructor as pacemaker pass false.
+   */
+  private autoEventsEnabled: boolean;
+
+  constructor(scenario: Scenario, sessionId: string, options?: { autoEvents?: boolean }) {
     this.scenario = scenario;
     this.sessionId = sessionId;
+    this.autoEventsEnabled = options?.autoEvents ?? true;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
     const { rhythm, capnoShape, ...numeric } = scenario.baselineVitals;
     this.rhythm = rhythm;
@@ -96,18 +115,8 @@ export class SimulationEngine {
     if (this.status === 'idle') {
       this.addLog('session', 'Scenario started');
       // Queue scenario-defined automatic events (skip any already fired
-      // manually while idle — e.g. from the script rail during setup).
-      for (const ev of this.scenario.events) {
-        if (ev.autoAtSec !== undefined && !this.firedEventIds.has(ev.id)) {
-          for (const effect of ev.effects) {
-            this.pendingEffects.push({
-              atSec: ev.autoAtSec + (effect.afterSec ?? 0),
-              effect,
-              sourceLabel: ev.label,
-            });
-          }
-        }
-      }
+      // manually while idle — e.g. fired from the events panel during setup).
+      if (this.autoEventsEnabled) this.queueAutoEvents();
     } else {
       this.addLog('session', 'Scenario resumed');
     }
@@ -135,11 +144,62 @@ export class SimulationEngine {
     this.addLog('session', 'Scenario ended');
   }
 
-  /** Reset to baseline (fresh log, fresh actions, elapsed 0). */
+  /**
+   * Turn the autoAtSec schedule on or off, mid-session if needed. Turning off
+   * cancels queued auto effects; turning on schedules only autos still in the
+   * future (past-due unfired events stay manual — no surprise retro-fire).
+   * The flag survives reset(): it is an instructor preference, not scenario
+   * state.
+   */
+  setAutoEvents(on: boolean): void {
+    if (on === this.autoEventsEnabled) return;
+    this.autoEventsEnabled = on;
+    if (this.status === 'running' || this.status === 'paused') {
+      if (on) {
+        this.queueAutoEvents(this.elapsedSec);
+      } else {
+        // Cancel only autos that have NOT fired yet: an already-fired event's
+        // later-staged (afterSec) effects are part of a logged development
+        // and must complete regardless of the schedule toggle.
+        this.pendingEffects = this.pendingEffects.filter(
+          (p) => !p.fromAuto || (p.eventId !== undefined && this.firedEventIds.has(p.eventId)),
+        );
+      }
+    }
+    if (this.status !== 'idle') {
+      this.addLog('session', `Auto events ${on ? 'on' : 'off'}`);
+    }
+  }
+
+  getAutoEventsEnabled(): boolean {
+    return this.autoEventsEnabled;
+  }
+
+  /** Queue effects for unfired autoAtSec events strictly after `afterSec`
+   *  (default: all of them — used at start). */
+  private queueAutoEvents(afterSec = Number.NEGATIVE_INFINITY): void {
+    for (const ev of this.scenario.events) {
+      if (ev.autoAtSec === undefined || ev.autoAtSec <= afterSec) continue;
+      if (this.firedEventIds.has(ev.id)) continue;
+      for (const effect of ev.effects) {
+        this.pendingEffects.push({
+          atSec: ev.autoAtSec + (effect.afterSec ?? 0),
+          effect,
+          sourceLabel: ev.label,
+          eventId: ev.id,
+          fromAuto: true,
+        });
+      }
+    }
+  }
+
+  /** Reset to baseline (fresh log, fresh actions, elapsed 0). Deliberately
+   *  keeps autoEventsEnabled — an instructor preference, not scenario state. */
   reset(): void {
     this.status = 'idle';
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
+    this.phaseChangedAtSec = 0;
     const { rhythm, capnoShape, ...numeric } = this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
@@ -193,13 +253,14 @@ export class SimulationEngine {
     const due = this.pendingEffects.filter((p) => p.atSec <= this.elapsedSec);
     this.pendingEffects = this.pendingEffects.filter((p) => p.atSec > this.elapsedSec);
     for (const p of due) {
-      // Auto events log once via their owning event on first effect application.
-      const autoEvent = this.scenario.events.find(
-        (e) => e.label === p.sourceLabel && e.autoAtSec !== undefined && !this.firedEventIds.has(e.id),
-      );
-      if (autoEvent) {
-        this.firedEventIds.add(autoEvent.id);
-        this.addLog('event', autoEvent.label, 'automatic');
+      // Auto events log once, via their owning event id, on first effect
+      // application (labels are display-only and may not be unique).
+      if (p.fromAuto && p.eventId !== undefined && !this.firedEventIds.has(p.eventId)) {
+        const autoEvent = this.scenario.events.find((e) => e.id === p.eventId);
+        if (autoEvent) {
+          this.firedEventIds.add(autoEvent.id);
+          this.addLog('event', autoEvent.label, 'automatic');
+        }
       }
       this.applyEffectNow(p.effect);
     }
@@ -294,15 +355,21 @@ export class SimulationEngine {
   triggerEvent(eventId: string): ScenarioEvent | undefined {
     const ev = this.scenario.events.find((e) => e.id === eventId);
     if (!ev) return undefined;
-    // Firing an auto event early cancels its scheduled copy — otherwise the
-    // queued effects would re-apply at autoAtSec and stomp later adjustments.
-    this.pendingEffects = this.pendingEffects.filter((p) => p.sourceLabel !== ev.label);
+    // Firing an event cancels its own scheduled/staged copies (by id — labels
+    // may not be unique) — otherwise queued effects would re-apply at
+    // autoAtSec and stomp later adjustments.
+    this.pendingEffects = this.pendingEffects.filter((p) => p.eventId !== ev.id);
     this.firedEventIds.add(ev.id);
     this.addLog('event', ev.label, ev.description);
     for (const effect of ev.effects) {
       const delay = effect.afterSec ?? 0;
       if (delay > 0) {
-        this.pendingEffects.push({ atSec: this.elapsedSec + delay, effect, sourceLabel: ev.label });
+        this.pendingEffects.push({
+          atSec: this.elapsedSec + delay,
+          effect,
+          sourceLabel: ev.label,
+          eventId: ev.id,
+        });
       } else {
         this.applyEffectNow(effect);
       }
@@ -334,6 +401,7 @@ export class SimulationEngine {
     const phase = this.scenario.phases.find((p) => p.id === phaseId);
     if (!phase || phaseId === this.phaseId) return;
     this.phaseId = phaseId;
+    this.phaseChangedAtSec = this.elapsedSec;
     this.addLog('phase', `Phase: ${phase.label}`);
   }
 
@@ -393,6 +461,7 @@ export class SimulationEngine {
       status: this.status,
       elapsedSec: Math.floor(this.elapsedSec),
       phaseId: this.phaseId,
+      phaseChangedAtSec: Math.floor(this.phaseChangedAtSec),
       vitals,
       nibp: this.lastNibp ? { ...this.lastNibp, atSec: Math.floor(this.lastNibp.atSec) } : null,
       alarms: evaluateAlarms(alarmVitals),
@@ -401,6 +470,7 @@ export class SimulationEngine {
       log: [...this.log],
       notes: [...this.notes],
       firedEventIds: [...this.firedEventIds],
+      autoEventsEnabled: this.autoEventsEnabled,
     };
   }
 
@@ -436,10 +506,28 @@ export class SimulationEngine {
   }
 }
 
+/** Session-code format: exactly this many chars from this alphabet. */
+const SESSION_CODE_LENGTH = 4;
+const SESSION_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no easily-confused chars
+
 /** Generate a short human-readable session code (e.g. "KX3Q"). */
 export function generateSessionId(): string {
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no easily-confused chars
   let out = '';
-  for (let i = 0; i < 4; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  for (let i = 0; i < SESSION_CODE_LENGTH; i++) {
+    out += SESSION_CODE_ALPHABET[Math.floor(Math.random() * SESSION_CODE_ALPHABET.length)];
+  }
   return out;
+}
+
+/**
+ * True when `code` is something generateSessionId could have minted — the
+ * one validation for codes arriving from outside (URL params), so it can
+ * never drift from the generator or from what the student join input
+ * accepts.
+ */
+export function isValidSessionCode(code: string): boolean {
+  return (
+    code.length === SESSION_CODE_LENGTH &&
+    [...code].every((c) => SESSION_CODE_ALPHABET.includes(c))
+  );
 }

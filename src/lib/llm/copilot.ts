@@ -36,7 +36,7 @@ export type CopilotCommand =
   | { type: 'cycle_nibp' };
 
 const MAX_OVER_SEC = 600;
-const DEFAULT_OVER_SEC = 20; // matches the controller store's setVital default
+const DEFAULT_OVER_SEC = 3; // matches the controller store's setVital default
 const MAX_SKIP_SEC = 600;
 const MAX_NOTE_CHARS = 500;
 
@@ -103,7 +103,7 @@ Command shapes:
 Rules:
 - Only use event/phase/action ids that appear in CONTEXT. Never invent ids.
 - Prefer trigger_event when the request matches a scripted event's label or description; use set_vital/set_rhythm for ad-hoc changes.
-- Durations like "over 2 minutes" map to overSec (seconds). Omit overSec for a gradual default; use 0 only when the instructor says instantly.
+- Durations like "over 2 minutes" map to overSec (seconds). Omitting overSec gives a quick 3-second change; when the instructor wants a gradual or insidious trend, give an explicit overSec (60-180 is typical). Use 0 only when the instructor says instantly.
 - "BP of 80/40" means both a sbp and a dbp command; a lone "pressure to 80" means sbp unless context says otherwise.
 - Session start/pause/reset/end and alarm silencing are NOT available; if asked, return {"commands":[],"reply":"<explain>"}.
 - If the request is ambiguous or impossible, return no commands and explain briefly in reply.`;

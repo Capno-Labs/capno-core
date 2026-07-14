@@ -2,40 +2,66 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
-import { ActionChecklist } from '@/components/controller/ActionChecklist';
 import { CopilotPanel } from '@/components/controller/CopilotPanel';
-import { EventPanel } from '@/components/controller/EventPanel';
+import { FlowPanel } from '@/components/controller/FlowPanel';
 import { LogPanel } from '@/components/controller/LogPanel';
 import { NotesPanel } from '@/components/controller/NotesPanel';
 import { PatientCard } from '@/components/controller/PatientCard';
 import { PhasePanel } from '@/components/controller/PhasePanel';
 import { PreStartPanel } from '@/components/controller/PreStartPanel';
-import { ScriptRail } from '@/components/controller/ScriptRail';
 import { SessionControls } from '@/components/controller/SessionControls';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
+import { nextUnfiredEvent, sessionBudgetSec } from '@/lib/engine/flow';
+import { formatClock } from '@/lib/format';
 import { useBeforeUnload } from '@/lib/hooks/useBeforeUnload';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { getScenario } from '@/lib/scenarios';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
-function fmtClock(sec: number): string {
-  return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+/**
+ * Time-budget readout next to the clock: remaining time against the
+ * scenario's budget (sessionBudgetSec — authored slot budget, else the
+ * library estimate), amber in the final stretch, red counting up once over.
+ * Display only — nothing in the engine reacts to the budget.
+ */
+function BudgetBadge({ elapsedSec, budgetSec }: { elapsedSec: number; budgetSec: number }) {
+  const remaining = budgetSec - elapsedSec;
+  const finalStretch = Math.max(60, budgetSec * 0.1);
+  const cls =
+    remaining <= 0
+      ? 'text-red-400'
+      : remaining <= finalStretch
+        ? 'text-amber-400'
+        : 'text-slate-500';
+  return (
+    <span
+      className={`font-mono text-sm font-semibold tabular-nums ${cls}`}
+      title={`Session budget ${formatClock(budgetSec)}`}
+    >
+      {remaining <= 0 ? `+${formatClock(-remaining)} over` : `${formatClock(remaining)} left`}
+    </span>
+  );
 }
 
 /**
  * Faculty controller for a live session. A sticky command bar (title, clock,
- * phase, session controls, script rail) sits over a two-column cockpit:
- * live monitor preview + session/phase/vitals on the left, events/actions/
- * notes/log on the right; stacks on narrow screens (iPad portrait).
+ * phase, session controls) sits over a two-column cockpit: live monitor
+ * preview + session/phase/vitals on the left, the case flow (events with
+ * their linked learner actions) + notes/log on the right; stacks on narrow
+ * screens (iPad portrait).
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
-  const { engine, snapshot, loadScenario, teardown, setAlarmsSilenced, start, pause } =
+  const { engine, snapshot, loadScenario, teardown, setAlarmsSilenced, start, pause, triggerEvent } =
     useControllerStore();
   const [notFound, setNotFound] = useState(false);
+  // ?code=XXXX from the "Run next student" turnover, read exactly once per
+  // page instance (null = read, none present). The ref keeps the load effect
+  // idempotent under StrictMode's double-invocation.
+  const turnoverCode = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     const scenario = getScenario(params.scenarioId);
@@ -43,16 +69,40 @@ export default function FacultyRunPage() {
       setNotFound(true);
       return;
     }
-    loadScenario(scenario);
+    // The turnover code reuses the previous session's sync channel so
+    // connected student displays pick the new run up without re-joining.
+    // It is one-shot state, not addressable state: strip it from the URL
+    // immediately after consumption so a duplicated tab, refresh, or
+    // history/bookmark revisit can't spin up a second controller on a
+    // channel that is live elsewhere (one authority per session).
+    if (turnoverCode.current === undefined) {
+      turnoverCode.current = new URLSearchParams(window.location.search).get('code');
+      if (turnoverCode.current) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+    loadScenario(scenario, turnoverCode.current ?? undefined);
     return () => teardown();
   }, [params.scenarioId, loadScenario, teardown]);
 
   useBeforeUnload(snapshot?.status === 'running' || snapshot?.status === 'paused');
 
-  // Space = start/pause. Deliberately the only shortcut: number keys firing
-  // clinical events from a stray keypress would be worse than the convenience.
+  // Space = start/pause; N = fire the next event in narrative order. N is
+  // the only event-firing key, it always matches the Flow panel's visible
+  // "Next up" highlight (the panel pins that card even when a filter would
+  // hide it), it only works while the session is live, and the hook guards
+  // against key repeat and focused inputs — a grid of number keys would be
+  // a stray-keypress hazard, one deliberate key is a pacing tool.
   useKeyboardShortcuts(
-    { ' ': () => (snapshot?.status === 'running' ? pause() : start()) },
+    {
+      ' ': () => (snapshot?.status === 'running' ? pause() : start()),
+      n: () => {
+        if (!engine || !snapshot) return;
+        if (snapshot.status !== 'running' && snapshot.status !== 'paused') return;
+        const next = nextUnfiredEvent(engine.scenario.events, new Set(snapshot.firedEventIds));
+        if (next) triggerEvent(next.id);
+      },
+    },
     !!snapshot && snapshot.status !== 'ended',
   );
 
@@ -70,13 +120,24 @@ export default function FacultyRunPage() {
   if (!engine || !snapshot) return null;
 
   const currentPhaseLabel = engine.scenario.phases.find((p) => p.id === snapshot.phaseId)?.label;
+  const budgetSec = sessionBudgetSec(engine.scenario);
+  // The old script rail flashed imminent autos in the sticky bar; keep that
+  // safety net when auto events are on and the Flow panel may be scrolled away.
+  const imminentAuto =
+    snapshot.autoEventsEnabled && snapshot.status === 'running'
+      ? engine.scenario.events
+          .filter((e) => e.autoAtSec !== undefined && !snapshot.firedEventIds.includes(e.id))
+          .map((e) => ({ label: e.label, remaining: e.autoAtSec! - snapshot.elapsedSec }))
+          .filter((x) => x.remaining > 0 && x.remaining <= 30)
+          .sort((a, b) => a.remaining - b.remaining)[0]
+      : undefined;
 
   return (
     <FacultyGate>
       <main className="mx-auto max-w-[1600px] space-y-3 p-3 md:p-4 !pt-0">
-        {/* Sticky command bar: title, clock, phase, session controls, and the
-            script rail stay visible while faculty scroll the panels. Kept to
-            two compact rows so the monitor preview survives on an iPad. */}
+        {/* Sticky command bar: title, clock, phase, and session controls stay
+            visible while faculty scroll the panels. Kept to one compact row
+            so the monitor preview survives on an iPad. */}
         <div className="sticky top-0 z-20 -mx-3 space-y-2 border-b border-slate-800 bg-slate-950/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
@@ -87,8 +148,13 @@ export default function FacultyRunPage() {
                 <h1 className="truncate text-xl font-bold">{engine.scenario.title}</h1>
               </div>
               <div className="shrink-0 text-right">
-                <span className="font-mono text-xl font-bold tabular-nums text-slate-200">
-                  {fmtClock(snapshot.elapsedSec)}
+                <span className="flex items-baseline gap-2">
+                  <span className="font-mono text-xl font-bold tabular-nums text-slate-200">
+                    {formatClock(snapshot.elapsedSec)}
+                  </span>
+                  {budgetSec > 0 && snapshot.status !== 'idle' && (
+                    <BudgetBadge elapsedSec={snapshot.elapsedSec} budgetSec={budgetSec} />
+                  )}
                 </span>
                 <p className="text-[10px] uppercase tracking-wider text-slate-500">
                   {snapshot.status}
@@ -97,11 +163,17 @@ export default function FacultyRunPage() {
                   )}
                 </p>
               </div>
+              {imminentAuto && (
+                <span
+                  className="shrink-0 self-center rounded bg-amber-950/80 px-2 py-1 text-xs font-semibold text-amber-300 ring-1 ring-amber-600 motion-safe:animate-pulse"
+                  title="Scripted event about to fire automatically"
+                >
+                  ⏱ {imminentAuto.label} · {formatClock(imminentAuto.remaining)}
+                </span>
+              )}
             </div>
             <SessionControls />
           </header>
-
-          <ScriptRail />
         </div>
 
         <PreStartPanel />
@@ -128,11 +200,10 @@ export default function FacultyRunPage() {
             <VitalControls />
           </div>
 
-          {/* Right column: events, actions, notes, log */}
+          {/* Right column: case flow (events + linked actions), notes, log */}
           <div className="space-y-3">
             <CopilotPanel />
-            <EventPanel />
-            <ActionChecklist />
+            <FlowPanel />
             <NotesPanel />
             <LogPanel />
           </div>

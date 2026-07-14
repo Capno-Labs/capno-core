@@ -443,6 +443,30 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                   onChange={(e) => update({ estimatedMinutes: Number(e.target.value) || 1 })}
                 />
               </div>
+              <div>
+                <span className="label" title="Hard time budget for a scheduled lab slot — the run screen counts down against it. Blank = use est. minutes.">
+                  Slot budget (min)
+                </span>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step="any"
+                  placeholder="optional"
+                  value={scenario.targetDurationSec !== undefined ? scenario.targetDurationSec / 60 : ''}
+                  onChange={(e) => {
+                    // Fractional minutes are fine; non-positive means "no
+                    // budget", never a silent clamp (see PhaseListEditor).
+                    const n = Number(e.target.value);
+                    update({
+                      targetDurationSec:
+                        e.target.value === '' || !(n > 0)
+                          ? undefined
+                          : Math.max(1, Math.round(n * 60)),
+                    });
+                  }}
+                />
+              </div>
             </div>
             <ListEditor
               label="Topics"
@@ -538,6 +562,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
               <EventListEditor
                 events={scenario.events}
                 phases={scenario.phases}
+                actions={scenario.expectedActions}
                 baselineVitals={scenario.baselineVitals}
                 estimatedMinutes={scenario.estimatedMinutes}
                 warnings={warnings}
@@ -555,6 +580,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                 actions={scenario.expectedActions}
                 phases={scenario.phases}
                 rubric={scenario.rubric}
+                events={scenario.events}
                 onChange={(expectedActions) => update({ expectedActions })}
               />
             </div>
