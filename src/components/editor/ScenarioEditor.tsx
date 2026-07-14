@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { GeneratePanel } from '@/components/editor/GeneratePanel';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, enqueue, getPushedAt } from '@/lib/cloud/outbox';
+import { downloadJson } from '@/lib/download';
 import { lintScenario } from '@/lib/engine/lint';
 import { validateScenario, parseScenario } from '@/lib/engine/schema';
 import type { Scenario } from '@/lib/engine/types';
@@ -218,15 +219,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
     }
   };
 
-  const exportFile = () => {
-    const blob = new Blob([JSON.stringify(scenario, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${scenario.id}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportFile = () => downloadJson(`${scenario.id}.json`, JSON.stringify(scenario, null, 2));
 
   const importFile = (file: File) => {
     const reader = new FileReader();

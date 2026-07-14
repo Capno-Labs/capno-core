@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { formatZodIssues } from '../zodIssues';
 import { extractJson } from './copilot';
+import { buildRepairMessage } from './generator';
 import type { ChatMessage, LlmProvider } from './types';
 
 /**
@@ -82,36 +84,13 @@ export async function extractSyllabusLabs(
       const parsed: unknown = JSON.parse(extractJson(text));
       const check = syllabusLabsSchema.safeParse(parsed);
       if (check.success) return { ok: true, labs: check.data.labs, attempts: attempt };
-      errors = check.error.issues
-        .slice(0, 10)
-        .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
+      errors = formatZodIssues(check.error);
     } catch (e) {
       errors = [`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`];
     }
 
-    messages.push(
-      { role: 'assistant', content: text },
-      {
-        role: 'user',
-        content: `The JSON failed validation with these errors:\n${errors
-          .map((e) => `- ${e}`)
-          .join('\n')}\nReturn the complete corrected JSON document only — no commentary.`,
-      },
-    );
+    messages.push({ role: 'assistant', content: text }, buildRepairMessage(errors));
   }
 
   return { ok: false, errors, attempts: maxAttempts };
-}
-
-/**
- * Make a draft id unique against built-ins, existing custom scenarios, and
- * earlier drafts of the same run — an unrelated custom scenario must never
- * silently gain a version because a draft happened to reuse its id.
- */
-export function uniquifyDraftId(id: string, taken: ReadonlySet<string>): string {
-  if (!taken.has(id)) return id;
-  for (let n = 2; ; n++) {
-    const candidate = `${id}-${n}`;
-    if (!taken.has(candidate)) return candidate;
-  }
 }

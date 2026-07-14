@@ -9,6 +9,7 @@ import { ConfirmButton } from '@/components/ui/ConfirmButton';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, enqueue, getPushedAt, isQueued } from '@/lib/cloud/outbox';
 import { mergeCloudScenarios, pullScenarios } from '@/lib/cloud/scenarioCloud';
+import { downloadJson } from '@/lib/download';
 import { DOMAINS, domainOf } from '@/lib/engine/lint';
 import { parseScenario, validateScenario } from '@/lib/engine/schema';
 import type { Difficulty, Scenario, TrainingLevel } from '@/lib/engine/types';
@@ -30,6 +31,7 @@ import {
   parseCollectionBundle,
   planBundleImport,
   removeFromCollection,
+  resolveRefs,
   renameCollection,
   saveCollection,
   saveCustomScenario,
@@ -49,16 +51,6 @@ const CUSTOM_SECTION = 'Custom & drafts';
 
 const SOURCE_OPTIONS = ['built-in', 'custom', 'cloud', 'ai draft'] as const;
 type SourceFilter = (typeof SOURCE_OPTIONS)[number];
-
-function downloadFile(name: string, text: string) {
-  const blob = new Blob([text], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /** Scenario library: collections, browse, filter by tags, run, edit, export. */
 export default function ScenarioLibraryPage() {
@@ -131,8 +123,8 @@ export default function ScenarioLibraryPage() {
     toast(`Imported “${parsed.title}”`, 'success');
   };
 
-  const importBundleFile = (text: string) => {
-    const result = parseCollectionBundle(text);
+  const importBundleFile = (raw: unknown) => {
+    const result = parseCollectionBundle(raw);
     if (!result.ok) {
       toast(`Import failed: ${result.errors[0]}`, 'error');
       return;
@@ -183,10 +175,9 @@ export default function ScenarioLibraryPage() {
   const importFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const text = String(reader.result);
       try {
-        const raw: unknown = JSON.parse(text);
-        if (looksLikeCollectionBundle(raw)) importBundleFile(text);
+        const raw: unknown = JSON.parse(String(reader.result));
+        if (looksLikeCollectionBundle(raw)) importBundleFile(raw);
         else importScenarioFile(raw);
       } catch (e) {
         toast(`Import failed: ${e instanceof Error ? e.message : 'invalid JSON'}`, 'error');
@@ -197,7 +188,7 @@ export default function ScenarioLibraryPage() {
 
   const exportCollection = (c: ScenarioCollection) => {
     const customById = new Map(listCustomScenarios().map((s) => [s.id, s]));
-    downloadFile(`${c.id}.collection.json`, serializeCollectionBundle(c, customById));
+    downloadJson(`${c.id}.collection.json`, serializeCollectionBundle(c, customById));
   };
 
   /** Toast a store write failure (storage full) instead of swallowing it. */
@@ -287,14 +278,17 @@ export default function ScenarioLibraryPage() {
   const collectionSections =
     q === ''
       ? collections
-          .map((c) => ({
-            collection: c,
-            items: c.scenarioIds
-              .map((id) => scenarioById.get(id))
-              .filter((s): s is Scenario => Boolean(s))
-              .filter(matchesFilters),
-            missingIds: filtersActive ? [] : c.scenarioIds.filter((id) => !scenarioById.has(id)),
-          }))
+          .map((c) => {
+            const refs = resolveRefs(c.scenarioIds, (id) => scenarioById.has(id));
+            return {
+              collection: c,
+              items: refs.present
+                .map((id) => scenarioById.get(id))
+                .filter((s): s is Scenario => Boolean(s))
+                .filter(matchesFilters),
+              missingIds: filtersActive ? [] : refs.missing,
+            };
+          })
           .filter(({ items }) => !filtersActive || items.length > 0)
       : [];
   const anyCollectionItemVisible = collectionSections.some(({ items }) => items.length > 0);
@@ -597,7 +591,7 @@ export default function ScenarioLibraryPage() {
                   </Link>
                   <button
                     className="btn-ghost"
-                    onClick={() => downloadFile(`${s.id}.json`, JSON.stringify(s, null, 2))}
+                    onClick={() => downloadJson(`${s.id}.json`, JSON.stringify(s, null, 2))}
                     title="Export JSON"
                   >
                     ⬇
@@ -619,23 +613,30 @@ export default function ScenarioLibraryPage() {
                     value=""
                     aria-label={`Add ${s.title} to a collection`}
                     onChange={(e) => {
+                      // Option values are namespaced ('add:<id>' vs '__new')
+                      // so a stored id can never collide with the sentinel.
                       const value = e.target.value;
                       if (value === '__new') {
                         setPendingAddId(s.id);
                         setCreateOpen(true);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
-                      } else if (value) {
-                        const added = addToCollection(value, s.id);
+                      } else if (value.startsWith('add:')) {
+                        const collectionId = value.slice('add:'.length);
+                        const added = addToCollection(collectionId, s.id);
                         refresh();
-                        const c = collections.find((x) => x.id === value);
-                        if (added.ok) toast(`Added to “${c?.title ?? value}”`, 'success');
+                        const c = collections.find((x) => x.id === collectionId);
+                        if (added.ok) toast(`Added to “${c?.title ?? collectionId}”`, 'success');
                         else toast(added.error, 'error');
                       }
                     }}
                   >
                     <option value="">＋ Collection…</option>
                     {collections.map((c) => (
-                      <option key={c.id} value={c.id} disabled={c.scenarioIds.includes(s.id)}>
+                      <option
+                        key={c.id}
+                        value={`add:${c.id}`}
+                        disabled={c.scenarioIds.includes(s.id)}
+                      >
                         {c.title}
                         {c.scenarioIds.includes(s.id) ? ' ✓' : ''}
                       </option>

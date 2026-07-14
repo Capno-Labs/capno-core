@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { DocumentInput } from '@/components/ui/DocumentInput';
 import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
-import { generateScenario, prepareDocument, DOCUMENT_CHAR_LIMIT } from '@/lib/llm/generator';
+import { generateScenario, prepareDocument } from '@/lib/llm/generator';
 import { getLlmProvider } from '@/lib/llm/settings';
-import { extractSyllabusLabs, uniquifyDraftId, type SyllabusLab } from '@/lib/llm/syllabus';
+import { extractSyllabusLabs, type SyllabusLab } from '@/lib/llm/syllabus';
 import {
   BUILT_IN_SCENARIOS,
   QUICK_START_ID,
@@ -12,6 +13,7 @@ import {
   createCollection,
   listCustomScenarios,
   saveCustomScenario,
+  uniquifyId,
 } from '@/lib/scenarios';
 import { useLlmConfigured, useLlmSettingsStore } from '@/lib/store/llmSettingsStore';
 import { toast } from '@/lib/store/toastStore';
@@ -45,7 +47,6 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
   const [progress, setProgress] = useState({ current: 0, total: 0, attempt: 1, label: '' });
   const [outcomes, setOutcomes] = useState<DraftOutcome[]>([]);
   const abortRef = useRef<AbortController | null>(null);
-  const fileInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => hydrate(), [hydrate]);
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -56,17 +57,6 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
     const prepared = prepareDocument(text);
     setDocText(prepared.text);
     setDocTruncated(prepared.truncated);
-  };
-
-  const loadFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      setDocument(String(reader.result));
-      if (!collectionTitle.trim()) {
-        setCollectionTitle(file.name.replace(/\.(txt|md)$/i, '').trim());
-      }
-    };
-    reader.readAsText(file);
   };
 
   const reset = () => {
@@ -143,7 +133,7 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
         pushOutcome({ title: lab.title, ok: false, error: result.errors[0] });
         continue;
       }
-      const id = uniquifyDraftId(result.scenario.id, taken);
+      const id = uniquifyId(result.scenario.id, taken);
       const saved = saveCustomScenario({ ...result.scenario, id });
       if (!saved.ok) {
         pushOutcome({ title: lab.title, ok: false, error: saved.error });
@@ -213,39 +203,19 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
 
       {step === 'input' && (
         <>
-          <textarea
-            className="input"
-            rows={8}
+          <DocumentInput
             value={docText}
-            onChange={(e) => setDocument(e.target.value)}
+            truncated={docTruncated}
+            onChange={setDocument}
+            rows={8}
             placeholder="Paste your syllabus or lab schedule — each sim session it describes becomes a scenario draft…"
-            aria-label="Syllabus document"
+            ariaLabel="Syllabus document"
+            onFileName={(name) => {
+              if (!collectionTitle.trim()) {
+                setCollectionTitle(name.replace(/\.(txt|md)$/i, '').trim());
+              }
+            }}
           />
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            <button className="hover:text-slate-300" onClick={() => fileInput.current?.click()}>
-              ⬆ Upload .txt / .md
-            </button>
-            <input
-              ref={fileInput}
-              type="file"
-              accept=".txt,.md,text/plain,text/markdown"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) loadFile(f);
-                e.target.value = '';
-              }}
-            />
-            <span>PDF or Word? Copy and paste the text instead.</span>
-            {docText.length > 0 && (
-              <span>
-                {docText.length.toLocaleString()} / {DOCUMENT_CHAR_LIMIT.toLocaleString()} chars
-              </span>
-            )}
-            {docTruncated && (
-              <span className="text-amber-400/90">Document was truncated to fit the limit.</span>
-            )}
-          </div>
           <div className="flex flex-wrap items-center gap-2">
             <input
               className="input w-64"

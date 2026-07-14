@@ -9,6 +9,7 @@ import {
   resolveRefs,
   serializeCollectionBundle,
   slugifyCollectionId,
+  uniquifyId,
 } from './collections';
 import { QUICK_START_ID } from './quickStart';
 import { BUILT_IN_SCENARIOS } from './registry';
@@ -180,6 +181,13 @@ describe('planBundleImport', () => {
     expect(plan.missingRefs).toEqual(['ghost-case']);
     // The ghost ref is preserved in the imported collection regardless.
     expect(plan.collection.scenarioIds).toContain('ghost-case');
+  });
+});
+
+describe('uniquifyId', () => {
+  it('keeps free ids and suffixes taken ones', () => {
+    expect(uniquifyId('pph-lab', new Set())).toBe('pph-lab');
+    expect(uniquifyId('pph-lab', new Set(['pph-lab', 'pph-lab-2']))).toBe('pph-lab-3');
   });
 });
 

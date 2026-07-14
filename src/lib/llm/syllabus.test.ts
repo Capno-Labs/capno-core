@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  MAX_LABS,
-  buildExtractionMessages,
-  extractSyllabusLabs,
-  uniquifyDraftId,
-} from './syllabus';
+import { MAX_LABS, buildExtractionMessages, extractSyllabusLabs } from './syllabus';
 import type { LlmProvider, LlmRequest } from './types';
 
 class FakeProvider implements LlmProvider {
@@ -88,12 +83,5 @@ describe('buildExtractionMessages', () => {
     const [system] = buildExtractionMessages('doc');
     expect(system.content).toMatch(/Do NOT invent clinical content/);
     expect(system.content).toContain(`${MAX_LABS}`);
-  });
-});
-
-describe('uniquifyDraftId', () => {
-  it('keeps free ids and suffixes taken ones', () => {
-    expect(uniquifyDraftId('pph-lab', new Set())).toBe('pph-lab');
-    expect(uniquifyDraftId('pph-lab', new Set(['pph-lab', 'pph-lab-2']))).toBe('pph-lab-3');
   });
 });

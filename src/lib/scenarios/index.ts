@@ -13,6 +13,7 @@ export {
   type BundleImportPlan,
   collectionSchema,
   slugifyCollectionId,
+  uniquifyId,
   serializeCollectionBundle,
   parseCollectionBundle,
   looksLikeCollectionBundle,

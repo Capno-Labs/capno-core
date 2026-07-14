@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { scenarioSchema } from '../engine/schema';
 import type { Scenario } from '../engine/types';
+import { formatZodIssues } from '../zodIssues';
 import { QUICK_START_ID } from './quickStart';
 
 /**
@@ -61,12 +62,8 @@ const bundleSchema = z.object({
   scenarios: z.array(scenarioSchema),
 });
 
-function zodErrors(error: z.ZodError): string[] {
-  return error.issues.slice(0, 10).map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
-}
-
-/** Append -2, -3, … until the id is free. */
-function uniquifyId(base: string, taken: ReadonlySet<string>): string {
+/** Append -2, -3, … until the id is free (bundle imports, AI drafts). */
+export function uniquifyId(base: string, taken: ReadonlySet<string>): string {
   if (!taken.has(base)) return base;
   for (let n = 2; ; n++) {
     const candidate = `${base}-${n}`;
@@ -105,16 +102,22 @@ export type ParseBundleResult =
   | { ok: true; bundle: CollectionBundle }
   | { ok: false; errors: string[] };
 
-export function parseCollectionBundle(text: string): ParseBundleResult {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch (e) {
-    return { ok: false, errors: [`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`] };
+/** Accepts raw file text or already-parsed JSON (import UIs parse once to sniff the kind). */
+export function parseCollectionBundle(input: string | unknown): ParseBundleResult {
+  let raw: unknown = input;
+  if (typeof input === 'string') {
+    try {
+      raw = JSON.parse(input);
+    } catch (e) {
+      return { ok: false, errors: [`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`] };
+    }
   }
   const result = bundleSchema.safeParse(raw);
   if (!result.success) {
-    return { ok: false, errors: ['Not a valid Capno collection bundle.', ...zodErrors(result.error)] };
+    return {
+      ok: false,
+      errors: ['Not a valid Capno collection bundle.', ...formatZodIssues(result.error)],
+    };
   }
   return { ok: true, bundle: result.data as unknown as CollectionBundle };
 }

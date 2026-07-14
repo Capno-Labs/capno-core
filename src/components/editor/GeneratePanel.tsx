@@ -1,12 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  DOCUMENT_CHAR_LIMIT,
-  generateScenario,
-  prepareDocument,
-  type GenerateResult,
-} from '@/lib/llm/generator';
+import { DocumentInput } from '@/components/ui/DocumentInput';
+import { generateScenario, prepareDocument, type GenerateResult } from '@/lib/llm/generator';
 import { getLlmProvider } from '@/lib/llm/settings';
 import { useLlmConfigured, useLlmSettingsStore } from '@/lib/store/llmSettingsStore';
 
@@ -29,7 +25,6 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
   const [loading, setLoading] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  const docFileInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => hydrate(), [hydrate]);
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -64,15 +59,6 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
     const prepared = prepareDocument(text);
     setDocText(prepared.text);
     setDocTruncated(prepared.truncated);
-  };
-
-  const loadDocFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      setDocument(String(reader.result));
-      setDocOpen(true);
-    };
-    reader.readAsText(file);
   };
 
   if (!open) {
@@ -116,46 +102,14 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
           {docText.trim() && !docOpen ? ' — attached' : ''}
         </button>
         {docOpen && (
-          <div className="space-y-1">
-            <textarea
-              className="input"
-              rows={6}
-              value={docText}
-              onChange={(e) => setDocument(e.target.value)}
-              placeholder="Paste the document text here — objectives, drugs and doses, and the expected course will be drawn from it…"
-              aria-label="Source document"
-              disabled={loading}
-            />
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-              <button
-                className="hover:text-slate-300"
-                onClick={() => docFileInput.current?.click()}
-                disabled={loading}
-              >
-                ⬆ Upload .txt / .md
-              </button>
-              <input
-                ref={docFileInput}
-                type="file"
-                accept=".txt,.md,text/plain,text/markdown"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) loadDocFile(f);
-                  e.target.value = '';
-                }}
-              />
-              <span>PDF or Word? Copy and paste the text instead.</span>
-              {docText.length > 0 && (
-                <span>
-                  {docText.length.toLocaleString()} / {DOCUMENT_CHAR_LIMIT.toLocaleString()} chars
-                </span>
-              )}
-              {docTruncated && (
-                <span className="text-amber-400/90">Document was truncated to fit the limit.</span>
-              )}
-            </div>
-          </div>
+          <DocumentInput
+            value={docText}
+            truncated={docTruncated}
+            onChange={setDocument}
+            disabled={loading}
+            placeholder="Paste the document text here — objectives, drugs and doses, and the expected course will be drawn from it…"
+            ariaLabel="Source document"
+          />
         )}
       </div>
       <div className="flex items-center gap-3">
