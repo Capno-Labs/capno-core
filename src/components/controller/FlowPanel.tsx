@@ -153,7 +153,12 @@ export function FlowPanel() {
     const pinControl = !isFired && (isPinned || !isNext) && (
       <button
         className="text-[10px] font-semibold text-slate-500 hover:text-sky-300"
-        onClick={() => pinNextEvent(isPinned ? null : ev.id)}
+        onClick={(e) => {
+          pinNextEvent(isPinned ? null : ev.id);
+          // Drop focus: the shortcut hook ignores keys while a button is
+          // focused, and this click just promised the N key works.
+          e.currentTarget.blur();
+        }}
       >
         {isPinned ? '⤫ unpin' : '⤒ make next'}
       </button>

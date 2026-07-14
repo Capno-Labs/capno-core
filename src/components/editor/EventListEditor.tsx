@@ -16,7 +16,7 @@ import { CAPNO_SHAPE_LABELS, NUMERIC_VITAL_KEYS, RHYTHM_LABELS } from '@/lib/eng
 import type { LintWarning } from '@/lib/engine/lint';
 import { VITAL_META } from '@/lib/engine/vitals';
 import { CATEGORIES, CATEGORY_DOT } from '@/components/eventCategories';
-import { EVENT_TEMPLATES, type EventTemplate } from '@/lib/engine/eventTemplates';
+import { EVENT_TEMPLATES, TEMPLATE_KINDS, type EventTemplate } from '@/lib/engine/eventTemplates';
 import { EventTimeline } from './EventTimeline';
 
 /**
@@ -293,13 +293,6 @@ export function EventListEditor({
       tq === '' ||
       `${t.label} ${t.description} ${t.domain} ${t.category} ${t.source}`.toLowerCase().includes(tq),
   );
-  const TEMPLATE_KINDS: Array<{ kind: EventTemplate['kind']; title: string }> = [
-    { kind: 'deterioration', title: 'Deterioration' },
-    { kind: 'treatment-response', title: 'Treatment response' },
-    { kind: 'resolution', title: 'Resolution' },
-    { kind: 'marker', title: 'Marker' },
-  ];
-
   const addEventControls = (
     <>
       {events.length === 0 && (

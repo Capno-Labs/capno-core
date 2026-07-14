@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import { EffectEditor, effectSummary } from '@/components/editor/EventListEditor';
 import { CATEGORIES } from '@/components/eventCategories';
-import { EVENT_TEMPLATES, type EventTemplate } from '@/lib/engine/eventTemplates';
+import { EVENT_TEMPLATES, TEMPLATE_KINDS } from '@/lib/engine/eventTemplates';
 import { eventSchema } from '@/lib/engine/schema';
 import type { EventCategory, VitalEffect } from '@/lib/engine/types';
 import { useControllerStore } from '@/lib/store/controllerStore';
+import { formatZodIssues } from '@/lib/zodIssues';
 
 /**
  * Live add-event form: lets the instructor improvise an event mid-session.
@@ -20,12 +21,9 @@ import { useControllerStore } from '@/lib/store/controllerStore';
  * so; anything else the instructor types is their call, live in the room.
  */
 
-const TEMPLATE_KINDS: Array<{ kind: EventTemplate['kind']; title: string }> = [
-  { kind: 'deterioration', title: 'Deterioration' },
-  { kind: 'treatment-response', title: 'Treatment response' },
-  { kind: 'resolution', title: 'Resolution' },
-  { kind: 'marker', title: 'Marker' },
-];
+// What the form actually authors: no id (the store generates it), no
+// autoAtSec / actionIds (ad-hoc events are fire-when-ready only).
+const adhocEventSchema = eventSchema.omit({ id: true, autoAtSec: true, actionIds: true });
 
 export function AddEventForm({ onDone }: { onDone: () => void }) {
   const { addAdhocEvent, pinNextEvent } = useControllerStore();
@@ -39,7 +37,16 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
   const applyTemplate = (id: string) => {
     setTemplateId(id);
     const t = EVENT_TEMPLATES.find((tpl) => tpl.id === id);
-    if (!t) return;
+    if (!t) {
+      // "— blank event —" re-selected: clear everything, or the previous
+      // template's clinical effects would stay staged under a blank picker.
+      setLabel('');
+      setDescription('');
+      setCategory('other');
+      setEffects([{}]);
+      setErrors([]);
+      return;
+    }
     setLabel(t.label);
     setDescription(t.description);
     setCategory(t.category);
@@ -50,40 +57,23 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
 
   const submit = (makeNext: boolean) => {
     const candidate = {
-      // Placeholder id for validation only; the store generates the real one.
-      id: 'adhoc-0',
       label: label.trim(),
       description: description.trim() === '' ? undefined : description.trim(),
       category,
       effects,
     };
-    const parsed = eventSchema.safeParse(candidate);
+    const parsed = adhocEventSchema.safeParse(candidate);
     if (!parsed.success) {
-      setErrors(
-        parsed.error.issues.map((iss) =>
-          iss.path.length > 0 ? `${iss.path.join('.')}: ${iss.message}` : iss.message,
-        ),
-      );
+      setErrors(formatZodIssues(parsed.error));
       return;
     }
-    const newId = addAdhocEvent({
-      label: candidate.label,
-      description: candidate.description,
-      category,
-      effects,
-    });
+    const newId = addAdhocEvent(candidate);
     if (newId === null) {
-      setErrors(['Could not add the event — no session is loaded.']);
+      setErrors(['Could not add the event — check the values and that a session is loaded.']);
       return;
     }
     if (makeNext) pinNextEvent(newId);
-    setLabel('');
-    setDescription('');
-    setCategory('other');
-    setEffects([{}]);
-    setTemplateId('');
-    setErrors([]);
-    onDone();
+    onDone(); // unmounts the form; it remounts fresh on the next toggle
   };
 
   return (

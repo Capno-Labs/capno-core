@@ -3,7 +3,7 @@ import { generateSessionId, isValidSessionCode, SimulationEngine } from './engin
 import { parseScenario } from './schema';
 import { clampVital } from './vitals';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
-import type { NumericVitals, Scenario } from './types';
+import type { NumericVitals, Scenario, ScenarioEvent } from './types';
 
 const scenario = (): Scenario => BUILT_IN_SCENARIOS[0];
 
@@ -453,6 +453,20 @@ describe('live-added events and the next-up pin', () => {
     expect(e.snapshot().log.some((l) => l.kind === 'session' && l.label.includes(adhoc.label))).toBe(
       true,
     );
+  });
+
+  it('addEvent strips autoAtSec and actionIds at runtime', () => {
+    const e = newEngine();
+    // The store action's Omit type doesn't bind non-literal callers, so the
+    // engine must enforce the fire-when-ready contract itself.
+    const smuggled = { ...adhoc, autoAtSec: 5, actionIds: ['nope'] } as ScenarioEvent;
+    expect(e.addEvent(smuggled)).toBe(true);
+    const added = e.getEvents().find((ev) => ev.id === adhoc.id)!;
+    expect(added.autoAtSec).toBeUndefined();
+    expect(added.actionIds).toBeUndefined();
+    e.start();
+    e.tick(60);
+    expect(e.snapshot().firedEventIds).not.toContain(adhoc.id);
   });
 
   it('addEvent rejects a duplicate id', () => {

@@ -409,7 +409,13 @@ export class SimulationEngine {
    */
   addEvent(event: ScenarioEvent): boolean {
     if (this.events.some((e) => e.id === event.id)) return false;
-    this.events.push(event);
+    // Runtime enforcement of the fire-when-ready contract: the store
+    // action's compile-time Omit doesn't bind non-literal callers, and a
+    // stray autoAtSec would become schedulable via queueAutoEvents (stray
+    // actionIds could break the archived scenario's action references).
+    const { autoAtSec: _auto, actionIds: _links, ...clean } = event;
+    // Copy-on-write so reference-equality consumers see the change.
+    this.events = [...this.events, clean];
     this.addLog('session', `Event added: ${event.label}`);
     return true;
   }

@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { generateSessionId, isValidSessionCode, SimulationEngine } from '../engine/engine';
 import { adhocEventId } from '../engine/flow';
+import { eventSchema } from '../engine/schema';
 import { resolvePresetEffect, VITALS_PRESETS } from '../engine/presets';
 import { scoreSession } from '../engine/scoring';
 import type {
@@ -179,7 +180,13 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       const { engine } = get();
       if (!engine) return null;
       const id = adhocEventId(engine.getEvents());
-      if (!engine.addEvent({ ...event, id })) return null;
+      const candidate = { ...event, id };
+      // Zod at the boundary: the form pre-validates for friendly messages,
+      // but the store is the choke point every caller goes through — an
+      // invalid event would poison the archive (getEffectiveScenario must
+      // stay scenarioSchema-valid for export/import and cloud pull).
+      if (!eventSchema.safeParse(candidate).success) return null;
+      if (!engine.addEvent(candidate)) return null;
       publish();
       return id;
     },
