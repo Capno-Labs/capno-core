@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { generateScenario, type GenerateResult } from '@/lib/llm/generator';
+import { DocumentInput } from '@/components/ui/DocumentInput';
+import { generateScenario, prepareDocument, type GenerateResult } from '@/lib/llm/generator';
 import { getLlmProvider } from '@/lib/llm/settings';
 import { useLlmConfigured, useLlmSettingsStore } from '@/lib/store/llmSettingsStore';
 
@@ -18,6 +19,9 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
   const hydrate = useLlmSettingsStore((s) => s.hydrate);
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [docOpen, setDocOpen] = useState(false);
+  const [docText, setDocText] = useState('');
+  const [docTruncated, setDocTruncated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -39,14 +43,22 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
     setLoading(true);
     setAttempt(1);
 
+    const document = docText.trim() ? prepareDocument(docText).text : undefined;
     const result = await generateScenario(provider, request, {
       maxAttempts: MAX_ATTEMPTS,
       signal: controller.signal,
       onAttempt: setAttempt,
+      ...(document ? { document } : {}),
     });
     if (controller.signal.aborted) return;
     setLoading(false);
     onResult(result);
+  };
+
+  const setDocument = (text: string) => {
+    const prepared = prepareDocument(text);
+    setDocText(prepared.text);
+    setDocTruncated(prepared.truncated);
   };
 
   if (!open) {
@@ -80,6 +92,26 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
         aria-label="Scenario description"
         disabled={loading}
       />
+      <div className="space-y-2">
+        <button
+          className="text-xs text-slate-500 hover:text-slate-300"
+          onClick={() => setDocOpen((v) => !v)}
+          disabled={loading}
+        >
+          {docOpen ? '▼' : '▶'} Ground in a document (syllabus page, lab handout)
+          {docText.trim() && !docOpen ? ' — attached' : ''}
+        </button>
+        {docOpen && (
+          <DocumentInput
+            value={docText}
+            truncated={docTruncated}
+            onChange={setDocument}
+            disabled={loading}
+            placeholder="Paste the document text here — objectives, drugs and doses, and the expected course will be drawn from it…"
+            ariaLabel="Source document"
+          />
+        )}
+      </div>
       <div className="flex items-center gap-3">
         <button className="btn-primary" onClick={() => void generate()} disabled={loading || !prompt.trim()}>
           {loading ? 'Generating…' : 'Generate draft'}

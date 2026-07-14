@@ -7,6 +7,7 @@ import { FacultyGate } from '@/components/FacultyGate';
 import { DebriefReport, type DebriefAmend } from '@/components/debrief/DebriefReport';
 import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
 import '@/lib/cloud/sessionCloud'; // registers the session push handler
+import { downloadJson } from '@/lib/download';
 import { scoreSession } from '@/lib/engine/scoring';
 import type { ArchivedSession } from '@/lib/engine/types';
 import { getSession, isMemoryOnly, updateSession } from '@/lib/store/sessionArchive';
@@ -94,17 +95,9 @@ export default function DebriefSessionPage() {
             </button>
             <button
               className="btn-secondary"
-              onClick={() => {
-                const blob = new Blob([serializeSessions([session])], {
-                  type: 'application/json',
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `capno-session-${session.sessionId}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
+              onClick={() =>
+                downloadJson(`capno-session-${session.sessionId}.json`, serializeSessions([session]))
+              }
             >
               ⬇ Export JSON
             </button>

@@ -9,17 +9,8 @@ import { cloudEligible } from '@/lib/cloud/outbox';
 import { listCloudSessions, type CloudSessionSummary } from '@/lib/cloud/sessionCloud';
 import type { ArchivedSession } from '@/lib/engine/types';
 import { deleteSession, listSessions, replaceAllSessions } from '@/lib/store/sessionArchive';
+import { downloadJson } from '@/lib/download';
 import { mergeImported, parseSessionExport, serializeSessions } from '@/lib/store/sessionExport';
-
-function downloadJson(filename: string, text: string) {
-  const blob = new Blob([text], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 type SortKey = 'date' | 'score' | 'duration';
 

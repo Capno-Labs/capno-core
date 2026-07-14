@@ -27,7 +27,8 @@ function EditorContent() {
         </Link>
         <h1 className="text-2xl font-bold">Case editor</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Saved scenarios are stored on this device and appear in the library — and sync to your
+          Saved scenarios are stored on this device and appear in the library, where you can
+          organize them into collections that match your syllabus — and they sync to your
           institution&apos;s cloud library when you are signed in as faculty. Editing a built-in
           scenario saves a custom copy that shadows it. Export/import JSON files to share manually.
         </p>

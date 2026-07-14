@@ -7,6 +7,30 @@ export {
   saveCustomScenario,
   deleteCustomScenario,
 } from './customStore';
+export {
+  type ScenarioCollection,
+  type CollectionBundle,
+  type BundleImportPlan,
+  collectionSchema,
+  slugifyCollectionId,
+  uniquifyId,
+  serializeCollectionBundle,
+  parseCollectionBundle,
+  looksLikeCollectionBundle,
+  planBundleImport,
+  resolveRefs,
+} from './collections';
+export {
+  listCollections,
+  getCollection,
+  saveCollection,
+  createCollection,
+  renameCollection,
+  deleteCollection,
+  addToCollection,
+  removeFromCollection,
+  swapInCollection,
+} from './collectionStore';
 
 import { BUILT_IN_SCENARIOS, getBuiltInScenario } from './registry';
 import { getCustomScenario, listCustomScenarios } from './customStore';

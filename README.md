@@ -13,6 +13,7 @@ CAPNO Studio is an open, installable web app for running realistic anesthesia sc
 - 🧠 **Scenario engine** — a framework-free, tick-driven state machine with linear vital ramps, delayed/automatic events, phases, expected actions, and scoring. Fully unit-tested.
 - 📚 **Starter library** — twelve polished scenarios organized as a curriculum modeled on how leading programs structure simulation training (see [docs/curriculum.md](docs/curriculum.md)): post-induction hypotension (hemodynamics), laryngospasm after LMA and cannot-intubate-cannot-oxygenate (airway), severe bronchospasm and unexplained hypoxemia (respiratory), unstable bradycardia→asystole and myocardial ischemia (cardiac), postpartum hemorrhage (hemorrhage/obstetric), venous air embolism (embolic), intraoperative anaphylaxis (hypersensitivity), LAST after a peripheral nerve block (toxicity), and malignant hyperthermia (temperature/metabolic). Each includes objectives, setup, patient background, progression, triggers, correct management, common errors, a debrief guide, and a rubric.
 - ✏️ **Scenario editor** — form-based editing of everything including phases, events with vital effects, expected actions, and the grading rubric, plus a live JSON pane for power users, zod validation, import/export of scenario files, version history, and tags by topic/difficulty/training level.
+- 🗂 **Collections** — build a library that matches your syllabus: named, ordered collections of built-in and custom scenarios ("CA-1 fall block", "oral boards prep") shown as the library's primary sections, with one-file bundle export/import that carries a collection and its custom scenarios between machines.
 - 📋 **Debrief & assessment** — timeline of everything that happened, a vitals trend strip (10-second samples with event markers — "SpO₂ began falling here, the team responded here"), actions taken vs. missed critical actions, category scores, faculty notes, suggested questions, and one-click PDF export. Action statuses can be amended post-hoc with automatic rescoring — marking reliably mid-crisis is unrealistic — and learner names can be added to the printed report. Faculty can also skip uneventful scenario time (+1/+5 min). Session archives export/import as JSON for backup or moving between machines.
 - 📱 **PWA** — installable on iPad/laptop, offline-capable: bundled scenarios and previously-visited views work with no connectivity.
 - 🔌 **Realtime sync** — works with zero configuration on one device (controller window + student window/projector), with a join timeout, a stale-connection watchdog on the student display, and a Local/Cloud sync-health indicator. Add Supabase for cross-device sync (iPad controller → projector PC).
@@ -57,7 +58,7 @@ Copy `.env.example` to `.env.local`. Everything is optional:
 
 ### Optional AI assistance (bring your own key)
 
-Capno can optionally use an LLM for two faculty-side features, configured at
+Capno can optionally use an LLM for three faculty-side features, configured at
 runtime under **Settings** (no env vars, no rebuild):
 
 - **Sim co-pilot** — on the faculty controller, type e.g. *"SBP to 60s over
@@ -66,9 +67,16 @@ runtime under **Settings** (no env vars, no rebuild):
   apply them, and every applied command runs through the same controller
   actions as the buttons and sliders.
 - **Scenario drafting** — in the editor, generate a complete scenario draft
-  from a prompt. Drafts are validated against the scenario schema (with an
-  automatic repair loop), land in the JSON pane for review, and carry an
-  `ai-generated` topic tag plus an editor banner until faculty review them.
+  from a prompt, optionally grounded in a pasted syllabus page or lab handout
+  (its objectives, drugs, and doses are used verbatim). Drafts are validated
+  against the scenario schema (with an automatic repair loop), land in the
+  JSON pane for review, and carry an `ai-generated` topic tag plus an editor
+  banner until faculty review them.
+- **Syllabus intake** — on the library page, paste a syllabus or lab
+  schedule; the model lists the sim sessions it describes, you pick which to
+  draft, and each becomes a document-grounded draft assembled into a
+  collection — a program's semester becomes a reviewable scenario library in
+  one pass.
 
 You supply an [OpenRouter](https://openrouter.ai) API key and model id; both
 are stored only in that browser's localStorage. With nothing configured, no
