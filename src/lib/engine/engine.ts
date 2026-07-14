@@ -39,6 +39,20 @@ export class SimulationEngine {
   readonly scenario: Scenario;
   readonly sessionId: string;
 
+  /**
+   * The session's working event list: the authored events plus any added
+   * live by the instructor (addEvent). The scenario object itself is never
+   * mutated — ad-hoc events exist only for this engine's lifetime and reach
+   * the archive via getEffectiveScenario().
+   */
+  private events: ScenarioEvent[];
+  /**
+   * Instructor override for what "next up" means (see flow.ts
+   * nextUnfiredEvent). A fired or unknown pin is simply ignored there, so no
+   * clear-on-fire bookkeeping is needed; reset() clears it.
+   */
+  private pinnedNextEventId: string | null = null;
+
   private status: SimStatus = 'idle';
   private elapsedSec = 0;
   private phaseId: string;
@@ -87,6 +101,7 @@ export class SimulationEngine {
   constructor(scenario: Scenario, sessionId: string, options?: { autoEvents?: boolean }) {
     this.scenario = scenario;
     this.sessionId = sessionId;
+    this.events = [...scenario.events];
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
     const { rhythm, capnoShape, ...numeric } = scenario.baselineVitals;
@@ -178,7 +193,7 @@ export class SimulationEngine {
   /** Queue effects for unfired autoAtSec events strictly after `afterSec`
    *  (default: all of them — used at start). */
   private queueAutoEvents(afterSec = Number.NEGATIVE_INFINITY): void {
-    for (const ev of this.scenario.events) {
+    for (const ev of this.events) {
       if (ev.autoAtSec === undefined || ev.autoAtSec <= afterSec) continue;
       if (this.firedEventIds.has(ev.id)) continue;
       for (const effect of ev.effects) {
@@ -209,6 +224,9 @@ export class SimulationEngine {
     this.log = [];
     this.notes = [];
     this.firedEventIds.clear();
+    // A fresh run follows author order again; live-added events are kept —
+    // they are part of this session's working set until the next load.
+    this.pinnedNextEventId = null;
     this.alarmsSilenced = false;
     this.actions = this.scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = this.scenario.monitoring?.artLine ?? false;
@@ -256,7 +274,7 @@ export class SimulationEngine {
       // Auto events log once, via their owning event id, on first effect
       // application (labels are display-only and may not be unique).
       if (p.fromAuto && p.eventId !== undefined && !this.firedEventIds.has(p.eventId)) {
-        const autoEvent = this.scenario.events.find((e) => e.id === p.eventId);
+        const autoEvent = this.events.find((e) => e.id === p.eventId);
         if (autoEvent) {
           this.firedEventIds.add(autoEvent.id);
           this.addLog('event', autoEvent.label, 'automatic');
@@ -351,9 +369,9 @@ export class SimulationEngine {
     this.addLog('vital_change', `CO₂ waveform → ${CAPNO_SHAPE_LABELS[shape]}`);
   }
 
-  /** Fire a scenario-defined event by id (faculty trigger). */
+  /** Fire a scenario-defined or live-added event by id (faculty trigger). */
   triggerEvent(eventId: string): ScenarioEvent | undefined {
-    const ev = this.scenario.events.find((e) => e.id === eventId);
+    const ev = this.events.find((e) => e.id === eventId);
     if (!ev) return undefined;
     // Firing an event cancels its own scheduled/staged copies (by id — labels
     // may not be unique) — otherwise queued effects would re-apply at
@@ -375,6 +393,48 @@ export class SimulationEngine {
       }
     }
     return ev;
+  }
+
+  /** The working event list: authored events plus any added live. */
+  getEvents(): readonly ScenarioEvent[] {
+    return this.events;
+  }
+
+  /**
+   * Add an event mid-session (faculty improvisation). The event behaves like
+   * any authored event from here on — it renders in the flow, fires via
+   * triggerEvent, and lands in the debrief log — but the source scenario is
+   * never mutated. Callers must not pass autoAtSec (ad-hoc events are
+   * fire-when-ready only); rejects duplicate ids.
+   */
+  addEvent(event: ScenarioEvent): boolean {
+    if (this.events.some((e) => e.id === event.id)) return false;
+    this.events.push(event);
+    this.addLog('session', `Event added: ${event.label}`);
+    return true;
+  }
+
+  /**
+   * Pin which event "next up" (and the next-event hotkey) points at. Pass
+   * null to clear. An unknown id is ignored; a pin on a fired event is left
+   * in place but has no effect (nextUnfiredEvent falls back to author order).
+   */
+  pinNextEvent(eventId: string | null): void {
+    if (eventId !== null && !this.events.some((e) => e.id === eventId)) return;
+    this.pinnedNextEventId = eventId;
+  }
+
+  getPinnedNextEventId(): string | null {
+    return this.pinnedNextEventId;
+  }
+
+  /**
+   * The scenario as actually run: the authored scenario with the working
+   * event list (including live-added events). Used by the archive so the
+   * debrief's record is self-consistent with firedEventIds.
+   */
+  getEffectiveScenario(): Scenario {
+    return { ...this.scenario, events: [...this.events] };
   }
 
   /**
