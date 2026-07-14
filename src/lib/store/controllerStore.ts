@@ -49,6 +49,7 @@ interface ControllerState {
   markAction: (actionId: string, status: ActionStatus) => void;
   addNote: (text: string) => void;
   setAlarmsSilenced: (silenced: boolean) => void;
+  setAutoEvents: (on: boolean) => void;
   skipAhead: (sec: number) => void;
   cycleNibp: () => void;
   setArtLine: (on: boolean) => void;
@@ -85,7 +86,10 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     loadScenario: (scenario) => {
       get().teardown();
       const sessionId = generateSessionId();
-      const engine = new SimulationEngine(scenario, sessionId);
+      // Auto-fire is off by default in the controller: the instructor is the
+      // pacemaker on a timed lab day. The toggle in SessionControls re-enables
+      // the authored autoAtSec timeline for unattended deterioration.
+      const engine = new SimulationEngine(scenario, sessionId, { autoEvents: false });
       channel = createSyncChannels(sessionId);
       // Late-joining student displays send 'hello' to get an immediate snapshot.
       channel.onMessage((m) => {
@@ -146,6 +150,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     markAction: (actionId, status) => withEngine((e) => e.markAction(actionId, status)),
     addNote: (text) => withEngine((e) => e.addNote(text)),
     setAlarmsSilenced: (silenced) => withEngine((e) => e.setAlarmsSilenced(silenced)),
+    setAutoEvents: (on) => withEngine((e) => e.setAutoEvents(on)),
     skipAhead: (sec) => withEngine((e) => e.skipAhead(sec)),
     cycleNibp: () => withEngine((e) => e.cycleNibp()),
     setArtLine: (on) => withEngine((e) => e.setArtLine(on)),

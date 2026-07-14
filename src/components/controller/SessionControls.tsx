@@ -15,8 +15,17 @@ import { useControllerStore } from '@/lib/store/controllerStore';
  */
 export function SessionControls() {
   const router = useRouter();
-  const { snapshot, sessionId, syncHealth, start, pause, reset, endAndArchive, skipAhead } =
-    useControllerStore();
+  const {
+    snapshot,
+    sessionId,
+    syncHealth,
+    start,
+    pause,
+    reset,
+    endAndArchive,
+    skipAhead,
+    setAutoEvents,
+  } = useControllerStore();
   if (!snapshot) return null;
 
   const status = snapshot.status;
@@ -93,6 +102,25 @@ export function SessionControls() {
             +5 min
           </button>
         </span>
+      )}
+
+      {status !== 'ended' && (
+        <button
+          className={`rounded px-2 py-1 text-xs font-semibold ring-1 ${
+            snapshot.autoEventsEnabled
+              ? 'bg-sky-900/60 text-sky-300 ring-sky-700'
+              : 'bg-slate-800 text-slate-400 ring-slate-700 hover:bg-slate-700'
+          }`}
+          aria-pressed={snapshot.autoEventsEnabled}
+          title={
+            snapshot.autoEventsEnabled
+              ? 'Scripted deteriorations fire on their authored timeline'
+              : 'Nothing fires on its own — you press every event'
+          }
+          onClick={() => setAutoEvents(!snapshot.autoEventsEnabled)}
+        >
+          Auto events: {snapshot.autoEventsEnabled ? 'on' : 'off'}
+        </button>
       )}
 
       <ConfirmButton

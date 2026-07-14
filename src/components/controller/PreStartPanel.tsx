@@ -25,6 +25,7 @@ export function PreStartPanel() {
   const nibpMin = Math.round((scenario.monitoring?.nibpIntervalSec ?? 180) / 60);
   const actionCount = scenario.expectedActions.length;
   const criticalCount = scenario.expectedActions.filter((a) => a.critical).length;
+  const scriptedCount = scenario.events.filter((e) => e.autoAtSec !== undefined).length;
   // Two storage tiers exist today: local-only, or outbox pushes to the
   // institution archive (Supabase configured + signed-in faculty account).
   const storage = cloudEligible()
@@ -94,6 +95,13 @@ export function PreStartPanel() {
               {actionCount} expected learner actions ({criticalCount} critical) — mark them in the
               checklist as you observe.
             </li>
+            {scriptedCount > 0 && (
+              <li>
+                {snapshot.autoEventsEnabled
+                  ? `${scriptedCount} scripted deteriorations fire automatically on their authored timeline — toggle "Auto events" in the top bar to take manual control.`
+                  : `${scriptedCount} scripted deteriorations with suggested times — auto-fire is off; you press every event. Toggle "Auto events" in the top bar for the authored timeline.`}
+              </li>
+            )}
             <li>
               <span className="font-semibold text-slate-200">{storage.label}.</span>{' '}
               <span className="text-slate-400">{storage.detail}</span>
