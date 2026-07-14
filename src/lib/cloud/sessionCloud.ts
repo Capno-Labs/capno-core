@@ -66,6 +66,7 @@ async function pushSessionById(sessionId: string): Promise<{ ok: true } | PushFa
     history: session.history ?? null,
     faculty_id: uid,
     learner_names: session.learnerNames ?? [],
+    session_code: session.sessionCode ?? null,
     ended_at: session.endedAtIso,
   });
   if (error) return classifyError(error, sessionId);
@@ -107,7 +108,7 @@ export async function fetchCloudSession(cloudId: string): Promise<ArchivedSessio
   if (!supabase || !cloudEligible()) return null;
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, scenario_snapshot, sim_snapshot, score, history, learner_names, ended_at')
+    .select('id, scenario_snapshot, sim_snapshot, score, history, learner_names, session_code, ended_at')
     .eq('id', cloudId)
     .single();
   if (error || !data) return null;
@@ -117,6 +118,7 @@ export async function fetchCloudSession(cloudId: string): Promise<ArchivedSessio
     snapshot: data.sim_snapshot,
     endedAtIso: String(data.ended_at),
     score: data.score,
+    ...(data.session_code ? { sessionCode: String(data.session_code) } : {}),
     ...(data.history ? { history: data.history } : {}),
     ...(Array.isArray(data.learner_names) && data.learner_names.length > 0
       ? { learnerNames: data.learner_names }
