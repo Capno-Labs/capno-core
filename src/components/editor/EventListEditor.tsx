@@ -31,8 +31,9 @@ import { EventTimeline } from './EventTimeline';
 const fmtTime = (sec: number) =>
   `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
-/** One-line recap of what an effect does, so multi-effect events scan fast. */
-function effectSummary(effect: VitalEffect): string {
+/** One-line recap of what an effect does, so multi-effect events scan fast.
+ *  Exported for the run screen's live add-event form (template picker). */
+export function effectSummary(effect: VitalEffect): string {
   const parts: string[] = [];
   for (const key of NUMERIC_VITAL_KEYS) {
     const v = effect.vitals?.[key];
@@ -47,7 +48,9 @@ function effectSummary(effect: VitalEffect): string {
   return parts.join(' · ') + (timing.length > 0 ? ` · ${timing.join(', ')}` : '');
 }
 
-function EffectEditor({
+/** Purely presentational effect form; exported so the run screen's live
+ *  add-event form edits effects exactly like the case editor does. */
+export function EffectEditor({
   effect,
   onChange,
   onRemove,

@@ -91,7 +91,8 @@ export default function FacultyRunPage() {
 
   useBeforeUnload(snapshot?.status === 'running' || snapshot?.status === 'paused');
 
-  // Space = start/pause; N = fire the next event in narrative order. N is
+  // Space = start/pause; N = fire the next event in narrative order (or the
+  // instructor's pinned "make next" override, when one is set). N is
   // the only event-firing key, it always matches the Flow panel's visible
   // "Next up" highlight (the panel pins that card even when a filter would
   // hide it), it only works while the session is live, and the hook guards
@@ -103,7 +104,11 @@ export default function FacultyRunPage() {
       n: () => {
         if (!engine || !snapshot) return;
         if (snapshot.status !== 'running' && snapshot.status !== 'paused') return;
-        const next = nextUnfiredEvent(engine.scenario.events, new Set(snapshot.firedEventIds));
+        const next = nextUnfiredEvent(
+          engine.getEvents(),
+          new Set(snapshot.firedEventIds),
+          engine.getPinnedNextEventId(),
+        );
         if (next) triggerEvent(next.id);
       },
     },
@@ -129,7 +134,8 @@ export default function FacultyRunPage() {
   // safety net when auto events are on and the Flow panel may be scrolled away.
   const imminentAuto =
     snapshot.autoEventsEnabled && snapshot.status === 'running'
-      ? engine.scenario.events
+      ? engine
+          .getEvents()
           .filter((e) => e.autoAtSec !== undefined && !snapshot.firedEventIds.includes(e.id))
           .map((e) => ({ label: e.label, remaining: e.autoAtSec! - snapshot.elapsedSec }))
           .filter((x) => x.remaining > 0 && x.remaining <= 30)
