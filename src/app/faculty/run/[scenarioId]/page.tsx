@@ -49,10 +49,13 @@ function BudgetBadge({ elapsedSec, budgetSec }: { elapsedSec: number; budgetSec:
 
 /**
  * Faculty controller for a live session. A sticky command bar (title, clock,
- * phase, session controls) sits over a two-column cockpit: live monitor
- * preview + session/phase/vitals on the left, the case flow (events with
- * their linked learner actions) + notes/log on the right; stacks on narrow
- * screens (iPad portrait).
+ * phase, session controls) sits over the cockpit. Desktop is the primary
+ * device: at the `desk` breakpoint the cockpit is three zones — patient
+ * context (state summary, patient, phase) in a left rail, live monitor
+ * preview + vital controls center, and the case flow (events with their
+ * linked learner actions) + notes/log in a right rail. iPad stays fully
+ * supported: below `desk` it degrades to the two-column layout, and below
+ * `lg` (iPad portrait) to a single monitor-first stack.
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
@@ -138,7 +141,8 @@ export default function FacultyRunPage() {
       <main className="mx-auto max-w-[1600px] space-y-3 p-3 md:p-4 !pt-0">
         {/* Sticky command bar: title, clock, phase, and session controls stay
             visible while faculty scroll the panels. Kept to one compact row
-            so the monitor preview survives on an iPad. */}
+            so the monitor preview keeps its height on iPad (still fully
+            supported, just no longer the primary device). */}
         <div className="sticky top-0 z-20 -mx-3 space-y-2 border-b border-slate-800 bg-slate-950/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
@@ -179,9 +183,14 @@ export default function FacultyRunPage() {
 
         <PreStartPanel />
 
-        <div className="grid gap-3 lg:grid-cols-2">
-          {/* Left column: monitor preview + primary controls */}
-          <div className="space-y-3">
+        {/* Cockpit grid. Placement is explicit at each breakpoint: with three
+            zone wrappers in a two-column grid, auto-placement would row-pack
+            them and break the lg layout. All zones need min-w-0 so waveforms
+            and truncated text can shrink inside grid tracks. */}
+        <div className="grid gap-3 lg:grid-cols-2 desk:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(360px,440px)]">
+          {/* Center zone (first in DOM so the single-column stack leads with
+              the monitor): preview + physiology controls. */}
+          <div className="min-w-0 space-y-3 lg:col-start-1 desk:col-start-2 desk:row-start-1">
             <div className="overflow-hidden rounded-xl ring-1 ring-slate-800">
               <div className="flex items-center justify-between bg-slate-900 px-3 py-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -196,14 +205,18 @@ export default function FacultyRunPage() {
               </div>
               <MonitorDisplay snapshot={snapshot} compact />
             </div>
-            <StateSummary snapshot={snapshot} />
-            <PatientCard patient={engine.scenario.patient} />
-            <PhasePanel />
             <VitalControls />
           </div>
 
-          {/* Right column: case flow (events + linked actions), notes, log */}
-          <div className="space-y-3">
+          {/* Left rail: patient context. */}
+          <div className="min-w-0 space-y-3 lg:col-start-1 desk:col-start-1 desk:row-start-1">
+            <StateSummary snapshot={snapshot} />
+            <PatientCard patient={engine.scenario.patient} />
+            <PhasePanel />
+          </div>
+
+          {/* Right rail: case flow (events + linked actions), notes, log. */}
+          <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1 lg:row-span-2 desk:col-start-3 desk:row-start-1 desk:row-span-1">
             <CopilotPanel />
             <FlowPanel />
             <NotesPanel />

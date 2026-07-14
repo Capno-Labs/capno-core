@@ -4,6 +4,11 @@ const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // Three-zone controller cockpit. 1440 keeps iPad Pro 12.9" landscape
+      // (1366 CSS px) on the two-column layout — `xl` would cramp it.
+      screens: {
+        desk: '1440px',
+      },
       colors: {
         monitor: {
           bg: '#05080d',
