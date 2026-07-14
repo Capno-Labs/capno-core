@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { CollectionSection } from '@/components/library/CollectionSection';
+import { SyllabusImportPanel } from '@/components/library/SyllabusImportPanel';
 import { ConfirmButton } from '@/components/ui/ConfirmButton';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, getPushedAt, isQueued } from '@/lib/cloud/outbox';
@@ -311,6 +312,9 @@ export default function ScenarioLibraryPage() {
             </Link>
           </div>
         </header>
+
+        {/* Renders nothing unless AI settings are configured. */}
+        <SyllabusImportPanel onChanged={refresh} />
 
         {createOpen && (
           <form
