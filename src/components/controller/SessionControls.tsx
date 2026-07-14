@@ -84,7 +84,7 @@ export function SessionControls() {
       </div>
 
       {status !== 'running' && status !== 'ended' && (
-        <button className="btn-primary" onClick={start}>
+        <button className="btn-primary" onClick={start} data-tour="start">
           ▶ {status === 'paused' ? 'Resume' : 'Start'}
         </button>
       )}
@@ -132,12 +132,15 @@ export function SessionControls() {
       />
 
       {status !== 'ended' && (
-        <ConfirmButton
-          label="■ End session"
-          confirmLabel="Confirm end → debrief"
-          onConfirm={handleEnd}
-          className="btn-danger"
-        />
+        // Wrapper span carries the tour anchor — ConfirmButton is shared UI.
+        <span data-tour="end">
+          <ConfirmButton
+            label="■ End session"
+            confirmLabel="Confirm end → debrief"
+            onConfirm={handleEnd}
+            className="btn-danger"
+          />
+        </span>
       )}
       {status === 'ended' && (
         <button className="btn-primary" onClick={() => router.push(`/debrief/${sessionId}`)}>

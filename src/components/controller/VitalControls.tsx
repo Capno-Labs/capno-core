@@ -176,7 +176,7 @@ export function VitalControls() {
   );
 
   return (
-    <section className="card space-y-3">
+    <section className="card space-y-3" data-tour="vitals">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Vitals</h2>
         <div className="flex items-center gap-1" role="radiogroup" aria-label="Transition speed">

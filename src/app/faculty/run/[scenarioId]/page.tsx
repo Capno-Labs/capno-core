@@ -13,6 +13,8 @@ import { PreStartPanel } from '@/components/controller/PreStartPanel';
 import { SessionControls } from '@/components/controller/SessionControls';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
+import { DemoTour } from '@/components/tour/DemoTour';
+import { hasSeenDemo } from '@/lib/demoTour';
 import { nextUnfiredEvent, sessionBudgetSec } from '@/lib/engine/flow';
 import { formatClock } from '@/lib/format';
 import { useBeforeUnload } from '@/lib/hooks/useBeforeUnload';
@@ -63,6 +65,10 @@ export default function FacultyRunPage() {
   // page instance (null = read, none present). The ref keeps the load effect
   // idempotent under StrictMode's double-invocation.
   const turnoverCode = useRef<string | null | undefined>(undefined);
+  // ?demo=1 from the homepage CTA, consumed in the same one-shot read.
+  const demoFlag = useRef(false);
+  const [demoRequested, setDemoRequested] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     const scenario = getScenario(params.scenarioId);
@@ -77,10 +83,17 @@ export default function FacultyRunPage() {
     // history/bookmark revisit can't spin up a second controller on a
     // channel that is live elsewhere (one authority per session).
     if (turnoverCode.current === undefined) {
-      turnoverCode.current = new URLSearchParams(window.location.search).get('code');
-      if (turnoverCode.current) {
+      const search = new URLSearchParams(window.location.search);
+      turnoverCode.current = search.get('code');
+      demoFlag.current = search.get('demo') !== null;
+      if (turnoverCode.current || demoFlag.current) {
         window.history.replaceState(null, '', window.location.pathname);
       }
+    }
+    if (demoFlag.current) {
+      setDemoRequested(true);
+      // Self-open only on first sight; returning users get the Restart button.
+      if (!hasSeenDemo()) setTourOpen(true);
     }
     loadScenario(scenario, turnoverCode.current ?? undefined);
     return () => teardown();
@@ -180,9 +193,22 @@ export default function FacultyRunPage() {
                 </span>
               )}
             </div>
-            <SessionControls />
+            <span className="flex flex-wrap items-center gap-2">
+              {demoRequested && !tourOpen && (
+                <button
+                  className="btn-ghost text-xs"
+                  onClick={() => setTourOpen(true)}
+                  title="Replay the guided walkthrough"
+                >
+                  ↻ Restart tour
+                </button>
+              )}
+              <SessionControls />
+            </span>
           </header>
         </div>
+
+        {tourOpen && <DemoTour onClose={() => setTourOpen(false)} />}
 
         <PreStartPanel />
 

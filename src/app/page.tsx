@@ -88,10 +88,10 @@ export default function HomePage() {
       <p className="text-center text-sm text-slate-400">
         New here?{' '}
         <Link
-          href="/faculty/run/laryngospasm-lma"
+          href="/faculty/run/laryngospasm-lma?demo=1"
           className="font-semibold text-vital-ecg underline-offset-2 hover:underline"
         >
-          Try the demo case →
+          Try the guided demo →
         </Link>{' '}
         <span className="text-slate-500">(laryngospasm after LMA placement)</span>
       </p>
