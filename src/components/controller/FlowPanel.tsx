@@ -174,9 +174,11 @@ export function FlowPanel() {
           </span>
           {hint && <span className="mt-0.5 block">{hint}</span>}
           {/* iOS never shows the hover title, so the one event faculty need
-              context for right now gets its description in the card. */}
+              context for right now gets its description in the card. No
+              `block` on the span: line-clamp-2 needs its display:-webkit-box
+              to survive the cascade or the clamp is inert. */}
           {isNext && ev.description && (
-            <span className="line-clamp-2 mt-0.5 block text-[10px] font-normal leading-tight text-slate-400">
+            <span className="line-clamp-2 mt-0.5 text-[10px] font-normal leading-tight text-slate-400">
               {ev.description}
             </span>
           )}

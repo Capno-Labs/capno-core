@@ -148,7 +148,9 @@ export function VitalControls() {
 
   // The baseline preset is pinned below the list as the standing
   // "Reset to baseline" affordance (same applyPreset path, no new surface).
-  const normalizePreset = VITALS_PRESETS.find((p) => p.id === 'normalize');
+  // Keyed on the semantic effect marker, not the preset id, so an id rename
+  // in engine/presets.ts can't silently drop the pinned button.
+  const baselinePreset = VITALS_PRESETS.find((p) => p.effect === 'baseline');
 
   // The effect summary is rendered as a visible caption (not only a hover
   // title) so touch devices see what a preset does before firing it.
@@ -163,7 +165,9 @@ export function VitalControls() {
       } ${flashPresetId === p.id ? 'motion-safe:animate-event-fire' : ''}`}
     >
       <span className="block">{labelOverride ?? p.label}</span>
-      <span className="line-clamp-2 block max-w-[12rem] text-[10px] font-normal leading-tight text-slate-500 desk:max-w-none">
+      {/* No `block` here: line-clamp-2 needs its display:-webkit-box to
+          survive the cascade or the clamp is inert. */}
+      <span className="line-clamp-2 max-w-[12rem] text-[10px] font-normal leading-tight text-slate-500 desk:max-w-none">
         {p.effect === 'baseline'
           ? p.description
           : summarizeEffect(resolvePresetEffect(p, engine.scenario))}
@@ -204,11 +208,11 @@ export function VitalControls() {
         <div className="desk:order-2">
           <span className="label">Presets</span>
           <div className="flex flex-wrap gap-1.5 desk:flex-col">
-            {VITALS_PRESETS.filter((p) => p.id !== 'normalize').map((p) => presetButton(p))}
+            {VITALS_PRESETS.filter((p) => p.effect !== 'baseline').map((p) => presetButton(p))}
           </div>
-          {normalizePreset && (
+          {baselinePreset && (
             <div className="mt-2 border-t border-slate-800 pt-2">
-              {presetButton(normalizePreset, 'Reset to baseline')}
+              {presetButton(baselinePreset, 'Reset to baseline')}
             </div>
           )}
         </div>
