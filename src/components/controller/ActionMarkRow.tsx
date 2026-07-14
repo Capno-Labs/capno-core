@@ -1,6 +1,7 @@
 'use client';
 
 import type { ActionRecord, ActionStatus, ExpectedAction } from '@/lib/engine/types';
+import { formatClock } from '@/lib/format';
 
 // Display words are faculty-facing; the underlying ActionStatus values are
 // load-bearing (engine, scoring, schema, archives) and must not change.
@@ -58,10 +59,7 @@ export function ActionMarkRow({
           {current !== 'pending' && (
             <span className={`ml-2 font-semibold uppercase ${STATUS_BADGE[current]}`}>
               {current}
-              {record?.markedAtSec !== undefined &&
-                ` @ ${Math.floor(record.markedAtSec / 60)}:${String(
-                  Math.floor(record.markedAtSec % 60),
-                ).padStart(2, '0')}`}
+              {record?.markedAtSec !== undefined && ` @ ${formatClock(record.markedAtSec)}`}
             </span>
           )}
         </p>

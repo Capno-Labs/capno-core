@@ -1,4 +1,14 @@
-import type { ScenarioEvent } from './types';
+import type { Scenario, ScenarioEvent } from './types';
+
+/**
+ * The session's pacing budget in seconds: the authored hard slot budget when
+ * present, otherwise the library's run-time estimate — resolved here once so
+ * every pacing display agrees (maintainer decision: the estimate is a useful
+ * default pace signal, the authored budget is the override).
+ */
+export function sessionBudgetSec(scenario: Scenario): number {
+  return scenario.targetDurationSec ?? scenario.estimatedMinutes * 60;
+}
 
 /**
  * The next event the instructor is expected to fire: the first unfired event

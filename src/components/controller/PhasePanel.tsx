@@ -1,11 +1,7 @@
 'use client';
 
+import { formatClock } from '@/lib/format';
 import { useControllerStore } from '@/lib/store/controllerStore';
-
-function clock(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 /**
  * Phase-of-care stepper (preinduction → induction → … ). The current phase
@@ -42,13 +38,13 @@ export function PhasePanel() {
               {i + 1}. {p.label}
               {current && (
                 <span className={`ml-1.5 font-mono font-normal ${over ? 'text-amber-100' : 'text-sky-200'}`}>
-                  {clock(inPhaseSec)}
-                  {p.targetDurationSec !== undefined && ` / ${clock(p.targetDurationSec)}`}
+                  {formatClock(inPhaseSec)}
+                  {p.targetDurationSec !== undefined && ` / ${formatClock(p.targetDurationSec)}`}
                 </span>
               )}
               {!current && p.targetDurationSec !== undefined && (
                 <span className="ml-1.5 font-mono font-normal text-slate-600">
-                  {clock(p.targetDurationSec)}
+                  {formatClock(p.targetDurationSec)}
                 </span>
               )}
             </button>

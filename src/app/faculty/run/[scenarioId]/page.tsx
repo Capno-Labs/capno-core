@@ -14,21 +14,18 @@ import { PreStartPanel } from '@/components/controller/PreStartPanel';
 import { SessionControls } from '@/components/controller/SessionControls';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
-import { nextUnfiredEvent } from '@/lib/engine/flow';
+import { nextUnfiredEvent, sessionBudgetSec } from '@/lib/engine/flow';
+import { formatClock } from '@/lib/format';
 import { useBeforeUnload } from '@/lib/hooks/useBeforeUnload';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { getScenario } from '@/lib/scenarios';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
-function fmtClock(sec: number): string {
-  return `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
-}
-
 /**
  * Time-budget readout next to the clock: remaining time against the
- * scenario's budget (targetDurationSec, falling back to estimatedMinutes),
- * amber in the final stretch, red counting up once over. Display only —
- * nothing in the engine reacts to the budget.
+ * scenario's budget (sessionBudgetSec — authored slot budget, else the
+ * library estimate), amber in the final stretch, red counting up once over.
+ * Display only — nothing in the engine reacts to the budget.
  */
 function BudgetBadge({ elapsedSec, budgetSec }: { elapsedSec: number; budgetSec: number }) {
   const remaining = budgetSec - elapsedSec;
@@ -42,9 +39,9 @@ function BudgetBadge({ elapsedSec, budgetSec }: { elapsedSec: number; budgetSec:
   return (
     <span
       className={`font-mono text-sm font-semibold tabular-nums ${cls}`}
-      title={`Session budget ${fmtClock(budgetSec)}`}
+      title={`Session budget ${formatClock(budgetSec)}`}
     >
-      {remaining <= 0 ? `+${fmtClock(-remaining)} over` : `${fmtClock(remaining)} left`}
+      {remaining <= 0 ? `+${formatClock(-remaining)} over` : `${formatClock(remaining)} left`}
     </span>
   );
 }
@@ -115,8 +112,17 @@ export default function FacultyRunPage() {
   if (!engine || !snapshot) return null;
 
   const currentPhaseLabel = engine.scenario.phases.find((p) => p.id === snapshot.phaseId)?.label;
-  const budgetSec =
-    engine.scenario.targetDurationSec ?? engine.scenario.estimatedMinutes * 60;
+  const budgetSec = sessionBudgetSec(engine.scenario);
+  // The old script rail flashed imminent autos in the sticky bar; keep that
+  // safety net when auto events are on and the Flow panel may be scrolled away.
+  const imminentAuto =
+    snapshot.autoEventsEnabled && snapshot.status === 'running'
+      ? engine.scenario.events
+          .filter((e) => e.autoAtSec !== undefined && !snapshot.firedEventIds.includes(e.id))
+          .map((e) => ({ label: e.label, remaining: e.autoAtSec! - snapshot.elapsedSec }))
+          .filter((x) => x.remaining > 0 && x.remaining <= 30)
+          .sort((a, b) => a.remaining - b.remaining)[0]
+      : undefined;
 
   return (
     <FacultyGate>
@@ -136,7 +142,7 @@ export default function FacultyRunPage() {
               <div className="shrink-0 text-right">
                 <span className="flex items-baseline gap-2">
                   <span className="font-mono text-xl font-bold tabular-nums text-slate-200">
-                    {fmtClock(snapshot.elapsedSec)}
+                    {formatClock(snapshot.elapsedSec)}
                   </span>
                   {budgetSec > 0 && snapshot.status !== 'idle' && (
                     <BudgetBadge elapsedSec={snapshot.elapsedSec} budgetSec={budgetSec} />
@@ -149,6 +155,14 @@ export default function FacultyRunPage() {
                   )}
                 </p>
               </div>
+              {imminentAuto && (
+                <span
+                  className="shrink-0 self-center rounded bg-amber-950/80 px-2 py-1 text-xs font-semibold text-amber-300 ring-1 ring-amber-600 motion-safe:animate-pulse"
+                  title="Scripted event about to fire automatically"
+                >
+                  ⏱ {imminentAuto.label} · {formatClock(imminentAuto.remaining)}
+                </span>
+              )}
             </div>
             <SessionControls />
           </header>

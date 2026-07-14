@@ -132,7 +132,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       const score = scoreSession(engine.scenario, snapshot.actions);
       const result = archiveSession({
         sessionId: snapshot.sessionId,
-        sessionCode: get().sessionCode || snapshot.sessionId,
+        sessionCode: get().sessionCode,
         scenario: engine.scenario,
         snapshot,
         endedAtIso: new Date().toISOString(),

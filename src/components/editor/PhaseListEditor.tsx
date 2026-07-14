@@ -95,15 +95,21 @@ export function PhaseListEditor({
               <input
                 className="input"
                 type="number"
-                min={1}
+                min={0}
+                step="any"
                 placeholder="optional"
                 value={phase.targetDurationSec !== undefined ? phase.targetDurationSec / 60 : ''}
-                onChange={(e) =>
+                onChange={(e) => {
+                  // Fractional minutes are fine (0.5 = a 30 s budget); anything
+                  // non-positive means "no budget", never a silent clamp.
+                  const n = Number(e.target.value);
                   patch(i, {
                     targetDurationSec:
-                      e.target.value === '' ? undefined : Math.max(1, Number(e.target.value)) * 60,
-                  })
-                }
+                      e.target.value === '' || !(n > 0)
+                        ? undefined
+                        : Math.max(1, Math.round(n * 60)),
+                  });
+                }}
               />
             </div>
           </div>

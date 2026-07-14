@@ -5,15 +5,11 @@ import { ACTION_LEGEND, ActionMarkRow } from '@/components/controller/ActionMark
 import { CATEGORY_DOT, CATEGORY_STYLES } from '@/components/eventCategories';
 import { nextUnfiredEvent } from '@/lib/engine/flow';
 import type { ExpectedAction, ScenarioEvent } from '@/lib/engine/types';
+import { formatClock } from '@/lib/format';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 const IMMINENT_SEC = 30;
-
-function clock(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
 
 /**
  * The case flow: every scenario event as a card in author (narrative) order,
@@ -118,7 +114,7 @@ export function FlowPanel() {
       return {
         hint: (
           <span className="font-mono text-[10px] text-slate-500">
-            suggested ~{clock(ev.autoAtSec)}
+            suggested ~{formatClock(ev.autoAtSec)}
           </span>
         ),
         imminent: false,
@@ -128,7 +124,7 @@ export function FlowPanel() {
     return {
       hint: (
         <span className={`font-mono text-[10px] ${imminent ? 'text-amber-300' : 'text-sky-400'}`}>
-          {running ? `auto in ${clock(remaining)}` : `auto at ${clock(ev.autoAtSec)}`}
+          {running ? `auto in ${formatClock(remaining)}` : `auto at ${formatClock(ev.autoAtSec)}`}
         </span>
       ),
       imminent,

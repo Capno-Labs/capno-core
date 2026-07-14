@@ -450,15 +450,21 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                 <input
                   className="input"
                   type="number"
-                  min={1}
+                  min={0}
+                  step="any"
                   placeholder="optional"
                   value={scenario.targetDurationSec !== undefined ? scenario.targetDurationSec / 60 : ''}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    // Fractional minutes are fine; non-positive means "no
+                    // budget", never a silent clamp (see PhaseListEditor).
+                    const n = Number(e.target.value);
                     update({
                       targetDurationSec:
-                        e.target.value === '' ? undefined : Math.max(1, Number(e.target.value)) * 60,
-                    })
-                  }
+                        e.target.value === '' || !(n > 0)
+                          ? undefined
+                          : Math.max(1, Math.round(n * 60)),
+                    });
+                  }}
                 />
               </div>
             </div>
