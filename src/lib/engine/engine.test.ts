@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SimulationEngine } from './engine';
+import { generateSessionId, isValidSessionCode, SimulationEngine } from './engine';
 import { clampVital } from './vitals';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 import type { NumericVitals, Scenario } from './types';
@@ -213,6 +213,13 @@ describe('SimulationEngine', () => {
     e.setAutoEvents(false); // cancels unfired autos only — not a fired event's tail
     e.tick(60);
     expect(e.getVitals().hr).toBe(150);
+  });
+
+  it('validates session codes against the generator format', () => {
+    expect(isValidSessionCode(generateSessionId())).toBe(true);
+    expect(isValidSessionCode('ROOM42')).toBe(false); // 6 chars — the join input caps at 4
+    expect(isValidSessionCode('KX3O')).toBe(false); // O is not in the confusable-free alphabet
+    expect(isValidSessionCode('')).toBe(false);
   });
 
   it('keeps the autoEvents flag across reset()', () => {

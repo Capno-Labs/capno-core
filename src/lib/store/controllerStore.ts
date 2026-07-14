@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { generateSessionId, SimulationEngine } from '../engine/engine';
+import { generateSessionId, isValidSessionCode, SimulationEngine } from '../engine/engine';
 import { resolvePresetEffect, VITALS_PRESETS } from '../engine/presets';
 import { scoreSession } from '../engine/scoring';
 import type {
@@ -98,11 +98,13 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       // the next snapshot without re-joining ("Run next student").
       const sessionId = generateSessionId();
       const trimmed = code?.trim().toUpperCase() ?? '';
-      const sessionCode = /^[A-Z0-9]{4,8}$/.test(trimmed) ? trimmed : sessionId;
-      // Auto-fire is off by default in the controller: the instructor is the
-      // pacemaker on a timed lab day. The toggle in SessionControls re-enables
-      // the authored autoAtSec timeline for unattended deterioration.
-      const engine = new SimulationEngine(scenario, sessionId, { autoEvents: false });
+      const sessionCode = isValidSessionCode(trimmed) ? trimmed : sessionId;
+      // Auto-fire defaults off in the controller: the instructor is the
+      // pacemaker on a timed lab day. The toggle is an instructor preference,
+      // so it carries over from the previous engine (scenario switches and
+      // "Run next student" turnovers keep the instructor's choice).
+      const autoEvents = get().engine?.getAutoEventsEnabled() ?? false;
+      const engine = new SimulationEngine(scenario, sessionId, { autoEvents });
       channel = createSyncChannels(sessionCode);
       // Late-joining student displays send 'hello' to get an immediate snapshot.
       channel.onMessage((m) => {

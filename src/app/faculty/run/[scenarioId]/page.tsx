@@ -70,9 +70,13 @@ export default function FacultyRunPage() {
     }
     // ?code=XXXX reuses the previous session code (the "Run next student"
     // turnover) so connected student displays pick the new run up without
-    // re-joining. Read from location directly — it only matters at load time.
+    // re-joining. It is one-shot state, not addressable state: strip it
+    // immediately after consumption so a duplicated tab, refresh, or
+    // history/bookmark revisit can't spin up a second controller on a
+    // channel that is live elsewhere (one authority per session).
     const code = new URLSearchParams(window.location.search).get('code') ?? undefined;
     loadScenario(scenario, code);
+    if (code) window.history.replaceState(null, '', window.location.pathname);
     return () => teardown();
   }, [params.scenarioId, loadScenario, teardown]);
 

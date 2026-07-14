@@ -506,10 +506,28 @@ export class SimulationEngine {
   }
 }
 
+/** Session-code format: exactly this many chars from this alphabet. */
+const SESSION_CODE_LENGTH = 4;
+const SESSION_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no easily-confused chars
+
 /** Generate a short human-readable session code (e.g. "KX3Q"). */
 export function generateSessionId(): string {
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no easily-confused chars
   let out = '';
-  for (let i = 0; i < 4; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  for (let i = 0; i < SESSION_CODE_LENGTH; i++) {
+    out += SESSION_CODE_ALPHABET[Math.floor(Math.random() * SESSION_CODE_ALPHABET.length)];
+  }
   return out;
+}
+
+/**
+ * True when `code` is something generateSessionId could have minted — the
+ * one validation for codes arriving from outside (URL params), so it can
+ * never drift from the generator or from what the student join input
+ * accepts.
+ */
+export function isValidSessionCode(code: string): boolean {
+  return (
+    code.length === SESSION_CODE_LENGTH &&
+    [...code].every((c) => SESSION_CODE_ALPHABET.includes(c))
+  );
 }
