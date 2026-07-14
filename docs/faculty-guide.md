@@ -99,7 +99,9 @@ Top-bar controls:
   the clock, a countdown shows time remaining against the scenario's slot
   budget (amber in the final stretch, red once over).
 - **+1 min / +5 min** skip uneventful scenario time — vitals ramps, scheduled
-  events, and the clock all jump forward together.
+  events, and the clock all jump forward together. These buttons appear only
+  while **Auto events** is on; in a fully manual session you pace every beat
+  yourself.
 - **Auto events: off/on** — off (the default) means nothing fires on its own;
   you press every event. On restores the scenario's authored auto-fire
   timeline. Flipping it mid-run is safe: past-due events never retro-fire.
@@ -119,9 +121,9 @@ Orientation on the controller:
 - **Live monitor (what students see)**: an exact preview of the student
   display, with a **🔔 silence alarms** toggle that silences the alarm state on
   every connected display.
-- **Phase** stepper: advance through the scenario's phases of care (e.g.
-  induction → maintenance). Phases group the learner-action checklist and give
-  the debrief timeline structure.
+- **Current phase**: the sticky command bar shows the scenario's phase of
+  care next to the session status. Phases group the learner-action checklist
+  and give the debrief timeline structure.
 
 ## 5. Driving vitals
 

@@ -134,9 +134,10 @@ times in an afternoon should not fight a wizard.
 ## 3. Faculty controller: sticky command bar
 
 **Current state — mostly built.** The run page is *already* the two-column
-cockpit the original spec asked for: left = live monitor preview, patient
-card, phase panel, vital controls; right = events, learner actions, notes,
-log; `ScriptRail` sits above both columns. `SessionControls` already has
+cockpit the original spec asked for: left = live monitor preview, vital
+controls, patient card; right = events, learner actions, notes, log.
+(The phase panel and per-system state summary have since been retired —
+current phase lives in the sticky command bar.) `SessionControls` already has
 the session code, sync badge, Start/Pause, skip-ahead, Reset, and the
 confirm-protected **End session → debrief** flow.
 
