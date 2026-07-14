@@ -111,6 +111,59 @@ describe('SimulationEngine', () => {
     expect(e.snapshot().firedEventIds).toContain(auto.id);
   });
 
+  it('never fires autos when constructed with autoEvents: false', () => {
+    const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
+    const auto = e.scenario.events.find((x) => x.autoAtSec !== undefined);
+    if (!auto) return;
+    e.start();
+    e.tick(auto.autoAtSec! + 60);
+    e.skipAhead(600);
+    expect(e.snapshot().firedEventIds).not.toContain(auto.id);
+    expect(e.snapshot().autoEventsEnabled).toBe(false);
+    // Manual triggering still works with autos off.
+    e.triggerEvent(auto.id);
+    expect(e.snapshot().firedEventIds).toContain(auto.id);
+  });
+
+  it('setAutoEvents(false) mid-run cancels scheduled autos', () => {
+    const e = newEngine();
+    const auto = e.scenario.events.find((x) => x.autoAtSec !== undefined && x.autoAtSec > 30);
+    if (!auto) return;
+    e.start();
+    e.tick(10);
+    e.setAutoEvents(false);
+    e.tick(auto.autoAtSec! + 60);
+    expect(e.snapshot().firedEventIds).not.toContain(auto.id);
+    expect(e.snapshot().log.some((l) => l.label === 'Auto events off')).toBe(true);
+  });
+
+  it('setAutoEvents(true) mid-run schedules future autos but not past-due ones', () => {
+    const autos = scenario()
+      .events.filter((x) => x.autoAtSec !== undefined)
+      .sort((a, b) => a.autoAtSec! - b.autoAtSec!);
+    if (autos.length < 2) return;
+    const [first, second] = autos;
+    const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
+    e.start();
+    e.tick(first.autoAtSec! + 1); // first is now past due, still unfired
+    e.setAutoEvents(true);
+    e.tick(second.autoAtSec! - first.autoAtSec! + 60);
+    expect(e.snapshot().firedEventIds).not.toContain(first.id); // no retro-fire
+    expect(e.snapshot().firedEventIds).toContain(second.id);
+  });
+
+  it('keeps the autoEvents flag across reset()', () => {
+    const e = new SimulationEngine(scenario(), 'TEST', { autoEvents: false });
+    e.start();
+    e.reset();
+    expect(e.snapshot().autoEventsEnabled).toBe(false);
+    const auto = e.scenario.events.find((x) => x.autoAtSec !== undefined);
+    if (!auto) return;
+    e.start();
+    e.tick(auto.autoAtSec! + 60);
+    expect(e.snapshot().firedEventIds).not.toContain(auto.id);
+  });
+
   it('marks actions and records the time', () => {
     const e = newEngine();
     e.start();

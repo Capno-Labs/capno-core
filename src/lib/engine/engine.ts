@@ -50,7 +50,13 @@ export class SimulationEngine {
   /** Per-vital ramp: target value + rate (units/sec). Absent = at rest. */
   private ramps = new Map<keyof NumericVitals, { target: number; ratePerSec: number }>();
   /** Effects scheduled for a future elapsed time (from afterSec / autoAtSec). */
-  private pendingEffects: { atSec: number; effect: VitalEffect; sourceLabel: string }[] = [];
+  private pendingEffects: {
+    atSec: number;
+    effect: VitalEffect;
+    sourceLabel: string;
+    /** Queued by the autoAtSec schedule (vs. a manual trigger's afterSec delay). */
+    fromAuto?: boolean;
+  }[] = [];
 
   private log: LogEntry[] = [];
   private notes: FacultyNote[] = [];
@@ -66,9 +72,17 @@ export class SimulationEngine {
   private history: VitalsHistorySample[] = [];
   private lastHistorySec = Number.NEGATIVE_INFINITY;
 
-  constructor(scenario: Scenario, sessionId: string) {
+  /**
+   * When false, autoAtSec events are never queued — every event waits for a
+   * manual trigger. Defaults to true so the core keeps its authored-timeline
+   * semantics; UIs that want the instructor as pacemaker pass false.
+   */
+  private autoEventsEnabled: boolean;
+
+  constructor(scenario: Scenario, sessionId: string, options?: { autoEvents?: boolean }) {
     this.scenario = scenario;
     this.sessionId = sessionId;
+    this.autoEventsEnabled = options?.autoEvents ?? true;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
     const { rhythm, capnoShape, ...numeric } = scenario.baselineVitals;
     this.rhythm = rhythm;
@@ -96,18 +110,8 @@ export class SimulationEngine {
     if (this.status === 'idle') {
       this.addLog('session', 'Scenario started');
       // Queue scenario-defined automatic events (skip any already fired
-      // manually while idle — e.g. from the script rail during setup).
-      for (const ev of this.scenario.events) {
-        if (ev.autoAtSec !== undefined && !this.firedEventIds.has(ev.id)) {
-          for (const effect of ev.effects) {
-            this.pendingEffects.push({
-              atSec: ev.autoAtSec + (effect.afterSec ?? 0),
-              effect,
-              sourceLabel: ev.label,
-            });
-          }
-        }
-      }
+      // manually while idle — e.g. fired from the events panel during setup).
+      if (this.autoEventsEnabled) this.queueAutoEvents(-1);
     } else {
       this.addLog('session', 'Scenario resumed');
     }
@@ -135,7 +139,50 @@ export class SimulationEngine {
     this.addLog('session', 'Scenario ended');
   }
 
-  /** Reset to baseline (fresh log, fresh actions, elapsed 0). */
+  /**
+   * Turn the autoAtSec schedule on or off, mid-session if needed. Turning off
+   * cancels queued auto effects; turning on schedules only autos still in the
+   * future (past-due unfired events stay manual — no surprise retro-fire).
+   * The flag survives reset(): it is an instructor preference, not scenario
+   * state.
+   */
+  setAutoEvents(on: boolean): void {
+    if (on === this.autoEventsEnabled) return;
+    this.autoEventsEnabled = on;
+    if (this.status === 'running' || this.status === 'paused') {
+      if (on) {
+        this.queueAutoEvents(this.elapsedSec);
+      } else {
+        this.pendingEffects = this.pendingEffects.filter((p) => !p.fromAuto);
+      }
+    }
+    if (this.status !== 'idle') {
+      this.addLog('session', `Auto events ${on ? 'on' : 'off'}`);
+    }
+  }
+
+  getAutoEventsEnabled(): boolean {
+    return this.autoEventsEnabled;
+  }
+
+  /** Queue effects for unfired autoAtSec events strictly after `afterSec`. */
+  private queueAutoEvents(afterSec: number): void {
+    for (const ev of this.scenario.events) {
+      if (ev.autoAtSec === undefined || ev.autoAtSec <= afterSec) continue;
+      if (this.firedEventIds.has(ev.id)) continue;
+      for (const effect of ev.effects) {
+        this.pendingEffects.push({
+          atSec: ev.autoAtSec + (effect.afterSec ?? 0),
+          effect,
+          sourceLabel: ev.label,
+          fromAuto: true,
+        });
+      }
+    }
+  }
+
+  /** Reset to baseline (fresh log, fresh actions, elapsed 0). Deliberately
+   *  keeps autoEventsEnabled — an instructor preference, not scenario state. */
   reset(): void {
     this.status = 'idle';
     this.elapsedSec = 0;
@@ -401,6 +448,7 @@ export class SimulationEngine {
       log: [...this.log],
       notes: [...this.notes],
       firedEventIds: [...this.firedEventIds],
+      autoEventsEnabled: this.autoEventsEnabled,
     };
   }
 

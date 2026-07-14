@@ -329,6 +329,8 @@ export interface SimSnapshot {
   log: LogEntry[];
   notes: FacultyNote[];
   firedEventIds: string[];
+  /** Whether autoAtSec events fire on their own timeline this session. */
+  autoEventsEnabled: boolean;
 }
 
 export interface FacultyNote {

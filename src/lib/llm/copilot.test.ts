@@ -66,6 +66,7 @@ function fixtureSnapshot(): SimSnapshot {
     log: [],
     notes: [],
     firedEventIds: ['anaphylaxis-full'],
+    autoEventsEnabled: false,
   };
 }
 

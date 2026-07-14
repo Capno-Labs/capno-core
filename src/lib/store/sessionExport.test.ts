@@ -19,6 +19,7 @@ function makeSession(sessionId: string, endedAtIso: string): ArchivedSession {
     log: [{ t: 0, kind: 'session', label: 'Session started' }],
     notes: [],
     firedEventIds: [],
+    autoEventsEnabled: false,
   };
   return {
     sessionId,
