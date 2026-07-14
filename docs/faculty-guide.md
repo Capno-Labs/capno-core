@@ -193,6 +193,11 @@ and a **Reference** section (correct management, common errors).
 **🖨 Export PDF** opens the browser's print dialog — choose "Save as PDF". The
 amend controls are hidden in print.
 
+**▶ Run next student** relaunches the same scenario fresh **on the same
+session code**: connected student displays flip from "Session ended" back to
+the live monitor by themselves — nobody re-types a code between back-to-back
+lab slots. Each run still archives as its own debrief.
+
 Past sessions live under **Debrief** (or the **Past sessions** button
 in the library). Scoring policy: done = full points, delayed = half,
 incorrect/missed = zero; critical actions are surfaced separately and never

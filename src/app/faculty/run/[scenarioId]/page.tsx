@@ -68,7 +68,11 @@ export default function FacultyRunPage() {
       setNotFound(true);
       return;
     }
-    loadScenario(scenario);
+    // ?code=XXXX reuses the previous session code (the "Run next student"
+    // turnover) so connected student displays pick the new run up without
+    // re-joining. Read from location directly — it only matters at load time.
+    const code = new URLSearchParams(window.location.search).get('code') ?? undefined;
+    loadScenario(scenario, code);
     return () => teardown();
   }, [params.scenarioId, loadScenario, teardown]);
 

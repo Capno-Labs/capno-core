@@ -29,12 +29,19 @@ interface ControllerState {
   engine: SimulationEngine | null;
   snapshot: SimSnapshot | null;
   sessionId: string;
+  /**
+   * What students type to join — the sync channel name. Equals sessionId for
+   * a fresh session; stays the same across "Run next student" turnovers while
+   * each run keeps its own sessionId (the archive key, which must be unique —
+   * archives are replaced on same-id save).
+   */
+  sessionCode: string;
   /** Set when the session archive could not be persisted (storage full). */
   archiveWarning: string | null;
   /** Per-transport sync state for the health indicator. */
   syncHealth: TransportHealth[];
 
-  loadScenario: (scenario: Scenario) => void;
+  loadScenario: (scenario: Scenario, code?: string) => void;
   start: () => void;
   pause: () => void;
   reset: () => void;
@@ -80,23 +87,29 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     engine: null,
     snapshot: null,
     sessionId: '',
+    sessionCode: '',
     archiveWarning: null,
     syncHealth: [],
 
-    loadScenario: (scenario) => {
+    loadScenario: (scenario, code) => {
       get().teardown();
+      // The sessionId (archive key) is always fresh; a passed code reuses the
+      // sync channel so student displays from the previous run reconnect on
+      // the next snapshot without re-joining ("Run next student").
       const sessionId = generateSessionId();
+      const trimmed = code?.trim().toUpperCase() ?? '';
+      const sessionCode = /^[A-Z0-9]{4,8}$/.test(trimmed) ? trimmed : sessionId;
       // Auto-fire is off by default in the controller: the instructor is the
       // pacemaker on a timed lab day. The toggle in SessionControls re-enables
       // the authored autoAtSec timeline for unattended deterioration.
       const engine = new SimulationEngine(scenario, sessionId, { autoEvents: false });
-      channel = createSyncChannels(sessionId);
+      channel = createSyncChannels(sessionCode);
       // Late-joining student displays send 'hello' to get an immediate snapshot.
       channel.onMessage((m) => {
         if (m.type === 'hello') publish();
       });
       channel.onStatus(() => set({ syncHealth: channel ? channel.getHealth() : [] }));
-      set({ engine, sessionId, syncHealth: channel.getHealth() });
+      set({ engine, sessionId, sessionCode, syncHealth: channel.getHealth() });
       tickHandle = setInterval(() => {
         engine.tick(TICK_MS / 1000);
         publish();
@@ -117,6 +130,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       const score = scoreSession(engine.scenario, snapshot.actions);
       const result = archiveSession({
         sessionId: snapshot.sessionId,
+        sessionCode: get().sessionCode || snapshot.sessionId,
         scenario: engine.scenario,
         snapshot,
         endedAtIso: new Date().toISOString(),
@@ -165,7 +179,14 @@ export const useControllerStore = create<ControllerState>((set, get) => {
         channel.close();
         channel = null;
       }
-      set({ engine: null, snapshot: null, sessionId: '', archiveWarning: null, syncHealth: [] });
+      set({
+        engine: null,
+        snapshot: null,
+        sessionId: '',
+        sessionCode: '',
+        archiveWarning: null,
+        syncHealth: [],
+      });
     },
   };
 });

@@ -394,6 +394,12 @@ export interface VitalsHistorySample {
 
 export interface ArchivedSession {
   sessionId: string;
+  /**
+   * The code students typed to join (the sync channel name). Usually equals
+   * sessionId; differs when the code was reused for back-to-back runs so the
+   * student displays never re-joined. Absent in pre-turnover archives.
+   */
+  sessionCode?: string;
   scenario: Scenario;
   snapshot: SimSnapshot;
   endedAtIso: string;

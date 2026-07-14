@@ -18,6 +18,7 @@ export function SessionControls() {
   const {
     snapshot,
     sessionId,
+    sessionCode,
     syncHealth,
     start,
     pause,
@@ -44,7 +45,7 @@ export function SessionControls() {
             <SyncHealthBadge health={syncHealth} />
           </span>
           <div className="flex items-center gap-2 font-mono text-xl font-bold tracking-[0.3em] text-vital-ecg">
-            {sessionId}
+            {sessionCode}
             {status === 'running' && (
               <span
                 className="h-1.5 w-1.5 rounded-full bg-vital-ecg motion-safe:animate-pulse"
@@ -61,7 +62,7 @@ export function SessionControls() {
             className="rounded px-1.5 py-0.5 text-[11px] text-slate-300 ring-1 ring-slate-600 hover:bg-slate-700"
             title="Copy session code"
             onClick={async () =>
-              (await copyText(sessionId))
+              (await copyText(sessionCode))
                 ? toast('Code copied', 'success')
                 : toast('Copy failed', 'error')
             }
@@ -72,7 +73,7 @@ export function SessionControls() {
             className="rounded px-1.5 py-0.5 text-[11px] text-slate-300 ring-1 ring-slate-600 hover:bg-slate-700"
             title="Copy a link that joins the student display directly"
             onClick={async () =>
-              (await copyText(joinUrl(sessionId)))
+              (await copyText(joinUrl(sessionCode)))
                 ? toast('Join link copied', 'success')
                 : toast('Copy failed', 'error')
             }

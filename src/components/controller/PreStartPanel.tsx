@@ -15,7 +15,7 @@ import { useControllerStore } from '@/lib/store/controllerStore';
  * scenario.
  */
 export function PreStartPanel() {
-  const { engine, snapshot, sessionId, syncHealth } = useControllerStore();
+  const { engine, snapshot, sessionCode, syncHealth } = useControllerStore();
   const [dismissed, setDismissed] = useState(false);
 
   if (!engine || !snapshot || dismissed || snapshot.status !== 'idle') return null;
@@ -60,13 +60,13 @@ export function PreStartPanel() {
               className="font-mono text-3xl font-bold tracking-[0.3em] text-vital-ecg"
               title="Session code"
             >
-              {sessionId}
+              {sessionCode}
             </span>
             <span className="flex flex-wrap items-center gap-2">
-              <CopyJoinLinkButton sessionId={sessionId} />
+              <CopyJoinLinkButton sessionId={sessionCode} />
               <button
                 className="btn-secondary !py-1 text-xs"
-                onClick={() => window.open(joinUrl(sessionId), '_blank', 'noopener')}
+                onClick={() => window.open(joinUrl(sessionCode), '_blank', 'noopener')}
               >
                 Open display ↗
               </button>
