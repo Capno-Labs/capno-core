@@ -1,6 +1,6 @@
 'use client';
 
-import type { ExpectedAction, Phase, RubricCategory } from '@/lib/engine/types';
+import type { ExpectedAction, Phase, RubricCategory, ScenarioEvent } from '@/lib/engine/types';
 
 /**
  * Form editor for expected learner actions. Controlled: emits the full
@@ -10,11 +10,13 @@ export function ActionListEditor({
   actions,
   phases,
   rubric,
+  events,
   onChange,
 }: {
   actions: ExpectedAction[];
   phases: Phase[];
   rubric: RubricCategory[];
+  events: ScenarioEvent[];
   onChange: (actions: ExpectedAction[]) => void;
 }) {
   const patch = (i: number, p: Partial<ExpectedAction>) =>
@@ -22,11 +24,14 @@ export function ActionListEditor({
 
   const referencedBy = (actionId: string) =>
     rubric.filter((c) => c.actionIds.includes(actionId)).map((c) => c.label || c.id);
+  const linkedFrom = (actionId: string) =>
+    events.filter((e) => e.actionIds?.includes(actionId)).map((e) => e.label || e.id);
 
   return (
     <div className="space-y-2">
       {actions.map((action, i) => {
         const refs = referencedBy(action.id);
+        const links = linkedFrom(action.id);
         return (
           <div key={i} className="space-y-2 rounded bg-slate-800/60 p-2">
             <div className="grid grid-cols-2 gap-2">
@@ -100,12 +105,16 @@ export function ActionListEditor({
               <button
                 className="btn-ghost ml-auto !px-2 !py-1 text-red-400"
                 onClick={() => {
+                  const referencedIn = [
+                    ...refs.map((r) => `rubric: ${r}`),
+                    ...links.map((l) => `event: ${l}`),
+                  ];
                   if (
-                    refs.length > 0 &&
+                    referencedIn.length > 0 &&
                     !window.confirm(
-                      `"${action.label || action.id}" is referenced by rubric ${
-                        refs.length === 1 ? 'category' : 'categories'
-                      } ${refs.join(', ')}. Remove anyway? (Fix the rubric afterwards.)`,
+                      `"${action.label || action.id}" is referenced by ${referencedIn.join(
+                        ', ',
+                      )}. Remove anyway? (Fix those references afterwards.)`,
                     )
                   ) {
                     return;
@@ -117,8 +126,12 @@ export function ActionListEditor({
                 ✕ Remove
               </button>
             </div>
-            {refs.length > 0 && (
-              <p className="text-xs text-slate-500">In rubric: {refs.join(', ')}</p>
+            {(refs.length > 0 || links.length > 0) && (
+              <p className="text-xs text-slate-500">
+                {refs.length > 0 && <>In rubric: {refs.join(', ')}</>}
+                {refs.length > 0 && links.length > 0 && ' · '}
+                {links.length > 0 && <>Linked from event{links.length === 1 ? '' : 's'}: {links.join(', ')}</>}
+              </p>
             )}
           </div>
         );

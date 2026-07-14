@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import type {
   CapnoShape,
   EventCategory,
+  ExpectedAction,
   NumericVitals,
   Phase,
   Rhythm,
@@ -186,6 +187,7 @@ function EffectEditor({
 export function EventListEditor({
   events,
   phases,
+  actions,
   baselineVitals,
   estimatedMinutes,
   warnings = [],
@@ -193,6 +195,8 @@ export function EventListEditor({
 }: {
   events: ScenarioEvent[];
   phases: Phase[];
+  /** The scenario's expected actions, offered as link targets per event. */
+  actions: ExpectedAction[];
   baselineVitals: Vitals;
   estimatedMinutes: number;
   warnings?: LintWarning[];
@@ -212,6 +216,16 @@ export function EventListEditor({
 
   const patch = (i: number, p: Partial<ScenarioEvent>) =>
     onChange(events.map((ev, j) => (j === i ? { ...ev, ...p } : ev)));
+
+  // Empty link list is written as undefined, matching the description-field
+  // convention (absent, not []).
+  const toggleLinked = (i: number, actionId: string) => {
+    const cur = events[i].actionIds ?? [];
+    const next = cur.includes(actionId)
+      ? cur.filter((id) => id !== actionId)
+      : [...cur, actionId];
+    patch(i, { actionIds: next.length > 0 ? next : undefined });
+  };
 
   // Remembers each card's last auto-fire time across trigger-type toggles so
   // switching to faculty-fired and back doesn't lose it. Index-keyed UI
@@ -444,6 +458,8 @@ export function EventListEditor({
             <span className="text-xs text-slate-500">
               {event.category} · {event.effects.length} effect
               {event.effects.length === 1 ? '' : 's'}
+              {(event.actionIds?.length ?? 0) > 0 &&
+                ` · ${event.actionIds!.length} linked action${event.actionIds!.length === 1 ? '' : 's'}`}
             </span>
             {(() => {
               const n = warnings.filter((w) => w.path.startsWith(`events.${i}.`)).length;
@@ -581,6 +597,34 @@ export function EventListEditor({
                   : 'No timer. Faculty taps it when learners act — use for treatment responses and improvised turns.'}
               </p>
             </div>
+            {actions.length > 0 && (
+              <div className="space-y-1">
+                <span className="label">Linked learner actions</span>
+                <div className="grid gap-1 sm:grid-cols-2">
+                  {actions.map((a) => (
+                    <label
+                      key={a.id}
+                      className="flex cursor-pointer items-center gap-2 rounded bg-slate-900/60 px-2 py-1 text-sm text-slate-300"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={event.actionIds?.includes(a.id) ?? false}
+                        onChange={() => toggleLinked(i, a.id)}
+                      />
+                      <span className="min-w-0 truncate" title={a.description ?? a.label}>
+                        {a.critical && <span className="mr-1 text-red-400">●</span>}
+                        {a.label || a.id || '(unnamed action)'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">
+                  The actions this event embodies or responds to — the run screen shows them under
+                  the event’s card so firing and marking happen in one place. Unlinked actions stay
+                  in the general checklist.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <span className="label">Effects</span>
               {event.effects.map((effect, k) => (
