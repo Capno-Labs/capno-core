@@ -132,7 +132,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       return snapshot.sessionId;
     },
 
-    setVital: (key, value, overSec = 20) => withEngine((e) => e.setVital(key, value, overSec)),
+    setVital: (key, value, overSec = 3) => withEngine((e) => e.setVital(key, value, overSec)),
     applyPreset: (presetId) =>
       withEngine((e) => {
         const preset = VITALS_PRESETS.find((p) => p.id === presetId);

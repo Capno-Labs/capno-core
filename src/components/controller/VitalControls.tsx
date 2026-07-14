@@ -22,9 +22,8 @@ const SLIDER_KEYS: (keyof NumericVitals)[] = [
 
 const TRANSITIONS = [
   { label: 'Instant', sec: 0 },
-  { label: '20 s', sec: 20 },
-  { label: '1 min', sec: 60 },
-  { label: '3 min', sec: 180 },
+  { label: '3 s', sec: 3 },
+  { label: '10 s', sec: 10 },
 ];
 
 function VitalSlider({
@@ -124,7 +123,7 @@ export function VitalControls() {
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
   const applyPreset = useControllerStore((s) => s.applyPreset);
-  const [overSec, setOverSec] = useState(20);
+  const [overSec, setOverSec] = useState(3);
   const [flashPresetId, setFlashPresetId] = useState<string | null>(null);
   if (!engine || !snapshot) return null;
 

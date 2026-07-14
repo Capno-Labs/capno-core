@@ -36,7 +36,7 @@ export type CopilotCommand =
   | { type: 'cycle_nibp' };
 
 const MAX_OVER_SEC = 600;
-const DEFAULT_OVER_SEC = 20; // matches the controller store's setVital default
+const DEFAULT_OVER_SEC = 3; // matches the controller store's setVital default
 const MAX_SKIP_SEC = 600;
 const MAX_NOTE_CHARS = 500;
 

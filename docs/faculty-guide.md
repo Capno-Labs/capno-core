@@ -120,9 +120,9 @@ Orientation on the controller:
 The **Vitals** panel has a slider per parameter (HR, SBP/DBP, SpO₂, EtCO₂, RR,
 Temp, anesthetic Depth, sevoflurane Fi/Et — shown as SEV on the monitor). A
 slider commits when you release it, and
-the value changes over the selected **ramp** speed — **Instant / 20 s / 1 min /
-3 min**. Use ramps for realism: a 1–3 min ramp reads as evolving physiology;
-Instant is for corrections.
+the value changes over the selected **ramp** speed — **Instant / 3 s / 10 s**
+(default 3 s). A short ramp keeps the change readable on the monitor without
+stalling a timed session; Instant is for corrections.
 
 **Rhythm** buttons switch the ECG: Sinus Rhythm, Sinus Bradycardia, Sinus
 Tachycardia, Sinus with PVCs, Sinus with PACs, Atrial Fibrillation, SVT,
