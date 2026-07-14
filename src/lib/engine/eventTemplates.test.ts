@@ -37,7 +37,7 @@ describe('event templates', () => {
         for (const key of NUMERIC_VITAL_KEYS) {
           const v = effect.vitals?.[key];
           if (v === undefined) continue;
-          // In-range targets survive clamping unchanged (presets.test.ts pattern).
+          // In-range targets survive clamping unchanged.
           expect(clampVital(key, v), `${t.id}.${key}`).toBe(v);
         }
       }

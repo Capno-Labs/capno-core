@@ -43,14 +43,14 @@ Optimize for low cognitive load during live sim sessions.
 These come from `CLAUDE.md` and are non-negotiable for this work:
 
 - **Offline-first.** No feature may require network by default. The wizard,
-  presets, demo, and debrief must all work with Supabase unconfigured.
+  demo, and debrief must all work with Supabase unconfigured.
 - **No new heavy dependencies.** No tour/onboarding libraries, no chart
   libraries, no jsPDF. Guided flows are hand-rolled; PDF export stays
   print CSS.
-- **Clinical content is reviewed material.** Any preset values, demo
-  narration, or debrief prompts containing physiology numbers or treatment
-  sequences must be drawn from the five reviewed scenarios and flagged for
-  faculty review in the PR — never invented.
+- **Clinical content is reviewed material.** Any demo narration or debrief
+  prompts containing physiology numbers or treatment sequences must be drawn
+  from the reviewed scenarios and flagged for faculty review in the PR —
+  never invented.
 - **The controller is the single authority.** Nothing here adds
   student→faculty messages or a second tick loop.
 - **Naming.** The platform is **CAPNO Studio** — the only branded name.
@@ -156,6 +156,14 @@ Do **not** rebuild the panel layout; it already matches the intended
 design. (A "critical actions always visible" area is covered by item 6.)
 
 ## 4. Add vitals presets
+
+> **Removed (2026-07).** Built as specced, then removed before launch: the
+> preset target values were clinical content (invariant 7) that never
+> received faculty review, and the maintainer chose removal over shipping
+> unreviewed numbers. Decision record in `docs/ux-batch-2.md`. The generic
+> `applyNamedEffect` engine primitive this section motivated remains, with
+> tests, as the extension point for a future reviewed preset pack. The
+> section below is kept for history.
 
 **Current state:** the ramp machinery already exists — `setVital(key,
 value, overSec)` with 0 s/20 s/1 min/3 min transitions in `VitalControls`,
@@ -367,9 +375,9 @@ already exist:
    toggle and bigger tap targets in `ActionChecklist` (item 6, live half).
    — *implemented*
 3. ✅ **Pre-start setup panel** on the run page (item 2). — *implemented*
-4. ✅ **Vitals presets**, starting with Recovery/Normalize (item 4) —
-   clinical values flagged for faculty review. — *implemented; preset
-   targets in `src/lib/engine/presets.ts` pending faculty review*
+4. ⊘ **Vitals presets** (item 4) — *implemented, then removed pre-launch:
+   the preset targets never received faculty review (invariant 7). See the
+   decision record in `docs/ux-batch-2.md`.*
 5. ⊘ **Script rail enhancements** (item 5) — *superseded.* Preview effects
    shipped with the Flow panel; the delay/skip engine changes are no longer
    justified now that autos are manual-by-default, `pinNextEvent` redirects

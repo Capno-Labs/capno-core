@@ -27,8 +27,17 @@ maintainer sign-off), the event→expectedAction *scoring* link (schema
 cascade; `linkedActionIds` remains display-only), the visual identity pass
 (shipped separately with the brand work), and any cross-page tour.
 
-Also flagged for the maintainer, not code: preset targets in
-`src/lib/engine/presets.ts` are still pending faculty review (invariant 7).
+## Decision record — vitals presets removed pre-launch
+
+The vitals presets (Recovery/Normalize, Hypotension, Desaturation,
+Bronchospasm) shipped with target values flagged "pending faculty review"
+— clinical content under invariant 7 that never received sign-off. The
+maintainer chose to remove the feature rather than launch with unreviewed
+clinical values or hold the release on a review. Sliders + ramps, rhythm
+and CO₂ waveform controls, and scenario events cover the same need; the
+engine's generic `applyNamedEffect` primitive stays (tested in
+`engine.test.ts`) as the extension point a reviewed preset pack could use
+later. If presets return, they return with faculty-reviewed values.
 
 ## Decision record — event delay/skip (spec item 5) is superseded
 
@@ -144,7 +153,7 @@ would be an engine change — out of scope for a presentation feature.
   attributes: welcome (centered) → connect the student display
   (PreStartPanel; the user opens a real `/student` tab — no fake student,
   invariant 3) → start → the Flow panel (next-up card, N hotkey, pin) →
-  vitals (sliders, ramps, presets) → mark a learner action → end session →
+  vitals (sliders, ramps) → mark a learner action → end session →
   what the debrief shows (centered; Finish persists "seen"). The tour never
   crosses routes.
 - **Mechanics:** hand-rolled, no dependency (invariant 6).

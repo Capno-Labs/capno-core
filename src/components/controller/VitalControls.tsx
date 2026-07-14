@@ -3,8 +3,6 @@
 import { useRef, useState } from 'react';
 import type { CapnoShape, NumericVitals, Rhythm } from '@/lib/engine/types';
 import { CAPNO_SHAPE_LABELS, RHYTHM_LABELS } from '@/lib/engine/types';
-import type { VitalsPreset } from '@/lib/engine/presets';
-import { resolvePresetEffect, summarizeEffect, VITALS_PRESETS } from '@/lib/engine/presets';
 import { VITAL_META, clampVital, roundVital } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
@@ -26,17 +24,6 @@ const TRANSITIONS = [
   { label: '3 s', sec: 3 },
   { label: '10 s', sec: 10 },
 ];
-
-// UI color language per preset id (full literal strings for the Tailwind
-// scanner). Purely presentational — the reviewed clinical values stay in
-// engine/presets.ts; presets without a tone fall back to slate.
-const PRESET_TONES: Record<string, string> = {
-  normalize: 'ring-teal-500/50 text-teal-300 hover:bg-teal-950/40',
-  hypotension: 'ring-rose-500/50 text-rose-300 hover:bg-rose-950/40',
-  desaturation: 'ring-sky-500/50 text-sky-300 hover:bg-sky-950/40',
-  bronchospasm: 'ring-amber-500/50 text-amber-300 hover:bg-amber-950/40',
-};
-const DEFAULT_TONE = 'ring-slate-700 text-slate-300 hover:bg-slate-700';
 
 function VitalSlider({
   vitalKey,
@@ -126,7 +113,7 @@ function VitalSlider({
   );
 }
 
-/** Manual vital sign control: presets + sliders + rhythm selector + transition speed. */
+/** Manual vital sign control: sliders + rhythm selector + transition speed. */
 export function VitalControls() {
   const engine = useControllerStore((s) => s.engine);
   const snapshot = useControllerStore((s) => s.snapshot);
@@ -134,46 +121,8 @@ export function VitalControls() {
   const setCapnoShape = useControllerStore((s) => s.setCapnoShape);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
-  const applyPreset = useControllerStore((s) => s.applyPreset);
   const [overSec, setOverSec] = useState(3);
-  const [flashPresetId, setFlashPresetId] = useState<string | null>(null);
   if (!engine || !snapshot) return null;
-
-  const firePreset = (id: string) => {
-    applyPreset(id);
-    setFlashPresetId(id);
-    // Fallback clear for reduced motion, where animationend never fires.
-    setTimeout(() => setFlashPresetId((cur) => (cur === id ? null : cur)), 400);
-  };
-
-  // The baseline preset is pinned below the list as the standing
-  // "Reset to baseline" affordance (same applyPreset path, no new surface).
-  // Keyed on the semantic effect marker, not the preset id, so an id rename
-  // in engine/presets.ts can't silently drop the pinned button.
-  const baselinePreset = VITALS_PRESETS.find((p) => p.effect === 'baseline');
-
-  // The effect summary is rendered as a visible caption (not only a hover
-  // title) so touch devices see what a preset does before firing it.
-  const presetButton = (p: VitalsPreset, labelOverride?: string) => (
-    <button
-      key={p.id}
-      onClick={() => firePreset(p.id)}
-      onAnimationEnd={() => setFlashPresetId((cur) => (cur === p.id ? null : cur))}
-      title={`${p.description}\n${summarizeEffect(resolvePresetEffect(p, engine.scenario))}`}
-      className={`rounded bg-slate-800 px-2 py-1 text-left text-xs font-semibold ring-1 transition ${
-        PRESET_TONES[p.id] ?? DEFAULT_TONE
-      } ${flashPresetId === p.id ? 'motion-safe:animate-event-fire' : ''}`}
-    >
-      <span className="block">{labelOverride ?? p.label}</span>
-      {/* No `block` here: line-clamp-2 needs its display:-webkit-box to
-          survive the cascade or the clamp is inert. */}
-      <span className="line-clamp-2 max-w-[12rem] text-[10px] font-normal leading-tight text-slate-500 desk:max-w-none">
-        {p.effect === 'baseline'
-          ? p.description
-          : summarizeEffect(resolvePresetEffect(p, engine.scenario))}
-      </span>
-    </button>
-  );
 
   return (
     <section className="card space-y-3" data-tour="vitals">
@@ -197,27 +146,7 @@ export function VitalControls() {
         </div>
       </div>
 
-      {/* Body: below desk the presets keep their original spot as a row
-          above the sliders; at desk they become a column beside them so
-          "apply preset, fine-tune a slider" is one eye movement. */}
-      <div className="space-y-3 desk:grid desk:grid-cols-[minmax(0,1fr)_13.5rem] desk:gap-4 desk:space-y-0">
-        {/* One-tap physiologic bundles; values live in engine/presets.ts and
-            are reviewed clinical content. Sliders stay live for fine-tuning.
-            DOM-first (with desk:order-2) so the narrow layout leads with
-            presets while the desk grid puts them in the side column. */}
-        <div className="desk:order-2">
-          <span className="label">Presets</span>
-          <div className="flex flex-wrap gap-1.5 desk:flex-col">
-            {VITALS_PRESETS.filter((p) => p.effect !== 'baseline').map((p) => presetButton(p))}
-          </div>
-          {baselinePreset && (
-            <div className="mt-2 border-t border-slate-800 pt-2">
-              {presetButton(baselinePreset, 'Reset to baseline')}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-3 desk:order-1">
+      <div className="space-y-3">
           <div className="space-y-1.5">
             {SLIDER_KEYS.map((k) => (
               <VitalSlider key={k} vitalKey={k} current={snapshot.vitals[k]} overSec={overSec} />
@@ -300,7 +229,6 @@ export function VitalControls() {
               </button>
             ))}
           </div>
-        </div>
         </div>
       </div>
     </section>

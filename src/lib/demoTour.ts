@@ -58,8 +58,8 @@ export const DEMO_TOUR_STEPS: readonly DemoTourStep[] = [
     anchor: '[data-tour="vitals"]',
     title: 'Drive the physiology',
     body:
-      'Sliders ramp vitals over the selected transition time; presets bundle ' +
-      'common patterns. Every change shows up on the student monitor.',
+      'Sliders ramp vitals over the selected transition time, with rhythm and ' +
+      'CO₂ waveform controls below. Every change shows up on the student monitor.',
   },
   {
     id: 'mark-actions',

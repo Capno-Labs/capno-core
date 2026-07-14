@@ -4,7 +4,6 @@ import { create } from 'zustand';
 import { generateSessionId, isValidSessionCode, SimulationEngine } from '../engine/engine';
 import { adhocEventId } from '../engine/flow';
 import { eventSchema } from '../engine/schema';
-import { resolvePresetEffect, VITALS_PRESETS } from '../engine/presets';
 import { scoreSession } from '../engine/scoring';
 import type {
   ActionStatus,
@@ -51,7 +50,6 @@ interface ControllerState {
   endAndArchive: () => string | null;
 
   setVital: (key: keyof NumericVitals, value: number, overSec?: number) => void;
-  applyPreset: (presetId: string) => void;
   setRhythm: (rhythm: Rhythm) => void;
   setCapnoShape: (shape: CapnoShape) => void;
   triggerEvent: (eventId: string) => void;
@@ -167,12 +165,6 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     },
 
     setVital: (key, value, overSec = 3) => withEngine((e) => e.setVital(key, value, overSec)),
-    applyPreset: (presetId) =>
-      withEngine((e) => {
-        const preset = VITALS_PRESETS.find((p) => p.id === presetId);
-        if (!preset) return;
-        e.applyNamedEffect(`Preset: ${preset.label}`, resolvePresetEffect(preset, e.scenario));
-      }),
     setRhythm: (rhythm) => withEngine((e) => e.setRhythm(rhythm)),
     setCapnoShape: (shape) => withEngine((e) => e.setCapnoShape(shape)),
     triggerEvent: (eventId) => withEngine((e) => e.triggerEvent(eventId)),
