@@ -9,10 +9,8 @@ import { FlowPanel } from '@/components/controller/FlowPanel';
 import { LogPanel } from '@/components/controller/LogPanel';
 import { NotesPanel } from '@/components/controller/NotesPanel';
 import { PatientCard } from '@/components/controller/PatientCard';
-import { PhasePanel } from '@/components/controller/PhasePanel';
 import { PreStartPanel } from '@/components/controller/PreStartPanel';
 import { SessionControls } from '@/components/controller/SessionControls';
-import { StateSummary } from '@/components/controller/StateSummary';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
 import { nextUnfiredEvent, sessionBudgetSec } from '@/lib/engine/flow';
@@ -49,13 +47,12 @@ function BudgetBadge({ elapsedSec, budgetSec }: { elapsedSec: number; budgetSec:
 
 /**
  * Faculty controller for a live session. A sticky command bar (title, clock,
- * phase, session controls) sits over the cockpit. Desktop is the primary
- * device: at the `desk` breakpoint the cockpit is three zones — patient
- * context (state summary, patient, phase) in a left rail, live monitor
- * preview + vital controls center, and the case flow (events with their
- * linked learner actions) + notes/log in a right rail. iPad stays fully
- * supported: below `desk` it degrades to the two-column layout, and below
- * `lg` (iPad portrait) to a single monitor-first stack.
+ * phase, session controls) sits over the cockpit. The cockpit is two zones:
+ * live monitor preview + vital controls + patient background on the left,
+ * and the case flow (events with their linked learner actions) + notes/log
+ * in a right rail. At the `desk` breakpoint the right rail is width-capped
+ * so the monitor keeps its size; below `lg` (iPad portrait) the zones
+ * collapse to a single monitor-first stack.
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
@@ -189,14 +186,12 @@ export default function FacultyRunPage() {
 
         <PreStartPanel />
 
-        {/* Cockpit grid. Placement is explicit at each breakpoint: with three
-            zone wrappers in a two-column grid, auto-placement would row-pack
-            them and break the lg layout. All zones need min-w-0 so waveforms
-            and truncated text can shrink inside grid tracks. */}
-        <div className="grid gap-3 lg:grid-cols-2 desk:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(360px,440px)]">
-          {/* Center zone (first in DOM so the single-column stack leads with
-              the monitor): preview + physiology controls. */}
-          <div className="min-w-0 space-y-3 lg:col-start-1 desk:col-start-2 desk:row-start-1">
+        {/* Cockpit grid. Both zones need min-w-0 so waveforms and truncated
+            text can shrink inside grid tracks. */}
+        <div className="grid gap-3 lg:grid-cols-2 desk:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]">
+          {/* Left zone (first in DOM so the single-column stack leads with
+              the monitor): preview + physiology controls + patient. */}
+          <div className="min-w-0 space-y-3">
             <div className="overflow-hidden rounded-xl ring-1 ring-slate-800">
               <div className="flex items-center justify-between bg-slate-900 px-3 py-1.5">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -212,17 +207,11 @@ export default function FacultyRunPage() {
               <MonitorDisplay snapshot={snapshot} compact />
             </div>
             <VitalControls />
-          </div>
-
-          {/* Left rail: patient context. */}
-          <div className="min-w-0 space-y-3 lg:col-start-1 desk:col-start-1 desk:row-start-1">
-            <StateSummary snapshot={snapshot} />
             <PatientCard patient={engine.scenario.patient} />
-            <PhasePanel />
           </div>
 
           {/* Right rail: case flow (events + linked actions), notes, log. */}
-          <div className="min-w-0 space-y-3 lg:col-start-2 lg:row-start-1 lg:row-span-2 desk:col-start-3 desk:row-start-1 desk:row-span-1">
+          <div className="min-w-0 space-y-3">
             <CopilotPanel />
             <FlowPanel />
             <NotesPanel />

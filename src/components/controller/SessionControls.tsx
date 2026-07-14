@@ -94,7 +94,7 @@ export function SessionControls() {
         </button>
       )}
 
-      {(status === 'running' || status === 'paused') && (
+      {snapshot.autoEventsEnabled && (status === 'running' || status === 'paused') && (
         <span className="flex items-center gap-1" title="Skip uneventful scenario time">
           <button className="btn-ghost" onClick={() => skipAhead(60)}>
             +1 min

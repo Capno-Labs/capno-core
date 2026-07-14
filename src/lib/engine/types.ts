@@ -338,7 +338,9 @@ export interface SimSnapshot {
   status: SimStatus;
   elapsedSec: number;
   phaseId: string;
-  /** Elapsed time at the last phase change — drives the stepper's timer.
+  /** Elapsed time at the last phase change (phases move via setPhase — today
+   *  only the co-pilot's set_phase command calls it). Kept in the snapshot
+   *  for archives and time-in-phase consumers.
    *  Optional: absent in snapshots archived before phase timers existed. */
   phaseChangedAtSec?: number;
   vitals: Vitals;

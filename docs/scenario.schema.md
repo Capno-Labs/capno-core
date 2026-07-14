@@ -34,6 +34,10 @@ All fields required: `hr`, `sbp`, `dbp`, `spo2`, `etco2`, `rr`, `temp` (°C),
 and `rhythm` (one of `sinus`, `sinus_brady`, `sinus_tach`, `pvc`, `pac`,
 `afib`, `svt`, `vtach`, `vfib`, `pea`, `asystole`).
 
+Keep `dbp` below `sbp` here and in every event effect: the engine enforces
+diastolic ≤ systolic at runtime and will silently clamp a `dbp` at or above
+`sbp` down to the systolic value.
+
 Optional: `capnoShape` — capnograph trace morphology, `normal` (default) or
 `bronchospasm` (the slurred, upsloping "shark fin" of obstructed expiration).
 Display-only; the EtCO2 number is unaffected.
