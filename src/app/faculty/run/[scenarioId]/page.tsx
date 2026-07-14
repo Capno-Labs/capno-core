@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { CopilotPanel } from '@/components/controller/CopilotPanel';
 import { FlowPanel } from '@/components/controller/FlowPanel';
@@ -58,6 +58,10 @@ export default function FacultyRunPage() {
   const { engine, snapshot, loadScenario, teardown, setAlarmsSilenced, start, pause, triggerEvent } =
     useControllerStore();
   const [notFound, setNotFound] = useState(false);
+  // ?code=XXXX from the "Run next student" turnover, read exactly once per
+  // page instance (null = read, none present). The ref keeps the load effect
+  // idempotent under StrictMode's double-invocation.
+  const turnoverCode = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     const scenario = getScenario(params.scenarioId);
@@ -65,15 +69,19 @@ export default function FacultyRunPage() {
       setNotFound(true);
       return;
     }
-    // ?code=XXXX reuses the previous session code (the "Run next student"
-    // turnover) so connected student displays pick the new run up without
-    // re-joining. It is one-shot state, not addressable state: strip it
+    // The turnover code reuses the previous session's sync channel so
+    // connected student displays pick the new run up without re-joining.
+    // It is one-shot state, not addressable state: strip it from the URL
     // immediately after consumption so a duplicated tab, refresh, or
     // history/bookmark revisit can't spin up a second controller on a
     // channel that is live elsewhere (one authority per session).
-    const code = new URLSearchParams(window.location.search).get('code') ?? undefined;
-    loadScenario(scenario, code);
-    if (code) window.history.replaceState(null, '', window.location.pathname);
+    if (turnoverCode.current === undefined) {
+      turnoverCode.current = new URLSearchParams(window.location.search).get('code');
+      if (turnoverCode.current) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+    loadScenario(scenario, turnoverCode.current ?? undefined);
     return () => teardown();
   }, [params.scenarioId, loadScenario, teardown]);
 
