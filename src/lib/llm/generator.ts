@@ -65,7 +65,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "plan"?: "free-text surgical/anesthetic plan"
   },
   "baselineVitals": {
-    "hr": 0-300, "sbp": n, "dbp": n, "spo2": 0-100, "etco2": n, "rr": n,
+    "hr": 0-300, "sbp": n, "dbp": n (dbp must be at least 20 below sbp; 0/0 only for cardiac arrest), "spo2": 0-100, "etco2": n, "rr": n,
     "temp": 25-45 (Celsius), "depth": 0-100, "agentEt": %, "agentFi": %,
     "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole",
     "capnoShape"?: "normal|bronchospasm"   // capnograph morphology; default normal

@@ -45,6 +45,17 @@ export function clampVital(key: keyof NumericVitals, value: number): number {
   return Math.min(m.max, Math.max(m.min, value));
 }
 
+/** Minimum systolic−diastolic gap the sim will display (mmHg). A narrower
+ *  pulse pressure isn't a plausible monitor reading, so both the engine and
+ *  scenario validation enforce it. */
+export const MIN_PULSE_PRESSURE = 20;
+
+/** Highest diastolic allowed for a given systolic: sbp − MIN_PULSE_PRESSURE,
+ *  floored at 0 so arrest states (0/0) stay representable. */
+export function maxDbpFor(sbp: number): number {
+  return Math.max(0, sbp - MIN_PULSE_PRESSURE);
+}
+
 export function roundVital(key: keyof NumericVitals, value: number): number {
   const f = 10 ** VITAL_META[key].decimals;
   return Math.round(value * f) / f;

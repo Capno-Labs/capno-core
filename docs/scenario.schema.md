@@ -34,9 +34,11 @@ All fields required: `hr`, `sbp`, `dbp`, `spo2`, `etco2`, `rr`, `temp` (°C),
 and `rhythm` (one of `sinus`, `sinus_brady`, `sinus_tach`, `pvc`, `pac`,
 `afib`, `svt`, `vtach`, `vfib`, `pea`, `asystole`).
 
-Keep `dbp` below `sbp` here and in every event effect: the engine enforces
-diastolic ≤ systolic at runtime and will silently clamp a `dbp` at or above
-`sbp` down to the systolic value.
+Keep a pulse pressure of at least 20 mmHg (`dbp` ≤ `sbp` − 20) here and in
+every event effect: validation rejects a `baselineVitals` block or an effect
+that sets both values closer than that, and the engine clamps `dbp` down to
+`sbp` − 20 at runtime (including effects that move only one of the pair).
+The floor is 0, so arrest states (`sbp: 0, dbp: 0`) remain valid.
 
 Optional: `capnoShape` — capnograph trace morphology, `normal` (default) or
 `bronchospasm` (the slurred, upsloping "shark fin" of obstructed expiration).

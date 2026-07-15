@@ -99,6 +99,31 @@ describe('scenario schema', () => {
     expect(validateScenario(s).ok).toBe(false);
   });
 
+  it('rejects a baseline pulse pressure under 20 mmHg', () => {
+    const bad = JSON.parse(JSON.stringify(inductionHypotension));
+    bad.baselineVitals.sbp = 100;
+    bad.baselineVitals.dbp = 85; // PP 15
+    const result = validateScenario(bad);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(' ')).toContain('pulse pressure');
+  });
+
+  it('rejects an event effect that sets both sbp and dbp closer than 20 mmHg', () => {
+    const bad = JSON.parse(JSON.stringify(inductionHypotension));
+    bad.events[0].effects[0].vitals = { sbp: 80, dbp: 65 }; // PP 15
+    expect(validateScenario(bad).ok).toBe(false);
+    // A single-sided effect can't be judged statically and stays valid —
+    // the engine clamps it at runtime.
+    bad.events[0].effects[0].vitals = { dbp: 65 };
+    expect(validateScenario(bad).ok).toBe(true);
+  });
+
+  it('accepts 0/0 arrest vitals — the dbp ceiling floors at 0', () => {
+    const arrest = JSON.parse(JSON.stringify(inductionHypotension));
+    arrest.events[0].effects[0].vitals = { sbp: 0, dbp: 0 };
+    expect(validateScenario(arrest).ok).toBe(true);
+  });
+
   it('rejects duplicate event ids', () => {
     const bad = JSON.parse(JSON.stringify(inductionHypotension));
     bad.events.push({ ...bad.events[0] });
