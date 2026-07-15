@@ -61,7 +61,10 @@ function labelToRhythm(label: string): Rhythm | null {
 /**
  * Per-vital escalation tracker: emits on level increases (a strictly new
  * high always emits; re-entries coalesce within COALESCE_SEC) and one
- * recovery point when the vital returns inside warning limits.
+ * recovery point when the vital returns inside warning limits — but only
+ * when the excursion outlasted the coalescing window. A blip that alarms
+ * and recovers within COALESCE_SEC gets the alarm point only; the trend
+ * strip tells the rest.
  */
 class EscalationTracker {
   private cur: AlarmLevel = 0;

@@ -11,8 +11,9 @@ teaching material.
 > **First time here?** The home page's **Try the guided demo →** link opens
 > the demo case with a short coach-mark walkthrough of the whole loop —
 > connect, start, pace events, drive vitals, mark actions, end into the
-> debrief. Skippable at any step (Esc works); replay it anytime with the
-> **↻ Restart tour** button in the controller's top bar.
+> debrief. Skippable at any step (Esc works). To replay it, enter through
+> the same **Try the guided demo** link — the controller's top bar then
+> shows a **↻ Restart tour** button instead of reopening the tour.
 
 ## 1. Lab setup at a glance
 

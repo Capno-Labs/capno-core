@@ -366,6 +366,14 @@ export function DebriefReport({
                         onClick={() => {
                           if (confirmDeleteIdx === i) {
                             setConfirmDeleteIdx(null);
+                            // noteDraft.idx is positional — shift it past the
+                            // removal or an open editor lands on (and Save
+                            // silently overwrites) the wrong note.
+                            if (noteDraft !== null && typeof noteDraft.idx === 'number') {
+                              if (noteDraft.idx === i) setNoteDraft(null);
+                              else if (noteDraft.idx > i)
+                                setNoteDraft({ idx: noteDraft.idx - 1, text: noteDraft.text });
+                            }
                             amend.setNotes(snapshot.notes.filter((_, j) => j !== i));
                           } else {
                             setConfirmDeleteIdx(i);

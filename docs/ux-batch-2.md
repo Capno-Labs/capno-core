@@ -111,8 +111,17 @@ Heuristics, all test-pinned:
 - **BP respects the monitoring mode** (the stale-NIBP teaching point): in
   cuff mode BP points come from parsed `"NIBP s/d"` log lines, not live
   history samples; live-history BP is used only for art-line scenarios.
-- **Recovery:** after any excursion, the first sample where a vital returns
-  inside warning limits → one `info` point per excursion.
+- **Recovery:** after an excursion that outlasts the coalescing window, the
+  first sample where a vital returns inside warning limits → one `info`
+  point. A blip that alarms and recovers within the window keeps only its
+  alarm point.
+
+Known limitation (accepted): BP sourcing follows the scenario's *authored*
+monitoring mode. A mid-session "Place A-line" / "Remove A-line" toggle is
+not re-segmented — after a runtime switch to art-line, BP turning points
+can be missing (no further NIBP log lines) rather than wrong. The toggle
+logs "Arterial line placed/removed", so a future pass can segment on those
+entries if labs use the toggle heavily.
 
 Tolerates `history === undefined` (quota-stripped archives) — event, phase,
 rhythm, and NIBP points still derive from the log. Rate-of-change ramp

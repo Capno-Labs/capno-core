@@ -82,8 +82,9 @@ export const DEMO_TOUR_STEPS: readonly DemoTourStep[] = [
     anchor: null,
     title: "That's the loop",
     body:
-      'Case library → run → debrief. Keep exploring this demo case, and restart ' +
-      'the walkthrough anytime from the Restart tour button in the top bar.',
+      'Case library → run → debrief. Keep exploring this demo case — the ' +
+      'Restart tour button in the top bar replays this walkthrough, and the ' +
+      'homepage demo link brings it back next visit.',
   },
 ];
 
