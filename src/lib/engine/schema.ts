@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Scenario } from './types';
+import { MIN_PULSE_PRESSURE, maxDbpFor } from './vitals';
 
 /**
  * Zod schema mirroring the Scenario type. This is the single source of truth
@@ -39,15 +40,29 @@ const numericVitalsPartial = z
   })
   .partial();
 
-const vitalsSchema = numericVitalsPartial.required().extend({
-  rhythm: rhythmSchema,
-  capnoShape: capnoShapeSchema.optional(),
-});
+// Displayed pressures keep a plausible systolic−diastolic gap; the engine
+// clamps this at runtime and authored content is rejected up front. The
+// maxDbpFor floor at 0 keeps arrest states (sbp 0 / dbp 0) valid.
+const PULSE_PRESSURE_MSG = `pulse pressure must be at least ${MIN_PULSE_PRESSURE} mmHg (dbp ≤ sbp − ${MIN_PULSE_PRESSURE})`;
+const pulsePressureOk = (v: { sbp?: number; dbp?: number }) =>
+  v.sbp === undefined || v.dbp === undefined || v.dbp <= maxDbpFor(v.sbp);
+
+const vitalsSchema = numericVitalsPartial
+  .required()
+  .extend({
+    rhythm: rhythmSchema,
+    capnoShape: capnoShapeSchema.optional(),
+  })
+  .refine(pulsePressureOk, { message: PULSE_PRESSURE_MSG, path: ['dbp'] });
 
 // Exported for standalone effect validation (event templates); shape is
-// unchanged — the full document boundary remains scenarioSchema.
+// unchanged — the full document boundary remains scenarioSchema. An effect
+// that sets only one of sbp/dbp can't be checked statically (the result
+// depends on runtime state); the engine clamp covers those.
 export const vitalEffectSchema = z.object({
-  vitals: numericVitalsPartial.optional(),
+  vitals: numericVitalsPartial
+    .refine(pulsePressureOk, { message: PULSE_PRESSURE_MSG, path: ['dbp'] })
+    .optional(),
   rhythm: rhythmSchema.optional(),
   capnoShape: capnoShapeSchema.optional(),
   overSec: z.number().min(0).optional(),

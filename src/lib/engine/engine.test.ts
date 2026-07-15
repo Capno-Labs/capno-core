@@ -534,16 +534,16 @@ describe('live-added events and the next-up pin', () => {
   });
 });
 
-describe('diastolic never exceeds systolic', () => {
-  it('caps a dbp target at the systolic target', () => {
+describe('pulse pressure stays at least 20 mmHg', () => {
+  it('caps a dbp target at systolic − 20', () => {
     const e = newEngine();
     e.start();
     e.setVital('sbp', 110, 0);
     e.setVital('dbp', 150, 0);
-    expect(e.getVitals().dbp).toBe(110);
+    expect(e.getVitals().dbp).toBe(90);
   });
 
-  it('lowering sbp below the dbp target drags dbp down with it', () => {
+  it('lowering sbp drags dbp down to preserve the gap', () => {
     const e = newEngine();
     e.start();
     e.setVital('sbp', 120, 0);
@@ -551,29 +551,30 @@ describe('diastolic never exceeds systolic', () => {
     e.setVital('sbp', 60, 0);
     const v = e.getVitals();
     expect(v.sbp).toBe(60);
-    expect(v.dbp).toBe(60);
+    expect(v.dbp).toBe(40);
   });
 
-  it('never lets dbp cross sbp mid-ramp, then dbp still reaches its target', () => {
+  it('never lets dbp close within 20 of sbp mid-ramp, then dbp settles at the capped target', () => {
     const e = newEngine();
     e.start();
     e.setVital('sbp', 100, 0);
     e.setVital('dbp', 60, 0);
     // sbp climbs slowly to 140 while dbp races toward 130: unpinned, dbp
-    // would overtake sbp on the way up.
+    // would overtake sbp on the way up. The dbp target itself is capped at
+    // sbp target − 20 = 120.
     e.setVital('sbp', 140, 100);
     e.setVital('dbp', 130, 1);
     for (let i = 0; i < 120; i++) {
       e.tick(1);
       const v = e.getVitals();
-      expect(v.dbp).toBeLessThanOrEqual(v.sbp);
+      expect(v.dbp).toBeLessThanOrEqual(v.sbp - 20);
     }
-    // Once sbp finishes climbing, dbp resumes and lands on its own target.
+    // Once sbp finishes climbing, dbp resumes and lands on the capped target.
     expect(e.getVitals().sbp).toBe(140);
-    expect(e.getVitals().dbp).toBe(130);
+    expect(e.getVitals().dbp).toBe(120);
   });
 
-  it('caps an event effect that puts dbp above sbp', () => {
+  it('caps an event effect that narrows the pulse pressure', () => {
     const e = newEngine();
     e.addEvent({
       id: 'bad-bp',
@@ -584,7 +585,7 @@ describe('diastolic never exceeds systolic', () => {
     e.start();
     e.triggerEvent('bad-bp');
     expect(e.getVitals().sbp).toBe(90);
-    expect(e.getVitals().dbp).toBe(90);
+    expect(e.getVitals().dbp).toBe(70);
   });
 
   it('normalizes a malformed authored baseline at construction', () => {
@@ -593,8 +594,61 @@ describe('diastolic never exceeds systolic', () => {
       baselineVitals: { ...scenario().baselineVitals, sbp: 100, dbp: 130 },
     };
     const e = new SimulationEngine(bad, 'TEST');
-    expect(e.getVitals().dbp).toBe(100);
-    expect(e.snapshot().nibp?.dbp).toBe(100); // seeds the first cuff reading too
+    expect(e.getVitals().dbp).toBe(80);
+    expect(e.snapshot().nibp?.dbp).toBe(80); // seeds the first cuff reading too
+  });
+
+  it('allows 0/0 arrest states — the dbp floor is 0, not negative', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('sbp', 0, 0);
+    const v = e.getVitals();
+    expect(v.sbp).toBe(0);
+    expect(v.dbp).toBe(0);
+  });
+});
+
+describe('inspired agent follows the end-tidal target', () => {
+  it('setting an Et Sev target puts Fi Sev there immediately while Et ramps (wash-in)', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('agentEt', 0, 0);
+    e.setVital('agentEt', 2.0, 30);
+    expect(e.getVitals().agentFi).toBe(2.0);
+    expect(e.getVitals().agentEt).toBeLessThan(2.0);
+    e.tick(30);
+    expect(e.getVitals().agentEt).toBe(2.0);
+  });
+
+  it('lowering the Et Sev target puts Fi Sev below the falling Et (wash-out)', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('agentEt', 2.0, 0);
+    e.setVital('agentEt', 0.5, 30);
+    const v = e.getVitals();
+    expect(v.agentFi).toBe(0.5);
+    expect(v.agentEt).toBeGreaterThan(v.agentFi);
+  });
+
+  it('an event effect that sets only agentEt couples Fi; an authored agentFi wins', () => {
+    const e = newEngine();
+    e.addEvent({
+      id: 'et-only',
+      label: 'Vaporizer up',
+      category: 'physiology',
+      effects: [{ vitals: { agentEt: 1.8 }, overSec: 0 }],
+    });
+    e.addEvent({
+      id: 'both-authored',
+      label: 'Authored gas pair',
+      category: 'physiology',
+      effects: [{ vitals: { agentEt: 1.2, agentFi: 2.5 }, overSec: 0 }],
+    });
+    e.start();
+    e.triggerEvent('et-only');
+    expect(e.getVitals().agentFi).toBe(1.8);
+    e.triggerEvent('both-authored');
+    expect(e.getVitals().agentFi).toBe(2.5);
   });
 });
 

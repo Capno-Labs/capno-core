@@ -16,7 +16,7 @@ import type {
   VitalsHistorySample,
 } from './types';
 import { CAPNO_SHAPE_LABELS, NUMERIC_VITAL_KEYS, RHYTHM_LABELS } from './types';
-import { clampVital, evaluateAlarms, roundVital, VITAL_META } from './vitals';
+import { clampVital, evaluateAlarms, maxDbpFor, roundVital, VITAL_META } from './vitals';
 
 /**
  * SimulationEngine — a deterministic, tick-driven state machine for one
@@ -109,9 +109,9 @@ export class SimulationEngine {
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.current = { ...numeric };
-    // Baselines are authored content: guarantee dbp ≤ sbp here too (this
-    // value seeds the first NIBP reading before any tick can pin it).
-    this.current.dbp = Math.min(this.current.dbp, this.current.sbp);
+    // Baselines are authored content: guarantee the pulse-pressure floor here
+    // too (this value seeds the first NIBP reading before any tick can pin it).
+    this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
     this.actions = scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = scenario.monitoring?.artLine ?? false;
     if (this.usesCuff()) {
@@ -223,7 +223,7 @@ export class SimulationEngine {
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.current = { ...numeric };
-    this.current.dbp = Math.min(this.current.dbp, this.current.sbp);
+    this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
     this.ramps.clear();
     this.pendingEffects = [];
     this.log = [];
@@ -300,9 +300,10 @@ export class SimulationEngine {
     }
     // Independent per-key ramps can transiently cross even when both
     // endpoints are valid (a fast dbp rise under a slow sbp rise): pin
-    // diastolic below systolic. A pinned dbp ramp stays alive so diastolic
-    // resumes toward its target as systolic climbs.
-    if (this.current.dbp > this.current.sbp) this.current.dbp = this.current.sbp;
+    // diastolic to the pulse-pressure floor below systolic. A pinned dbp ramp
+    // stays alive so diastolic resumes toward its target as systolic climbs.
+    const dbpCeil = maxDbpFor(this.current.sbp);
+    if (this.current.dbp > dbpCeil) this.current.dbp = dbpCeil;
     const dbpRamp = this.ramps.get('dbp');
     if (dbpRamp && this.current.dbp === dbpRamp.target) this.ramps.delete('dbp');
 
@@ -361,11 +362,11 @@ export class SimulationEngine {
   /** Set a single numeric vital target, ramping over `overSec` seconds. */
   setVital(key: keyof NumericVitals, target: number, overSec = 0): void {
     let clamped = clampVital(key, target);
-    // Diastolic can never exceed systolic: a dbp target is capped at the
-    // systolic target; lowering sbp below the diastolic target drags dbp
-    // down with it (the instructor's intent is hypotension, not a block).
+    // Diastolic must stay a full pulse pressure below systolic: a dbp target
+    // is capped at sbp − MIN_PULSE_PRESSURE; lowering sbp drags dbp down with
+    // it (the instructor's intent is hypotension, not a block).
     if (key === 'dbp') {
-      clamped = Math.min(clamped, this.effectiveTarget('sbp'));
+      clamped = Math.min(clamped, maxDbpFor(this.effectiveTarget('sbp')));
     }
     this.startRamp(key, clamped, overSec);
     const meta = VITAL_META[key];
@@ -374,13 +375,20 @@ export class SimulationEngine {
       `${meta.label} → ${roundVital(key, clamped)}${meta.unit ? ' ' + meta.unit : ''}`,
       overSec > 0 ? `over ${overSec}s` : undefined,
     );
-    if (key === 'sbp' && this.effectiveTarget('dbp') > clamped) {
-      this.startRamp('dbp', clamped, overSec);
+    if (key === 'sbp' && this.effectiveTarget('dbp') > maxDbpFor(clamped)) {
+      const dbpTarget = maxDbpFor(clamped);
+      this.startRamp('dbp', dbpTarget, overSec);
       this.addLog(
         'vital_change',
-        `${VITAL_META.dbp.label} → ${roundVital('dbp', clamped)} ${VITAL_META.dbp.unit}`,
-        'kept ≤ systolic',
+        `${VITAL_META.dbp.label} → ${roundVital('dbp', dbpTarget)} ${VITAL_META.dbp.unit}`,
+        'pulse pressure kept ≥ 20',
       );
+    }
+    // The instructor dials end-tidal agent directly (there is no Fi control):
+    // inspired agent leads the target — Fi jumps to it while Et ramps, so the
+    // monitor shows Fi > Et during wash-in and Fi < Et during wash-out.
+    if (key === 'agentEt') {
+      this.startRamp('agentFi', clamped, 0);
     }
   }
 
@@ -579,11 +587,15 @@ export class SimulationEngine {
         const target = effect.vitals[key];
         if (target !== undefined) this.startRamp(key, clampVital(key, target), effect.overSec ?? 0);
       }
-      // Authored effects can't put diastolic above systolic either: cap the
-      // dbp ramp target at the effective systolic target.
-      const sbpTarget = this.effectiveTarget('sbp');
-      if (this.effectiveTarget('dbp') > sbpTarget) {
-        this.startRamp('dbp', sbpTarget, effect.overSec ?? 0);
+      // Authored effects can't narrow the pulse pressure either: cap the dbp
+      // ramp target a full pulse pressure below the effective systolic target.
+      const dbpCeil = maxDbpFor(this.effectiveTarget('sbp'));
+      if (this.effectiveTarget('dbp') > dbpCeil) {
+        this.startRamp('dbp', dbpCeil, effect.overSec ?? 0);
+      }
+      // Same Fi-leads-Et coupling as setVital, but an authored agentFi wins.
+      if (effect.vitals.agentEt !== undefined && effect.vitals.agentFi === undefined) {
+        this.startRamp('agentFi', clampVital('agentFi', effect.vitals.agentEt), 0);
       }
     }
   }

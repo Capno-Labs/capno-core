@@ -106,10 +106,10 @@
     {
       "id": "refractory-hypotension",
       "label": "Refractory hypotension (untreated)",
-      "description": "Without epinephrine, capillary leak and vasoplegia deepen: SBP 42/25, HR 145, SpO2 82%. Fire if learners give only phenylephrine/fluids or delay epinephrine.",
+      "description": "Without epinephrine, capillary leak and vasoplegia deepen: SBP 42/22, HR 145, SpO2 82%. Fire if learners give only phenylephrine/fluids or delay epinephrine.",
       "category": "circulation",
       "effects": [
-        { "vitals": { "sbp": 42, "dbp": 25, "hr": 145, "spo2": 82, "etco2": 16 }, "overSec": 120 }
+        { "vitals": { "sbp": 42, "dbp": 22, "hr": 145, "spo2": 82, "etco2": 16 }, "overSec": 120 }
       ],
       "phaseHint": "crisis"
     },

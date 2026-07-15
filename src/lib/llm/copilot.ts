@@ -91,7 +91,7 @@ const SYSTEM_PROMPT = `You translate an anesthesia instructor's natural-language
 {"commands":[...], "reply":"optional short note if something cannot be done"}
 
 Command shapes:
-{"type":"set_vital","key":"hr|sbp|dbp|spo2|etco2|rr|temp|depth|agentEt|agentFi","target":<number>,"overSec":<seconds>}
+{"type":"set_vital","key":"hr|sbp|dbp|spo2|etco2|rr|temp|depth|agentEt","target":<number>,"overSec":<seconds>}
 {"type":"set_rhythm","rhythm":"sinus|sinus_brady|sinus_tach|afib|svt|vtach|vfib|pea|asystole"}
 {"type":"trigger_event","eventId":"<id from CONTEXT.events>"}
 {"type":"set_phase","phaseId":"<id from CONTEXT.phases>"}

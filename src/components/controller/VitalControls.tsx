@@ -15,7 +15,6 @@ const SLIDER_KEYS: (keyof NumericVitals)[] = [
   'rr',
   'temp',
   'depth',
-  'agentFi',
   'agentEt',
 ];
 
