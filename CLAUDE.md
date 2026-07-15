@@ -116,7 +116,7 @@ guessing in either direction.
   must clear it — leaking intervals shows up as double-speed clocks.
 - localStorage keys are versioned (`capno:sessions:v1`,
   `capno:custom-scenarios:v1`, `capno:collections:v1`, `capno:cloud-outbox:v1`,
-  `capno:cloud-sync-meta:v1`, `capno:llm-settings:v1`). If you change a
+  `capno:cloud-sync-meta:v1`, `capno:llm-settings:v1`, `capno:demo:v1`). If you change a
   stored shape, add a new versioned key and migrate; don't mutate the old
   shape in place (`legacyStorage.ts` migrates the old `labsim:*` keys).
 - The LLM co-pilot never gets new engine surface: it emits `CopilotCommand`s

@@ -597,3 +597,39 @@ describe('diastolic never exceeds systolic', () => {
     expect(e.snapshot().nibp?.dbp).toBe(100); // seeds the first cuff reading too
   });
 });
+
+describe('SimulationEngine.applyNamedEffect', () => {
+  it('writes a single log entry and ramps toward the target', () => {
+    const e = newEngine();
+    e.start();
+    const logBefore = e.snapshot().log.length;
+    const startSpo2 = e.getVitals().spo2;
+    e.applyNamedEffect('Ad-hoc: Desaturation', { vitals: { spo2: startSpo2 - 20 }, overSec: 20 });
+    expect(e.snapshot().log.length).toBe(logBefore + 1);
+    const entry = e.snapshot().log.at(-1)!;
+    expect(entry.kind).toBe('vital_change');
+    expect(entry.label).toBe('Ad-hoc: Desaturation');
+    expect(entry.detail).toBe('over 20s');
+    e.tick(10);
+    expect(e.getVitals().spo2).toBeCloseTo(startSpo2 - 10, 0);
+    e.tick(20);
+    expect(e.getVitals().spo2).toBe(startSpo2 - 20);
+  });
+
+  it('applies instantly when overSec is absent and honors afterSec delays', () => {
+    const e = newEngine();
+    e.start();
+    e.applyNamedEffect('instant', { vitals: { hr: 55 } });
+    expect(e.getVitals().hr).toBe(55);
+    e.applyNamedEffect('delayed', { vitals: { hr: 130 }, afterSec: 30 });
+    expect(e.getVitals().hr).toBe(55); // not yet
+    e.tick(31);
+    expect(e.getVitals().hr).toBe(130);
+  });
+
+  it('works while idle (pre-start adjustments), like setVital', () => {
+    const e = newEngine();
+    e.applyNamedEffect('pre-start', { vitals: { spo2: 91 } });
+    expect(e.getVitals().spo2).toBe(91);
+  });
+});

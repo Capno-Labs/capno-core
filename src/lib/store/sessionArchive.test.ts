@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import type { ArchivedSession } from '../engine/types';
-import { quotaFallbacks } from './sessionArchive';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ArchivedSession, FacultyNote } from '../engine/types';
+import { archiveSession, getSession, quotaFallbacks, updateSession } from './sessionArchive';
 
 /** Minimal stand-in — quotaFallbacks only touches sessionId + history. */
 function fakeSession(n: number, withHistory = true): ArchivedSession {
@@ -47,5 +47,39 @@ describe('quotaFallbacks', () => {
     const sessions = Array.from({ length: 12 }, (_, i) => fakeSession(i, false));
     const [, stripped] = quotaFallbacks(sessions);
     expect(stripped).toEqual(sessions);
+  });
+});
+
+describe('updateSession notes patch', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('round-trips a post-hoc notes amendment through storage', () => {
+    // Minimal in-memory localStorage — plain object, no DOM (Node env).
+    const store = new Map<string, string>();
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+      },
+    });
+
+    const liveNote: FacultyNote = { t: 42, text: 'good cricoid discussion' };
+    const session = {
+      sessionId: 'NOTE',
+      endedAtIso: '2026-01-01T00:00:00.000Z',
+      snapshot: { elapsedSec: 300, notes: [liveNote] },
+    } as unknown as ArchivedSession;
+    expect(archiveSession(session)).toEqual({ ok: true, memoryOnly: false });
+
+    const amended: FacultyNote[] = [liveNote, { t: 300, text: 'debrief addendum', postHoc: true }];
+    const updated = updateSession('NOTE', {
+      snapshot: { ...session.snapshot, notes: amended },
+    });
+    expect(updated?.snapshot.notes).toEqual(amended);
+
+    // Survives a fresh read from storage, postHoc flag intact.
+    expect(getSession('NOTE')?.snapshot.notes).toEqual(amended);
+    expect(getSession('NOTE')?.snapshot.notes[1].postHoc).toBe(true);
   });
 });

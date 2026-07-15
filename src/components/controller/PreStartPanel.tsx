@@ -39,7 +39,7 @@ export function PreStartPanel() {
       };
 
   return (
-    <section className="card space-y-3 ring-1 !ring-sky-800">
+    <section className="card space-y-3 ring-1 !ring-sky-800" data-tour="connect">
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-sky-400">
           Before you start

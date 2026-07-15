@@ -234,7 +234,7 @@ export function FlowPanel() {
   };
 
   return (
-    <section className="card space-y-2">
+    <section className="card space-y-2" data-tour="flow">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
           Flow

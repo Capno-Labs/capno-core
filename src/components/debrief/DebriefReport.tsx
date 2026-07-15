@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
-import type { ActionStatus, ArchivedSession, LogEntry } from '@/lib/engine/types';
+import { deriveTurningPoints, type TurningPoint } from '@/lib/debrief/turningPoints';
+import type { ActionStatus, ArchivedSession, FacultyNote, LogEntry } from '@/lib/engine/types';
 import { useCountUp } from '@/lib/hooks/useCountUp';
 import { TrendStrip } from './TrendStrip';
 
@@ -22,9 +23,16 @@ function fmt(t: number): string {
 export interface DebriefAmend {
   markAction: (actionId: string, status: ActionStatus) => void;
   setLearners: (names: string[]) => void;
+  setNotes: (notes: FacultyNote[]) => void;
 }
 
 const AMENDABLE_STATUSES: ActionStatus[] = ['done', 'delayed', 'incorrect', 'missed'];
+
+const SEVERITY_CLASS: Record<TurningPoint['severity'], string> = {
+  info: 'text-slate-300',
+  warning: 'text-amber-300',
+  critical: 'text-red-300',
+};
 
 const KIND_LABEL: Record<LogEntry['kind'], string> = {
   session: 'Session',
@@ -51,8 +59,25 @@ export function DebriefReport({
   const { scenario, snapshot, score } = session;
   const actionById = new Map(scenario.expectedActions.map((a) => [a.id, a]));
   const [learnersDraft, setLearnersDraft] = useState<string | null>(null);
+  // Note editing: which note is being edited ('new' = adding) and its draft text.
+  const [noteDraft, setNoteDraft] = useState<{ idx: number | 'new'; text: string } | null>(null);
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
+
+  const saveNoteDraft = () => {
+    if (!amend || noteDraft === null) return;
+    const text = noteDraft.text.trim();
+    if (text) {
+      amend.setNotes(
+        noteDraft.idx === 'new'
+          ? [...snapshot.notes, { t: snapshot.elapsedSec, text, postHoc: true }]
+          : snapshot.notes.map((n, i) => (i === noteDraft.idx ? { ...n, text } : n)),
+      );
+    }
+    setNoteDraft(null);
+  };
   const shownPercent = useCountUp(score.percent);
   const tier = tierClasses(score.percent);
+  const turningPoints = useMemo(() => deriveTurningPoints(session), [session]);
 
   const statusGroups = {
     done: snapshot.actions.filter((a) => a.status === 'done'),
@@ -114,17 +139,9 @@ export function DebriefReport({
         )}
       </header>
 
-      {/* Vitals trends */}
-      {session.history && session.history.length >= 2 && (
-        <section>
-          <h2 className="mb-2 text-lg font-bold">Vitals trends</h2>
-          <TrendStrip history={session.history} log={snapshot.log} />
-        </section>
-      )}
-
-      {/* Score summary */}
+      {/* Outcome summary */}
       <section>
-        <h2 className="mb-3 text-lg font-bold">Score</h2>
+        <h2 className="mb-3 text-lg font-bold">Outcome summary</h2>
         <div className="flex flex-wrap items-center gap-6">
           <div className="text-center motion-safe:animate-pop-in">
             <div className={`text-5xl font-bold tabular-nums ${tier.text}`}>
@@ -166,35 +183,57 @@ export function DebriefReport({
         </div>
       </section>
 
-      {/* Critical actions */}
+      {/* What happened: vitals trends + timeline */}
       <section>
-        <h2 className="mb-2 text-lg font-bold">Critical actions</h2>
-        {score.criticalMissed.length > 0 ? (
-          <ul className="list-disc space-y-1 pl-5 text-sm">
-            {score.criticalMissed.map((a) => (
-              <li key={a.id} className="text-red-300">
-                <strong>Not completed:</strong> {a.label}
-              </li>
-            ))}
-            {score.criticalDone.map((a) => (
-              <li key={a.id} className="text-emerald-300">
-                Completed: {a.label}
+        <h2 className="mb-2 text-lg font-bold">What happened</h2>
+        {session.history && session.history.length >= 2 && (
+          <div className="mb-4">
+            <h3 className="label mb-2">Vitals trends</h3>
+            <TrendStrip history={session.history} log={snapshot.log} />
+          </div>
+        )}
+        <h3 className="label mb-1">Timeline</h3>
+        <table className="w-full text-sm">
+          <tbody>
+            {snapshot.log
+              .filter((e) => e.kind !== 'vital_change' || snapshot.log.length < 80)
+              .map((e, i) => (
+                <tr key={i} className="border-b border-slate-800 align-top">
+                  <td className="w-14 py-1 font-mono tabular-nums text-slate-500">{fmt(e.t)}</td>
+                  <td className="w-20 py-1 text-xs uppercase text-slate-500">{KIND_LABEL[e.kind]}</td>
+                  <td className="py-1">
+                    {e.label}
+                    {e.detail && <span className="text-slate-500"> — {e.detail}</span>}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </section>
+
+      {/* Key clinical turning points */}
+      {turningPoints.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-bold">Key clinical turning points</h2>
+          <ul className="space-y-1 text-sm">
+            {turningPoints.map((p, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="w-14 shrink-0 font-mono tabular-nums text-slate-500">
+                  {fmt(p.t)}
+                </span>
+                <span className={SEVERITY_CLASS[p.severity]}>
+                  {p.label}
+                  {p.detail && <span className="text-slate-500"> — {p.detail}</span>}
+                </span>
               </li>
             ))}
           </ul>
-        ) : (
-          <p
-            className="keep-badge-bg inline-block rounded-lg bg-emerald-950/60 px-3 py-1.5 text-sm text-emerald-300 ring-1 ring-emerald-700 motion-safe:animate-pop-in"
-            style={{ animationDelay: '700ms' }}
-          >
-            All {score.criticalDone.length} critical actions completed. ✓
-          </p>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Actions taken */}
       <section>
-        <h2 className="mb-2 text-lg font-bold">Learner actions</h2>
+        <h2 className="mb-2 text-lg font-bold">What the learner did</h2>
         {amend && (
           <p className="no-print mb-2 text-xs text-slate-500">
             Live marking is hard mid-scenario — amend any status below; the score updates and is
@@ -249,38 +288,136 @@ export function DebriefReport({
         </div>
       </section>
 
-      {/* Timeline */}
+      {/* Critical actions, promoted */}
       <section>
-        <h2 className="mb-2 text-lg font-bold">Timeline</h2>
-        <table className="w-full text-sm">
-          <tbody>
-            {snapshot.log
-              .filter((e) => e.kind !== 'vital_change' || snapshot.log.length < 80)
-              .map((e, i) => (
-                <tr key={i} className="border-b border-slate-800 align-top">
-                  <td className="w-14 py-1 font-mono tabular-nums text-slate-500">{fmt(e.t)}</td>
-                  <td className="w-20 py-1 text-xs uppercase text-slate-500">{KIND_LABEL[e.kind]}</td>
-                  <td className="py-1">
-                    {e.label}
-                    {e.detail && <span className="text-slate-500"> — {e.detail}</span>}
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </section>
-
-      {/* Faculty notes */}
-      {snapshot.notes.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-lg font-bold">Faculty notes</h2>
+        <h2 className="mb-2 text-lg font-bold">Missed or delayed critical actions</h2>
+        {score.criticalMissed.length > 0 ? (
           <ul className="list-disc space-y-1 pl-5 text-sm">
-            {snapshot.notes.map((n, i) => (
-              <li key={i}>
-                <span className="font-mono text-slate-500">{fmt(n.t)}</span> — {n.text}
+            {score.criticalMissed.map((a) => (
+              <li key={a.id} className="text-red-300">
+                <strong>Not completed:</strong> {a.label}
+              </li>
+            ))}
+            {score.criticalDone.map((a) => (
+              <li key={a.id} className="text-emerald-300">
+                Completed: {a.label}
               </li>
             ))}
           </ul>
+        ) : (
+          <p
+            className="keep-badge-bg inline-block rounded-lg bg-emerald-950/60 px-3 py-1.5 text-sm text-emerald-300 ring-1 ring-emerald-700 motion-safe:animate-pop-in"
+            style={{ animationDelay: '700ms' }}
+          >
+            All {score.criticalDone.length} critical actions completed. ✓
+          </p>
+        )}
+      </section>
+
+      {/* Faculty notes */}
+      {(snapshot.notes.length > 0 || amend) && (
+        <section className={snapshot.notes.length === 0 ? 'no-print' : undefined}>
+          <h2 className="mb-2 text-lg font-bold">Faculty notes</h2>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {snapshot.notes.map((n, i) =>
+              noteDraft !== null && noteDraft.idx === i ? (
+                <li key={i} className="no-print">
+                  <div className="flex max-w-md gap-2">
+                    <input
+                      className="input"
+                      value={noteDraft.text}
+                      onChange={(e) => setNoteDraft({ idx: i, text: e.target.value })}
+                      onKeyDown={(e) => e.key === 'Enter' && saveNoteDraft()}
+                      autoFocus
+                      aria-label="Edit note text"
+                    />
+                    <button className="btn-secondary shrink-0" onClick={saveNoteDraft}>
+                      Save
+                    </button>
+                    <button
+                      className="shrink-0 text-xs text-slate-500 hover:text-slate-300"
+                      onClick={() => setNoteDraft(null)}
+                    >
+                      cancel
+                    </button>
+                  </div>
+                </li>
+              ) : (
+                <li key={i}>
+                  <span className="font-mono text-slate-500">{fmt(n.t)}</span> — {n.text}
+                  {n.postHoc && (
+                    <span className="keep-badge-bg ml-2 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-400 ring-1 ring-slate-700">
+                      added at debrief
+                    </span>
+                  )}
+                  {amend && (
+                    <span className="no-print ml-2 space-x-2 text-xs">
+                      <button
+                        className="text-sky-400 hover:text-sky-300"
+                        onClick={() => {
+                          setConfirmDeleteIdx(null);
+                          setNoteDraft({ idx: i, text: n.text });
+                        }}
+                      >
+                        edit
+                      </button>
+                      <button
+                        className="text-red-400 hover:text-red-300"
+                        onClick={() => {
+                          if (confirmDeleteIdx === i) {
+                            setConfirmDeleteIdx(null);
+                            // noteDraft.idx is positional — shift it past the
+                            // removal or an open editor lands on (and Save
+                            // silently overwrites) the wrong note.
+                            if (noteDraft !== null && typeof noteDraft.idx === 'number') {
+                              if (noteDraft.idx === i) setNoteDraft(null);
+                              else if (noteDraft.idx > i)
+                                setNoteDraft({ idx: noteDraft.idx - 1, text: noteDraft.text });
+                            }
+                            amend.setNotes(snapshot.notes.filter((_, j) => j !== i));
+                          } else {
+                            setConfirmDeleteIdx(i);
+                          }
+                        }}
+                      >
+                        {confirmDeleteIdx === i ? 'confirm delete?' : 'delete'}
+                      </button>
+                    </span>
+                  )}
+                </li>
+              ),
+            )}
+            {snapshot.notes.length === 0 && <li className="text-slate-500">none yet</li>}
+          </ul>
+          {amend &&
+            (noteDraft !== null && noteDraft.idx === 'new' ? (
+              <div className="no-print mt-2 flex max-w-md gap-2">
+                <input
+                  className="input"
+                  placeholder="Add a debrief note"
+                  value={noteDraft.text}
+                  onChange={(e) => setNoteDraft({ idx: 'new', text: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && saveNoteDraft()}
+                  autoFocus
+                />
+                <button className="btn-secondary shrink-0" onClick={saveNoteDraft}>
+                  Save
+                </button>
+                <button
+                  className="shrink-0 text-xs text-slate-500 hover:text-slate-300"
+                  onClick={() => setNoteDraft(null)}
+                >
+                  cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="no-print mt-2 text-xs text-sky-400 hover:text-sky-300"
+                onClick={() => setNoteDraft({ idx: 'new', text: '' })}
+              >
+                + Add note
+              </button>
+            ))}
         </section>
       )}
 

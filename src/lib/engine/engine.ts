@@ -71,7 +71,8 @@ export class SimulationEngine {
     effect: VitalEffect;
     /** Display label for the log; never used as identity. */
     sourceLabel: string;
-    /** Owning event id — cancellation and attribution key. Absent for presets. */
+    /** Owning event id — cancellation and attribution key. Absent for
+     *  ad-hoc named effects (applyNamedEffect). */
     eventId?: string;
     /** Queued by the autoAtSec schedule (vs. a manual trigger's afterSec delay). */
     fromAuto?: boolean;
@@ -470,10 +471,12 @@ export class SimulationEngine {
   }
 
   /**
-   * Apply an ad-hoc vitals bundle (a faculty preset) as one logged change.
-   * Unlike a series of setVital calls, this writes a single log entry so a
-   * preset reads as one clinical development in the debrief timeline. The
-   * effect goes through the same ramp/delay machinery as scenario events.
+   * Apply a named ad-hoc vitals bundle as one logged change. Unlike a series
+   * of setVital calls, this writes a single log entry so the bundle reads as
+   * one clinical development in the debrief timeline. The effect goes through
+   * the same ramp/delay machinery as scenario events. General-purpose engine
+   * surface — no production caller in core today; UIs and embedders can build
+   * on it.
    */
   applyNamedEffect(label: string, effect: VitalEffect): void {
     this.addLog(

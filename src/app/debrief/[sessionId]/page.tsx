@@ -55,6 +55,15 @@ export default function DebriefSessionPage() {
             repush(updated.sessionId);
           }
         },
+        setNotes: (notes) => {
+          const updated = updateSession(session.sessionId, {
+            snapshot: { ...session.snapshot, notes },
+          });
+          if (updated) {
+            setSession(updated);
+            repush(updated.sessionId);
+          }
+        },
       }
     : undefined;
 
