@@ -598,6 +598,50 @@ describe('diastolic never exceeds systolic', () => {
   });
 });
 
+describe('inspired agent follows the end-tidal target', () => {
+  it('setting an Et Sev target puts Fi Sev there immediately while Et ramps (wash-in)', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('agentEt', 0, 0);
+    e.setVital('agentEt', 2.0, 30);
+    expect(e.getVitals().agentFi).toBe(2.0);
+    expect(e.getVitals().agentEt).toBeLessThan(2.0);
+    e.tick(30);
+    expect(e.getVitals().agentEt).toBe(2.0);
+  });
+
+  it('lowering the Et Sev target puts Fi Sev below the falling Et (wash-out)', () => {
+    const e = newEngine();
+    e.start();
+    e.setVital('agentEt', 2.0, 0);
+    e.setVital('agentEt', 0.5, 30);
+    const v = e.getVitals();
+    expect(v.agentFi).toBe(0.5);
+    expect(v.agentEt).toBeGreaterThan(v.agentFi);
+  });
+
+  it('an event effect that sets only agentEt couples Fi; an authored agentFi wins', () => {
+    const e = newEngine();
+    e.addEvent({
+      id: 'et-only',
+      label: 'Vaporizer up',
+      category: 'physiology',
+      effects: [{ vitals: { agentEt: 1.8 }, overSec: 0 }],
+    });
+    e.addEvent({
+      id: 'both-authored',
+      label: 'Authored gas pair',
+      category: 'physiology',
+      effects: [{ vitals: { agentEt: 1.2, agentFi: 2.5 }, overSec: 0 }],
+    });
+    e.start();
+    e.triggerEvent('et-only');
+    expect(e.getVitals().agentFi).toBe(1.8);
+    e.triggerEvent('both-authored');
+    expect(e.getVitals().agentFi).toBe(2.5);
+  });
+});
+
 describe('SimulationEngine.applyNamedEffect', () => {
   it('writes a single log entry and ramps toward the target', () => {
     const e = newEngine();

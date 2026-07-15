@@ -382,6 +382,12 @@ export class SimulationEngine {
         'kept ≤ systolic',
       );
     }
+    // The instructor dials end-tidal agent directly (there is no Fi control):
+    // inspired agent leads the target — Fi jumps to it while Et ramps, so the
+    // monitor shows Fi > Et during wash-in and Fi < Et during wash-out.
+    if (key === 'agentEt') {
+      this.startRamp('agentFi', clamped, 0);
+    }
   }
 
   setRhythm(rhythm: Rhythm): void {
@@ -584,6 +590,10 @@ export class SimulationEngine {
       const sbpTarget = this.effectiveTarget('sbp');
       if (this.effectiveTarget('dbp') > sbpTarget) {
         this.startRamp('dbp', sbpTarget, effect.overSec ?? 0);
+      }
+      // Same Fi-leads-Et coupling as setVital, but an authored agentFi wins.
+      if (effect.vitals.agentEt !== undefined && effect.vitals.agentFi === undefined) {
+        this.startRamp('agentFi', clampVital('agentFi', effect.vitals.agentEt), 0);
       }
     }
   }
