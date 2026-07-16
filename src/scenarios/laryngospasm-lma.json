@@ -7,7 +7,7 @@
   "tags": {
     "topics": ["airway", "laryngospasm", "supraglottic airway", "hypoxemia"],
     "difficulty": "intermediate",
-    "trainingLevels": ["srna", "resident_junior", "resident_senior", "crna"]
+    "trainingLevels": ["srna", "saa", "resident_junior", "resident_senior", "crna", "caa"]
   },
   "learningObjectives": [
     "Identify risk factors for laryngospasm (recent URI, smoking, light anesthesia, airway manipulation, secretions).",

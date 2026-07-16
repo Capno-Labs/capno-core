@@ -6,7 +6,7 @@
   "tags": {
     "topics": ["embolic", "venous air embolism", "neurosurgery", "capnography", "crisis management"],
     "difficulty": "advanced",
-    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "caa", "attending"]
   },
   "estimatedMinutes": 25,
   "monitoring": { "artLine": true },

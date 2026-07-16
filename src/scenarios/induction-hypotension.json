@@ -6,7 +6,7 @@
   "tags": {
     "topics": ["hemodynamics", "induction", "hypotension", "vasopressors", "geriatric anesthesia"],
     "difficulty": "beginner",
-    "trainingLevels": ["medical_student", "srna", "resident_junior"]
+    "trainingLevels": ["medical_student", "srna", "saa", "resident_junior"]
   },
   "learningObjectives": [
     "Identify patient factors that predispose to post-induction hypotension (age, ACE inhibitor use, hypertension, hypovolemia).",

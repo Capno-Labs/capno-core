@@ -6,7 +6,7 @@
   "tags": {
     "topics": ["cardiac", "bradycardia", "asystole", "ACLS", "laparoscopy"],
     "difficulty": "intermediate",
-    "trainingLevels": ["srna", "resident_junior", "resident_senior", "crna"]
+    "trainingLevels": ["srna", "saa", "resident_junior", "resident_senior", "crna", "caa"]
   },
   "estimatedMinutes": 20,
   "monitoring": { "nibpIntervalSec": 120 },

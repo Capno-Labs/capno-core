@@ -27,9 +27,11 @@ export const QUICK_START_SCENARIO: Scenario = parseScenario({
     trainingLevels: [
       'medical_student',
       'srna',
+      'saa',
       'resident_junior',
       'resident_senior',
       'crna',
+      'caa',
       'attending',
     ],
   },

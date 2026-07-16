@@ -6,7 +6,7 @@
   "tags": {
     "topics": ["hemorrhage", "obstetric anesthesia", "transfusion", "hemorrhagic shock", "crisis management"],
     "difficulty": "advanced",
-    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "caa", "attending"]
   },
   "estimatedMinutes": 30,
   "monitoring": { "nibpIntervalSec": 120 },

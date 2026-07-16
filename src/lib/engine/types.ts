@@ -109,17 +109,21 @@ export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 export type TrainingLevel =
   | 'medical_student'
   | 'srna'
+  | 'saa'
   | 'resident_junior'
   | 'resident_senior'
   | 'crna'
+  | 'caa'
   | 'attending';
 
 export const TRAINING_LEVEL_LABELS: Record<TrainingLevel, string> = {
   medical_student: 'Medical student',
   srna: 'SRNA',
+  saa: 'SAA',
   resident_junior: 'Junior resident',
   resident_senior: 'Senior resident',
   crna: 'CRNA',
+  caa: 'CAA',
   attending: 'Attending',
 };
 

@@ -6,7 +6,7 @@
   "tags": {
     "topics": ["respiratory", "bronchospasm", "asthma", "capnography"],
     "difficulty": "intermediate",
-    "trainingLevels": ["srna", "resident_junior", "resident_senior", "crna"]
+    "trainingLevels": ["srna", "saa", "resident_junior", "resident_senior", "crna", "caa"]
   },
   "estimatedMinutes": 20,
   "learningObjectives": [

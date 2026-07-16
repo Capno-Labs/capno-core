@@ -53,7 +53,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "tags": {
     "topics": ["<domain>", "<crisis name>", "free-form specifics"],  // topics[0]: one curriculum domain (see rules)
     "difficulty": "beginner|intermediate|advanced",
-    "trainingLevels": ["medical_student|srna|resident_junior|resident_senior|crna|attending", "at least 1"]
+    "trainingLevels": ["medical_student|srna|saa|resident_junior|resident_senior|crna|caa|attending", "at least 1"]
   },
   "learningObjectives": ["at least 1"],
   "setup": ["room/equipment/confederate instructions for faculty"],

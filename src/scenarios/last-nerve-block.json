@@ -12,7 +12,7 @@
       "resuscitation"
     ],
     "difficulty": "advanced",
-    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "caa", "attending"]
   },
   "learningObjectives": [
     "Recognize the prodromal neurologic signs of local anesthetic systemic toxicity (perioral numbness, tinnitus, metallic taste, agitation) during and after peripheral nerve block placement.",

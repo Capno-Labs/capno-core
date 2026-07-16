@@ -12,7 +12,7 @@
       "crisis management"
     ],
     "difficulty": "advanced",
-    "trainingLevels": ["resident_junior", "resident_senior", "crna", "attending"]
+    "trainingLevels": ["resident_junior", "resident_senior", "crna", "caa", "attending"]
   },
   "learningObjectives": [
     "Recognize the early clinical signs of malignant hyperthermia, especially a rising EtCO2 that is refractory to increased minute ventilation.",
