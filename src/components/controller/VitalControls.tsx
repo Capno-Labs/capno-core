@@ -6,6 +6,9 @@ import { CAPNO_SHAPE_LABELS, RHYTHM_LABELS } from '@/lib/engine/types';
 import { VITAL_META, clampVital, roundVital } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
+// 'depth' is intentionally omitted: it drives no alarms, waveforms, or
+// scoring, so a faculty slider for it is clutter. It stays a numeric vital
+// (still shown in the SEV tile and settable by scenarios), like agentFi.
 const SLIDER_KEYS: (keyof NumericVitals)[] = [
   'hr',
   'sbp',
@@ -14,7 +17,6 @@ const SLIDER_KEYS: (keyof NumericVitals)[] = [
   'etco2',
   'rr',
   'temp',
-  'depth',
   'agentEt',
 ];
 
