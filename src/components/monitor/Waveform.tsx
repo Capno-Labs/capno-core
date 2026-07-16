@@ -80,7 +80,11 @@ export function Waveform({
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
-    const SWEEP_SPEED = 90; // px/sec, ~comparable to 25 mm/s feel
+    // px/sec. ECG/pleth/art sweep fast (~25 mm/s feel); the capnograph sweeps
+    // at half that, as real monitors do — respiration is far slower than the
+    // heart, so a slower CO2 sweep fits several breaths on screen and keeps
+    // the capnogram morphology legible.
+    const SWEEP_SPEED = kind === 'capno' ? 45 : 90;
 
     const sample = (): number => {
       const v = live.current;
