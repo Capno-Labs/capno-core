@@ -45,6 +45,25 @@ export function clampVital(key: keyof NumericVitals, value: number): number {
   return Math.min(m.max, Math.max(m.min, value));
 }
 
+/**
+ * The *measured* end-tidal CO2 a capnometer would report for a given
+ * true (faculty/scenario-set) etCO2 at the current respiratory rate.
+ *
+ * At apnea (`rr <= 0`) there is no exhaled breath to sample, so the
+ * capnograph flattens and the number reads 0 ("no CO₂ detected") — this makes
+ * the numeric EtCO₂ tile agree with the already-flat capnograph waveform.
+ *
+ * Note: this intentionally does NOT model a general RR→etCO₂ coupling
+ * (hypoventilation raising CO₂). Scenarios author etCO₂ directly to represent
+ * the actual gas-exchange state — including airway-obstruction cases that pair
+ * a low RR with a *low* measured etCO₂ — so a blanket "lower RR ⇒ higher CO₂"
+ * rule would fight authored content. etCO₂ otherwise stays faculty/scenario
+ * driven; only true apnea is transformed here.
+ */
+export function measuredEtco2(trueEtco2: number, rr: number): number {
+  return rr <= 0 ? 0 : trueEtco2;
+}
+
 /** Minimum systolic−diastolic gap the sim will display (mmHg). A narrower
  *  pulse pressure isn't a plausible monitor reading, so both the engine and
  *  scenario validation enforce it. */

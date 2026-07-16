@@ -16,7 +16,7 @@ import type {
   VitalsHistorySample,
 } from './types';
 import { CAPNO_SHAPE_LABELS, NUMERIC_VITAL_KEYS, RHYTHM_LABELS } from './types';
-import { clampVital, evaluateAlarms, maxDbpFor, roundVital, VITAL_META } from './vitals';
+import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL_META } from './vitals';
 
 /**
  * SimulationEngine — a deterministic, tick-driven state machine for one
@@ -553,6 +553,12 @@ export class SimulationEngine {
 
   snapshot(): SimSnapshot {
     const vitals = this.getVitals();
+    // The capnometer needs exhaled breath to sample: at apnea (RR 0) it reads
+    // 0, so the numeric EtCO2 tile agrees with the already-flat capnograph.
+    // Only the broadcast/alarm value is transformed here — this.current is
+    // untouched, so the set value restores the instant the rate recovers, the
+    // same measured-vs-true split the NIBP cuff uses for BP below.
+    vitals.etco2 = roundVital('etco2', measuredEtco2(vitals.etco2, vitals.rr));
     // In cuff mode, BP alarms judge the last *measured* reading — an alarm
     // must not reveal a pressure the monitor has not yet measured.
     const alarmVitals = this.lastNibp

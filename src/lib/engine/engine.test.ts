@@ -58,6 +58,44 @@ describe('SimulationEngine', () => {
     expect(e.getVitals().spo2).toBe(100);
   });
 
+  describe('measured etCO2 at apnea', () => {
+    it('reads 0 at apnea (RR = 0) but keeps the set value underneath', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('etco2', 40, 0);
+      e.setVital('rr', 0, 0);
+      // The capnograph is flat, so the numeric tile must read 0 too.
+      expect(e.snapshot().vitals.etco2).toBe(0);
+      // The transform is display-only: the set value is untouched and
+      // restores the instant the rate returns.
+      expect(e.getVitals().etco2).toBe(40);
+      e.setVital('rr', scenario().baselineVitals.rr, 0);
+      expect(e.snapshot().vitals.etco2).toBe(40);
+    });
+
+    it('leaves etCO2 faculty-driven at any non-zero rate (no RR coupling)', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('etco2', 40, 0);
+      // A low (but non-apneic) rate must not move the number: scenarios author
+      // etCO2 to represent gas exchange directly (e.g. low CO2 during airway
+      // obstruction), so RR alone does not drive it.
+      e.setVital('rr', 4, 0);
+      expect(e.snapshot().vitals.etco2).toBe(40);
+      e.setVital('rr', 30, 0);
+      expect(e.snapshot().vitals.etco2).toBe(40);
+    });
+
+    it('fires the critical low-EtCO₂ alarm at apnea', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('etco2', 40, 0);
+      e.setVital('rr', 0, 0);
+      const alarms = e.snapshot().alarms;
+      expect(alarms.some((a) => a.vital === 'etco2' && a.level === 'critical')).toBe(true);
+    });
+  });
+
   it('triggers events with delayed effects', () => {
     const e = newEngine();
     e.start();
