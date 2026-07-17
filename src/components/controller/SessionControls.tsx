@@ -10,8 +10,7 @@ import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
  * Start / pause / reset / end controls plus the session code for students.
- * Elapsed time, status, and phase live in the run page's sticky command bar,
- * not here.
+ * Elapsed time lives in the run page's sticky command bar, not here.
  */
 export function SessionControls() {
   const router = useRouter();
@@ -84,7 +83,7 @@ export function SessionControls() {
       </div>
 
       {status !== 'running' && status !== 'ended' && (
-        <button className="btn-primary" onClick={start} data-tour="start">
+        <button className="btn-primary px-5 text-base" onClick={start} data-tour="start">
           ▶ {status === 'paused' ? 'Resume' : 'Start'}
         </button>
       )}

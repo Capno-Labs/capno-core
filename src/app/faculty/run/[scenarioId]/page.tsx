@@ -15,7 +15,7 @@ import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
 import { DemoTour } from '@/components/tour/DemoTour';
 import { hasSeenDemo } from '@/lib/demoTour';
-import { nextUnfiredEvent, sessionBudgetSec } from '@/lib/engine/flow';
+import { nextUnfiredEvent } from '@/lib/engine/flow';
 import { formatClock } from '@/lib/format';
 import { useBeforeUnload } from '@/lib/hooks/useBeforeUnload';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
@@ -23,33 +23,8 @@ import { getScenario } from '@/lib/scenarios';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
- * Time-budget readout next to the clock: remaining time against the
- * scenario's budget (sessionBudgetSec — authored slot budget, else the
- * library estimate), amber in the final stretch, red counting up once over.
- * Display only — nothing in the engine reacts to the budget.
- */
-function BudgetBadge({ elapsedSec, budgetSec }: { elapsedSec: number; budgetSec: number }) {
-  const remaining = budgetSec - elapsedSec;
-  const finalStretch = Math.max(60, budgetSec * 0.1);
-  const cls =
-    remaining <= 0
-      ? 'text-red-400'
-      : remaining <= finalStretch
-        ? 'text-amber-400'
-        : 'text-slate-500';
-  return (
-    <span
-      className={`font-mono text-sm font-semibold tabular-nums ${cls}`}
-      title={`Session budget ${formatClock(budgetSec)}`}
-    >
-      {remaining <= 0 ? `+${formatClock(-remaining)} over` : `${formatClock(remaining)} left`}
-    </span>
-  );
-}
-
-/**
  * Faculty controller for a live session. A sticky command bar (title, clock,
- * phase, session controls) sits over the cockpit. The cockpit is two zones:
+ * session controls) sits over the cockpit. The cockpit is two zones:
  * live monitor preview + vital controls + patient background on the left,
  * and the case flow (events with their linked learner actions) + notes/log
  * in a right rail. At the `desk` breakpoint the right rail is width-capped
@@ -138,8 +113,6 @@ export default function FacultyRunPage() {
 
   if (!engine || !snapshot) return null;
 
-  const currentPhaseLabel = engine.scenario.phases.find((p) => p.id === snapshot.phaseId)?.label;
-  const budgetSec = sessionBudgetSec(engine.scenario);
   // The old script rail flashed imminent autos in the sticky bar; keep that
   // safety net when auto events are on and the Flow panel may be scrolled away.
   const imminentAuto =
@@ -155,7 +128,7 @@ export default function FacultyRunPage() {
   return (
     <FacultyGate>
       <main className="mx-auto max-w-[1600px] space-y-3 p-3 md:p-4 !pt-0">
-        {/* Sticky command bar: title, clock, phase, and session controls stay
+        {/* Sticky command bar: title, clock, and session controls stay
             visible while faculty scroll the panels. Kept to one compact row
             so the monitor preview keeps its height on iPad (still fully
             supported, just no longer the primary device). */}
@@ -168,22 +141,9 @@ export default function FacultyRunPage() {
                 </Link>
                 <h1 className="truncate text-xl font-bold">{engine.scenario.title}</h1>
               </div>
-              <div className="shrink-0 text-right">
-                <span className="flex items-baseline gap-2">
-                  <span className="font-mono text-xl font-bold tabular-nums text-slate-200">
-                    {formatClock(snapshot.elapsedSec)}
-                  </span>
-                  {budgetSec > 0 && snapshot.status !== 'idle' && (
-                    <BudgetBadge elapsedSec={snapshot.elapsedSec} budgetSec={budgetSec} />
-                  )}
-                </span>
-                <p className="text-[10px] uppercase tracking-wider text-slate-500">
-                  {snapshot.status}
-                  {currentPhaseLabel && (
-                    <span className="text-sky-400"> · {currentPhaseLabel}</span>
-                  )}
-                </p>
-              </div>
+              <span className="shrink-0 font-mono text-3xl font-bold tabular-nums text-white">
+                {formatClock(snapshot.elapsedSec)}
+              </span>
               {imminentAuto && (
                 <span
                   className="shrink-0 self-center rounded bg-amber-950/80 px-2 py-1 text-xs font-semibold text-amber-300 ring-1 ring-amber-600 motion-safe:animate-pulse"
