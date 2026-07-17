@@ -152,6 +152,18 @@ export function capnoSample(
 
   // Normal: rapid rise, then an alveolar plateau sloping up to the peak.
   const plateauStart = 0.94;
-  if (p < riseFrac) return plateauStart * (p / riseFrac);
-  return plateauStart + (1 - plateauStart) * ((p - riseFrac) / (plateauEnd - riseFrac));
+  const base =
+    p < riseFrac
+      ? plateauStart * (p / riseFrac)
+      : plateauStart + (1 - plateauStart) * ((p - riseFrac) / (plateauEnd - riseFrac));
+
+  if (shape === 'curare_cleft') {
+    // Curare cleft: a transient notch in an otherwise normal plateau —
+    // a spontaneous inspiratory effort during partial neuromuscular
+    // blockade. The dip sits mid-plateau and dies out well before the
+    // end-tidal peak, so the peak stays exactly 1 for EtCO2 scaling.
+    return Math.max(0, base - gaussian(p, 0.33, 0.045, 0.35));
+  }
+
+  return base;
 }

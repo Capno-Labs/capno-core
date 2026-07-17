@@ -42,13 +42,16 @@ export const RHYTHM_LABELS: Record<Rhythm, string> = {
 /**
  * Capnograph trace morphology. `normal` is the square expiratory plateau;
  * `bronchospasm` is the slurred, upsloping "shark fin" of obstructed
- * expiration. Display-only: the EtCO2 number is unaffected.
+ * expiration; `curare_cleft` is a normal plateau interrupted by a transient
+ * notch — spontaneous respiratory effort during partial neuromuscular
+ * blockade. Display-only: the EtCO2 number is unaffected.
  */
-export type CapnoShape = 'normal' | 'bronchospasm';
+export type CapnoShape = 'normal' | 'bronchospasm' | 'curare_cleft';
 
 export const CAPNO_SHAPE_LABELS: Record<CapnoShape, string> = {
   normal: 'Normal',
   bronchospasm: 'Bronchospasm (shark fin)',
+  curare_cleft: 'Curare cleft',
 };
 
 /** Numeric (continuously interpolated) vital signs. */

@@ -23,7 +23,7 @@ const rhythmSchema = z.enum([
   'asystole',
 ]);
 
-const capnoShapeSchema = z.enum(['normal', 'bronchospasm']);
+const capnoShapeSchema = z.enum(['normal', 'bronchospasm', 'curare_cleft']);
 
 const numericVitalsPartial = z
   .object({
