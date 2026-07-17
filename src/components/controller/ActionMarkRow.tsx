@@ -46,7 +46,7 @@ export function ActionMarkRow({
   return (
     <li className="flex items-center justify-between gap-2 rounded-md bg-slate-800/60 px-2 py-1.5">
       <div className="min-w-0">
-        <p className="truncate text-sm text-slate-200" title={action.description ?? action.label}>
+        <p className="text-sm text-slate-200" title={action.description ?? action.label}>
           {action.critical && (
             <span className="mr-1 text-red-400" title="critical action">
               ●
