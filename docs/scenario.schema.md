@@ -44,12 +44,12 @@ Optional: `capnoShape` — capnograph trace morphology: `normal` (default),
 `bronchospasm` (the slurred, upsloping "shark fin" of obstructed expiration),
 or `curare_cleft` (a normal plateau with a transient notch — spontaneous
 respiratory effort during partial neuromuscular blockade).
+Display-only; the EtCO2 number is unaffected.
 
 Optional: `pvcFrequency` — how often an ectopic complex replaces a sinus
 beat while the rhythm is `pvc`: `rare` (1:8), `occasional` (1:4, default),
 `trigeminy` (1:3), or `bigeminy` (1:2). Display-only; ignored for other
 rhythms.
-Display-only; the EtCO2 number is unaffected.
 
 ## `phases`
 
