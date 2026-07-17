@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
 import { deriveTurningPoints, type TurningPoint } from '@/lib/debrief/turningPoints';
+import { earnedPoints } from '@/lib/engine/scoring';
 import type { ActionStatus, ArchivedSession, FacultyNote, LogEntry } from '@/lib/engine/types';
 import { useCountUp } from '@/lib/hooks/useCountUp';
 import { TrendStrip } from './TrendStrip';
@@ -27,6 +28,14 @@ export interface DebriefAmend {
 }
 
 const AMENDABLE_STATUSES: ActionStatus[] = ['done', 'delayed', 'incorrect', 'missed'];
+
+/** Status word color in the learner-action grid (pending renders as missed). */
+const ACTION_STATUS_CLASS: Record<Exclude<ActionStatus, 'pending'>, string> = {
+  done: 'text-emerald-300',
+  delayed: 'text-amber-300',
+  incorrect: 'text-red-300',
+  missed: 'text-slate-400',
+};
 
 const SEVERITY_CLASS: Record<TurningPoint['severity'], string> = {
   info: 'text-slate-300',
@@ -57,7 +66,6 @@ export function DebriefReport({
   amend?: DebriefAmend;
 }) {
   const { scenario, snapshot, score } = session;
-  const actionById = new Map(scenario.expectedActions.map((a) => [a.id, a]));
   const [learnersDraft, setLearnersDraft] = useState<string | null>(null);
   // Note editing: which note is being edited ('new' = adding) and its draft text.
   const [noteDraft, setNoteDraft] = useState<{ idx: number | 'new'; text: string } | null>(null);
@@ -79,12 +87,8 @@ export function DebriefReport({
   const tier = tierClasses(score.percent);
   const turningPoints = useMemo(() => deriveTurningPoints(session), [session]);
 
-  const statusGroups = {
-    done: snapshot.actions.filter((a) => a.status === 'done'),
-    delayed: snapshot.actions.filter((a) => a.status === 'delayed'),
-    incorrect: snapshot.actions.filter((a) => a.status === 'incorrect'),
-    missed: snapshot.actions.filter((a) => a.status === 'missed' || a.status === 'pending'),
-  };
+  const recordByActionId = new Map(snapshot.actions.map((r) => [r.actionId, r]));
+  const phaseLabelById = new Map(scenario.phases.map((p) => [p.id, p.label]));
 
   return (
     <article className="print-report card space-y-8 !p-6 md:!p-8">
@@ -240,35 +244,47 @@ export function DebriefReport({
             saved immediately.
           </p>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(
-            [
-              ['done', 'Done', 'text-emerald-300'],
-              ['delayed', 'Delayed', 'text-amber-300'],
-              ['incorrect', 'Incorrect', 'text-red-300'],
-              ['missed', 'Missed', 'text-slate-400'],
-            ] as const
-          ).map(([key, label, cls]) => (
-            <div key={key}>
-              <h3 className={`text-sm font-bold ${cls}`}>
-                {label} ({statusGroups[key].length})
-              </h3>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
-                {statusGroups[key].map((r) => {
-                  const a = actionById.get(r.actionId);
-                  if (!a) return null;
-                  return (
-                    <li key={r.actionId}>
-                      {a.critical && <strong>[critical] </strong>}
-                      {a.label}
-                      {r.markedAtSec !== undefined && (
-                        <span className="text-slate-500"> @ {fmt(r.markedAtSec)}</span>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700 text-left text-xs uppercase tracking-wider text-slate-500">
+                <th className="py-1.5 pr-3 font-semibold">Action</th>
+                <th className="py-1.5 pr-3 font-semibold">Phase</th>
+                <th className="py-1.5 pr-3 font-semibold">Marked</th>
+                <th className="py-1.5 pr-3 font-semibold">Status</th>
+                <th className="py-1.5 text-right font-semibold">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scenario.expectedActions.map((a) => {
+                const r = recordByActionId.get(a.id);
+                const shown: Exclude<ActionStatus, 'pending'> =
+                  !r || r.status === 'pending' ? 'missed' : r.status;
+                return (
+                  <tr key={a.id} className="border-b border-slate-800 align-top">
+                    <td className="py-1.5 pr-3" title={a.description}>
+                      {a.critical && (
+                        <span className="mr-1 text-red-400" title="critical action">
+                          ●
+                        </span>
                       )}
+                      {a.label}
+                    </td>
+                    <td className="py-1.5 pr-3 text-xs text-slate-500">
+                      {(a.phase && phaseLabelById.get(a.phase)) ?? '—'}
+                    </td>
+                    <td className="py-1.5 pr-3 font-mono tabular-nums text-slate-500">
+                      {r?.markedAtSec !== undefined ? fmt(r.markedAtSec) : '—'}
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <span className={`font-semibold uppercase ${ACTION_STATUS_CLASS[shown]}`}>
+                        {shown}
+                      </span>
                       {amend && (
                         <select
                           className="no-print ml-2 rounded bg-slate-800 px-1 py-0.5 text-xs text-slate-300 ring-1 ring-slate-700"
-                          value={r.status === 'pending' ? 'missed' : r.status}
-                          onChange={(e) => amend.markAction(r.actionId, e.target.value as ActionStatus)}
+                          value={shown}
+                          onChange={(e) => amend.markAction(a.id, e.target.value as ActionStatus)}
                           aria-label={`Amend status for ${a.label}`}
                         >
                           {AMENDABLE_STATUSES.map((s) => (
@@ -278,13 +294,15 @@ export function DebriefReport({
                           ))}
                         </select>
                       )}
-                    </li>
-                  );
-                })}
-                {statusGroups[key].length === 0 && <li className="text-slate-500">none</li>}
-              </ul>
-            </div>
-          ))}
+                    </td>
+                    <td className="py-1.5 text-right font-mono tabular-nums">
+                      {earnedPoints(a, r)}/{a.points}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </section>
 

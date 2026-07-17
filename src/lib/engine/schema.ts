@@ -23,7 +23,9 @@ const rhythmSchema = z.enum([
   'asystole',
 ]);
 
-const capnoShapeSchema = z.enum(['normal', 'bronchospasm']);
+const capnoShapeSchema = z.enum(['normal', 'bronchospasm', 'curare_cleft']);
+
+const pvcFrequencySchema = z.enum(['rare', 'occasional', 'trigeminy', 'bigeminy']);
 
 const numericVitalsPartial = z
   .object({
@@ -52,6 +54,7 @@ const vitalsSchema = numericVitalsPartial
   .extend({
     rhythm: rhythmSchema,
     capnoShape: capnoShapeSchema.optional(),
+    pvcFrequency: pvcFrequencySchema.optional(),
   })
   .refine(pulsePressureOk, { message: PULSE_PRESSURE_MSG, path: ['dbp'] });
 
@@ -65,6 +68,7 @@ export const vitalEffectSchema = z.object({
     .optional(),
   rhythm: rhythmSchema.optional(),
   capnoShape: capnoShapeSchema.optional(),
+  pvcFrequency: pvcFrequencySchema.optional(),
   overSec: z.number().min(0).optional(),
   afterSec: z.number().min(0).optional(),
 });

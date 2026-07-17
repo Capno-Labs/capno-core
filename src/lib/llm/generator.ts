@@ -68,7 +68,8 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "hr": 0-300, "sbp": n, "dbp": n (dbp must be at least 20 below sbp; 0/0 only for cardiac arrest), "spo2": 0-100, "etco2": n, "rr": n,
     "temp": 25-45 (Celsius), "depth": 0-100, "agentEt": %, "agentFi": %,
     "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole",
-    "capnoShape"?: "normal|bronchospasm"   // capnograph morphology; default normal
+    "capnoShape"?: "normal|bronchospasm|curare_cleft",   // capnograph morphology; default normal
+    "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy"   // PVC coupling rate (pvc rhythm only); default occasional
   },
   "phases": [{ "id": "...", "label": "...", "description"?: "...", "targetDurationSec"?: n }],   // ordered phases of care, at least 1; target = optional pacing budget in seconds
   "events": [{
@@ -77,7 +78,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "autoAtSec"?: n,               // ONLY for scripted deterioration; omit for faculty-triggered responses
     "actionIds"?: ["<existing expectedActions ids this event embodies or responds to>"],
     "effects": [{ "vitals"?: { partial numeric vitals }, "rhythm"?: "...",
-                  "capnoShape"?: "normal|bronchospasm",
+                  "capnoShape"?: "normal|bronchospasm|curare_cleft", "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",
                   "overSec"?: rampSeconds, "afterSec"?: delaySeconds }]
   }],
   "expectedActions": [{ "id": "...", "label": "...", "description"?: "...",

@@ -40,9 +40,16 @@ that sets both values closer than that, and the engine clamps `dbp` down to
 `sbp` − 20 at runtime (including effects that move only one of the pair).
 The floor is 0, so arrest states (`sbp: 0, dbp: 0`) remain valid.
 
-Optional: `capnoShape` — capnograph trace morphology, `normal` (default) or
-`bronchospasm` (the slurred, upsloping "shark fin" of obstructed expiration).
+Optional: `capnoShape` — capnograph trace morphology: `normal` (default),
+`bronchospasm` (the slurred, upsloping "shark fin" of obstructed expiration),
+or `curare_cleft` (a normal plateau with a transient notch — spontaneous
+respiratory effort during partial neuromuscular blockade).
 Display-only; the EtCO2 number is unaffected.
+
+Optional: `pvcFrequency` — how often an ectopic complex replaces a sinus
+beat while the rhythm is `pvc`: `rare` (1:8), `occasional` (1:4, default),
+`trigeminy` (1:3), or `bigeminy` (1:2). Display-only; ignored for other
+rhythms.
 
 ## `phases`
 

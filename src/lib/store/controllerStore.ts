@@ -9,6 +9,7 @@ import type {
   ActionStatus,
   CapnoShape,
   NumericVitals,
+  PvcFrequency,
   Rhythm,
   Scenario,
   ScenarioEvent,
@@ -52,6 +53,7 @@ interface ControllerState {
   setVital: (key: keyof NumericVitals, value: number, overSec?: number) => void;
   setRhythm: (rhythm: Rhythm) => void;
   setCapnoShape: (shape: CapnoShape) => void;
+  setPvcFrequency: (freq: PvcFrequency) => void;
   triggerEvent: (eventId: string) => void;
   /**
    * Add an instructor-improvised event to the running session. Ad-hoc events
@@ -167,7 +169,17 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setVital: (key, value, overSec = 3) => withEngine((e) => e.setVital(key, value, overSec)),
     setRhythm: (rhythm) => withEngine((e) => e.setRhythm(rhythm)),
     setCapnoShape: (shape) => withEngine((e) => e.setCapnoShape(shape)),
-    triggerEvent: (eventId) => withEngine((e) => e.triggerEvent(eventId)),
+    setPvcFrequency: (freq) => withEngine((e) => e.setPvcFrequency(freq)),
+    // Firing an event or marking an action is live-session work: if the
+    // session hasn't started (or is paused), the tap also starts/resumes it —
+    // faculty shouldn't need a separate Start press to react to the room.
+    // Ended sessions are never restarted.
+    triggerEvent: (eventId) =>
+      withEngine((e) => {
+        const status = e.getStatus();
+        if (status === 'idle' || status === 'paused') e.start();
+        e.triggerEvent(eventId);
+      }),
     addAdhocEvent: (event) => {
       const { engine } = get();
       if (!engine) return null;
@@ -184,7 +196,12 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     },
     pinNextEvent: (eventId) => withEngine((e) => e.pinNextEvent(eventId)),
     setPhase: (phaseId) => withEngine((e) => e.setPhase(phaseId)),
-    markAction: (actionId, status) => withEngine((e) => e.markAction(actionId, status)),
+    markAction: (actionId, status) =>
+      withEngine((e) => {
+        const simStatus = e.getStatus();
+        if (simStatus === 'idle' || simStatus === 'paused') e.start();
+        e.markAction(actionId, status);
+      }),
     addNote: (text) => withEngine((e) => e.addNote(text)),
     setAlarmsSilenced: (silenced) => withEngine((e) => e.setAlarmsSilenced(silenced)),
     setAutoEvents: (on) => withEngine((e) => e.setAutoEvents(on)),

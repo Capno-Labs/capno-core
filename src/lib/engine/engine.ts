@@ -6,6 +6,7 @@ import type {
   LogEntry,
   NibpReading,
   NumericVitals,
+  PvcFrequency,
   Rhythm,
   Scenario,
   ScenarioEvent,
@@ -15,7 +16,12 @@ import type {
   Vitals,
   VitalsHistorySample,
 } from './types';
-import { CAPNO_SHAPE_LABELS, NUMERIC_VITAL_KEYS, RHYTHM_LABELS } from './types';
+import {
+  CAPNO_SHAPE_LABELS,
+  NUMERIC_VITAL_KEYS,
+  PVC_FREQUENCY_LABELS,
+  RHYTHM_LABELS,
+} from './types';
 import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL_META } from './vitals';
 
 /**
@@ -60,6 +66,7 @@ export class SimulationEngine {
   private phaseChangedAtSec = 0;
   private rhythm: Rhythm;
   private capnoShape: CapnoShape;
+  private pvcFrequency: PvcFrequency;
 
   /** Current interpolated values. */
   private current: NumericVitals;
@@ -105,9 +112,10 @@ export class SimulationEngine {
     this.events = [...scenario.events];
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
-    const { rhythm, capnoShape, ...numeric } = scenario.baselineVitals;
+    const { rhythm, capnoShape, pvcFrequency, ...numeric } = scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
+    this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.current = { ...numeric };
     // Baselines are authored content: guarantee the pulse-pressure floor here
     // too (this value seeds the first NIBP reading before any tick can pin it).
@@ -219,9 +227,10 @@ export class SimulationEngine {
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
     this.phaseChangedAtSec = 0;
-    const { rhythm, capnoShape, ...numeric } = this.scenario.baselineVitals;
+    const { rhythm, capnoShape, pvcFrequency, ...numeric } = this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
+    this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.current = { ...numeric };
     this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
     this.ramps.clear();
@@ -404,6 +413,12 @@ export class SimulationEngine {
     this.addLog('vital_change', `CO₂ waveform → ${CAPNO_SHAPE_LABELS[shape]}`);
   }
 
+  setPvcFrequency(freq: PvcFrequency): void {
+    if (freq === this.pvcFrequency) return;
+    this.pvcFrequency = freq;
+    this.addLog('vital_change', `PVC frequency → ${PVC_FREQUENCY_LABELS[freq]}`);
+  }
+
   /** Fire a scenario-defined or live-added event by id (faculty trigger). */
   triggerEvent(eventId: string): ScenarioEvent | undefined {
     const ev = this.events.find((e) => e.id === eventId);
@@ -543,7 +558,12 @@ export class SimulationEngine {
   getVitals(): Vitals {
     const rounded = {} as NumericVitals;
     for (const key of NUMERIC_VITAL_KEYS) rounded[key] = roundVital(key, this.current[key]);
-    return { ...rounded, rhythm: this.rhythm, capnoShape: this.capnoShape };
+    return {
+      ...rounded,
+      rhythm: this.rhythm,
+      capnoShape: this.capnoShape,
+      pvcFrequency: this.pvcFrequency,
+    };
   }
 
   /** Archive-only vitals record (not part of broadcast snapshots). */
@@ -588,6 +608,7 @@ export class SimulationEngine {
   private applyEffectNow(effect: VitalEffect): void {
     if (effect.rhythm) this.setRhythm(effect.rhythm);
     if (effect.capnoShape) this.setCapnoShape(effect.capnoShape);
+    if (effect.pvcFrequency) this.setPvcFrequency(effect.pvcFrequency);
     if (effect.vitals) {
       for (const key of NUMERIC_VITAL_KEYS) {
         const target = effect.vitals[key];

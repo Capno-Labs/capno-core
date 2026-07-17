@@ -92,7 +92,7 @@ export function MonitorDisplay({ snapshot, compact = false }: MonitorDisplayProp
               </span>
               <span className="text-xs font-mono text-vital-ecg/80">{RHYTHM_LABELS[v.rhythm]}</span>
             </div>
-            <Waveform kind="ecg" color="#22e05f" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="ecg" color="#22e05f" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
           </div>
           <VitalTile label="HR" value={String(Math.round(v.hr))} unit="bpm" color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>
