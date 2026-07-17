@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { CapnoShape, NumericVitals, Rhythm } from '@/lib/engine/types';
-import { CAPNO_SHAPE_LABELS, RHYTHM_LABELS } from '@/lib/engine/types';
+import type { CapnoShape, NumericVitals, PvcFrequency, Rhythm } from '@/lib/engine/types';
+import { CAPNO_SHAPE_LABELS, PVC_FREQUENCY_LABELS, RHYTHM_LABELS } from '@/lib/engine/types';
 import { VITAL_META, clampVital, roundVital } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
@@ -120,6 +120,7 @@ export function VitalControls() {
   const snapshot = useControllerStore((s) => s.snapshot);
   const setRhythm = useControllerStore((s) => s.setRhythm);
   const setCapnoShape = useControllerStore((s) => s.setCapnoShape);
+  const setPvcFrequency = useControllerStore((s) => s.setPvcFrequency);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
   const [overSec, setOverSec] = useState(3);
@@ -212,6 +213,27 @@ export function VitalControls() {
             ))}
           </div>
         </div>
+
+        {snapshot.vitals.rhythm === 'pvc' && (
+          <div>
+            <span className="label">PVC frequency</span>
+            <div className="flex flex-wrap gap-1">
+              {(Object.keys(PVC_FREQUENCY_LABELS) as PvcFrequency[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setPvcFrequency(f)}
+                  className={`rounded px-2 py-1 text-xs font-semibold ${
+                    (snapshot.vitals.pvcFrequency ?? 'occasional') === f
+                      ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  }`}
+                >
+                  {PVC_FREQUENCY_LABELS[f]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <span className="label">CO₂ waveform</span>

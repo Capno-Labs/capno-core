@@ -54,6 +54,28 @@ export const CAPNO_SHAPE_LABELS: Record<CapnoShape, string> = {
   curare_cleft: 'Curare cleft',
 };
 
+/**
+ * How often an ectopic complex replaces a sinus beat when the rhythm is
+ * `pvc`. Named after the classic coupling patterns; display-only (the HR
+ * number is unaffected). Absent = 'occasional'.
+ */
+export type PvcFrequency = 'rare' | 'occasional' | 'trigeminy' | 'bigeminy';
+
+export const PVC_FREQUENCY_LABELS: Record<PvcFrequency, string> = {
+  rare: 'Rare (1:8)',
+  occasional: 'Occasional (1:4)',
+  trigeminy: 'Trigeminy (1:3)',
+  bigeminy: 'Bigeminy (1:2)',
+};
+
+/** One PVC every N beats, per frequency level. */
+export const PVC_FREQUENCY_EVERY_N: Record<PvcFrequency, number> = {
+  rare: 8,
+  occasional: 4,
+  trigeminy: 3,
+  bigeminy: 2,
+};
+
 /** Numeric (continuously interpolated) vital signs. */
 export interface NumericVitals {
   /** Heart rate, beats/min */
@@ -98,6 +120,8 @@ export interface Vitals extends NumericVitals {
   rhythm: Rhythm;
   /** Capnograph morphology. Absent = 'normal'. */
   capnoShape?: CapnoShape;
+  /** PVC coupling rate; only meaningful while rhythm is 'pvc'. Absent = 'occasional'. */
+  pvcFrequency?: PvcFrequency;
 }
 
 /** Mean arterial pressure derived from SBP/DBP. */
@@ -177,6 +201,8 @@ export interface VitalEffect {
   rhythm?: Rhythm;
   /** Capnograph morphology change. Like rhythm, applied immediately. */
   capnoShape?: CapnoShape;
+  /** PVC coupling-rate change. Like rhythm, applied immediately. */
+  pvcFrequency?: PvcFrequency;
   /** Seconds over which numeric targets are reached. Default 0 (instant). */
   overSec?: number;
   /** Seconds to wait after the trigger before this effect begins. Default 0. */

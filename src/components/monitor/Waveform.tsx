@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { CapnoShape, Rhythm } from '@/lib/engine/types';
+import type { CapnoShape, PvcFrequency, Rhythm } from '@/lib/engine/types';
+import { PVC_FREQUENCY_EVERY_N } from '@/lib/engine/types';
 import { artSample, capnoSample, ecgSample, isPulseless, plethSample } from './waveforms';
 
 export type TraceKind = 'ecg' | 'pleth' | 'capno' | 'art';
@@ -23,6 +24,8 @@ interface WaveformProps {
   rhythm: Rhythm;
   /** Capnograph morphology (capno traces only). Absent = normal. */
   capnoShape?: CapnoShape;
+  /** PVC coupling rate (ecg traces only). Absent = occasional (1 in 4). */
+  pvcFrequency?: PvcFrequency;
   /** Freeze the trace (scenario paused / not started). */
   frozen?: boolean;
   heightClass?: string;
@@ -44,12 +47,13 @@ export function Waveform({
   dbp = 0,
   rhythm,
   capnoShape = 'normal',
+  pvcFrequency = 'occasional',
   frozen = false,
   heightClass = 'h-20 md:h-24',
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, frozen });
-  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, frozen };
+  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen });
+  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -90,7 +94,7 @@ export function Waveform({
       const v = live.current;
       switch (kind) {
         case 'ecg':
-          return ecgSample(v.rhythm, beatPhase, absT, beatCount);
+          return ecgSample(v.rhythm, beatPhase, absT, beatCount, PVC_FREQUENCY_EVERY_N[v.pvcFrequency]);
         case 'pleth':
           return plethSample(v.rhythm, beatPhase, v.spo2);
         case 'capno':

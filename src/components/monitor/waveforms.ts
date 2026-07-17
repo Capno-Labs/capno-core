@@ -30,18 +30,19 @@ function sinusComplex(p: number): number {
  * ECG amplitude at phase p (0..1 within the current beat).
  * `t` is absolute time in seconds, used for non-periodic rhythms (vfib noise).
  * `beat` counts completed cycles, used by ectopy rhythms (pvc/pac) to swap
- * every Nth complex for an ectopic one.
+ * every Nth complex for an ectopic one. `pvcEveryN` is the PVC coupling
+ * rate (one ectopic per N beats — see PVC_FREQUENCY_EVERY_N).
  */
-export function ecgSample(rhythm: Rhythm, p: number, t: number, beat = 0): number {
+export function ecgSample(rhythm: Rhythm, p: number, t: number, beat = 0, pvcEveryN = 4): number {
   switch (rhythm) {
     case 'sinus':
     case 'sinus_brady':
     case 'sinus_tach':
       return sinusComplex(p);
     case 'pvc':
-      // Every 4th beat: early wide bizarre complex (no P, discordant T),
+      // Every Nth beat: early wide bizarre complex (no P, discordant T),
       // then a flat tail that reads as the compensatory pause.
-      if (beat % 4 === 3) {
+      if (beat % pvcEveryN === pvcEveryN - 1) {
         return gaussian(p, 0.1, 0.05, 1.15) + gaussian(p, 0.2, 0.07, -0.5);
       }
       return sinusComplex(p);

@@ -9,6 +9,7 @@ import type {
   ActionStatus,
   CapnoShape,
   NumericVitals,
+  PvcFrequency,
   Rhythm,
   Scenario,
   ScenarioEvent,
@@ -52,6 +53,7 @@ interface ControllerState {
   setVital: (key: keyof NumericVitals, value: number, overSec?: number) => void;
   setRhythm: (rhythm: Rhythm) => void;
   setCapnoShape: (shape: CapnoShape) => void;
+  setPvcFrequency: (freq: PvcFrequency) => void;
   triggerEvent: (eventId: string) => void;
   /**
    * Add an instructor-improvised event to the running session. Ad-hoc events
@@ -167,6 +169,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setVital: (key, value, overSec = 3) => withEngine((e) => e.setVital(key, value, overSec)),
     setRhythm: (rhythm) => withEngine((e) => e.setRhythm(rhythm)),
     setCapnoShape: (shape) => withEngine((e) => e.setCapnoShape(shape)),
+    setPvcFrequency: (freq) => withEngine((e) => e.setPvcFrequency(freq)),
     triggerEvent: (eventId) => withEngine((e) => e.triggerEvent(eventId)),
     addAdhocEvent: (event) => {
       const { engine } = get();
