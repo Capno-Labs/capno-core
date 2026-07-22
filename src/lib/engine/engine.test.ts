@@ -58,6 +58,45 @@ describe('SimulationEngine', () => {
     expect(e.getVitals().spo2).toBe(100);
   });
 
+  describe('rhythm-implied heart rate', () => {
+    it('sinus brady ramps HR below 60 when it is 60 or above', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('hr', 80, 0);
+      e.setRhythm('sinus_brady');
+      e.tick(10); // past the 5 s ramp
+      expect(e.getVitals().hr).toBe(50);
+    });
+
+    it('sinus tach ramps HR above 100 when it is 100 or below', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('hr', 80, 0);
+      e.setRhythm('sinus_tach');
+      e.tick(10);
+      expect(e.getVitals().hr).toBe(110);
+    });
+
+    it('leaves an already-in-range HR untouched', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('hr', 45, 0);
+      e.setRhythm('sinus_brady');
+      e.tick(10);
+      expect(e.getVitals().hr).toBe(45);
+    });
+
+    it('adjusts once on selection — the instructor can re-dial HR afterwards', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('hr', 80, 0);
+      e.setRhythm('sinus_brady');
+      e.tick(10);
+      e.setVital('hr', 80, 0);
+      expect(e.getVitals().hr).toBe(80);
+    });
+  });
+
   describe('measured etCO2 at apnea', () => {
     it('reads 0 at apnea (RR = 0) but keeps the set value underneath', () => {
       const e = newEngine();

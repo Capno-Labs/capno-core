@@ -409,6 +409,15 @@ export class SimulationEngine {
     if (rhythm === this.rhythm) return;
     this.rhythm = rhythm;
     this.addLog('vital_change', `Rhythm → ${RHYTHM_LABELS[rhythm]}`);
+    // Sinus brady/tach imply a rate range (<60 / >100). Bring HR into range
+    // once on selection; the instructor stays free to re-dial HR afterwards.
+    if (rhythm === 'sinus_brady' && this.effectiveTarget('hr') >= 60) {
+      this.startRamp('hr', 50, 5);
+      this.addLog('vital_change', 'HR → 50 bpm', 'sinus bradycardia');
+    } else if (rhythm === 'sinus_tach' && this.effectiveTarget('hr') <= 100) {
+      this.startRamp('hr', 110, 5);
+      this.addLog('vital_change', 'HR → 110 bpm', 'sinus tachycardia');
+    }
   }
 
   setCapnoShape(shape: CapnoShape): void {
