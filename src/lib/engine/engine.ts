@@ -659,9 +659,27 @@ const SESSION_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no easily-co
 export function generateSessionId(): string {
   let out = '';
   for (let i = 0; i < SESSION_CODE_LENGTH; i++) {
-    out += SESSION_CODE_ALPHABET[Math.floor(Math.random() * SESSION_CODE_ALPHABET.length)];
+    out += SESSION_CODE_ALPHABET[randomIndex(SESSION_CODE_ALPHABET.length)];
   }
   return out;
+}
+
+// Session codes are the only thing gating who can join a session's sync
+// channel, so they must come from a CSPRNG (web crypto exists in every
+// supported browser and in Node >= 20 — the test environment).
+// Rejection-sampled to keep the distribution uniform over a non-power-of-two
+// alphabet. Math.random remains only as a last-resort fallback.
+function randomIndex(bound: number): number {
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj?.getRandomValues === undefined) {
+    return Math.floor(Math.random() * bound);
+  }
+  const limit = 256 - (256 % bound);
+  const buf = new Uint8Array(1);
+  for (;;) {
+    cryptoObj.getRandomValues(buf);
+    if (buf[0] < limit) return buf[0] % bound;
+  }
 }
 
 /**
