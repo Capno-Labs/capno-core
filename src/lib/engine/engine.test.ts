@@ -86,6 +86,22 @@ describe('SimulationEngine', () => {
       expect(e.getVitals().hr).toBe(45);
     });
 
+    it('an effect authoring both rhythm and HR keeps the authored rate (no implied log)', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('hr', 80, 0);
+      e.addEvent({
+        id: 'adhoc-tach',
+        label: 'Tachycardia onset',
+        category: 'circulation',
+        effects: [{ rhythm: 'sinus_tach', vitals: { hr: 104 }, overSec: 0 }],
+      });
+      e.triggerEvent('adhoc-tach');
+      e.tick(10);
+      expect(e.getVitals().hr).toBe(104);
+      expect(e.snapshot().log.some((l) => l.label === 'HR → 110 bpm')).toBe(false);
+    });
+
     it('adjusts once on selection — the instructor can re-dial HR afterwards', () => {
       const e = newEngine();
       e.start();
