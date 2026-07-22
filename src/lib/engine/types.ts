@@ -379,6 +379,10 @@ export interface SimSnapshot {
   /** True while faculty has silenced audible/visual alarm emphasis. */
   alarmsSilenced: boolean;
   actions: ActionRecord[];
+  /** In live broadcast snapshots this is a capped tail of the newest entries
+   *  (snapshots go out twice a second — an uncapped log would grow every
+   *  message with session length). Archived snapshots hold the full log via
+   *  `engine.getFullLog()`. */
   log: LogEntry[];
   notes: FacultyNote[];
   firedEventIds: string[];

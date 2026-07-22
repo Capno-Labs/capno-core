@@ -254,6 +254,22 @@ describe('SimulationEngine', () => {
     expect(e.getVitals().hr).toBe(150);
   });
 
+  it('caps the snapshot log at a tail while getFullLog keeps everything', () => {
+    const e = newEngine();
+    e.start();
+    // Alternate shapes so each call logs (a repeated value is a no-op).
+    for (let i = 0; i < 120; i++) {
+      e.setCapnoShape(i % 2 === 0 ? 'bronchospasm' : 'normal');
+    }
+    const full = e.getFullLog();
+    expect(full.length).toBeGreaterThan(100);
+    const snap = e.snapshot();
+    expect(snap.log).toHaveLength(100);
+    // The tail is the newest entries, ending where the full log ends.
+    expect(snap.log[snap.log.length - 1]).toEqual(full[full.length - 1]);
+    expect(snap.log[0]).toEqual(full[full.length - 100]);
+  });
+
   it('validates session codes against the generator format', () => {
     expect(isValidSessionCode(generateSessionId())).toBe(true);
     expect(isValidSessionCode('ROOM42')).toBe(false); // 6 chars — the join input caps at 4
