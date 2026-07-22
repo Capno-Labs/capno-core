@@ -148,7 +148,9 @@ export const useControllerStore = create<ControllerState>((set, get) => {
         // The effective scenario (authored + live-added events) keeps the
         // archive self-consistent with firedEventIds and the debrief log.
         scenario: engine.getEffectiveScenario(),
-        snapshot,
+        // Broadcast snapshots carry only a log tail; the archive gets the
+        // full record so the debrief is complete.
+        snapshot: { ...snapshot, log: engine.getFullLog() },
         endedAtIso: new Date().toISOString(),
         score,
         history: engine.getHistory(),

@@ -40,6 +40,10 @@ import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL
 const HISTORY_SAMPLE_SEC = 10;
 /** ~8 h at one sample per 10 s — a generous ceiling, not a real limit. */
 const MAX_HISTORY_SAMPLES = 2880;
+/** Snapshots broadcast twice a second, so they carry only the newest log
+ *  entries — an uncapped log would grow every message with session length.
+ *  The full log stays in the engine (`getFullLog()`) for the archive. */
+const SNAPSHOT_LOG_TAIL = 100;
 
 export class SimulationEngine {
   readonly scenario: Scenario;
@@ -571,6 +575,13 @@ export class SimulationEngine {
     return [...this.history];
   }
 
+  /** The complete session log. Broadcast snapshots carry only the newest
+   *  `SNAPSHOT_LOG_TAIL` entries; the archive substitutes this full record
+   *  so the debrief loses nothing. */
+  getFullLog(): LogEntry[] {
+    return [...this.log];
+  }
+
   snapshot(): SimSnapshot {
     const vitals = this.getVitals();
     // The capnometer needs exhaled breath to sample: at apnea (RR 0) it reads
@@ -596,7 +607,7 @@ export class SimulationEngine {
       alarms: evaluateAlarms(alarmVitals),
       alarmsSilenced: this.alarmsSilenced,
       actions: this.actions.map((a) => ({ ...a })),
-      log: [...this.log],
+      log: this.log.slice(-SNAPSHOT_LOG_TAIL),
       notes: [...this.notes],
       firedEventIds: [...this.firedEventIds],
       autoEventsEnabled: this.autoEventsEnabled,
