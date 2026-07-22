@@ -405,10 +405,22 @@ export class SimulationEngine {
     }
   }
 
-  setRhythm(rhythm: Rhythm): void {
+  /** `impliedHr: false` skips the brady/tach rate coupling — used when the
+   *  caller supplies its own HR target in the same step (authored effects). */
+  setRhythm(rhythm: Rhythm, impliedHr = true): void {
     if (rhythm === this.rhythm) return;
     this.rhythm = rhythm;
     this.addLog('vital_change', `Rhythm → ${RHYTHM_LABELS[rhythm]}`);
+    // Sinus brady/tach imply a rate range (<60 / >100). Bring HR into range
+    // once on selection; the instructor stays free to re-dial HR afterwards.
+    if (!impliedHr) return;
+    if (rhythm === 'sinus_brady' && this.effectiveTarget('hr') >= 60) {
+      this.startRamp('hr', 50, 5);
+      this.addLog('vital_change', 'HR → 50 bpm', 'sinus bradycardia');
+    } else if (rhythm === 'sinus_tach' && this.effectiveTarget('hr') <= 100) {
+      this.startRamp('hr', 110, 5);
+      this.addLog('vital_change', 'HR → 110 bpm', 'sinus tachycardia');
+    }
   }
 
   setCapnoShape(shape: CapnoShape): void {
@@ -617,7 +629,7 @@ export class SimulationEngine {
   // ── Internals ──────────────────────────────────────────────────────────────
 
   private applyEffectNow(effect: VitalEffect): void {
-    if (effect.rhythm) this.setRhythm(effect.rhythm);
+    if (effect.rhythm) this.setRhythm(effect.rhythm, effect.vitals?.hr === undefined);
     if (effect.capnoShape) this.setCapnoShape(effect.capnoShape);
     if (effect.pvcFrequency) this.setPvcFrequency(effect.pvcFrequency);
     if (effect.vitals) {

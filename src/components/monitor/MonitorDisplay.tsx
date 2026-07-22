@@ -11,6 +11,8 @@ interface MonitorDisplayProps {
   snapshot: SimSnapshot;
   /** Compact mode for the embedded preview inside the faculty controller. */
   compact?: boolean;
+  /** Hidden on the student monitor — learners read the rhythm from the trace. */
+  showRhythmLabel?: boolean;
 }
 
 function formatClock(totalSec: number): string {
@@ -24,7 +26,7 @@ function formatClock(totalSec: number): string {
  * whether driven locally (faculty preview) or over the sync channel (student
  * display / projector).
  */
-export function MonitorDisplay({ snapshot, compact = false }: MonitorDisplayProps) {
+export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = true }: MonitorDisplayProps) {
   const v = snapshot.vitals;
   const frozen = snapshot.status !== 'running';
   const [soundOn, setSoundOn] = useMonitorSoundPref();
@@ -90,7 +92,9 @@ export function MonitorDisplay({ snapshot, compact = false }: MonitorDisplayProp
               <span className="text-xs font-bold uppercase tracking-wider text-vital-ecg">
                 ECG II
               </span>
-              <span className="text-xs font-mono text-vital-ecg/80">{RHYTHM_LABELS[v.rhythm]}</span>
+              {showRhythmLabel && (
+                <span className="text-xs font-mono text-vital-ecg/80">{RHYTHM_LABELS[v.rhythm]}</span>
+              )}
             </div>
             <Waveform kind="ecg" color="#22e05f" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
           </div>

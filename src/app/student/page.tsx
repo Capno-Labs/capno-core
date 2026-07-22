@@ -176,7 +176,7 @@ function StudentContent() {
         </button>
       )}
       {!booted && <BootOverlay onDone={() => setBooted(true)} />}
-      <MonitorDisplay snapshot={snapshot} />
+      <MonitorDisplay snapshot={snapshot} showRhythmLabel={false} />
     </main>
   );
 }
