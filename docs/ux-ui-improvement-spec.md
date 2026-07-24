@@ -1,3 +1,6 @@
+> **Historical spec — implemented.** Kept as a decision record; not current
+> guidance. Component names may be stale; see `docs/faculty-guide.md`.
+
 # CAPNO Studio — UX/UI improvement spec (reviewed)
 
 > **Historical note (2026-07).** The controller has since been reworked for

@@ -23,7 +23,7 @@ Use the preinstalled global Playwright + Chromium (do NOT `playwright install`):
 import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
 ```
 
-The canonical smoke flow (mirrors CLAUDE.md):
+The canonical smoke flow:
 
 1. Faculty page: `goto /faculty/run/anaphylaxis` (or `/faculty/run/quick-start`
    for a no-events session). The 4-char session code is in the
