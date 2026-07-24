@@ -1,3 +1,6 @@
+> **Historical spec — implemented.** Kept as a decision record; not current
+> guidance. Component names may be stale; see `docs/faculty-guide.md`.
+
 # UX batch 2 — demo tour, debrief narrative, note editing (spec)
 
 > **Status: implemented.** All three pieces below shipped (decision record,
