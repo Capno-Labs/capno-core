@@ -11,7 +11,7 @@ Each recipe lists every file that must move together. The invariants in
 
 ## Add a scenario
 
-Copy an existing file in `src/scenarios/` — the existing twelve are the
+Copy an existing file in `src/scenarios/` — the bundled scenarios are the
 structural reference. Ids are lowercase `a-z0-9_-`. Every
 `rubric.actionIds` entry must exist in `expectedActions`, and every action
 `phase` must exist in `phases`. Deterioration events may have `autoAtSec`;
