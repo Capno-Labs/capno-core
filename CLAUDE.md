@@ -128,9 +128,15 @@ instead of guessing in either direction.
 - Vitest runs in a Node environment — tests must not touch DOM. Pure logic
   is unit-testable even in component dirs (e.g. `waveforms.test.ts`);
   rendering is verified via the build and the `verify` skill.
-- Vitals history (`engine.getHistory()`) is archive-only. Never add it to
-  `SimSnapshot` — snapshots broadcast twice a second and history would bloat
-  every message (it's why `ArchivedSession.history` is a separate field).
+- Nothing unbounded goes into `SimSnapshot` — it's rebroadcast in full
+  twice a second, so wire size must not grow with session length. Vitals
+  history (`engine.getHistory()`) is archive-only (that's why
+  `ArchivedSession.history` is a separate field), and the snapshot log is
+  capped at `SNAPSHOT_LOG_TAIL` entries with `getFullLog()` for the
+  archive. Any new automatically-growing record follows the same pattern:
+  capped or absent in the snapshot, full copy archive-side. (Faculty
+  `notes` are the accepted exception — human-rate-bounded and archived
+  whole via the snapshot, so don't cap them.)
 - In NIBP cuff mode (the default), displayed BP and BP alarms come from
   `snapshot.nibp` (last measured), not live values. Only artLine scenarios
   show live pressure. Don't "fix" a stale NIBP tile — the staleness is the
