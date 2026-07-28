@@ -133,8 +133,10 @@ instead of guessing in either direction.
   history (`engine.getHistory()`) is archive-only (that's why
   `ArchivedSession.history` is a separate field), and the snapshot log is
   capped at `SNAPSHOT_LOG_TAIL` entries with `getFullLog()` for the
-  archive. Any new accumulating record follows the same pattern: capped
-  or absent in the snapshot, full copy archive-side.
+  archive. Any new automatically-growing record follows the same pattern:
+  capped or absent in the snapshot, full copy archive-side. (Faculty
+  `notes` are the accepted exception — human-rate-bounded and archived
+  whole via the snapshot, so don't cap them.)
 - In NIBP cuff mode (the default), displayed BP and BP alarms come from
   `snapshot.nibp` (last measured), not live values. Only artLine scenarios
   show live pressure. Don't "fix" a stale NIBP tile — the staleness is the

@@ -20,6 +20,8 @@
      published sources, cited here AND in docs/curriculum.md. Structural
      validity is not clinical review: a well-formed scenario can still
      misuse a field (e.g. an FiO2 value in the sevoflurane channel).
-     If this PR changes no clinical content, keep the line below. -->
+     Check exactly one box — an unchecked section blocks review. -->
 
-N/A — no clinical content changed.
+- [ ] No clinical content changed
+- [ ] Clinical content changed — sources cited below and in
+      `docs/curriculum.md`:
