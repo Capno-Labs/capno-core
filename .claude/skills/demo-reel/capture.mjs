@@ -37,7 +37,7 @@ const DEMO_SEEN_VALUE = JSON.stringify({ seenAtIso: '2026-01-01T00:00:00.000Z' }
 
 // Expected-action labels from src/scenarios/laryngospasm-lma.json, marked
 // via the ActionMarkRow buttons (aria-label = `${label}: Observed`). The six
-// critical actions plus three supporting ones → debrief scores ~93%; the two
+// critical actions plus three supporting ones → debrief scores 86% (125/145); the two
 // left unmarked read as missed, which keeps the report honest-looking.
 const OBSERVED_ACTIONS = [
   'Identify elevated laryngospasm risk (recent URI, smoker) and verbalize a plan',

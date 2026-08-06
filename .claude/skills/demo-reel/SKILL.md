@@ -49,7 +49,7 @@ the component source — don't work around it inline.
 | Bradycardia | HR 42, sinus brady | — |
 | Mark actions | 9 learner actions marked Observed | — |
 | Recovery | CPAP → propofol → sux/intubation → full recovery | `07-controller-recovery.png` |
-| Debrief | end session → scored report (~93%) | `08-debrief.png` |
+| Debrief | end session → scored report (86%) | `08-debrief.png` |
 | Archive | `/debrief` list | `09-debrief-archive.png` |
 | Tour | coach-mark walkthrough via `?demo=1` | `10-demo-tour.png` |
 
