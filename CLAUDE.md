@@ -147,3 +147,8 @@ instead of guessing in either direction.
 Step-by-step recipes for common changes — add a scenario, numeric vital,
 rhythm, or sync transport; touch cloud sync or scoring — live in the
 `extending` skill (`.claude/skills/extending/SKILL.md`).
+
+## Demo media
+
+Storyboarded screenshots and a WebM walkthrough of a scripted session are
+produced by the `demo-reel` skill (`.claude/skills/demo-reel/SKILL.md`).

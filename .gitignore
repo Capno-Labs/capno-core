@@ -30,3 +30,6 @@ next-env.d.ts
 
 # test
 coverage/
+
+# demo reel captures (see .claude/skills/demo-reel)
+/demo-reel-out/
