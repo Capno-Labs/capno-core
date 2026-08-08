@@ -74,9 +74,9 @@ training-year progression:
 
 | Tier | trainingLevels | Intent |
 | --- | --- | --- |
-| `beginner` | medical_student, srna, resident_junior | Foundational management, single-system, forgiving tempo |
-| `intermediate` | srna, resident_junior, resident_senior, crna | Common crises with escalation decisions |
-| `advanced` | resident_junior, resident_senior, crna, attending | Rare/lethal events, procedural rescue, team leadership |
+| `beginner` | medical_student, srna, saa, resident_junior | Foundational management, single-system, forgiving tempo |
+| `intermediate` | srna, saa, resident_junior, resident_senior, crna, caa | Common crises with escalation decisions |
+| `advanced` | resident_junior, resident_senior, crna, caa, attending | Rare/lethal events, procedural rescue, team leadership |
 
 ## The library at a glance
 

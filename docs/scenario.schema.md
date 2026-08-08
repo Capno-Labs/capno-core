@@ -13,7 +13,7 @@ scenario from the library for a complete working example.
 | `title`, `summary` | string | Library card text. |
 | `tags.topics` | string[] | Free-form topic tags (≥1). Used for library filtering. Convention: `topics[0]` is one curriculum domain from the closed vocabulary in [curriculum.md](curriculum.md); the rest are free-form specifics. |
 | `tags.difficulty` | enum | `beginner` \| `intermediate` \| `advanced` |
-| `tags.trainingLevels` | enum[] | `medical_student`, `srna`, `resident_junior`, `resident_senior`, `crna`, `attending` |
+| `tags.trainingLevels` | enum[] | `medical_student`, `srna`, `saa`, `resident_junior`, `resident_senior`, `crna`, `caa`, `attending` |
 | `learningObjectives` | string[] | ≥1. Shown in library details and debrief. |
 | `setup` | string[] | Room/equipment/confederate instructions for faculty. |
 | `estimatedMinutes` | number | Library display only. |
