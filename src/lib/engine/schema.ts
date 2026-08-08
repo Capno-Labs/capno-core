@@ -154,9 +154,11 @@ export const scenarioSchema = z
           z.enum([
             'medical_student',
             'srna',
+            'saa',
             'resident_junior',
             'resident_senior',
             'crna',
+            'caa',
             'attending',
           ]),
         )
