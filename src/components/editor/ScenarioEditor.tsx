@@ -6,7 +6,7 @@ import { GeneratePanel } from '@/components/editor/GeneratePanel';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, enqueue, getPushedAt } from '@/lib/cloud/outbox';
 import { downloadJson } from '@/lib/download';
-import { lintScenario } from '@/lib/engine/lint';
+import { lintScenario, type LintWarning } from '@/lib/engine/lint';
 import { validateScenario, parseScenario } from '@/lib/engine/schema';
 import type { Scenario } from '@/lib/engine/types';
 import { DEFAULT_VITALS } from '@/lib/engine/vitals';
@@ -18,20 +18,28 @@ import {
   type ScenarioVersion,
 } from '@/lib/scenarios/customStore';
 import { toast } from '@/lib/store/toastStore';
-import { ActionListEditor } from './ActionListEditor';
-import { EventListEditor } from './EventListEditor';
-import { PhaseListEditor } from './PhaseListEditor';
-import { RubricEditor } from './RubricEditor';
+import { DraftPreviewCard } from './DraftPreviewCard';
+import { EditorRail, type SectionIssueCounts } from './EditorRail';
+import { JsonPanel } from './JsonPanel';
+import { SECTIONS, sectionOfIssue, sectionOfPath, type SectionId, type SectionMeta } from './sections';
+import { AssessmentSection } from './sections/AssessmentSection';
+import { OverviewSection } from './sections/OverviewSection';
+import { PatientSection } from './sections/PatientSection';
+import { TeachingSection } from './sections/TeachingSection';
+import { TimelineSection } from './sections/TimelineSection';
+import { VitalsSection } from './sections/VitalsSection';
 
 /**
- * Faculty scenario editor.
+ * Faculty case editor.
  *
- * Hybrid model: the common fields (title, tags, patient, baseline vitals,
- * objectives…) are edited with forms; the full document — including events,
- * expected actions, and rubric — is always visible and editable in the JSON
- * pane, validated with the same zod schema used at runtime. This gives
- * non-technical faculty a form for the 90% case without us re-implementing a
- * schema-complete visual editor in the MVP.
+ * The form is the primary authoring surface: the scenario document is split
+ * into instructor-facing sections (Overview → Patient → Vitals → Timeline →
+ * Assessment → Teaching) behind a navigation rail with per-section
+ * validation badges, and the form covers the entire schema. Raw JSON is an
+ * opt-in advanced surface (the toolbar's "Edit JSON" toggle) that *replaces*
+ * the form while open — the two never edit the document at the same time,
+ * and JSON text becomes the source of truth only after "Apply JSON",
+ * validated with the same zod schema used at runtime.
  */
 
 function blankScenario(): Scenario {
@@ -70,76 +78,32 @@ function blankScenario(): Scenario {
   };
 }
 
-function ListEditor({
-  label,
-  items,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  items: string[];
-  onChange: (items: string[]) => void;
-  placeholder?: string;
-}) {
-  const [draft, setDraft] = useState('');
-  return (
-    <div>
-      <span className="label">{label}</span>
-      <ul className="mb-1 space-y-1">
-        {items.map((item, i) => (
-          <li key={i} className="flex items-center gap-2 rounded bg-slate-800/60 px-2 py-1 text-sm">
-            <span className="flex-1">{item}</span>
-            <button
-              className="text-slate-500 hover:text-red-400"
-              onClick={() => onChange(items.filter((_, j) => j !== i))}
-              aria-label={`remove ${item}`}
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="flex gap-2">
-        <input
-          className="input"
-          value={draft}
-          placeholder={placeholder ?? 'Add item…'}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && draft.trim()) {
-              e.preventDefault();
-              onChange([...items, draft.trim()]);
-              setDraft('');
-            }
-          }}
-        />
-        <button
-          className="btn-secondary shrink-0"
-          onClick={() => {
-            if (draft.trim()) {
-              onChange([...items, draft.trim()]);
-              setDraft('');
-            }
-          }}
-        >
-          Add
-        </button>
-      </div>
-    </div>
-  );
-}
+const RAIL_IDS: SectionId[] = [...SECTIONS.map((s) => s.id), 'history'];
 
 export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   const router = useRouter();
   const [scenario, setScenario] = useState<Scenario>(initial ?? blankScenario());
-  const [jsonText, setJsonText] = useState(() => JSON.stringify(initial ?? blankScenario(), null, 2));
-  const [jsonDirty, setJsonDirty] = useState(false);
   const [formDirty, setFormDirty] = useState(false);
+  /** Pathless/transient errors (save failures, bad imports, cloud drops).
+   *  Schema errors with a field path surface on their owning section instead. */
   const [errors, setErrors] = useState<string[]>([]);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [history, setHistory] = useState<ScenarioVersion[]>([]);
   const [cloudState, setCloudState] = useState<'idle' | 'syncing' | 'synced' | 'failed'>('idle');
   const fileInput = useRef<HTMLInputElement | null>(null);
+
+  const [activeSection, setActiveSection] = useState<SectionId>('overview');
+
+  // Advanced JSON surface. Text is regenerated from the scenario each time
+  // the panel opens, so the form never has to keep it in sync per keystroke.
+  const [jsonOpen, setJsonOpen] = useState(false);
+  const [jsonText, setJsonText] = useState('');
+  const [jsonDirty, setJsonDirty] = useState(false);
+
+  // AI draft awaiting review, and the pre-load document for one-click undo.
+  const [draft, setDraft] = useState<Scenario | null>(null);
+  const [draftError, setDraftError] = useState<{ errors: string[]; rawText: string } | null>(null);
+  const [undoScenario, setUndoScenario] = useState<Scenario | null>(null);
 
   // Unsaved content (form edits or unapplied JSON) → warn before leaving.
   useBeforeUnload(formDirty || jsonDirty);
@@ -152,18 +116,52 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
     useAuthStore.getState().init();
   }, []);
 
-  /** Form edits flow into both the object and the JSON pane. */
+  // Deep links / reloads restore the section from the URL hash.
+  useEffect(() => {
+    const h = window.location.hash.replace('#', '');
+    if ((RAIL_IDS as string[]).includes(h)) setActiveSection(h as SectionId);
+  }, []);
+
   const update = (patch: Partial<Scenario>) => {
-    if (jsonDirty) return; // the form is paused — unapplied JSON edits win
-    const next = { ...scenario, ...patch };
-    setScenario(next);
-    setJsonText(JSON.stringify(next, null, 2));
-    setJsonDirty(false);
+    // Only reachable from the form surface — the JSON panel replaces it, so
+    // the two can never race for the document.
+    setScenario({ ...scenario, ...patch });
     setFormDirty(true);
     setErrors([]);
   };
-  const updatePatient = (patch: Partial<Scenario['patient']>) =>
-    update({ patient: { ...scenario.patient, ...patch } });
+
+  /** Wholesale document replacement (Apply JSON, import, restore, AI load). */
+  const replaceScenario = (next: Scenario) => {
+    setScenario(next);
+    setFormDirty(true);
+    setJsonText(JSON.stringify(next, null, 2));
+    setJsonDirty(false);
+    setErrors([]);
+  };
+
+  const selectSection = (id: SectionId) => {
+    if (jsonDirty) {
+      toast('Apply or discard your JSON edits first', 'error');
+      return;
+    }
+    setJsonOpen(false);
+    setActiveSection(id);
+    window.history.replaceState(null, '', `#${id}`);
+  };
+
+  const toggleJson = () => {
+    if (jsonOpen) {
+      if (jsonDirty) {
+        toast('Apply or discard your JSON edits first', 'error');
+        return;
+      }
+      setJsonOpen(false);
+    } else {
+      setJsonText(JSON.stringify(scenario, null, 2));
+      setJsonDirty(false);
+      setJsonOpen(true);
+    }
+  };
 
   const discardJson = () => {
     setJsonText(JSON.stringify(scenario, null, 2));
@@ -179,10 +177,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
         setErrors(check.errors);
         return;
       }
-      setScenario(parseScenario(raw));
-      setJsonDirty(false);
-      setFormDirty(true);
-      setErrors([]);
+      replaceScenario(parseScenario(raw));
     } catch (e) {
       setErrors([`Invalid JSON: ${e instanceof Error ? e.message : String(e)}`]);
     }
@@ -190,12 +185,22 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
 
   const save = () => {
     if (jsonDirty) {
-      setErrors(['Apply or discard your JSON edits before saving.']);
+      toast('Apply or discard your JSON edits before saving', 'error');
       return;
     }
     const check = validateScenario(scenario);
     if (!check.ok) {
-      setErrors(check.errors);
+      const sections = [
+        ...new Set(check.errors.map(sectionOfIssue).filter((s): s is SectionId => s !== null)),
+      ];
+      if (sections.length > 0) {
+        const labels = sections
+          .map((id) => SECTIONS.find((s) => s.id === id)?.label ?? id)
+          .join(', ');
+        toast(`${check.errors.length} issue(s) to fix — see ${labels}`, 'error');
+        selectSection(sections[0]);
+      }
+      setErrors(check.errors.filter((e) => sectionOfIssue(e) === null));
       return;
     }
     const result = saveCustomScenario(scenario);
@@ -232,11 +237,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           return;
         }
         const parsed = parseScenario(raw);
-        setScenario(parsed);
-        setJsonText(JSON.stringify(parsed, null, 2));
-        setJsonDirty(false);
-        setFormDirty(true);
-        setErrors([]);
+        replaceScenario(parsed);
         toast(`Imported “${parsed.title}”`, 'success');
       } catch (e) {
         setErrors([`Could not import: ${e instanceof Error ? e.message : String(e)}`]);
@@ -246,30 +247,53 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   };
 
   const restoreVersion = (v: ScenarioVersion) => {
-    setScenario(v.scenario);
-    setJsonText(JSON.stringify(v.scenario, null, 2));
-    setJsonDirty(false);
-    setFormDirty(true);
-    setErrors([]);
+    replaceScenario(v.scenario);
   };
 
   /**
-   * AI drafts land in the JSON pane as *unapplied* text — the JSON pane is
-   * only the source of truth after Apply JSON, so the draft always passes
-   * through the existing validate → review → save pipeline.
+   * AI drafts never land in the document directly: a validated draft shows a
+   * preview card, and faculty explicitly load it (with one-click undo of the
+   * replaced work). Invalid drafts open the JSON surface for manual repair —
+   * a broken draft can't be represented in the form.
    */
   const handleGenerated = (result: GenerateResult) => {
     if (result.ok) {
-      setJsonText(JSON.stringify(result.scenario, null, 2));
-      setJsonDirty(true);
-      setErrors([]);
-      toast('Draft generated — review it, then Apply JSON', 'success');
+      setDraft(result.scenario);
+      setDraftError(null);
+      toast('Draft ready — review the preview below', 'success');
     } else {
-      setJsonText(result.rawText || jsonText);
-      setJsonDirty(Boolean(result.rawText));
-      setErrors(result.errors);
+      setDraft(null);
+      setDraftError({ errors: result.errors, rawText: result.rawText });
       toast('Draft failed validation — see errors', 'error');
     }
+  };
+
+  const loadDraft = () => {
+    if (!draft) return;
+    if (jsonDirty) {
+      toast('Apply or discard your JSON edits first', 'error');
+      return;
+    }
+    setUndoScenario(scenario);
+    replaceScenario(draft);
+    setDraft(null);
+    setJsonOpen(false);
+    toast('Draft loaded — review all clinical content, then Save', 'success');
+  };
+
+  const undoDraftLoad = () => {
+    if (!undoScenario) return;
+    replaceScenario(undoScenario);
+    setUndoScenario(null);
+  };
+
+  const repairInJson = () => {
+    if (!draftError) return;
+    setJsonText(draftError.rawText);
+    setJsonDirty(true);
+    setJsonOpen(true);
+    setErrors(draftError.errors);
+    setDraftError(null);
   };
 
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
@@ -279,10 +303,98 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   const warnings = useMemo(() => lintScenario(scenario), [scenario]);
   const aiDraft = scenario.tags.topics.includes(AI_GENERATED_TAG);
 
+  // Route every pathful issue to its owning section; the rest stay global.
+  const issues = useMemo(() => {
+    const bySection = new Map<SectionId, { errors: string[]; warnings: LintWarning[] }>();
+    const at = (id: SectionId) => {
+      let entry = bySection.get(id);
+      if (!entry) {
+        entry = { errors: [], warnings: [] };
+        bySection.set(id, entry);
+      }
+      return entry;
+    };
+    const globalErrors: string[] = [];
+    const globalWarnings: LintWarning[] = [];
+    for (const e of validation.errors) {
+      const id = sectionOfIssue(e);
+      if (id) at(id).errors.push(e);
+      else globalErrors.push(e);
+    }
+    for (const w of warnings) {
+      const id = sectionOfPath(w.path);
+      if (id) at(id).warnings.push(w);
+      else globalWarnings.push(w);
+    }
+    return { bySection, globalErrors, globalWarnings };
+  }, [validation, warnings]);
+
+  const issueCounts = useMemo(() => {
+    const counts = new Map<SectionId, SectionIssueCounts>();
+    for (const [id, entry] of issues.bySection) {
+      counts.set(id, { errors: entry.errors.length, warnings: entry.warnings.length });
+    }
+    return counts;
+  }, [issues]);
+
+  const railSections: SectionMeta[] = [
+    ...SECTIONS,
+    { id: 'history', label: history.length > 0 ? `History (${history.length})` : 'History' },
+  ];
+
+  const activeIssues = issues.bySection.get(activeSection);
+  const globalErrors = [...errors, ...issues.globalErrors];
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'overview':
+        return <OverviewSection scenario={scenario} update={update} />;
+      case 'patient':
+        return <PatientSection scenario={scenario} update={update} />;
+      case 'vitals':
+        return <VitalsSection scenario={scenario} update={update} />;
+      case 'timeline':
+        return <TimelineSection scenario={scenario} update={update} warnings={warnings} />;
+      case 'assessment':
+        return <AssessmentSection scenario={scenario} update={update} />;
+      case 'teaching':
+        return <TeachingSection scenario={scenario} update={update} />;
+      case 'history':
+        return (
+          <section className="card">
+            <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">
+              Version history ({scenario.id})
+            </h2>
+            {history.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No saved versions yet — “Save version” snapshots the case here.
+              </p>
+            ) : (
+              <ul className="space-y-1 text-sm">
+                {history.map((v, i) => (
+                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded bg-slate-800/60 px-2 py-1">
+                    <span>
+                      {new Date(v.savedAtIso).toLocaleString()}{' '}
+                      <span className="text-xs text-slate-500">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
+                    </span>
+                    {i > 0 && (
+                      <button className="text-xs text-sky-400 hover:text-sky-300" onClick={() => restoreVersion(v)}>
+                        restore
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Toolbar — sticky so Save and issue counts stay visible on long sections. */}
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 bg-slate-950/95 py-2 backdrop-blur">
         <button
           className="btn-primary"
           onClick={save}
@@ -290,6 +402,14 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           title={jsonDirty ? 'Apply or discard your JSON edits first' : undefined}
         >
           💾 Save version
+        </button>
+        <button
+          className="btn-ghost"
+          onClick={() => router.push(`/faculty/run/${scenario.id}`)}
+          disabled={!validation.ok || jsonDirty}
+          title={validation.ok ? 'Save first to run the latest edits' : 'Fix validation errors first'}
+        >
+          ▶ Test run
         </button>
         <button className="btn-secondary" onClick={exportFile}>
           ⬇ Export JSON
@@ -309,12 +429,12 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           }}
         />
         <button
-          className="btn-ghost"
-          onClick={() => router.push(`/faculty/run/${scenario.id}`)}
-          disabled={!validation.ok || jsonDirty}
-          title={validation.ok ? 'Save first to run the latest edits' : 'Fix validation errors first'}
+          className={jsonOpen ? 'btn-secondary' : 'btn-ghost'}
+          aria-pressed={jsonOpen}
+          onClick={toggleJson}
+          title="Advanced: edit the full definition as raw JSON"
         >
-          ▶ Test run
+          {'</>'} Edit JSON
         </button>
         {savedAt && (
           <span className="text-xs text-emerald-400">
@@ -338,6 +458,41 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
 
       <GeneratePanel onResult={handleGenerated} />
 
+      {draft && <DraftPreviewCard draft={draft} onLoad={loadDraft} onDiscard={() => setDraft(null)} />}
+
+      {draftError && (
+        <div className="space-y-2 rounded-md bg-red-950/60 p-3 text-sm text-red-300 ring-1 ring-red-800">
+          <p className="font-semibold">The AI draft failed validation:</p>
+          <ul className="list-disc space-y-0.5 pl-5">
+            {draftError.errors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-2">
+            {draftError.rawText && (
+              <button className="btn-secondary !py-1 text-xs" onClick={repairInJson}>
+                Open in JSON editor to repair
+              </button>
+            )}
+            <button className="btn-ghost !py-1 text-xs" onClick={() => setDraftError(null)}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {undoScenario && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-sky-950/50 p-3 text-sm text-sky-300 ring-1 ring-sky-800">
+          <span className="flex-1">AI draft loaded — your previous work was replaced.</span>
+          <button className="btn-secondary !py-1 text-xs" onClick={undoDraftLoad}>
+            Undo
+          </button>
+          <button className="btn-ghost !py-1 text-xs" onClick={() => setUndoScenario(null)}>
+            Keep draft
+          </button>
+        </div>
+      )}
+
       {aiDraft && (
         <div className="rounded-md bg-amber-950/50 p-3 text-sm text-amber-300 ring-1 ring-amber-700">
           ⚠ AI-generated draft — requires faculty review of all clinical content (drug effects,
@@ -346,23 +501,20 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
         </div>
       )}
 
-      {errors.length > 0 && (
+      {globalErrors.length > 0 && (
         <div className="rounded-md bg-red-950/60 p-3 text-sm text-red-300 ring-1 ring-red-800">
           <ul className="list-disc space-y-0.5 pl-5">
-            {errors.map((e, i) => (
+            {globalErrors.map((e, i) => (
               <li key={i}>{e}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {warnings.length > 0 && (
+      {issues.globalWarnings.length > 0 && (
         <div className="rounded-md bg-amber-950/40 p-3 text-sm ring-1 ring-amber-900">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-400">
-            Authoring warnings — saving is not blocked
-          </p>
           <ul className="list-disc space-y-0.5 pl-5">
-            {warnings.map((w, i) => (
+            {issues.globalWarnings.map((w, i) => (
               <li key={i} className={w.severity === 'warning' ? 'text-amber-300' : 'text-slate-400'}>
                 <span className="font-mono text-xs">{w.path}</span>: {w.message}
               </li>
@@ -371,284 +523,54 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* ── Form pane ── */}
-        <div className="space-y-4">
-          {jsonDirty && (
-            <div className="flex flex-wrap items-center gap-2 rounded-md bg-amber-950/60 p-3 text-sm text-amber-300 ring-1 ring-amber-800">
-              <span className="flex-1">
-                The JSON pane has unapplied edits. The form is paused so it can’t overwrite them.
-              </span>
-              <button className="btn-primary !py-1 text-xs" onClick={applyJson}>
-                Apply JSON
-              </button>
-              <button className="btn-ghost !py-1 text-xs" onClick={discardJson}>
-                Discard
-              </button>
-            </div>
-          )}
-          <div
-            className={jsonDirty ? 'space-y-4 pointer-events-none select-none opacity-60' : 'space-y-4'}
-            aria-disabled={jsonDirty}
-          >
-          <section className="card space-y-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Basics</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <span className="label">ID (kebab-case)</span>
-                <input className="input font-mono" value={scenario.id} onChange={(e) => update({ id: e.target.value })} />
-              </div>
-              <div>
-                <span className="label">Version</span>
-                <input className="input font-mono" value={scenario.version} onChange={(e) => update({ version: e.target.value })} />
-              </div>
-            </div>
-            <div>
-              <span className="label">Title</span>
-              <input className="input" value={scenario.title} onChange={(e) => update({ title: e.target.value })} />
-            </div>
-            <div>
-              <span className="label">Summary</span>
-              <textarea className="input" rows={2} value={scenario.summary} onChange={(e) => update({ summary: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <span className="label">Difficulty</span>
-                <select
-                  className="input"
-                  value={scenario.tags.difficulty}
-                  onChange={(e) =>
-                    update({ tags: { ...scenario.tags, difficulty: e.target.value as Scenario['tags']['difficulty'] } })
-                  }
-                >
-                  <option value="beginner">beginner</option>
-                  <option value="intermediate">intermediate</option>
-                  <option value="advanced">advanced</option>
-                </select>
-              </div>
-              <div>
-                <span className="label">Est. minutes</span>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  value={scenario.estimatedMinutes}
-                  onChange={(e) => update({ estimatedMinutes: Number(e.target.value) || 1 })}
-                />
-              </div>
-              <div>
-                <span className="label" title="Hard time budget for a scheduled lab slot — the run screen counts down against it. Blank = use est. minutes.">
-                  Slot budget (min)
-                </span>
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  step="any"
-                  placeholder="optional"
-                  value={scenario.targetDurationSec !== undefined ? scenario.targetDurationSec / 60 : ''}
-                  onChange={(e) => {
-                    // Fractional minutes are fine; non-positive means "no
-                    // budget", never a silent clamp (see PhaseListEditor).
-                    const n = Number(e.target.value);
-                    update({
-                      targetDurationSec:
-                        e.target.value === '' || !(n > 0)
-                          ? undefined
-                          : Math.max(1, Math.round(n * 60)),
-                    });
-                  }}
-                />
-              </div>
-            </div>
-            <ListEditor
-              label="Topics"
-              items={scenario.tags.topics}
-              onChange={(topics) => update({ tags: { ...scenario.tags, topics } })}
-              placeholder="e.g. airway, hemodynamics…"
+      <div className="desk:flex desk:items-start desk:gap-5">
+        <EditorRail
+          sections={railSections}
+          active={activeSection}
+          issueCounts={issueCounts}
+          onSelect={selectSection}
+        />
+        <div className="mt-3 min-w-0 flex-1 space-y-4 desk:mt-0">
+          {jsonOpen ? (
+            <JsonPanel
+              text={jsonText}
+              dirty={jsonDirty}
+              onChange={(t) => {
+                setJsonText(t);
+                setJsonDirty(true);
+              }}
+              onApply={applyJson}
+              onDiscard={discardJson}
             />
-          </section>
-
-          <section className="card space-y-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Patient</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="col-span-2">
-                <span className="label">Name</span>
-                <input className="input" value={scenario.patient.name} onChange={(e) => updatePatient({ name: e.target.value })} />
-              </div>
-              <div>
-                <span className="label">Age</span>
-                <input className="input" type="number" value={scenario.patient.age} onChange={(e) => updatePatient({ age: Number(e.target.value) || 0 })} />
-              </div>
-              <div>
-                <span className="label">Sex</span>
-                <select className="input" value={scenario.patient.sex} onChange={(e) => updatePatient({ sex: e.target.value as 'male' | 'female' })}>
-                  <option value="male">male</option>
-                  <option value="female">female</option>
-                </select>
-              </div>
-              <div>
-                <span className="label">Weight kg</span>
-                <input className="input" type="number" value={scenario.patient.weightKg} onChange={(e) => updatePatient({ weightKg: Number(e.target.value) || 1 })} />
-              </div>
-              <div>
-                <span className="label">Height cm</span>
-                <input className="input" type="number" value={scenario.patient.heightCm} onChange={(e) => updatePatient({ heightCm: Number(e.target.value) || 1 })} />
-              </div>
-              <div>
-                <span className="label">ASA</span>
-                <select className="input" value={scenario.patient.asa} onChange={(e) => updatePatient({ asa: Number(e.target.value) as Scenario['patient']['asa'] })}>
-                  {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <span className="label">Mallampati</span>
-                <select
-                  className="input"
-                  value={scenario.patient.airway.mallampati}
-                  onChange={(e) =>
-                    updatePatient({ airway: { ...scenario.patient.airway, mallampati: Number(e.target.value) as 1 | 2 | 3 | 4 } })
-                  }
-                >
-                  {[1, 2, 3, 4].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <ListEditor label="Allergies" items={scenario.patient.allergies} onChange={(allergies) => updatePatient({ allergies })} />
-            <ListEditor label="Medications" items={scenario.patient.medications} onChange={(medications) => updatePatient({ medications })} />
-            <ListEditor label="Past medical history" items={scenario.patient.pmh} onChange={(pmh) => updatePatient({ pmh })} />
-          </section>
-
-          <section className="card space-y-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Teaching content</h2>
-            <ListEditor label="Learning objectives" items={scenario.learningObjectives} onChange={(learningObjectives) => update({ learningObjectives })} />
-            <ListEditor label="Setup" items={scenario.setup} onChange={(setup) => update({ setup })} />
-            <ListEditor label="Expected progression" items={scenario.expectedProgression} onChange={(expectedProgression) => update({ expectedProgression })} />
-            <ListEditor label="Correct management" items={scenario.correctManagement} onChange={(correctManagement) => update({ correctManagement })} />
-            <ListEditor label="Common errors" items={scenario.commonErrors} onChange={(commonErrors) => update({ commonErrors })} />
-            <ListEditor label="Debrief points" items={scenario.debrief.points} onChange={(points) => update({ debrief: { ...scenario.debrief, points } })} />
-            <ListEditor label="Debrief questions" items={scenario.debrief.questions} onChange={(questions) => update({ debrief: { ...scenario.debrief, questions } })} />
-          </section>
-
-          <details className="card">
-            <summary className="cursor-pointer text-sm font-bold uppercase tracking-wider text-slate-400">
-              Phases ({scenario.phases.length})
-            </summary>
-            <div className="mt-3">
-              <PhaseListEditor phases={scenario.phases} onChange={(phases) => update({ phases })} />
-            </div>
-          </details>
-
-          <details className="card">
-            <summary className="cursor-pointer text-sm font-bold uppercase tracking-wider text-slate-400">
-              Events ({scenario.events.length})
-            </summary>
-            <div className="mt-3">
-              <EventListEditor
-                events={scenario.events}
-                phases={scenario.phases}
-                actions={scenario.expectedActions}
-                baselineVitals={scenario.baselineVitals}
-                estimatedMinutes={scenario.estimatedMinutes}
-                warnings={warnings}
-                onChange={(events) => update({ events })}
-              />
-            </div>
-          </details>
-
-          <details className="card">
-            <summary className="cursor-pointer text-sm font-bold uppercase tracking-wider text-slate-400">
-              Expected actions ({scenario.expectedActions.length})
-            </summary>
-            <div className="mt-3">
-              <ActionListEditor
-                actions={scenario.expectedActions}
-                phases={scenario.phases}
-                rubric={scenario.rubric}
-                events={scenario.events}
-                onChange={(expectedActions) => update({ expectedActions })}
-              />
-            </div>
-          </details>
-
-          <details className="card">
-            <summary className="cursor-pointer text-sm font-bold uppercase tracking-wider text-slate-400">
-              Rubric ({scenario.rubric.length} categories)
-            </summary>
-            <div className="mt-3">
-              <RubricEditor
-                rubric={scenario.rubric}
-                actions={scenario.expectedActions}
-                onChange={(rubric) => update({ rubric })}
-              />
-            </div>
-          </details>
-
-          {history.length > 0 && (
-            <section className="card">
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">
-                Version history ({scenario.id})
-              </h2>
-              <ul className="max-h-40 space-y-1 overflow-y-auto text-sm">
-                {history.map((v, i) => (
-                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded bg-slate-800/60 px-2 py-1">
-                    <span>
-                      {new Date(v.savedAtIso).toLocaleString()}{' '}
-                      <span className="text-xs text-slate-500">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
-                    </span>
-                    {i > 0 && (
-                      <button className="text-xs text-sky-400 hover:text-sky-300" onClick={() => restoreVersion(v)}>
-                        restore
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
+          ) : (
+            <>
+              {activeIssues && activeIssues.errors.length > 0 && (
+                <div className="rounded-md bg-red-950/60 p-3 text-sm text-red-300 ring-1 ring-red-800">
+                  <ul className="list-disc space-y-0.5 pl-5">
+                    {activeIssues.errors.map((e, i) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {activeIssues && activeIssues.warnings.length > 0 && (
+                <div className="rounded-md bg-amber-950/40 p-3 text-sm ring-1 ring-amber-900">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-400">
+                    Authoring warnings — saving is not blocked
+                  </p>
+                  <ul className="list-disc space-y-0.5 pl-5">
+                    {activeIssues.warnings.map((w, i) => (
+                      <li key={i} className={w.severity === 'warning' ? 'text-amber-300' : 'text-slate-400'}>
+                        <span className="font-mono text-xs">{w.path}</span>: {w.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {renderSection()}
+            </>
           )}
-          </div>
         </div>
-
-        {/* ── JSON pane ── */}
-        <section className="card flex flex-col">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-              Full definition (JSON)
-            </h2>
-            {jsonDirty ? (
-              <div className="flex gap-2">
-                <button className="btn-primary !py-1 text-xs" onClick={applyJson}>
-                  Apply JSON
-                </button>
-                <button className="btn-ghost !py-1 text-xs" onClick={discardJson}>
-                  Discard
-                </button>
-              </div>
-            ) : (
-              <span className="text-xs text-slate-500">
-                full document — power users can edit JSON directly
-              </span>
-            )}
-          </div>
-          <textarea
-            className="input min-h-[600px] flex-1 font-mono text-xs leading-relaxed"
-            spellCheck={false}
-            value={jsonText}
-            onChange={(e) => {
-              setJsonText(e.target.value);
-              setJsonDirty(true);
-            }}
-            aria-label="Scenario JSON"
-          />
-        </section>
       </div>
     </div>
   );
