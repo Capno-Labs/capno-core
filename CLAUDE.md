@@ -116,10 +116,15 @@ instead of guessing in either direction.
   (start/pause/reset/end) is deliberately not LLM-controllable.
 - AI-generated scenario drafts carry an `ai-generated` topic tag (see
   invariant 7 — clinical content is reviewed material). Don't strip the tag
-  programmatically; reviewers remove it in the editor after review.
-- In the editor, the JSON pane is the source of truth only after
-  "Apply JSON"; form edits regenerate the JSON text. Preserve that
-  direction or you'll create silent data loss.
+  programmatically; reviewers remove it in the editor after review. In the
+  editor, a valid draft shows a preview card and is loaded only on explicit
+  faculty action (with undo); invalid drafts open the raw-JSON surface for
+  repair.
+- In the editor, the raw-JSON surface is opt-in ("Edit JSON" in the
+  toolbar) and *replaces* the form while open — the two never edit the
+  document at the same time. JSON text is regenerated from the scenario
+  when the surface opens and becomes the source of truth only after
+  "Apply JSON". Preserve that direction or you'll create silent data loss.
 - All pages are client components (`'use client'`) — the app is
   local-first and stateful. Don't convert to server components.
 - Changing caching behavior requires bumping `VERSION` in `public/sw.js`.

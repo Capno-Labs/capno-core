@@ -10,9 +10,11 @@ const MAX_ATTEMPTS = 3;
 
 /**
  * "Generate with AI" affordance for the scenario editor. Produces a DRAFT
- * that lands in the JSON pane (dirty) — faculty still press Apply JSON and
- * Save, so nothing skips the existing validate/review/save pipeline.
- * Hidden entirely unless AI settings are configured.
+ * handed to the editor shell: a validated draft shows a preview card that
+ * faculty explicitly load (with undo); an invalid draft opens the raw-JSON
+ * surface for repair. Either way faculty still review and Save, so nothing
+ * skips the existing validate/review/save pipeline. Hidden entirely unless
+ * AI settings are configured.
  */
 export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult) => void }) {
   const configured = useLlmConfigured();
