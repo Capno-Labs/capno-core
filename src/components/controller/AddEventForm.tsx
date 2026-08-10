@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { EffectEditor, effectSummary } from '@/components/editor/EventListEditor';
+import { EffectEditor, effectSummary } from '@/components/editor/EffectEditor';
 import { CATEGORIES } from '@/components/eventCategories';
 import { EVENT_TEMPLATES, TEMPLATE_KINDS } from '@/lib/engine/eventTemplates';
 import { eventSchema } from '@/lib/engine/schema';
