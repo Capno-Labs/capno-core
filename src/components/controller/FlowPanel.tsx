@@ -8,7 +8,10 @@ import { nextUnfiredEvent } from '@/lib/engine/flow';
 import type { ExpectedAction, ScenarioEvent } from '@/lib/engine/types';
 import { formatClock } from '@/lib/format';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
+import { payloadFromEvent } from '@/lib/scenarios/eventLibrary';
+import { saveEventToLibrary } from '@/lib/scenarios/eventLibraryStore';
 import { useControllerStore } from '@/lib/store/controllerStore';
+import { toast } from '@/lib/store/toastStore';
 
 const IMMINENT_SEC = 30;
 
@@ -163,6 +166,24 @@ export function FlowPanel() {
         {isPinned ? '⤫ unpin' : '⤒ make next'}
       </button>
     );
+    // Improvised events that worked well can be kept for reuse in other
+    // scenarios. Authored events are saved from the case editor instead.
+    const saveControl = !authoredIds.has(ev.id) && (
+      <button
+        className="text-[10px] font-semibold text-slate-500 hover:text-sky-300"
+        title="Save this improvised event to your personal library"
+        onClick={(e) => {
+          const result = saveEventToLibrary(payloadFromEvent(ev));
+          toast(
+            result.ok ? `Saved “${ev.label}” to your event library` : result.error,
+            result.ok ? 'success' : result.duplicate ? 'info' : 'error',
+          );
+          e.currentTarget.blur();
+        }}
+      >
+        ☆ save
+      </button>
+    );
     return (
       <div
         key={ev.id}
@@ -215,7 +236,12 @@ export function FlowPanel() {
             </span>
           )}
         </button>
-        {pinControl && <div className="flex justify-end px-1">{pinControl}</div>}
+        {(pinControl || saveControl) && (
+          <div className="flex justify-end gap-3 px-1">
+            {saveControl}
+            {pinControl}
+          </div>
+        )}
         {actions.length > 0 && (
           <ul className="space-y-1">
             {actions.map((a) => (

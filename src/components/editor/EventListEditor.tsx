@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   ExpectedAction,
   NumericVitals,
@@ -11,7 +11,22 @@ import type {
 import { NUMERIC_VITAL_KEYS } from '@/lib/engine/types';
 import type { LintWarning } from '@/lib/engine/lint';
 import { CATEGORY_DOT } from '@/components/eventCategories';
+import { downloadJson } from '@/lib/download';
 import { EVENT_TEMPLATES, TEMPLATE_KINDS, type EventTemplate } from '@/lib/engine/eventTemplates';
+import {
+  parseLibraryFile,
+  payloadFromEvent,
+  savedEventPayloadSchema,
+  serializeLibraryFile,
+  type SavedEvent,
+} from '@/lib/scenarios/eventLibrary';
+import {
+  deleteSavedEvent,
+  importSavedEvents,
+  listSavedEvents,
+  saveEventToLibrary,
+} from '@/lib/scenarios/eventLibraryStore';
+import { toast } from '@/lib/store/toastStore';
 import { effectSummary, fmtTime } from './EffectEditor';
 import { EventDetailEditor } from './EventDetailEditor';
 import { EventTimeline } from './EventTimeline';
@@ -95,6 +110,58 @@ export function EventListEditor({
   const [showTemplates, setShowTemplates] = useState(false);
   const [templateFilter, setTemplateFilter] = useState('');
 
+  // Personal event library. Read in an effect keyed on the panel opening
+  // (never during render — the panel is closed at first paint, so SSR and
+  // hydration never touch localStorage); refreshed after save/delete/import.
+  const [savedEvents, setSavedEvents] = useState<SavedEvent[]>([]);
+  useEffect(() => {
+    if (showTemplates) setSavedEvents(listSavedEvents());
+  }, [showTemplates]);
+  const libraryFileInput = useRef<HTMLInputElement | null>(null);
+
+  const saveToLibrary = (event: ScenarioEvent) => {
+    const payload = payloadFromEvent(event);
+    if (!savedEventPayloadSchema.safeParse(payload).success) {
+      toast('Give the event a label and valid effects before saving.', 'error');
+      return;
+    }
+    const result = saveEventToLibrary(payload);
+    if (result.ok) {
+      toast(`Saved “${payload.label}” to your event library`, 'success');
+      setSavedEvents(listSavedEvents());
+    } else {
+      toast(result.error, result.duplicate ? 'info' : 'error');
+    }
+  };
+
+  const removeFromLibrary = (entry: SavedEvent) => {
+    deleteSavedEvent(entry.id);
+    setSavedEvents(listSavedEvents());
+    toast(`Removed “${entry.label}” from your library`, 'info');
+  };
+
+  const importLibraryFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const parsed = parseLibraryFile(String(reader.result));
+      if (!parsed.ok) {
+        toast(parsed.errors[0], 'error');
+        return;
+      }
+      const result = importSavedEvents(parsed.file.events);
+      if (!result.ok) {
+        toast(result.error, 'error');
+        return;
+      }
+      setSavedEvents(listSavedEvents());
+      const parts = [`Imported ${result.added} event${result.added === 1 ? '' : 's'}`];
+      if (result.skippedDuplicates > 0) parts.push(`${result.skippedDuplicates} duplicate${result.skippedDuplicates === 1 ? '' : 's'} skipped`);
+      if (result.droppedOverCap > 0) parts.push(`${result.droppedOverCap} over the cap dropped`);
+      toast(parts.join(' — '), result.added > 0 ? 'success' : 'info');
+    };
+    reader.readAsText(file);
+  };
+
   // Templates stamp an ordinary inline event: effects are deep-copied so
   // later edits never touch the registry, and the id stays blank — the
   // author must name it, same rule as the presets.
@@ -130,6 +197,19 @@ export function EventListEditor({
       tq === '' ||
       `${t.label} ${t.description} ${t.domain} ${t.category} ${t.source}`.toLowerCase().includes(tq),
   );
+  const visibleSaved = savedEvents.filter(
+    (e) =>
+      tq === '' || `${e.label} ${e.description ?? ''} ${e.category}`.toLowerCase().includes(tq),
+  );
+
+  // Same insertion rule as templates: blank id, author picks the trigger.
+  const insertSaved = (entry: SavedEvent) =>
+    addPreset({
+      label: entry.label,
+      description: entry.description,
+      category: entry.category,
+      effects: structuredClone(entry.effects),
+    });
 
   const addButtons = (
     <div className="space-y-1">
@@ -189,6 +269,74 @@ export function EventListEditor({
         template) — verify them for your patient and baseline. The inserted event needs an id,
         and you choose its trigger.
       </p>
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            My events
+          </span>
+          {savedEvents.length > 0 && (
+            <button
+              className="btn-ghost !px-2 !py-0.5 text-xs"
+              onClick={() => downloadJson('capno-events.library.json', serializeLibraryFile(savedEvents))}
+            >
+              ⬇ Export
+            </button>
+          )}
+          <button
+            className="btn-ghost !px-2 !py-0.5 text-xs"
+            onClick={() => libraryFileInput.current?.click()}
+          >
+            ⬆ Import
+          </button>
+          <input
+            ref={libraryFileInput}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) importLibraryFile(f);
+              e.target.value = '';
+            }}
+          />
+        </div>
+        {savedEvents.length === 0 ? (
+          <p className="text-xs text-slate-500">
+            No saved events yet — use ☆ Save to library on any event, or import a library file.
+          </p>
+        ) : (
+          <ul className="space-y-1">
+            {visibleSaved.map((entry) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-center gap-2 rounded bg-slate-900/60 px-2 py-1.5 ring-1 ring-slate-800"
+              >
+                <span
+                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${CATEGORY_DOT[entry.category]}`}
+                  title={entry.category}
+                />
+                <span className="text-sm font-semibold text-slate-200">{entry.label}</span>
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-slate-500" title={entry.description}>
+                  {entry.effects.length === 0 ? 'log only' : entry.effects.map(effectSummary).join(' | ')}
+                </span>
+                <span className="text-[10px] text-slate-600">
+                  saved {new Date(entry.savedAtIso).toLocaleDateString()}
+                </span>
+                <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => insertSaved(entry)}>
+                  Insert
+                </button>
+                <button
+                  className="btn-ghost !px-2 !py-1 text-xs text-red-400"
+                  onClick={() => removeFromLibrary(entry)}
+                  aria-label={`delete ${entry.label} from library`}
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       {TEMPLATE_KINDS.map(({ kind, title }) => {
         const items = visibleTemplates.filter((t) => t.kind === kind);
         if (items.length === 0) return null;
@@ -332,6 +480,7 @@ export function EventListEditor({
               onChange={(p) => patch(selected, p)}
               onRemove={() => removeEvent(selected)}
               onSetAuto={(auto) => setTriggerType(selected, auto)}
+              onSaveToLibrary={() => saveToLibrary(events[selected])}
             />
           )}
         </div>

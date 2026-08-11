@@ -20,6 +20,7 @@ export function EventDetailEditor({
   onChange,
   onRemove,
   onSetAuto,
+  onSaveToLibrary,
 }: {
   event: ScenarioEvent;
   index: number;
@@ -31,6 +32,8 @@ export function EventDetailEditor({
   onRemove: () => void;
   /** Trigger-type toggle — kept upstream so the fires-at stash survives. */
   onSetAuto: (auto: boolean) => void;
+  /** Save this event to the personal library; store + toasts live upstream. */
+  onSaveToLibrary?: () => void;
 }) {
   const title = event.label || event.id || `Event ${index + 1}`;
   const warningCount = warnings.filter((w) => w.path.startsWith(`events.${index}.`)).length;
@@ -67,13 +70,24 @@ export function EventDetailEditor({
             ⚠ {warningCount}
           </span>
         )}
-        <button
-          className="btn-ghost ml-auto !px-2 !py-1 text-red-400"
-          onClick={onRemove}
-          aria-label={`remove event ${title}`}
-        >
-          ✕ Remove event
-        </button>
+        <div className="ml-auto flex gap-1">
+          {onSaveToLibrary && (
+            <button
+              className="btn-ghost !px-2 !py-1"
+              onClick={onSaveToLibrary}
+              title="Save this event to your personal library for reuse in other scenarios"
+            >
+              ☆ Save to library
+            </button>
+          )}
+          <button
+            className="btn-ghost !px-2 !py-1 text-red-400"
+            onClick={onRemove}
+            aria-label={`remove event ${title}`}
+          >
+            ✕ Remove event
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
