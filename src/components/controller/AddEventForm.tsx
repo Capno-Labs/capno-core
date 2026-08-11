@@ -6,6 +6,8 @@ import { CATEGORIES } from '@/components/eventCategories';
 import { EVENT_TEMPLATES, TEMPLATE_KINDS } from '@/lib/engine/eventTemplates';
 import { eventSchema } from '@/lib/engine/schema';
 import type { EventCategory, VitalEffect } from '@/lib/engine/types';
+import type { SavedEvent } from '@/lib/scenarios/eventLibrary';
+import { listSavedEvents } from '@/lib/scenarios/eventLibraryStore';
 import { useControllerStore } from '@/lib/store/controllerStore';
 import { formatZodIssues } from '@/lib/zodIssues';
 
@@ -33,9 +35,25 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
   const [effects, setEffects] = useState<VitalEffect[]>([{}]);
   const [templateId, setTemplateId] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
+  // Personal event library, offered alongside the curated templates. Lazy
+  // initializer is safe here: this form mounts only on a user click, well
+  // after hydration, so localStorage is readable.
+  const [savedEvents] = useState<SavedEvent[]>(() => listSavedEvents());
 
   const applyTemplate = (id: string) => {
     setTemplateId(id);
+    // Library options are namespaced 'lib:<id>' so they can never collide
+    // with curated template ids.
+    if (id.startsWith('lib:')) {
+      const entry = savedEvents.find((e) => `lib:${e.id}` === id);
+      if (!entry) return;
+      setLabel(entry.label);
+      setDescription(entry.description ?? '');
+      setCategory(entry.category);
+      setEffects(structuredClone(entry.effects));
+      setErrors([]);
+      return;
+    }
     const t = EVENT_TEMPLATES.find((tpl) => tpl.id === id);
     if (!t) {
       // "— blank event —" re-selected: clear everything, or the previous
@@ -87,6 +105,18 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
           aria-label="Event template"
         >
           <option value="">— blank event —</option>
+          {savedEvents.length > 0 && (
+            <optgroup label="My events">
+              {savedEvents.map((e) => (
+                <option key={e.id} value={`lib:${e.id}`}>
+                  {e.label}
+                  {e.effects.length > 0
+                    ? ` — ${e.effects.map(effectSummary).join(' | ')}`
+                    : ' — log only'}
+                </option>
+              ))}
+            </optgroup>
+          )}
           {TEMPLATE_KINDS.map(({ kind, title }) => (
             <optgroup key={kind} label={title}>
               {EVENT_TEMPLATES.filter((t) => t.kind === kind).map((t) => (
@@ -99,8 +129,8 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
           ))}
         </select>
         <p className="mt-1 text-xs text-slate-500">
-          Template values come from the reviewed bundled scenarios — verify them for this patient
-          and baseline before firing.
+          Template values come from the reviewed bundled scenarios; “My events” are your own saved
+          values — verify either for this patient and baseline before firing.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">

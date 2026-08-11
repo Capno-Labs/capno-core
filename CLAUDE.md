@@ -104,7 +104,8 @@ instead of guessing in either direction.
   module-level singleton (one session per device by design). `teardown()`
   must clear it — leaking intervals shows up as double-speed clocks.
 - localStorage keys are versioned (`capno:sessions:v1`,
-  `capno:custom-scenarios:v1`, `capno:collections:v1`, `capno:cloud-outbox:v1`,
+  `capno:custom-scenarios:v1`, `capno:collections:v1`,
+  `capno:event-library:v1`, `capno:cloud-outbox:v1`,
   `capno:cloud-sync-meta:v1`, `capno:llm-settings:v1`, `capno:demo:v1`,
   `capno:monitor-sound:v1`). If you change a stored shape, add a new
   versioned key and migrate; don't mutate the old shape in place
