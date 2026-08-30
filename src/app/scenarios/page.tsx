@@ -82,7 +82,6 @@ export default function ScenarioLibraryPage() {
   useEffect(() => {
     refresh();
     useAuthStore.getState().init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cloud pull-on-view: render instantly from local data, then merge in
