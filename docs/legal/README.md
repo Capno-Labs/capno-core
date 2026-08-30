@@ -1,18 +1,15 @@
-# Legal drafts — for attorney review only
+# Legal documents
 
-The documents in this directory are **internal drafts for legal counsel**.
-They are not in effect, are not legal advice, and must not be published or
-linked from the application until a lawyer has revised and approved them.
-
-- `terms-of-service.draft.md` — Terms of Service for the hosted service at
-  capno.app (the open-source repo itself remains governed solely by
-  Apache-2.0; see `LICENSE` and `NOTICE`).
-- `privacy-policy.draft.md` — companion Privacy Policy for the hosted
-  service, written to match the app's actual data flows (local-first, no
-  analytics, optional Supabase cloud sync, optional AI features).
-
-Unresolved items are marked `[PLACEHOLDER — for counsel]` throughout, and
-each draft's open business/legal questions (governing law, arbitration,
-FERPA/student-data posture, minors policy, fees/SLA, GDPR/CCPA) are
-collected in the "Notes for counsel" section at the end of the Terms
-draft.
+- `terms-of-service.md` — **the lawyer-reviewed Terms of Service** for the
+  hosted CAPNO Studio service, approved as-is by counsel and effective
+  2026-08-24. The canonical public rendering is capno.app/legal/terms;
+  this file is the source-of-record copy. The open-source repository
+  itself remains governed solely by Apache-2.0 — see `LICENSE` and
+  `NOTICE`. Changing the Terms requires counsel review, updating both
+  copies, and bumping the hosted service's `TERMS_VERSION` clickwrap
+  constant.
+- `privacy-policy.draft.md` — companion Privacy Policy draft, written to
+  match the app's actual data flows (local-first, no analytics, optional
+  Supabase cloud sync, optional AI features). **Superseded by the live
+  policy at capno.app/legal/privacy**, which counsel reviewed 2026-08-24;
+  this draft is retained as the drafting history and is not in effect.
