@@ -1,12 +1,13 @@
 # CAPNO Studio — Privacy Policy
 
-> **DRAFT — FOR ATTORNEY REVIEW. NOT IN EFFECT. NOT LEGAL ADVICE.**
-> This document was prepared internally as a starting point for legal
-> counsel. It has not been reviewed by a lawyer and must not be published,
-> linked from the application, or presented to users until counsel has
-> revised and approved it. Bracketed items marked `[PLACEHOLDER — for
-> counsel]` are unresolved decisions. Companion document:
-> [Terms of Service draft](./terms-of-service.draft.md).
+> **SUPERSEDED — this is the internal drafting history, not the policy in
+> effect.** The live Privacy Policy is published at
+> capno.app/legal/privacy and was reviewed by counsel on August 24, 2026;
+> it governs, and differs from this draft. This file is retained for
+> drafting history only — do not rely on it, publish it, or present it to
+> users. Bracketed items marked `[PLACEHOLDER — for counsel]` were
+> unresolved at drafting time and were settled in the live policy.
+> Companion document: [Terms of Service](./terms-of-service.md).
 
 **Effective date:** `[PLACEHOLDER — for counsel: effective date]`
 
