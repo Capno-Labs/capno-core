@@ -186,11 +186,11 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
   return (
     <section className="card w-full space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           ✨ Draft a collection from your syllabus
         </h2>
         <button
-          className="text-xs text-slate-500 hover:text-slate-300"
+          className="text-xs text-faint hover:text-ink-2"
           onClick={() => {
             abortRef.current?.abort();
             setOpen(false);
@@ -232,7 +232,7 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
       )}
 
       {step === 'extracting' && (
-        <div className="flex items-center gap-3 text-sm text-slate-400">
+        <div className="flex items-center gap-3 text-sm text-muted">
           <span>Reading the document…</span>
           <button className="btn-ghost" onClick={() => abortRef.current?.abort()}>
             Cancel
@@ -242,7 +242,7 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
 
       {step === 'pick' && (
         <>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             Found {labs.length} lab session{labs.length === 1 ? '' : 's'}. Pick which to draft:
           </p>
           <ul className="space-y-2">
@@ -258,8 +258,8 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
                   }
                 />
                 <label htmlFor={`syllabus-lab-${i}`} className="min-w-0">
-                  <span className="font-semibold text-slate-200">{lab.title}</span>
-                  <span className="block text-xs text-slate-500">{lab.prompt}</span>
+                  <span className="font-semibold text-ink">{lab.title}</span>
+                  <span className="block text-xs text-faint">{lab.prompt}</span>
                 </label>
               </li>
             ))}
@@ -282,7 +282,7 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
       {(step === 'drafting' || step === 'done') && (
         <>
           {step === 'drafting' && (
-            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted">
               <span>
                 Drafting {progress.current} of {progress.total}: “{progress.label}”
                 {progress.attempt > 1 ? ` (repairing, attempt ${progress.attempt})` : ''}…
@@ -295,7 +295,7 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
           {outcomes.length > 0 && (
             <ul className="space-y-1 text-xs">
               {outcomes.map((o, i) => (
-                <li key={i} className={o.ok ? 'text-emerald-400' : 'text-red-400'}>
+                <li key={i} className={o.ok ? 'text-green' : 'text-red'}>
                   {o.ok ? '✓' : '✕'} {o.title}
                   {o.error ? ` — ${o.error}` : ''}
                 </li>
@@ -310,7 +310,7 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
         </>
       )}
 
-      <p className="text-xs text-amber-400/90">
+      <p className="text-xs text-amber-strong">
         AI-generated drafts are unreviewed. Faculty must review all clinical content — drug
         effects, vital-sign values, and timings — before use with learners.
       </p>

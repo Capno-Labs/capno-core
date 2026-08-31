@@ -33,7 +33,7 @@ export function ActionListEditor({
         const refs = referencedBy(action.id);
         const links = linkedFrom(action.id);
         return (
-          <div key={i} className="space-y-2 rounded bg-slate-800/60 p-2">
+          <div key={i} className="space-y-2 rounded bg-panel-2 p-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="label">Action id (kebab-case)</span>
@@ -103,7 +103,7 @@ export function ActionListEditor({
                 Critical action
               </label>
               <button
-                className="btn-ghost ml-auto !px-2 !py-1 text-red-400"
+                className="btn-ghost ml-auto !px-2 !py-1 text-red"
                 onClick={() => {
                   const referencedIn = [
                     ...refs.map((r) => `rubric: ${r}`),
@@ -127,7 +127,7 @@ export function ActionListEditor({
               </button>
             </div>
             {(refs.length > 0 || links.length > 0) && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-faint">
                 {refs.length > 0 && <>In rubric: {refs.join(', ')}</>}
                 {refs.length > 0 && links.length > 0 && ' · '}
                 {links.length > 0 && <>Linked from event{links.length === 1 ? '' : 's'}: {links.join(', ')}</>}

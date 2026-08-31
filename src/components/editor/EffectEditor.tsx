@@ -64,9 +64,9 @@ export function EffectEditor({
   };
 
   return (
-    <div className="space-y-2 rounded bg-slate-900/60 p-2 ring-1 ring-slate-800">
-      <p className="font-mono text-[11px] text-slate-400">{effectSummary(effect)}</p>
-      <p className="text-xs text-slate-500">
+    <div className="space-y-2 rounded bg-panel/60 p-2 ring-1 ring-line">
+      <p className="font-mono text-[11px] text-muted">{effectSummary(effect)}</p>
+      <p className="text-xs text-faint">
         When the event fires: wait the delay, then ramp the vitals below to their targets over the
         ramp duration (blank vital = unchanged).
       </p>
@@ -134,7 +134,7 @@ export function EffectEditor({
           </select>
         </div>
         <button
-          className="btn-ghost ml-auto !px-2 !py-1 text-red-400"
+          className="btn-ghost ml-auto !px-2 !py-1 text-red"
           onClick={onRemove}
           aria-label="remove effect"
         >
@@ -148,7 +148,7 @@ export function EffectEditor({
             const meta = VITAL_META[key];
             return (
               <div key={key}>
-                <span className="block text-[10px] uppercase tracking-wider text-slate-500">
+                <span className="block text-[10px] uppercase tracking-wider text-faint">
                   {meta.label}
                   {meta.unit ? ` (${meta.unit})` : ''}
                 </span>

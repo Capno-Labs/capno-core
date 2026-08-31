@@ -17,7 +17,7 @@ export function AssessmentSection({
   return (
     <div className="space-y-4">
       <section className="card space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           Expected actions ({scenario.expectedActions.length})
         </h2>
         <ActionListEditor
@@ -29,7 +29,7 @@ export function AssessmentSection({
         />
       </section>
       <section className="card space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           Rubric ({scenario.rubric.length} categories)
         </h2>
         <RubricEditor

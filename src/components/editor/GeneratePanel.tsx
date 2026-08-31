@@ -74,11 +74,11 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
   return (
     <section className="card w-full space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           ✨ Generate scenario draft
         </h2>
         <button
-          className="text-xs text-slate-500 hover:text-slate-300"
+          className="text-xs text-faint hover:text-ink-2"
           onClick={() => setOpen(false)}
           disabled={loading}
         >
@@ -96,7 +96,7 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
       />
       <div className="space-y-2">
         <button
-          className="text-xs text-slate-500 hover:text-slate-300"
+          className="text-xs text-faint hover:text-ink-2"
           onClick={() => setDocOpen((v) => !v)}
           disabled={loading}
         >
@@ -119,12 +119,12 @@ export function GeneratePanel({ onResult }: { onResult: (result: GenerateResult)
           {loading ? 'Generating…' : 'Generate draft'}
         </button>
         {loading && (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted">
             {attempt > 1 ? `repairing (attempt ${attempt}/${MAX_ATTEMPTS})…` : 'drafting & validating…'}
           </span>
         )}
       </div>
-      <p className="text-xs text-amber-400/90">
+      <p className="text-xs text-amber-strong">
         AI-generated drafts are unreviewed. Faculty must review all clinical content — drug
         effects, vital-sign values, and timings — before use with learners.
       </p>

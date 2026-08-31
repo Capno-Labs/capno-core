@@ -21,7 +21,7 @@ export function OverviewSection({
 
   return (
     <section className="card space-y-3">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Overview</h2>
+      <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Overview</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="col-span-2">
           <span className="label">Title</span>
@@ -96,7 +96,7 @@ export function OverviewSection({
           {(Object.keys(TRAINING_LEVEL_LABELS) as TrainingLevel[]).map((level) => (
             <label
               key={level}
-              className="flex cursor-pointer items-center gap-2 rounded bg-slate-800/60 px-2 py-1 text-sm text-slate-300"
+              className="flex cursor-pointer items-center gap-2 rounded bg-panel-2 px-2 py-1 text-sm text-ink-2"
             >
               <input
                 type="checkbox"
@@ -107,7 +107,7 @@ export function OverviewSection({
             </label>
           ))}
         </div>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-faint">
           Who this case is written for — shown in the case library. Pick at least one.
         </p>
       </div>

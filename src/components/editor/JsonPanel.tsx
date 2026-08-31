@@ -26,12 +26,12 @@ export function JsonPanel({
   return (
     <section className="card flex flex-col">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           Full definition (JSON) — advanced
         </h2>
         {dirty ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-400">unapplied edits</span>
+            <span className="text-xs text-amber-strong">unapplied edits</span>
             <button className="btn-primary !py-1 text-xs" onClick={onApply}>
               Apply JSON
             </button>
@@ -40,7 +40,7 @@ export function JsonPanel({
             </button>
           </div>
         ) : (
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-faint">
             the full document — edits apply only after “Apply JSON”
           </span>
         )}

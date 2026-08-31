@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { ConfirmButton } from '@/components/ui/ConfirmButton';
+import { PageHead } from '@/components/ui/PageHead';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible } from '@/lib/cloud/outbox';
 import { listCloudSessions, type CloudSessionSummary } from '@/lib/cloud/sessionCloud';
@@ -84,17 +85,12 @@ export default function DebriefListPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-        <header>
-          <Link href="/" className="text-xs text-slate-500 hover:text-slate-300">
-            ← home
-          </Link>
-          <h1 className="text-2xl font-bold">Past sessions</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Sessions are stored on this device. Open one for the full timeline, scores, and PDF
-            export. Use JSON export to back up session history or move it to another machine.
-          </p>
-        </header>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <PageHead
+          eyebrow="Debriefs"
+          title="Debrief while it's fresh."
+          lede="Sessions are stored on this device. Open one for the full timeline, scores, and PDF export. Use JSON export to back up session history or move it to another machine."
+        />
 
         <div className="flex flex-wrap gap-2">
           <button
@@ -129,8 +125,8 @@ export default function DebriefListPage() {
           <div
             className={`rounded-md p-3 text-sm ring-1 ${
               notice.kind === 'ok'
-                ? 'bg-emerald-950/60 text-emerald-300 ring-emerald-800'
-                : 'bg-red-950/60 text-red-300 ring-red-800'
+                ? 'bg-green-soft text-green ring-green/40'
+                : 'bg-red-soft text-red ring-red/40'
             }`}
           >
             {notice.text}
@@ -164,7 +160,7 @@ export default function DebriefListPage() {
             <li key={s.sessionId} className="card flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-bold">{s.scenario.title}</h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-faint">
                   {new Date(s.endedAtIso).toLocaleString()} · session {s.sessionId} ·{' '}
                   {Math.floor(s.snapshot.elapsedSec / 60)} min · score {s.score.percent}%
                 </p>
@@ -193,23 +189,23 @@ export default function DebriefListPage() {
             </li>
           ))}
           {sessions.length === 0 && (
-            <li className="card text-sm text-slate-400">
+            <li className="card text-sm text-muted">
               No completed sessions yet. Run a scenario from the{' '}
-              <Link href="/scenarios" className="text-sky-400 underline">
+              <Link href="/scenarios" className="text-amber-strong underline">
                 library
               </Link>{' '}
               and end it to generate a debrief.
             </li>
           )}
           {sessions.length > 0 && visible.length === 0 && (
-            <li className="card text-sm text-slate-400">No sessions match “{query}”.</li>
+            <li className="card text-sm text-muted">No sessions match “{query}”.</li>
           )}
         </ul>
 
         {cloudSessions !== null && (
           <section className="space-y-2">
             <h2 className="text-lg font-bold">Institution archive</h2>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-muted">
               Sessions pushed by faculty accounts across all devices. Read-only here — amendments
               happen on the device that ran the session and re-sync automatically.
             </p>
@@ -221,7 +217,7 @@ export default function DebriefListPage() {
                 >
                   <div>
                     <h3 className="font-bold">{s.title}</h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-faint">
                       {s.endedAtIso ? new Date(s.endedAtIso).toLocaleString() : ''} · score{' '}
                       {s.percent}%
                       {s.learnerNames.length > 0 ? ` · ${s.learnerNames.join(', ')}` : ''}
@@ -236,14 +232,14 @@ export default function DebriefListPage() {
                 </li>
               ))}
               {cloudSessions.length === 0 && (
-                <li className="card text-sm text-slate-400">
+                <li className="card text-sm text-muted">
                   No sessions in the institution archive yet.
                 </li>
               )}
             </ul>
           </section>
         )}
-      </main>
+      </div>
     </FacultyGate>
   );
 }

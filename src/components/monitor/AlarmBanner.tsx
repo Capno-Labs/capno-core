@@ -10,7 +10,7 @@ interface AlarmBannerProps {
 export function AlarmBanner({ alarms, silenced }: AlarmBannerProps) {
   if (alarms.length === 0) {
     return (
-      <div className="flex h-9 items-center rounded-md bg-monitor-panel px-3 text-xs font-mono text-slate-500 ring-1 ring-monitor-grid">
+      <div className="flex h-9 items-center rounded-md bg-monitor-panel px-3 text-xs font-mono text-[#8d9688] ring-1 ring-monitor-grid">
         No active alarms
       </div>
     );

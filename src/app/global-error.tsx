@@ -11,8 +11,8 @@ export default function GlobalError({
     <html lang="en">
       <body
         style={{
-          background: '#0f172a',
-          color: '#e2e8f0',
+          background: '#0d0f0c',
+          color: '#f2f3ec',
           fontFamily: 'system-ui, sans-serif',
           display: 'flex',
           minHeight: '100vh',
@@ -24,7 +24,7 @@ export default function GlobalError({
       >
         <div>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>CAPNO Studio failed to load</h1>
-          <p style={{ marginTop: '0.5rem', color: '#94a3b8', fontSize: '0.875rem' }}>
+          <p style={{ marginTop: '0.5rem', color: '#b3b6ab', fontSize: '0.875rem' }}>
             {error.message || 'An unexpected error occurred.'}
           </p>
           <button
@@ -34,8 +34,8 @@ export default function GlobalError({
               marginTop: '1.25rem',
               padding: '0.5rem 1rem',
               borderRadius: '0.5rem',
-              background: '#0284c7',
-              color: 'white',
+              background: '#facc15',
+              color: '#1b1c17',
               border: 'none',
               cursor: 'pointer',
             }}

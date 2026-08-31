@@ -39,13 +39,13 @@ export function PreStartPanel() {
       };
 
   return (
-    <section className="card space-y-3 ring-1 !ring-sky-800" data-tour="connect">
+    <section className="card space-y-3 ring-1 !ring-blue/30" data-tour="connect">
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-sky-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-amber-strong">
           Before you start
         </h2>
         <button
-          className="text-xs text-slate-500 hover:text-slate-300"
+          className="text-xs text-faint hover:text-ink-2"
           onClick={() => setDismissed(true)}
         >
           Hide — I know this screen ✕
@@ -55,7 +55,7 @@ export function PreStartPanel() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <h3 className="label">Connect the student display</h3>
-          <div className="flex flex-wrap items-center gap-3 rounded-md bg-slate-800/60 p-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-md bg-panel-2 p-3">
             <span
               className="font-mono text-3xl font-bold tracking-[0.3em] text-vital-ecg"
               title="Session code"
@@ -73,7 +73,7 @@ export function PreStartPanel() {
               <SyncHealthBadge health={syncHealth} />
             </span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-faint">
             {crossDevice
               ? 'Cross-device sync is on — displays can join from any device with the link or code.'
               : 'Displays join from this device or another tab of this browser. Joining from a different device needs the cloud realtime backend on both sides.'}
@@ -82,7 +82,7 @@ export function PreStartPanel() {
 
         <div className="space-y-2">
           <h3 className="label">This run</h3>
-          <ul className="space-y-1 text-sm text-slate-300">
+          <ul className="space-y-1 text-sm text-ink-2">
             <li>
               {scenario.monitoring?.artLine
                 ? 'Arterial line — the monitor shows live blood pressure.'
@@ -103,8 +103,8 @@ export function PreStartPanel() {
               </li>
             )}
             <li>
-              <span className="font-semibold text-slate-200">{storage.label}.</span>{' '}
-              <span className="text-slate-400">{storage.detail}</span>
+              <span className="font-semibold text-ink">{storage.label}.</span>{' '}
+              <span className="text-muted">{storage.detail}</span>
             </li>
           </ul>
         </div>

@@ -60,16 +60,18 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen items-center justify-center px-6">
         <form onSubmit={submit} className="card w-full max-w-sm space-y-4 text-center">
-          <CapnoGlyph className="mx-auto h-10 w-auto text-vital-etco2" />
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-xl bg-[#0d0f0c] ring-1 ring-[#30342b]">
+            <CapnoGlyph className="h-6 w-auto text-vital-etco2" />
+          </span>
           <h1 className="text-xl font-bold">Join a session</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             Enter the 4-character session code shown on the faculty controller.
           </p>
           <CodeInput value={code} onChange={setCode} autoFocus />
           <button type="submit" className="btn-primary w-full" disabled={code.trim().length < 4}>
             Join session
           </button>
-          <Link href="/" className="block text-xs text-slate-500 hover:text-slate-300">
+          <Link href="/" className="block text-xs text-faint hover:text-ink-2">
             ← back to home
           </Link>
         </form>
@@ -81,11 +83,11 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen items-center justify-center px-6">
         <div className="card w-full max-w-sm space-y-4 text-center motion-safe:animate-shake">
-          <div className="font-mono text-4xl text-red-400">⚠</div>
+          <div className="font-mono text-4xl text-red">⚠</div>
           <h1 className="text-xl font-bold">No controller responded</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             Nothing answered for code{' '}
-            <span className="font-mono font-bold text-slate-200">{sessionId}</span>. Check the code
+            <span className="font-mono font-bold text-ink">{sessionId}</span>. Check the code
             and that the faculty controller is open. Joining from a different device requires the
             Supabase realtime backend on both sides.
           </p>
@@ -106,7 +108,7 @@ function StudentContent() {
     if (phase === 'ended') {
       return (
         <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-          <p className="text-slate-300">Session ended by faculty.</p>
+          <p className="text-ink-2">Session ended by faculty.</p>
           <button className="btn-primary" onClick={leave}>
             Join another session
           </button>
@@ -116,22 +118,24 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <div className="animate-pulse">
-          <CapnoGlyph className="h-9 w-auto text-vital-etco2" />
+          <span className="grid h-14 w-14 place-items-center rounded-xl bg-[#0d0f0c] ring-1 ring-[#30342b]">
+            <CapnoGlyph className="h-6 w-auto text-vital-etco2" />
+          </span>
         </div>
         <div className="flex gap-2" aria-hidden>
           {sessionId.split('').map((char, i) => (
             <div
               key={i}
-              className="flex h-12 w-9 items-center justify-center rounded-lg bg-slate-800/60 font-mono text-2xl text-slate-400 ring-1 ring-slate-700"
+              className="flex h-12 w-9 items-center justify-center rounded-lg bg-panel-2 font-mono text-2xl text-muted ring-1 ring-line"
             >
               {char}
             </div>
           ))}
         </div>
-        <p className="text-slate-400">
+        <p className="text-muted">
           Waiting for session <span className="sr-only">{sessionId}</span>…
         </p>
-        <p className="max-w-sm text-center text-xs text-slate-500">
+        <p className="max-w-sm text-center text-xs text-faint">
           Make sure the faculty controller is open. On a different device, both machines need the
           Supabase realtime backend configured.
         </p>
@@ -145,12 +149,12 @@ function StudentContent() {
   return (
     <main className="relative h-screen">
       {phase === 'stale' && (
-        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-red-950/90 px-3 py-1 text-xs text-red-300 ring-1 ring-red-700">
+        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-[#452020] px-3 py-1 text-xs text-[#ff9999] ring-1 ring-[#7f1d1d]">
           Connection to controller lost — showing last received data
         </div>
       )}
       {phase === 'ended' && (
-        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-slate-800 px-3 py-1 text-xs text-slate-300 ring-1 ring-slate-600">
+        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-monitor-panel px-3 py-1 text-xs text-[#dce3d9] ring-1 ring-monitor-grid">
           Session ended by faculty
         </div>
       )}
@@ -164,7 +168,7 @@ function StudentContent() {
       )}
       {typeof document !== 'undefined' && document.fullscreenEnabled && (
         <button
-          className="absolute right-2 top-2 z-10 rounded bg-slate-800/70 px-2 py-1 text-sm text-slate-300 opacity-40 ring-1 ring-slate-600 transition-opacity hover:opacity-100"
+          className="absolute right-2 top-2 z-10 rounded bg-monitor-panel px-2 py-1 text-sm text-[#dce3d9] opacity-40 ring-1 ring-monitor-grid transition-opacity hover:opacity-100"
           title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           onClick={() => {

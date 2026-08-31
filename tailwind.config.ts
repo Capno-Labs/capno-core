@@ -1,5 +1,10 @@
 import type { Config } from 'tailwindcss';
 
+// Semantic theme colors route through the CSS variables in globals.css
+// (dark default, [data-theme='light'] override). RGB-triple vars keep
+// Tailwind alpha modifiers (`bg-surface/95`) working.
+const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
@@ -10,19 +15,52 @@ const config: Config = {
         desk: '1440px',
       },
       colors: {
+        surface: v('surface'),
+        panel: v('panel'),
+        'panel-2': v('panel-2'),
+        'panel-3': v('panel-3'),
+        line: v('line'),
+        'line-2': v('line-2'),
+        ink: v('ink'),
+        'ink-2': v('ink-2'),
+        muted: v('muted'),
+        faint: v('faint'),
+        // Note: `extend` DEEP-merges these into Tailwind's built-in
+        // amber/green/red/blue/cyan scales, so numeric classes (`red-300`)
+        // still compile with the default palette values and are NOT
+        // theme-aware. The migration guard is the grep gate in the restyle
+        // PR description, not the compiler.
+        amber: { DEFAULT: v('amber'), strong: v('amber-strong'), soft: v('amber-soft') },
+        // Ink for text sitting on an amber fill — a fixed pairing in both
+        // themes (raw amber fills always take near-black ink, never white).
+        'on-amber': '#1b1c17',
+        green: { DEFAULT: v('green'), soft: v('green-soft') },
+        red: { DEFAULT: v('red'), solid: v('red-solid'), soft: v('red-soft') },
+        blue: { DEFAULT: v('blue'), soft: v('blue-soft') },
+        cyan: { DEFAULT: v('cyan'), soft: v('cyan-soft') },
+        // Always-dark monitor domain: literal hex on purpose — the patient
+        // monitor is theme-invariant in both light and dark app themes.
         monitor: {
-          bg: '#05080d',
-          panel: '#0b1220',
-          grid: '#12203a',
+          bg: '#080a08',
+          panel: '#11140f',
+          grid: '#293027',
         },
         vital: {
-          ecg: '#22e05f',
+          ecg: '#73ef82',
           spo2: '#38bdf8',
           nibp: '#f87171',
           etco2: '#facc15',
           temp: '#e879f9',
           agent: '#fb923c',
         },
+      },
+      borderRadius: {
+        card: 'var(--radius-card)',
+        ctl: 'var(--radius-ctl)',
+      },
+      boxShadow: {
+        card: 'var(--shadow-card)',
+        lift: 'var(--shadow-lift)',
       },
       fontFamily: {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
@@ -65,8 +103,8 @@ const config: Config = {
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
         'event-fire': {
-          '0%': { transform: 'scale(0.97)', boxShadow: '0 0 0 0 rgba(56, 189, 248, 0.55)' },
-          '100%': { transform: 'scale(1)', boxShadow: '0 0 0 10px rgba(56, 189, 248, 0)' },
+          '0%': { transform: 'scale(0.97)', boxShadow: '0 0 0 0 rgba(250, 204, 21, 0.5)' },
+          '100%': { transform: 'scale(1)', boxShadow: '0 0 0 10px rgba(250, 204, 21, 0)' },
         },
       },
       animation: {

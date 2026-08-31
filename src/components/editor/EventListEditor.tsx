@@ -245,7 +245,7 @@ export function EventListEditor({
           {showTemplates ? '− From template…' : '+ From template…'}
         </button>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-faint">
         Presets only set up structure — you type every clinical value. Recovery pre-fills your
         baseline vitals; edit or blank any you don’t want to change.
       </p>
@@ -253,7 +253,7 @@ export function EventListEditor({
   );
 
   const templatePanel = showTemplates && (
-    <div className="space-y-2 rounded bg-slate-800/60 p-3">
+    <div className="space-y-2 rounded bg-panel-2 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="label !mb-0">Event templates</span>
         <input
@@ -264,14 +264,14 @@ export function EventListEditor({
           aria-label="Filter templates"
         />
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-faint">
         Templates copy reviewed vital values from the bundled scenarios (source shown per
         template) — verify them for your patient and baseline. The inserted event needs an id,
         and you choose its trigger.
       </p>
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <span className="block text-[10px] font-semibold uppercase tracking-wider text-faint">
             My events
           </span>
           {savedEvents.length > 0 && (
@@ -301,7 +301,7 @@ export function EventListEditor({
           />
         </div>
         {savedEvents.length === 0 ? (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-faint">
             No saved events yet — use ☆ Save to library on any event, or import a library file.
           </p>
         ) : (
@@ -309,24 +309,24 @@ export function EventListEditor({
             {visibleSaved.map((entry) => (
               <li
                 key={entry.id}
-                className="flex flex-wrap items-center gap-2 rounded bg-slate-900/60 px-2 py-1.5 ring-1 ring-slate-800"
+                className="flex flex-wrap items-center gap-2 rounded bg-panel/60 px-2 py-1.5 ring-1 ring-line"
               >
                 <span
                   className={`inline-block h-2 w-2 shrink-0 rounded-full ${CATEGORY_DOT[entry.category]}`}
                   title={entry.category}
                 />
-                <span className="text-sm font-semibold text-slate-200">{entry.label}</span>
-                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-slate-500" title={entry.description}>
+                <span className="text-sm font-semibold text-ink">{entry.label}</span>
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-faint" title={entry.description}>
                   {entry.effects.length === 0 ? 'log only' : entry.effects.map(effectSummary).join(' | ')}
                 </span>
-                <span className="text-[10px] text-slate-600">
+                <span className="text-[10px] text-faint">
                   saved {new Date(entry.savedAtIso).toLocaleDateString()}
                 </span>
                 <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => insertSaved(entry)}>
                   Insert
                 </button>
                 <button
-                  className="btn-ghost !px-2 !py-1 text-xs text-red-400"
+                  className="btn-ghost !px-2 !py-1 text-xs text-red"
                   onClick={() => removeFromLibrary(entry)}
                   aria-label={`delete ${entry.label} from library`}
                 >
@@ -342,24 +342,24 @@ export function EventListEditor({
         if (items.length === 0) return null;
         return (
           <div key={kind} className="space-y-1">
-            <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="block text-[10px] font-semibold uppercase tracking-wider text-faint">
               {title}
             </span>
             <ul className="space-y-1">
               {items.map((t) => (
                 <li
                   key={t.id}
-                  className="flex flex-wrap items-center gap-2 rounded bg-slate-900/60 px-2 py-1.5 ring-1 ring-slate-800"
+                  className="flex flex-wrap items-center gap-2 rounded bg-panel/60 px-2 py-1.5 ring-1 ring-line"
                 >
                   <span
                     className={`inline-block h-2 w-2 shrink-0 rounded-full ${CATEGORY_DOT[t.category]}`}
                     title={t.category}
                   />
-                  <span className="text-sm font-semibold text-slate-200">{t.label}</span>
-                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-slate-500" title={t.description}>
+                  <span className="text-sm font-semibold text-ink">{t.label}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-faint" title={t.description}>
                     {t.effects.length === 0 ? 'log only' : t.effects.map(effectSummary).join(' | ')}
                   </span>
-                  <span className="text-[10px] text-slate-600">{t.source}</span>
+                  <span className="text-[10px] text-faint">{t.source}</span>
                   <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => insertTemplate(t)}>
                     Insert
                   </button>
@@ -370,7 +370,7 @@ export function EventListEditor({
         );
       })}
       {visibleTemplates.length === 0 && (
-        <p className="text-xs text-slate-500">No templates match “{templateFilter}”.</p>
+        <p className="text-xs text-faint">No templates match “{templateFilter}”.</p>
       )}
     </div>
   );
@@ -378,13 +378,13 @@ export function EventListEditor({
   if (events.length === 0) {
     return (
       <div className="space-y-2">
-        <div className="space-y-1 rounded bg-slate-800/60 p-3 text-xs text-slate-400">
-          <p className="font-semibold text-slate-300">No events yet — events are the script of the case.</p>
+        <div className="space-y-1 rounded bg-panel-2 p-3 text-xs text-muted">
+          <p className="font-semibold text-ink-2">No events yet — events are the script of the case.</p>
           <p>
-            <span className="text-sky-300">Automatic</span> events fire on a timer and drive the
-            scripted deterioration. <span className="text-slate-300">Faculty-fired</span> events are
+            <span className="text-amber-strong">Automatic</span> events fire on a timer and drive the
+            scripted deterioration. <span className="text-ink-2">Faculty-fired</span> events are
             responses the instructor triggers when learners act (drug given, airway secured).{' '}
-            <span className="text-slate-300">Marker</span> events change nothing — they just write a
+            <span className="text-ink-2">Marker</span> events change nothing — they just write a
             log line. Start with a preset below.
           </p>
         </div>
@@ -401,8 +401,8 @@ export function EventListEditor({
         <button
           className={`w-full px-2 py-1.5 text-left text-sm transition duration-150 ${
             i === selected
-              ? 'bg-slate-800 text-slate-100'
-              : 'text-slate-300 hover:bg-slate-800/50'
+              ? 'bg-panel-2 text-ink'
+              : 'text-ink-2 hover:bg-panel-2'
           }`}
           aria-current={i === selected ? 'true' : undefined}
           aria-label={`edit event ${event.label || event.id || i + 1}`}
@@ -419,19 +419,19 @@ export function EventListEditor({
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
             {event.autoAtSec !== undefined ? (
-              <span className="rounded bg-sky-950 px-1 py-px font-semibold tracking-wider text-sky-300 ring-1 ring-sky-800">
+              <span className="rounded bg-blue-soft px-1 py-px font-semibold tracking-wider text-blue ring-1 ring-blue/30">
                 AUTO {fmtTime(event.autoAtSec)}
               </span>
             ) : (
-              <span className="rounded bg-slate-900 px-1 py-px font-semibold tracking-wider text-slate-400 ring-1 ring-slate-700">
+              <span className="rounded bg-panel px-1 py-px font-semibold tracking-wider text-muted ring-1 ring-line">
                 FACULTY
               </span>
             )}
-            <span className="text-slate-500">
+            <span className="text-faint">
               {event.effects.length} effect{event.effects.length === 1 ? '' : 's'}
             </span>
             {warningCount > 0 && (
-              <span className="rounded bg-amber-950 px-1 py-px font-semibold text-amber-400 ring-1 ring-amber-800">
+              <span className="rounded bg-amber-soft px-1 py-px font-semibold text-amber-strong ring-1 ring-amber/40">
                 ⚠ {warningCount}
               </span>
             )}
@@ -448,18 +448,18 @@ export function EventListEditor({
         <div className="space-y-3 lg:w-72 lg:shrink-0">
           <ul
             role="list"
-            className="divide-y divide-slate-800 overflow-hidden rounded bg-slate-900/40 ring-1 ring-slate-800"
+            className="divide-y divide-line overflow-hidden rounded bg-panel/40 ring-1 ring-line"
           >
             {phaseGrouped
               ? groups.map((g) => (
                   <li key={g.key}>
                     <div className="label !mb-0 px-2 pb-1 pt-2">
                       {g.title}{' '}
-                      <span className="font-normal normal-case text-slate-600">
+                      <span className="font-normal normal-case text-faint">
                         ({g.indices.length} · {g.indices.filter((i) => events[i].autoAtSec !== undefined).length} auto)
                       </span>
                     </div>
-                    <ul role="list" className="divide-y divide-slate-800/60">
+                    <ul role="list" className="divide-y divide-line">
                       {g.indices.map((i) => row(events[i], i))}
                     </ul>
                   </li>

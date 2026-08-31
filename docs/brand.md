@@ -20,20 +20,40 @@ in-app glyph is `src/components/brand/CapnoGlyph.tsx` (same path,
 
 ## Color tokens
 
-- Monitor black `#05080d` (Tailwind `monitor.bg`; site theme color; tile fill)
-- EtCO₂ yellow `#facc15` (Tailwind `vital.etco2`) — the mark's color, dark backgrounds only
-- Ink `#0f172a` (slate-900) — replaces amber on light backgrounds (amber on white fails contrast)
-- Paper text `#e2e8f0` (slate-200), muted slate `#64748b` (slate-500)
+The app ships two themes — **dark is the default**, light is a user toggle —
+driven by the CSS variables in `src/app/globals.css`. The patient monitor is
+always dark in both themes.
+
+Semantic neutrals (dark / light):
+
+- Surface `#0d0f0c` / `#f4f4ef` — page background (also manifest + site theme color)
+- Panel `#151713` / `#ffffff`, inset panel `#20231d` / `#eeeee8`
+- Line `#30342b` / `#d8d9d0` — borders, rings, dividers
+- Ink `#f2f3ec` / `#1b1c17`, muted `#b3b6ab` / `#686b61`
+
+Accent and monitor:
+
+- **Amber `#facc15` is the product accent** (Tailwind `amber`): primary
+  buttons, pills, focus rings, highlights — and still the mark's color and
+  EtCO₂ (`vital.etco2`). Amber-as-text uses `amber-strong`
+  (`#ffe164` on dark, `#a16207` on light) — raw `#facc15` text fails
+  contrast on light surfaces.
+- Monitor black `#080a08` (Tailwind `monitor.bg`; tile fill) — theme-invariant
+- ECG green `vital.ecg` `#73ef82`
 
 ## Rules
 
-- Amber is reserved for the glyph and EtCO₂ values; never body text or buttons.
+- Amber is the product accent and the mark's color. On light surfaces,
+  amber text must use `amber-strong` (`#a16207`); amber fills pair with
+  near-black ink text (`#1b1c17`), never white.
+- The app is dark by default with a user-selectable light theme; the patient
+  monitor does not follow the theme — it stays dark always.
 - The plateau ascends slightly by design — don't flatten it.
 - Baseline of the wordmark sits on the waveform baseline; keep that alignment if re-composing.
 - Minimum sizes: glyph 16px tall in-tile, horizontal lockup 24px tall.
 - Clear space: half the glyph height on all sides (the SVG viewBoxes already include it).
 - Never place the bare yellow glyph on light surfaces — use the ink glyph, or
-  the yellow breath on a mini monitor tile (`#05080d`), as the marketing-site
+  the yellow breath on a mini monitor tile (`#080a08`), as the marketing-site
   header does.
-- Green (`vital.ecg` `#22e05f`) is ECG grammar in the monitor UI, not the
+- Green (`vital.ecg` `#73ef82`) is ECG grammar in the monitor UI, not the
   brand mark. Violet is an action color only; it never appears in the logo.

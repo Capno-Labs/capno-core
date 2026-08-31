@@ -102,7 +102,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
     <>
       {rect && !narrow && (
         <div
-          className="pointer-events-none fixed z-40 rounded-lg ring-2 ring-sky-400"
+          className="pointer-events-none fixed z-40 rounded-lg ring-2 ring-amber"
           style={{
             top: rect.top - 4,
             left: rect.left - 4,
@@ -116,7 +116,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-label={`Demo tour: ${step.title}`}
         tabIndex={-1}
-        className={`${cardClass} border border-sky-800 bg-slate-900 p-4 shadow-2xl outline-none`}
+        className={`${cardClass} border border-blue/30 bg-panel p-4 shadow-2xl outline-none`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === 'ArrowRight') {
             e.preventDefault();
@@ -127,13 +127,13 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
           }
         }}
       >
-        <p className="text-[10px] uppercase tracking-wider text-sky-400">
+        <p className="text-[10px] uppercase tracking-wider text-amber-strong">
           Demo tour · {idx + 1} / {DEMO_TOUR_STEPS.length}
         </p>
-        <h2 className="mt-1 text-sm font-bold text-slate-100">{step.title}</h2>
-        <p className="mt-1 text-sm text-slate-300">{step.body}</p>
+        <h2 className="mt-1 text-sm font-bold text-ink">{step.title}</h2>
+        <p className="mt-1 text-sm text-ink-2">{step.body}</p>
         <div className="mt-3 flex items-center justify-between gap-2">
-          <button className="text-xs text-slate-500 hover:text-slate-300" onClick={close}>
+          <button className="text-xs text-faint hover:text-ink-2" onClick={close}>
             Skip tour
           </button>
           <span className="flex gap-2">

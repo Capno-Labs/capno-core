@@ -22,10 +22,10 @@ export function ListEditor({
       <span className="label">{label}</span>
       <ul className="mb-1 space-y-1">
         {items.map((item, i) => (
-          <li key={i} className="flex items-center gap-2 rounded bg-slate-800/60 px-2 py-1 text-sm">
+          <li key={i} className="flex items-center gap-2 rounded bg-panel-2 px-2 py-1 text-sm">
             <span className="flex-1">{item}</span>
             <button
-              className="text-slate-500 hover:text-red-400"
+              className="text-faint hover:text-red"
               onClick={() => onChange(items.filter((_, j) => j !== i))}
               aria-label={`remove ${item}`}
             >

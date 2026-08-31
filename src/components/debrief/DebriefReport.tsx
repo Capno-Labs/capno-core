@@ -10,10 +10,10 @@ import { TrendStrip } from './TrendStrip';
 
 /** Performance-tier color for the score reveal (screen only; print is black). */
 function tierClasses(percent: number): { text: string; band: string } {
-  if (percent >= 90) return { text: 'text-emerald-300', band: 'bg-emerald-400' };
-  if (percent >= 75) return { text: 'text-sky-300', band: 'bg-sky-400' };
-  if (percent >= 60) return { text: 'text-amber-300', band: 'bg-amber-400' };
-  return { text: 'text-red-300', band: 'bg-red-400' };
+  if (percent >= 90) return { text: 'text-green', band: 'bg-green' };
+  if (percent >= 75) return { text: 'text-blue', band: 'bg-blue' };
+  if (percent >= 60) return { text: 'text-amber-strong', band: 'bg-amber' };
+  return { text: 'text-red', band: 'bg-red' };
 }
 
 function fmt(t: number): string {
@@ -31,16 +31,16 @@ const AMENDABLE_STATUSES: ActionStatus[] = ['done', 'delayed', 'incorrect', 'mis
 
 /** Status word color in the learner-action grid (pending renders as missed). */
 const ACTION_STATUS_CLASS: Record<Exclude<ActionStatus, 'pending'>, string> = {
-  done: 'text-emerald-300',
-  delayed: 'text-amber-300',
-  incorrect: 'text-red-300',
-  missed: 'text-slate-400',
+  done: 'text-green',
+  delayed: 'text-amber-strong',
+  incorrect: 'text-red',
+  missed: 'text-muted',
 };
 
 const SEVERITY_CLASS: Record<TurningPoint['severity'], string> = {
-  info: 'text-slate-300',
-  warning: 'text-amber-300',
-  critical: 'text-red-300',
+  info: 'text-ink-2',
+  warning: 'text-amber-strong',
+  critical: 'text-red',
 };
 
 const KIND_LABEL: Record<LogEntry['kind'], string> = {
@@ -93,23 +93,23 @@ export function DebriefReport({
   return (
     <article className="print-report card space-y-8 !p-6 md:!p-8">
       {/* Header */}
-      <header className="border-b border-slate-700 pb-4">
-        <p className="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500">
+      <header className="border-b border-line pb-4">
+        <p className="flex items-center gap-2 text-xs uppercase tracking-widest text-faint">
           <CapnoGlyph className="h-4 w-auto shrink-0" />
           CAPNO Studio debrief report · simulation only — not a clinical record
         </p>
         <h1 className="mt-1 text-2xl font-bold">{scenario.title}</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-muted">
           Session {session.sessionId} · {new Date(session.endedAtIso).toLocaleString()} · duration{' '}
           {fmt(snapshot.elapsedSec)} · {scenario.patient.name}, {scenario.patient.age}
           {scenario.patient.sex === 'male' ? 'M' : 'F'}, ASA {scenario.patient.asa}
         </p>
-        <p className="mt-1 text-sm text-slate-300">
+        <p className="mt-1 text-sm text-ink-2">
           <span className="font-semibold">Learners:</span>{' '}
           {session.learnerNames?.length ? session.learnerNames.join(', ') : '—'}
           {amend && learnersDraft === null && (
             <button
-              className="no-print ml-2 text-xs text-sky-400 hover:text-sky-300"
+              className="no-print ml-2 text-xs text-amber-strong hover:underline"
               onClick={() => setLearnersDraft(session.learnerNames?.join(', ') ?? '')}
             >
               edit
@@ -157,7 +157,7 @@ export function DebriefReport({
               className={`keep-badge-bg mx-auto mt-1 h-1 rounded ${tier.band}`}
               style={{ width: `${Math.max(8, score.percent)}%` }}
             />
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-xs text-faint">
               {score.earned} / {score.possible} pts
             </div>
           </div>
@@ -170,9 +170,9 @@ export function DebriefReport({
                     {c.earned}/{c.possible}
                   </td>
                   <td className="pl-3 py-0.5 w-40">
-                    <div className="keep-badge-bg h-2 w-full rounded bg-slate-700">
+                    <div className="keep-badge-bg h-2 w-full rounded bg-panel-3">
                       <div
-                        className="anim-bar h-2 origin-left rounded bg-emerald-500 motion-safe:animate-bar-grow"
+                        className="anim-bar h-2 origin-left rounded bg-green motion-safe:animate-bar-grow"
                         style={{
                           width: `${c.possible ? (c.earned / c.possible) * 100 : 0}%`,
                           animationDelay: `${150 + i * 90}ms`,
@@ -202,12 +202,12 @@ export function DebriefReport({
             {snapshot.log
               .filter((e) => e.kind !== 'vital_change' || snapshot.log.length < 80)
               .map((e, i) => (
-                <tr key={i} className="border-b border-slate-800 align-top">
-                  <td className="w-14 py-1 font-mono tabular-nums text-slate-500">{fmt(e.t)}</td>
-                  <td className="w-20 py-1 text-xs uppercase text-slate-500">{KIND_LABEL[e.kind]}</td>
+                <tr key={i} className="border-b border-line align-top">
+                  <td className="w-14 py-1 font-mono tabular-nums text-faint">{fmt(e.t)}</td>
+                  <td className="w-20 py-1 text-xs uppercase text-faint">{KIND_LABEL[e.kind]}</td>
                   <td className="py-1">
                     {e.label}
-                    {e.detail && <span className="text-slate-500"> — {e.detail}</span>}
+                    {e.detail && <span className="text-faint"> — {e.detail}</span>}
                   </td>
                 </tr>
               ))}
@@ -222,12 +222,12 @@ export function DebriefReport({
           <ul className="space-y-1 text-sm">
             {turningPoints.map((p, i) => (
               <li key={i} className="flex gap-3">
-                <span className="w-14 shrink-0 font-mono tabular-nums text-slate-500">
+                <span className="w-14 shrink-0 font-mono tabular-nums text-faint">
                   {fmt(p.t)}
                 </span>
                 <span className={SEVERITY_CLASS[p.severity]}>
                   {p.label}
-                  {p.detail && <span className="text-slate-500"> — {p.detail}</span>}
+                  {p.detail && <span className="text-faint"> — {p.detail}</span>}
                 </span>
               </li>
             ))}
@@ -239,7 +239,7 @@ export function DebriefReport({
       <section>
         <h2 className="mb-2 text-lg font-bold">What the learner did</h2>
         {amend && (
-          <p className="no-print mb-2 text-xs text-slate-500">
+          <p className="no-print mb-2 text-xs text-faint">
             Live marking is hard mid-scenario — amend any status below; the score updates and is
             saved immediately.
           </p>
@@ -247,7 +247,7 @@ export function DebriefReport({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700 text-left text-xs uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
                 <th className="py-1.5 pr-3 font-semibold">Action</th>
                 <th className="py-1.5 pr-3 font-semibold">Phase</th>
                 <th className="py-1.5 pr-3 font-semibold">Marked</th>
@@ -261,19 +261,19 @@ export function DebriefReport({
                 const shown: Exclude<ActionStatus, 'pending'> =
                   !r || r.status === 'pending' ? 'missed' : r.status;
                 return (
-                  <tr key={a.id} className="border-b border-slate-800 align-top">
+                  <tr key={a.id} className="border-b border-line align-top">
                     <td className="py-1.5 pr-3" title={a.description}>
                       {a.critical && (
-                        <span className="mr-1 text-red-400" title="critical action">
+                        <span className="mr-1 text-red" title="critical action">
                           ●
                         </span>
                       )}
                       {a.label}
                     </td>
-                    <td className="py-1.5 pr-3 text-xs text-slate-500">
+                    <td className="py-1.5 pr-3 text-xs text-faint">
                       {(a.phase && phaseLabelById.get(a.phase)) ?? '—'}
                     </td>
-                    <td className="py-1.5 pr-3 font-mono tabular-nums text-slate-500">
+                    <td className="py-1.5 pr-3 font-mono tabular-nums text-faint">
                       {r?.markedAtSec !== undefined ? fmt(r.markedAtSec) : '—'}
                     </td>
                     <td className="py-1.5 pr-3">
@@ -282,7 +282,7 @@ export function DebriefReport({
                       </span>
                       {amend && (
                         <select
-                          className="no-print ml-2 rounded bg-slate-800 px-1 py-0.5 text-xs text-slate-300 ring-1 ring-slate-700"
+                          className="no-print ml-2 rounded bg-panel-2 px-1 py-0.5 text-xs text-ink-2 ring-1 ring-line"
                           value={shown}
                           onChange={(e) => amend.markAction(a.id, e.target.value as ActionStatus)}
                           aria-label={`Amend status for ${a.label}`}
@@ -312,19 +312,19 @@ export function DebriefReport({
         {score.criticalMissed.length > 0 ? (
           <ul className="list-disc space-y-1 pl-5 text-sm">
             {score.criticalMissed.map((a) => (
-              <li key={a.id} className="text-red-300">
+              <li key={a.id} className="text-red">
                 <strong>Not completed:</strong> {a.label}
               </li>
             ))}
             {score.criticalDone.map((a) => (
-              <li key={a.id} className="text-emerald-300">
+              <li key={a.id} className="text-green">
                 Completed: {a.label}
               </li>
             ))}
           </ul>
         ) : (
           <p
-            className="keep-badge-bg inline-block rounded-lg bg-emerald-950/60 px-3 py-1.5 text-sm text-emerald-300 ring-1 ring-emerald-700 motion-safe:animate-pop-in"
+            className="keep-badge-bg inline-block rounded-lg bg-green-soft px-3 py-1.5 text-sm text-green ring-1 ring-green/40 motion-safe:animate-pop-in"
             style={{ animationDelay: '700ms' }}
           >
             All {score.criticalDone.length} critical actions completed. ✓
@@ -353,7 +353,7 @@ export function DebriefReport({
                       Save
                     </button>
                     <button
-                      className="shrink-0 text-xs text-slate-500 hover:text-slate-300"
+                      className="shrink-0 text-xs text-faint hover:text-ink-2"
                       onClick={() => setNoteDraft(null)}
                     >
                       cancel
@@ -362,16 +362,16 @@ export function DebriefReport({
                 </li>
               ) : (
                 <li key={i}>
-                  <span className="font-mono text-slate-500">{fmt(n.t)}</span> — {n.text}
+                  <span className="font-mono text-faint">{fmt(n.t)}</span> — {n.text}
                   {n.postHoc && (
-                    <span className="keep-badge-bg ml-2 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-400 ring-1 ring-slate-700">
+                    <span className="keep-badge-bg ml-2 rounded bg-panel-2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted ring-1 ring-line">
                       added at debrief
                     </span>
                   )}
                   {amend && (
                     <span className="no-print ml-2 space-x-2 text-xs">
                       <button
-                        className="text-sky-400 hover:text-sky-300"
+                        className="text-amber-strong hover:underline"
                         onClick={() => {
                           setConfirmDeleteIdx(null);
                           setNoteDraft({ idx: i, text: n.text });
@@ -380,7 +380,7 @@ export function DebriefReport({
                         edit
                       </button>
                       <button
-                        className="text-red-400 hover:text-red-300"
+                        className="text-red hover:text-red"
                         onClick={() => {
                           if (confirmDeleteIdx === i) {
                             setConfirmDeleteIdx(null);
@@ -405,7 +405,7 @@ export function DebriefReport({
                 </li>
               ),
             )}
-            {snapshot.notes.length === 0 && <li className="text-slate-500">none yet</li>}
+            {snapshot.notes.length === 0 && <li className="text-faint">none yet</li>}
           </ul>
           {amend &&
             (noteDraft !== null && noteDraft.idx === 'new' ? (
@@ -422,7 +422,7 @@ export function DebriefReport({
                   Save
                 </button>
                 <button
-                  className="shrink-0 text-xs text-slate-500 hover:text-slate-300"
+                  className="shrink-0 text-xs text-faint hover:text-ink-2"
                   onClick={() => setNoteDraft(null)}
                 >
                   cancel
@@ -430,7 +430,7 @@ export function DebriefReport({
               </div>
             ) : (
               <button
-                className="no-print mt-2 text-xs text-sky-400 hover:text-sky-300"
+                className="no-print mt-2 text-xs text-amber-strong hover:underline"
                 onClick={() => setNoteDraft({ idx: 'new', text: '' })}
               >
                 + Add note

@@ -95,7 +95,7 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <div className="space-y-2 rounded-md bg-slate-900/60 p-2 ring-1 ring-slate-700">
+    <div className="space-y-2 rounded-md bg-panel/60 p-2 ring-1 ring-line">
       <div>
         <span className="label">Start from a template (optional)</span>
         <select
@@ -128,7 +128,7 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
             </optgroup>
           ))}
         </select>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-faint">
           Template values come from the reviewed bundled scenarios; “My events” are your own saved
           values — verify either for this patient and baseline before firing.
         </p>
@@ -182,7 +182,7 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
         </button>
       </div>
       {errors.length > 0 && (
-        <ul className="space-y-0.5 text-xs text-red-400">
+        <ul className="space-y-0.5 text-xs text-red">
           {errors.map((e, i) => (
             <li key={i}>{e}</li>
           ))}
@@ -199,7 +199,7 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
           Cancel
         </button>
       </div>
-      <p className="text-[10px] text-slate-500">
+      <p className="text-[10px] text-faint">
         Added events are fire-when-ready, live for this session only, and appear in the debrief
         when fired. The scenario itself is not changed.
       </p>

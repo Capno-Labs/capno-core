@@ -26,7 +26,7 @@ export function PhaseListEditor({
   return (
     <div className="space-y-2">
       {phases.map((phase, i) => (
-        <div key={i} className="space-y-2 rounded bg-slate-800/60 p-2">
+        <div key={i} className="space-y-2 rounded bg-panel-2 p-2">
           <div className="flex items-start gap-2">
             <div className="grid flex-1 grid-cols-2 gap-2">
               <div>
@@ -64,7 +64,7 @@ export function PhaseListEditor({
                 ↓
               </button>
               <button
-                className="btn-ghost !px-2 !py-1 text-red-400"
+                className="btn-ghost !px-2 !py-1 text-red"
                 onClick={() => onChange(phases.filter((_, j) => j !== i))}
                 disabled={phases.length <= 1}
                 title={phases.length <= 1 ? 'A scenario needs at least one phase' : 'Remove phase'}
@@ -121,7 +121,7 @@ export function PhaseListEditor({
       >
         + Add phase
       </button>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-faint">
         Actions and events reference phases by id — renaming an id here flags any stale references
         in the validation panel.
       </p>

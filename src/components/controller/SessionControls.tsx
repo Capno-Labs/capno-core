@@ -37,9 +37,9 @@ export function SessionControls() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="mr-2 flex items-center gap-2 rounded-md bg-slate-800 px-3 py-1.5 ring-1 ring-slate-700">
+      <div className="mr-2 flex items-center gap-2 rounded-md bg-panel-2 px-3 py-1.5 ring-1 ring-line">
         <div>
-          <span className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-slate-400">
+          <span className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-muted">
             Session code
             <SyncHealthBadge health={syncHealth} />
           </span>
@@ -52,13 +52,13 @@ export function SessionControls() {
               />
             )}
             {status === 'paused' && (
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" title="Session paused" />
+              <span className="h-1.5 w-1.5 rounded-full bg-amber" title="Session paused" />
             )}
           </div>
         </div>
         <div className="flex flex-col gap-0.5">
           <button
-            className="rounded px-1.5 py-0.5 text-[11px] text-slate-300 ring-1 ring-slate-600 hover:bg-slate-700"
+            className="rounded px-1.5 py-0.5 text-[11px] text-ink-2 ring-1 ring-line-2 hover:bg-panel-3"
             title="Copy session code"
             onClick={async () =>
               (await copyText(sessionCode))
@@ -69,7 +69,7 @@ export function SessionControls() {
             ⧉ code
           </button>
           <button
-            className="rounded px-1.5 py-0.5 text-[11px] text-slate-300 ring-1 ring-slate-600 hover:bg-slate-700"
+            className="rounded px-1.5 py-0.5 text-[11px] text-ink-2 ring-1 ring-line-2 hover:bg-panel-3"
             title="Copy a link that joins the student display directly"
             onClick={async () =>
               (await copyText(joinUrl(sessionCode)))
@@ -108,8 +108,8 @@ export function SessionControls() {
         <button
           className={`rounded px-2 py-1 text-xs font-semibold ring-1 ${
             snapshot.autoEventsEnabled
-              ? 'bg-sky-900/60 text-sky-300 ring-sky-700'
-              : 'bg-slate-800 text-slate-400 ring-slate-700 hover:bg-slate-700'
+              ? 'bg-blue-soft text-blue ring-blue/30'
+              : 'bg-panel-2 text-muted ring-line hover:bg-panel-3'
           }`}
           aria-pressed={snapshot.autoEventsEnabled}
           title={

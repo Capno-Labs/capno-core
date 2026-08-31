@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { PageHead } from '@/components/ui/PageHead';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuthStore } from '@/lib/cloud/authStore';
 
@@ -24,30 +24,27 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 px-6 py-12">
-      <Link href="/" className="text-xs text-slate-500 hover:text-slate-300">
-        ← home
-      </Link>
-      <h1 className="text-2xl font-bold">Institution account</h1>
+    <div className="mx-auto flex max-w-md flex-col gap-4 py-10">
+      <PageHead eyebrow="Workspace" title="Institution account" />
 
       {status === 'unconfigured' && (
-        <div className="card space-y-2 text-sm text-slate-400">
+        <div className="card space-y-2 text-sm text-muted">
           <p>
             Institution sign-in is not configured on this installation. Capno runs fully on this
             device — scenarios and debriefs are stored in this browser.
           </p>
           <p>
             To enable shared scenario storage and an institution-wide session archive, deploy with
-            a Supabase backend (see <span className="font-mono text-slate-300">docs/DEPLOYMENT.md</span>).
+            a Supabase backend (see <span className="font-mono text-ink-2">docs/DEPLOYMENT.md</span>).
           </p>
         </div>
       )}
 
-      {status === 'loading' && <div className="card text-sm text-slate-400">Checking session…</div>}
+      {status === 'loading' && <div className="card text-sm text-muted">Checking session…</div>}
 
       {status === 'signed_out' && (
         <form onSubmit={submit} className="card space-y-4">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             Sign in with your institution account. Accounts are created by your program
             administrator.
           </p>
@@ -73,7 +70,7 @@ export default function AccountPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red">{error}</p>}
           <button type="submit" className="btn-primary w-full" disabled={busy}>
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
@@ -93,19 +90,19 @@ export default function AccountPage() {
                 <span
                   className={`rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${
                     profile.role === 'student'
-                      ? 'bg-slate-700 text-slate-300'
-                      : 'bg-emerald-900 text-emerald-300'
+                      ? 'bg-panel-3 text-ink-2'
+                      : 'bg-green-soft text-green'
                   }`}
                 >
                   {profile.role}
                 </span>
               ) : (
-                <span className="text-slate-500">unknown (profile unavailable — offline?)</span>
+                <span className="text-faint">unknown (profile unavailable — offline?)</span>
               )}
             </p>
           </div>
           {profile?.role === 'student' && (
-            <p className="text-sm text-amber-400">
+            <p className="text-sm text-amber-strong">
               This account has no faculty permissions — saved scenarios and sessions stay on this
               device only. Ask your program administrator to promote your account to faculty.
             </p>
@@ -116,9 +113,9 @@ export default function AccountPage() {
         </div>
       )}
 
-      <p className="text-center text-xs text-slate-600">
+      <p className="text-center text-xs text-faint">
         Signing in is optional. Everything works offline on this device without an account.
       </p>
-    </main>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
+import { Eyebrow } from '@/components/ui/PageHead';
 import { DebriefReport } from '@/components/debrief/DebriefReport';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { fetchCloudSession } from '@/lib/cloud/sessionCloud';
@@ -37,13 +38,11 @@ export default function CloudDebriefPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-4xl space-y-4 px-4 py-8">
+      <div className="mx-auto max-w-4xl space-y-4">
         <header className="no-print flex flex-wrap items-center justify-between gap-3">
-          <Link href="/debrief" className="text-xs text-slate-500 hover:text-slate-300">
-            ← all sessions
-          </Link>
+          <Eyebrow>Institution archive</Eyebrow>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-faint">
               Institution archive — read-only (amend on the device that ran the session)
             </span>
             <button className="btn-primary" onClick={() => window.print()}>
@@ -52,15 +51,15 @@ export default function CloudDebriefPage() {
           </div>
         </header>
         {session === undefined && (
-          <p className="text-sm text-slate-400">Loading from the institution archive…</p>
+          <p className="text-sm text-muted">Loading from the institution archive…</p>
         )}
         {session === null && (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted">
             Session not found in the institution archive, or your account cannot read it.
           </p>
         )}
         {session && <DebriefReport session={session} />}
-      </main>
+      </div>
     </FacultyGate>
   );
 }

@@ -191,7 +191,7 @@ export function Waveform({
       <canvas ref={canvasRef} className="h-full w-full" aria-hidden />
       {flat && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="text-xs font-mono uppercase tracking-widest text-slate-500">
+          <span className="text-xs font-mono uppercase tracking-widest text-[#8d9688]">
             {kind === 'pleth' ? 'no pulse detected' : 'no CO₂ detected'}
           </span>
         </div>

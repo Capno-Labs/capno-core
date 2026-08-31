@@ -6,6 +6,8 @@ import { FacultyGate } from '@/components/FacultyGate';
 import { CollectionSection } from '@/components/library/CollectionSection';
 import { SyllabusImportPanel } from '@/components/library/SyllabusImportPanel';
 import { ConfirmButton } from '@/components/ui/ConfirmButton';
+import { PageHead } from '@/components/ui/PageHead';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, enqueue, getPushedAt, isQueued } from '@/lib/cloud/outbox';
 import { mergeCloudScenarios, pullScenarios } from '@/lib/cloud/scenarioCloud';
@@ -40,10 +42,10 @@ import {
 } from '@/lib/scenarios';
 import { toast } from '@/lib/store/toastStore';
 
-const DIFFICULTY_STYLES: Record<Difficulty, string> = {
-  beginner: 'bg-emerald-900/60 text-emerald-300',
-  intermediate: 'bg-amber-900/60 text-amber-300',
-  advanced: 'bg-red-900/60 text-red-300',
+const DIFFICULTY_TONE: Record<Difficulty, PillTone> = {
+  beginner: 'green',
+  intermediate: 'amber',
+  advanced: 'red',
 };
 
 /** Section id for scenarios without a curriculum-domain tag. */
@@ -214,14 +216,12 @@ export default function ScenarioLibraryPage() {
     toast(`Created collection “${created.title}”`, 'success');
   };
 
-  const cloudBadge = (s: Scenario): { label: string; className: string } | null => {
+  const cloudBadge = (s: Scenario): { label: string; tone: PillTone } | null => {
     if (builtInIds.has(s.id)) return null; // bundled — always available, never synced
     if (authStatus !== 'signed_in') return null;
-    if (isQueued('scenario', s.id))
-      return { label: 'sync pending', className: 'bg-amber-900/60 text-amber-300' };
-    if (getPushedAt('scenario', s.id))
-      return { label: 'cloud', className: 'bg-sky-900/60 text-sky-300' };
-    return { label: 'local only', className: 'bg-slate-800 text-slate-400' };
+    if (isQueued('scenario', s.id)) return { label: 'sync pending', tone: 'amber' };
+    if (getPushedAt('scenario', s.id)) return { label: 'cloud', tone: 'blue' };
+    return { label: 'local only', tone: 'neutral' };
   };
 
   const matchesSource = (s: Scenario, wanted: SourceFilter): boolean => {
@@ -309,15 +309,13 @@ export default function ScenarioLibraryPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <Link href="/" className="text-xs text-slate-500 hover:text-slate-300">
-              ← home
-            </Link>
-            <h1 className="text-2xl font-bold">Case library</h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <PageHead
+          eyebrow="Case library"
+          title="What are you teaching?"
+          lede="Reviewed cases, your drafts, and collections in one place."
+          actions={
+            <div className="flex flex-wrap gap-2">
             <Link href="/editor" className="btn-secondary">
               ✏️ New scenario
             </Link>
@@ -349,8 +347,9 @@ export default function ScenarioLibraryPage() {
             <Link href="/debrief" className="btn-ghost">
               Past sessions
             </Link>
-          </div>
-        </header>
+            </div>
+          }
+        />
 
         {/* Renders nothing unless AI settings are configured. */}
         <SyllabusImportPanel onChanged={refresh} />
@@ -385,22 +384,26 @@ export default function ScenarioLibraryPage() {
               Cancel
             </button>
             {pendingAddId && (
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-faint">
                 “{scenarioById.get(pendingAddId)?.title ?? pendingAddId}” will be added to it.
               </span>
             )}
           </form>
         )}
 
-        <div className="card ring-1 ring-sky-700/60">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="card-hero !p-6">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-amber/10"
+          />
+          <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="text-lg font-bold">Quick start — freeform session</h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <h2 className="card-hero-ink text-lg font-bold">Quick start — freeform session</h2>
+              <p className="card-hero-muted mt-1 text-sm">
                 Standardized patient, normal baseline vitals, no scripted events — you drive
                 everything live.
               </p>
-              <div className="mt-2 text-[11px] text-slate-500">~15 min</div>
+              <div className="mt-2 text-[11px] text-[#878b7e]">~15 min</div>
             </div>
             <Link href={`/faculty/run/${QUICK_START_ID}`} className="btn-primary shrink-0">
               ▶ Quick start
@@ -408,7 +411,7 @@ export default function ScenarioLibraryPage() {
           </div>
         </div>
 
-        <div className="sticky top-0 z-10 -mx-4 space-y-2 border-b border-slate-800/60 bg-slate-950/95 px-4 py-2 backdrop-blur">
+        <div className="sticky top-[var(--topbar-h)] z-10 -mx-4 space-y-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur md:-mx-7 md:px-7">
           <div className="flex flex-wrap gap-2">
             <input
               className="input w-56"
@@ -463,8 +466,8 @@ export default function ScenarioLibraryPage() {
                 onClick={() => toggleDomain(d)}
                 className={`rounded px-2 py-1 text-xs font-semibold transition ${
                   selectedDomains.has(d)
-                    ? 'bg-sky-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    ? 'bg-amber text-on-amber'
+                    : 'bg-panel-2 text-muted hover:bg-panel-3'
                 }`}
               >
                 {d}
@@ -472,7 +475,7 @@ export default function ScenarioLibraryPage() {
             ))}
             {selectedDomains.size > 0 && (
               <button
-                className="px-1.5 py-1 text-xs text-slate-500 hover:text-slate-300"
+                className="px-1.5 py-1 text-xs text-faint hover:text-ink-2"
                 onClick={() => setSelectedDomains(new Set())}
               >
                 ✕ clear
@@ -515,7 +518,7 @@ export default function ScenarioLibraryPage() {
             <section key={sec.title} className="space-y-3">
               <h2 className="label !mb-0">
                 {sec.title}{' '}
-                <span className="font-normal normal-case text-slate-600">({sec.items.length})</span>
+                <span className="font-normal normal-case text-faint">({sec.items.length})</span>
               </h2>
               <ul className="space-y-3">
                 {sec.items.map((s) => (
@@ -532,9 +535,9 @@ export default function ScenarioLibraryPage() {
           </ul>
         )}
         {filtered.length === 0 && !anyCollectionItemVisible && (
-          <p className="card text-sm text-slate-400">No scenarios match those filters.</p>
+          <p className="card text-sm text-muted">No scenarios match those filters.</p>
         )}
-      </main>
+      </div>
     </FacultyGate>
   );
 
@@ -548,36 +551,26 @@ export default function ScenarioLibraryPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-lg font-bold">{s.title}</h2>
-                  <p className="mt-1 text-sm text-slate-400">{s.summary}</p>
+                  <p className="mt-1 text-sm text-muted">{s.summary}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <span className={`rounded px-1.5 py-0.5 font-semibold ${DIFFICULTY_STYLES[s.tags.difficulty]}`}>
-                      {s.tags.difficulty}
-                    </span>
-                    {customIds.has(s.id) && (
-                      <span className="rounded bg-sky-900/60 px-1.5 py-0.5 font-semibold text-sky-300">
-                        custom
-                      </span>
-                    )}
+                    <Pill tone={DIFFICULTY_TONE[s.tags.difficulty]}>{s.tags.difficulty}</Pill>
+                    {customIds.has(s.id) && <Pill tone="blue">custom</Pill>}
                     {s.tags.topics.map((t) => (
                       <span
                         key={t}
                         className={`rounded px-1.5 py-0.5 ${
                           t === domainOf(s)
-                            ? 'bg-slate-700 font-semibold text-slate-200'
-                            : 'bg-slate-800 text-slate-400'
+                            ? 'bg-panel-3 font-semibold text-ink'
+                            : 'bg-panel-2 text-muted'
                         }`}
                       >
                         {t}
                       </span>
                     ))}
-                    <span className="text-slate-500">~{s.estimatedMinutes} min</span>
+                    <span className="text-faint">~{s.estimatedMinutes} min</span>
                     {(() => {
                       const badge = cloudBadge(s);
-                      return badge ? (
-                        <span className={`rounded px-1.5 py-0.5 font-semibold ${badge.className}`}>
-                          {badge.label}
-                        </span>
-                      ) : null;
+                      return badge ? <Pill tone={badge.tone}>{badge.label}</Pill> : null;
                     })()}
                   </div>
                 </div>
@@ -646,16 +639,16 @@ export default function ScenarioLibraryPage() {
               </div>
 
               <button
-                className="mt-2 text-xs text-sky-400 hover:text-sky-300"
+                className="mt-2 text-xs text-amber-strong hover:underline"
                 onClick={() => setExpanded(expanded === expandKey ? null : expandKey)}
               >
                 {expanded === expandKey ? 'Hide details ▲' : 'Objectives & setup ▼'}
               </button>
               {expanded === expandKey && (
-                <div className="mt-3 grid gap-4 border-t border-slate-800 pt-3 text-sm sm:grid-cols-2">
+                <div className="mt-3 grid gap-4 border-t border-line pt-3 text-sm sm:grid-cols-2">
                   <div>
                     <h3 className="label">Learning objectives</h3>
-                    <ul className="list-disc space-y-1 pl-4 text-slate-300">
+                    <ul className="list-disc space-y-1 pl-4 text-ink-2">
                       {s.learningObjectives.map((o, i) => (
                         <li key={i}>{o}</li>
                       ))}
@@ -663,7 +656,7 @@ export default function ScenarioLibraryPage() {
                   </div>
                   <div>
                     <h3 className="label">Setup</h3>
-                    <ul className="list-disc space-y-1 pl-4 text-slate-300">
+                    <ul className="list-disc space-y-1 pl-4 text-ink-2">
                       {s.setup.map((o, i) => (
                         <li key={i}>{o}</li>
                       ))}
