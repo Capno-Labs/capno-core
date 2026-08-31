@@ -102,12 +102,12 @@ export default function FacultyRunPage() {
 
   if (notFound) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-3">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
         <p className="text-ink-2">Scenario “{params.scenarioId}” not found.</p>
         <Link href="/scenarios" className="btn-primary">
           Back to library
         </Link>
-      </main>
+      </div>
     );
   }
 
@@ -127,12 +127,12 @@ export default function FacultyRunPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-[1600px] space-y-3 p-3 md:p-4 !pt-0">
+      <div className="mx-auto max-w-[1600px] space-y-3">
         {/* Sticky command bar: title, clock, and session controls stay
             visible while faculty scroll the panels. Kept to one compact row
             so the monitor preview keeps its height on iPad (still fully
             supported, just no longer the primary device). */}
-        <div className="sticky top-[var(--topbar-h)] z-20 -mx-3 space-y-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
+        <div className="sticky top-[var(--topbar-h)] z-20 -mx-4 space-y-2 border-b border-line bg-surface px-4 py-2 md:-mx-7 md:px-7">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
               <div className="min-w-0">
@@ -219,7 +219,7 @@ export default function FacultyRunPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </FacultyGate>
   );
 }

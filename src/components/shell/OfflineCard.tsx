@@ -1,21 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useOnline } from '@/lib/hooks/useOnline';
 
 /** Small offline-readiness card at the bottom of the sidebar. */
 export function OfflineCard() {
-  const [online, setOnline] = useState(true);
-
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    update();
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    return () => {
-      window.removeEventListener('online', update);
-      window.removeEventListener('offline', update);
-    };
-  }, []);
+  const online = useOnline();
 
   return (
     <div className="mx-1 mb-1 rounded-ctl bg-panel p-3 ring-1 ring-line">

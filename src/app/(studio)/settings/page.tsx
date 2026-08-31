@@ -64,6 +64,16 @@ export default function SettingsPage() {
           lede="Everything here is optional — Capno runs fully offline with nothing configured."
         />
 
+        <section className="card flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold">Institution account</h2>
+            <p className="mt-0.5 text-sm text-muted">Sign in, sign out, or check your role.</p>
+          </div>
+          <Link href="/account" className="btn-secondary">
+            Open account →
+          </Link>
+        </section>
+
         <section className="card space-y-4">
           <div>
             <h2 className="text-lg font-bold">AI assistance (optional)</h2>

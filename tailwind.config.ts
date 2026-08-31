@@ -25,10 +25,15 @@ const config: Config = {
         'ink-2': v('ink-2'),
         muted: v('muted'),
         faint: v('faint'),
-        // Shadowing Tailwind's built-in amber/green/red/blue/cyan scales is
-        // deliberate: a missed `red-300`-style class fails loudly instead of
-        // silently ignoring the theme.
+        // Note: `extend` DEEP-merges these into Tailwind's built-in
+        // amber/green/red/blue/cyan scales, so numeric classes (`red-300`)
+        // still compile with the default palette values and are NOT
+        // theme-aware. The migration guard is the grep gate in the restyle
+        // PR description, not the compiler.
         amber: { DEFAULT: v('amber'), strong: v('amber-strong'), soft: v('amber-soft') },
+        // Ink for text sitting on an amber fill — a fixed pairing in both
+        // themes (raw amber fills always take near-black ink, never white).
+        'on-amber': '#1b1c17',
         green: { DEFAULT: v('green'), soft: v('green-soft') },
         red: { DEFAULT: v('red'), solid: v('red-solid'), soft: v('red-soft') },
         blue: { DEFAULT: v('blue'), soft: v('blue-soft') },

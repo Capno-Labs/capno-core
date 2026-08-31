@@ -60,7 +60,9 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen items-center justify-center px-6">
         <form onSubmit={submit} className="card w-full max-w-sm space-y-4 text-center">
-          <CapnoGlyph className="mx-auto h-10 w-auto text-vital-etco2" />
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-xl bg-[#0d0f0c] ring-1 ring-[#30342b]">
+            <CapnoGlyph className="h-6 w-auto text-vital-etco2" />
+          </span>
           <h1 className="text-xl font-bold">Join a session</h1>
           <p className="text-sm text-muted">
             Enter the 4-character session code shown on the faculty controller.
@@ -116,7 +118,9 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <div className="animate-pulse">
-          <CapnoGlyph className="h-9 w-auto text-vital-etco2" />
+          <span className="grid h-14 w-14 place-items-center rounded-xl bg-[#0d0f0c] ring-1 ring-[#30342b]">
+            <CapnoGlyph className="h-6 w-auto text-vital-etco2" />
+          </span>
         </div>
         <div className="flex gap-2" aria-hidden>
           {sessionId.split('').map((char, i) => (

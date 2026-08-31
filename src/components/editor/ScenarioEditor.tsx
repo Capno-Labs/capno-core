@@ -378,7 +378,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                       <span className="text-xs text-faint">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
                     </span>
                     {i > 0 && (
-                      <button className="text-xs text-amber-strong hover:text-amber-strong" onClick={() => restoreVersion(v)}>
+                      <button className="text-xs text-amber-strong hover:underline" onClick={() => restoreVersion(v)}>
                         restore
                       </button>
                     )}

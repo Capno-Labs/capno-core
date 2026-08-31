@@ -7,6 +7,7 @@ import { CollectionSection } from '@/components/library/CollectionSection';
 import { SyllabusImportPanel } from '@/components/library/SyllabusImportPanel';
 import { ConfirmButton } from '@/components/ui/ConfirmButton';
 import { PageHead } from '@/components/ui/PageHead';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, enqueue, getPushedAt, isQueued } from '@/lib/cloud/outbox';
 import { mergeCloudScenarios, pullScenarios } from '@/lib/cloud/scenarioCloud';
@@ -41,10 +42,10 @@ import {
 } from '@/lib/scenarios';
 import { toast } from '@/lib/store/toastStore';
 
-const DIFFICULTY_STYLES: Record<Difficulty, string> = {
-  beginner: 'bg-green-soft text-green',
-  intermediate: 'bg-amber-soft text-amber-strong',
-  advanced: 'bg-red-soft text-red',
+const DIFFICULTY_TONE: Record<Difficulty, PillTone> = {
+  beginner: 'green',
+  intermediate: 'amber',
+  advanced: 'red',
 };
 
 /** Section id for scenarios without a curriculum-domain tag. */
@@ -215,14 +216,12 @@ export default function ScenarioLibraryPage() {
     toast(`Created collection “${created.title}”`, 'success');
   };
 
-  const cloudBadge = (s: Scenario): { label: string; className: string } | null => {
+  const cloudBadge = (s: Scenario): { label: string; tone: PillTone } | null => {
     if (builtInIds.has(s.id)) return null; // bundled — always available, never synced
     if (authStatus !== 'signed_in') return null;
-    if (isQueued('scenario', s.id))
-      return { label: 'sync pending', className: 'bg-amber-soft text-amber-strong' };
-    if (getPushedAt('scenario', s.id))
-      return { label: 'cloud', className: 'bg-blue-soft text-blue' };
-    return { label: 'local only', className: 'bg-panel-2 text-muted' };
+    if (isQueued('scenario', s.id)) return { label: 'sync pending', tone: 'amber' };
+    if (getPushedAt('scenario', s.id)) return { label: 'cloud', tone: 'blue' };
+    return { label: 'local only', tone: 'neutral' };
   };
 
   const matchesSource = (s: Scenario, wanted: SourceFilter): boolean => {
@@ -392,16 +391,15 @@ export default function ScenarioLibraryPage() {
           </form>
         )}
 
-        {/* Dark hero variant — fixed near-black surface in both themes. */}
-        <div className="card relative overflow-hidden !bg-[#11120f] !p-6 !ring-[#3d4237]">
+        <div className="card-hero !p-6">
           <span
             aria-hidden
             className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-amber/10"
           />
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="text-lg font-bold text-[#f5f5ed]">Quick start — freeform session</h2>
-              <p className="mt-1 text-sm text-[#b8bbb0]">
+              <h2 className="card-hero-ink text-lg font-bold">Quick start — freeform session</h2>
+              <p className="card-hero-muted mt-1 text-sm">
                 Standardized patient, normal baseline vitals, no scripted events — you drive
                 everything live.
               </p>
@@ -413,7 +411,7 @@ export default function ScenarioLibraryPage() {
           </div>
         </div>
 
-        <div className="sticky top-[var(--topbar-h)] z-10 -mx-4 space-y-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur">
+        <div className="sticky top-[var(--topbar-h)] z-10 -mx-4 space-y-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur md:-mx-7 md:px-7">
           <div className="flex flex-wrap gap-2">
             <input
               className="input w-56"
@@ -468,7 +466,7 @@ export default function ScenarioLibraryPage() {
                 onClick={() => toggleDomain(d)}
                 className={`rounded px-2 py-1 text-xs font-semibold transition ${
                   selectedDomains.has(d)
-                    ? 'bg-amber text-[#1b1c17]'
+                    ? 'bg-amber text-on-amber'
                     : 'bg-panel-2 text-muted hover:bg-panel-3'
                 }`}
               >
@@ -555,14 +553,8 @@ export default function ScenarioLibraryPage() {
                   <h2 className="text-lg font-bold">{s.title}</h2>
                   <p className="mt-1 text-sm text-muted">{s.summary}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <span className={`rounded px-1.5 py-0.5 font-semibold ${DIFFICULTY_STYLES[s.tags.difficulty]}`}>
-                      {s.tags.difficulty}
-                    </span>
-                    {customIds.has(s.id) && (
-                      <span className="rounded bg-blue-soft px-1.5 py-0.5 font-semibold text-blue">
-                        custom
-                      </span>
-                    )}
+                    <Pill tone={DIFFICULTY_TONE[s.tags.difficulty]}>{s.tags.difficulty}</Pill>
+                    {customIds.has(s.id) && <Pill tone="blue">custom</Pill>}
                     {s.tags.topics.map((t) => (
                       <span
                         key={t}
@@ -578,11 +570,7 @@ export default function ScenarioLibraryPage() {
                     <span className="text-faint">~{s.estimatedMinutes} min</span>
                     {(() => {
                       const badge = cloudBadge(s);
-                      return badge ? (
-                        <span className={`rounded px-1.5 py-0.5 font-semibold ${badge.className}`}>
-                          {badge.label}
-                        </span>
-                      ) : null;
+                      return badge ? <Pill tone={badge.tone}>{badge.label}</Pill> : null;
                     })()}
                   </div>
                 </div>
@@ -651,7 +639,7 @@ export default function ScenarioLibraryPage() {
               </div>
 
               <button
-                className="mt-2 text-xs text-amber-strong hover:text-amber-strong"
+                className="mt-2 text-xs text-amber-strong hover:underline"
                 onClick={() => setExpanded(expanded === expandKey ? null : expandKey)}
               >
                 {expanded === expandKey ? 'Hide details ▲' : 'Objectives & setup ▼'}

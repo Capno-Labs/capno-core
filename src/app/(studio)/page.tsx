@@ -29,7 +29,6 @@ const SECONDARY = [
 export default function HomePage() {
   return (
     <>
-      <h1 className="sr-only">CAPNO Studio — anesthesia simulation lab</h1>
       <PageHead
         eyebrow="Simulation lab"
         title="Run today's case."
@@ -37,10 +36,10 @@ export default function HomePage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
-        {/* Dark hero: the faculty fast path. Fixed near-black surface in both themes. */}
+        {/* Dark hero: the faculty fast path. */}
         <Link
           href="/scenarios"
-          className="card-interactive relative flex min-h-[240px] flex-col justify-between overflow-hidden !bg-[#11120f] !p-7 !ring-[#3d4237]"
+          className="card-hero card-interactive flex min-h-[240px] flex-col justify-between !p-7"
         >
           <span
             aria-hidden
@@ -50,15 +49,15 @@ export default function HomePage() {
             <span className="inline-flex items-center rounded-full bg-[#3a3314] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ffe164]">
               Faculty
             </span>
-            <h2 className="mt-4 max-w-md text-3xl font-bold leading-none tracking-[-0.04em] text-[#f5f5ed] md:text-4xl">
+            <h2 className="card-hero-ink mt-4 max-w-md text-3xl font-bold leading-none tracking-[-0.04em] md:text-4xl">
               Start teaching in under two minutes.
             </h2>
-            <p className="mt-3 max-w-md text-sm text-[#b8bbb0]">
+            <p className="card-hero-muted mt-3 max-w-md text-sm">
               Pick a reviewed case, drive the simulated monitor — vitals, events, and learner
               assessment from the faculty controller.
             </p>
           </div>
-          <span className="relative mt-5 inline-flex items-center gap-2 self-start rounded-ctl bg-amber px-3.5 py-2 text-sm font-bold text-[#1b1c17]">
+          <span className="relative mt-5 inline-flex items-center gap-2 self-start rounded-ctl bg-amber px-3.5 py-2 text-sm font-bold text-on-amber">
             Open the case library <span className="link-arrow">→</span>
           </span>
         </Link>

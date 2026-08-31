@@ -162,7 +162,7 @@ export function EventDetailEditor({
             <button
               className={`px-3 py-1.5 text-xs font-semibold ${
                 event.autoAtSec !== undefined
-                  ? 'bg-amber text-[#1b1c17]'
+                  ? 'bg-amber text-on-amber'
                   : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
               aria-pressed={event.autoAtSec !== undefined}
@@ -173,7 +173,7 @@ export function EventDetailEditor({
             <button
               className={`px-3 py-1.5 text-xs font-semibold ${
                 event.autoAtSec === undefined
-                  ? 'bg-amber text-[#1b1c17]'
+                  ? 'bg-amber text-on-amber'
                   : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
               aria-pressed={event.autoAtSec === undefined}

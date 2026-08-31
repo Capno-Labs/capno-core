@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
+import { Eyebrow } from '@/components/ui/PageHead';
 import { DebriefReport } from '@/components/debrief/DebriefReport';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { fetchCloudSession } from '@/lib/cloud/sessionCloud';
@@ -39,10 +40,7 @@ export default function CloudDebriefPage() {
     <FacultyGate>
       <div className="mx-auto max-w-4xl space-y-4">
         <header className="no-print flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.11em] text-amber-strong">
-            <span aria-hidden className="h-0.5 w-4 bg-amber" />
-            Institution archive
-          </div>
+          <Eyebrow>Institution archive</Eyebrow>
           <div className="flex items-center gap-3">
             <span className="text-xs text-faint">
               Institution archive — read-only (amend on the device that ran the session)

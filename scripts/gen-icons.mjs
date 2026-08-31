@@ -55,7 +55,7 @@ function encodePng(width, height, rgba) {
 // ── Icon drawing ──────────────────────────────────────────────────────────────
 // Geometry in the authored 512×512 space of public/brand/capno-icon.svg:
 // one capnogram breath (upstroke, ascending plateau, downstroke), round caps.
-const TILE = [5, 8, 13]; // #05080d monitor black
+const TILE = [8, 10, 8]; // #080a08 monitor black
 const AMBER = [250, 204, 21]; // #facc15 EtCO₂ yellow
 const TILE_RADIUS = 114 / 512;
 const STROKE_HALF = 17 / 512; // stroke-width 34

@@ -136,7 +136,7 @@ export function FlowPanel() {
     const imminent = running && remaining <= IMMINENT_SEC;
     return {
       hint: (
-        <span className={`font-mono text-[10px] ${imminent ? 'text-amber-strong' : 'text-amber-strong'}`}>
+        <span className={`font-mono text-[10px] ${imminent ? 'text-amber-strong' : 'text-muted'}`}>
           {running ? `auto in ${formatClock(remaining)}` : `auto at ${formatClock(ev.autoAtSec)}`}
         </span>
       ),
@@ -218,7 +218,7 @@ export function FlowPanel() {
                 </span>
               )}
               {isNext && (
-                <span className="rounded bg-amber text-[#1b1c17] px-1 py-0.5 text-[9px] font-bold uppercase">
+                <span className="rounded bg-amber text-on-amber px-1 py-0.5 text-[9px] font-bold uppercase">
                   Next up · N
                 </span>
               )}
@@ -349,7 +349,7 @@ export function FlowPanel() {
 
       {hiddenCount > 0 && (
         <button
-          className="text-xs text-amber-strong hover:text-amber-strong"
+          className="text-xs text-amber-strong hover:underline"
           onClick={() => setCriticalOnly(false)}
         >
           {hiddenCount} non-critical action{hiddenCount === 1 ? '' : 's'} hidden — show all

@@ -2,17 +2,19 @@
 
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { MAIN_NAV, WORKSPACE_NAV, isNavActive } from './SideNav';
 import { SyncPill } from './SyncPill';
 
+// Routes whose crumb differs from (or is missing from) the nav labels.
+const CRUMB_OVERRIDES: [test: (p: string) => boolean, label: string][] = [
+  [(p) => p.startsWith('/faculty/run'), 'Live session'],
+  [(p) => p.startsWith('/debrief/'), 'Session report'],
+];
+
 function crumbFor(pathname: string): string {
-  if (pathname.startsWith('/faculty/run')) return 'Live session';
-  if (pathname === '/debrief') return 'Debriefs';
-  if (pathname.startsWith('/debrief/')) return 'Session report';
-  if (pathname.startsWith('/scenarios')) return 'Case library';
-  if (pathname.startsWith('/editor')) return 'Case editor';
-  if (pathname.startsWith('/settings')) return 'Settings';
-  if (pathname.startsWith('/account')) return 'Account';
-  return 'Home';
+  for (const [test, label] of CRUMB_OVERRIDES) if (test(pathname)) return label;
+  const item = [...MAIN_NAV, ...WORKSPACE_NAV].find((i) => isNavActive(pathname, i));
+  return item?.label ?? 'Home';
 }
 
 /** Sticky workspace topbar: breadcrumb, sync state, theme toggle. */

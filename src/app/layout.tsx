@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
+import { THEME_COLORS, THEME_STORAGE_KEY } from '@/lib/theme';
 import { Toaster } from '@/components/ui/Toaster';
 
 // Public origin of this deployment (optional — self-hosts work without it).
@@ -52,8 +53,10 @@ export const viewport: Viewport = {
 
 // Applies a stored light-theme preference before hydration so there is no
 // flash of the wrong theme. Dark is the no-attribute default, so users with
-// nothing stored take the zero-cost path. Key must match src/lib/theme.ts.
-const themeInitScript = `try{if(localStorage.getItem('capno:theme:v1')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#f4f4ef')}}catch(e){}`;
+// nothing stored take the zero-cost path. Key and color interpolate from
+// src/lib/theme.ts so they cannot drift; the meta update retries on
+// DOMContentLoaded in case the theme-color tag streams in after this script.
+const themeInitScript = `try{if(localStorage.getItem('${THEME_STORAGE_KEY}')==='light'){document.documentElement.dataset.theme='light';var u=function(){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','${THEME_COLORS.light}')};u();document.addEventListener('DOMContentLoaded',u)}}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

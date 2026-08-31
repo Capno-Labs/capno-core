@@ -11,7 +11,7 @@ import { TrendStrip } from './TrendStrip';
 /** Performance-tier color for the score reveal (screen only; print is black). */
 function tierClasses(percent: number): { text: string; band: string } {
   if (percent >= 90) return { text: 'text-green', band: 'bg-green' };
-  if (percent >= 75) return { text: 'text-amber-strong', band: 'bg-blue' };
+  if (percent >= 75) return { text: 'text-blue', band: 'bg-blue' };
   if (percent >= 60) return { text: 'text-amber-strong', band: 'bg-amber' };
   return { text: 'text-red', band: 'bg-red' };
 }
@@ -109,7 +109,7 @@ export function DebriefReport({
           {session.learnerNames?.length ? session.learnerNames.join(', ') : '—'}
           {amend && learnersDraft === null && (
             <button
-              className="no-print ml-2 text-xs text-amber-strong hover:text-amber-strong"
+              className="no-print ml-2 text-xs text-amber-strong hover:underline"
               onClick={() => setLearnersDraft(session.learnerNames?.join(', ') ?? '')}
             >
               edit
@@ -371,7 +371,7 @@ export function DebriefReport({
                   {amend && (
                     <span className="no-print ml-2 space-x-2 text-xs">
                       <button
-                        className="text-amber-strong hover:text-amber-strong"
+                        className="text-amber-strong hover:underline"
                         onClick={() => {
                           setConfirmDeleteIdx(null);
                           setNoteDraft({ idx: i, text: n.text });
@@ -430,7 +430,7 @@ export function DebriefReport({
               </div>
             ) : (
               <button
-                className="no-print mt-2 text-xs text-amber-strong hover:text-amber-strong"
+                className="no-print mt-2 text-xs text-amber-strong hover:underline"
                 onClick={() => setNoteDraft({ idx: 'new', text: '' })}
               >
                 + Add note

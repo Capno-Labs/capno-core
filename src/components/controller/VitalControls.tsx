@@ -138,7 +138,7 @@ export function VitalControls() {
               onClick={() => setOverSec(t.sec)}
               className={`rounded px-2 py-1 text-xs font-semibold ${
                 overSec === t.sec
-                  ? 'bg-amber text-[#1b1c17]'
+                  ? 'bg-amber text-on-amber'
                   : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
             >

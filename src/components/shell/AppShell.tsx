@@ -1,6 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuthStore } from '@/lib/cloud/authStore';
+import { useControllerStore } from '@/lib/store/controllerStore';
 import { BottomTabBar } from './BottomTabBar';
 import { SideNav } from './SideNav';
 import { TopBar } from './TopBar';
@@ -15,21 +18,48 @@ import { TopBar } from './TopBar';
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const runFocus = pathname.startsWith('/faculty/run/');
+  // Boolean selector: re-renders only when liveness flips, not per snapshot.
+  const sessionLive = useControllerStore(
+    (s) => s.snapshot?.status === 'running' || s.snapshot?.status === 'paused',
+  );
+
+  // The shell surfaces auth state (SyncPill, ProfileRow) on every page, so it
+  // owns the init call instead of relying on per-page side effects. Idempotent.
+  useEffect(() => {
+    useAuthStore.getState().init();
+  }, []);
+
+  // `useBeforeUnload` on the run page guards reload/close but not client-side
+  // navigation — and the shell puts nav links on screen during a live session.
+  // Capture-phase guard on both nav surfaces so one stray tap can't silently
+  // tear the session down (unmount runs the cockpit's teardown()).
+  const guardLiveSession = (e: React.MouseEvent) => {
+    if (
+      runFocus &&
+      sessionLive &&
+      e.target instanceof Element &&
+      e.target.closest('a') &&
+      !window.confirm(
+        'A live session is running. Leaving now stops it without saving a debrief, and connected student displays will disconnect.',
+      )
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[auto_minmax(0,1fr)]" style={{ ['--topbar-h' as string]: '68px' }}>
+    <div
+      className="min-h-screen md:grid md:grid-cols-[auto_minmax(0,1fr)]"
+      style={{ ['--topbar-h' as string]: '68px' }}
+    >
       <aside
+        onClickCapture={guardLiveSession}
         className={`no-print sticky top-0 hidden h-screen shrink-0 border-r border-line bg-panel/60 md:block ${
           runFocus ? 'w-[68px]' : 'w-[68px] lg:w-[236px]'
         }`}
       >
-        {/* Render both variants and let breakpoints pick, so resize needs no JS. */}
-        <div className={runFocus ? 'hidden' : 'hidden h-full lg:block'}>
-          <SideNav rail={false} />
-        </div>
-        <div className={runFocus ? 'block h-full' : 'block h-full lg:hidden'}>
-          <SideNav rail />
-        </div>
+        <SideNav rail={runFocus} />
       </aside>
       <div className="min-w-0">
         <TopBar />
@@ -37,7 +67,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
-      <BottomTabBar />
+      <div onClickCapture={guardLiveSession} className="contents">
+        <BottomTabBar />
+      </div>
     </div>
   );
 }

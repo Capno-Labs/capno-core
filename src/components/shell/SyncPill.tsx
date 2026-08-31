@@ -1,26 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/cloud/authStore';
+import { useOnline } from '@/lib/hooks/useOnline';
 import { supabaseConfigured } from '@/lib/sync/supabase';
+
+// Build-time constant (NEXT_PUBLIC_* env), identical on server and client.
+const cloud = supabaseConfigured();
 
 /** Topbar connectivity pill: local-first status at a glance. */
 export function SyncPill() {
   const status = useAuthStore((s) => s.status);
-  const [online, setOnline] = useState(true);
-  const [cloud, setCloud] = useState(false);
-
-  useEffect(() => {
-    setCloud(supabaseConfigured());
-    const update = () => setOnline(navigator.onLine);
-    update();
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    return () => {
-      window.removeEventListener('online', update);
-      window.removeEventListener('offline', update);
-    };
-  }, []);
+  const online = useOnline();
 
   const label = !online
     ? 'Offline · local'

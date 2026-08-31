@@ -79,7 +79,7 @@ export function FacultyGate({ children }: { children: React.ReactNode }) {
         {supabaseConfigured() && (
           <Link
             href="/account"
-            className="block text-center text-xs text-amber-strong hover:text-amber-strong"
+            className="block text-center text-xs text-amber-strong hover:underline"
           >
             or sign in with your institution account →
           </Link>

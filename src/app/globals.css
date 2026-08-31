@@ -77,7 +77,7 @@ body {
     @apply inline-flex items-center justify-center gap-1.5 rounded-ctl px-3 py-2 text-sm font-semibold transition duration-150 ease-out hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
   }
   .btn-primary {
-    @apply btn bg-amber text-[#1b1c17] shadow-card hover:brightness-105;
+    @apply btn bg-amber text-on-amber shadow-card hover:brightness-105;
   }
   .btn-secondary {
     @apply btn bg-panel-2 text-ink shadow-card ring-1 ring-line hover:bg-panel-3;
@@ -93,6 +93,18 @@ body {
   }
   .card-interactive {
     @apply card transition duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2;
+  }
+  /* Dark hero card: a fixed near-black surface in BOTH themes (deliberately
+     outside the theme tokens), used for marquee CTAs. Pair its text with
+     .card-hero-ink / .card-hero-muted so the palette lives in one place. */
+  .card-hero {
+    @apply card relative overflow-hidden bg-[#11120f] ring-[#3d4237];
+  }
+  .card-hero-ink {
+    color: #f5f5ed;
+  }
+  .card-hero-muted {
+    color: #b8bbb0;
   }
   .input {
     @apply w-full rounded-ctl border-0 bg-panel-2 px-3 py-2 text-sm text-ink ring-1 ring-line transition duration-150 placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-amber;

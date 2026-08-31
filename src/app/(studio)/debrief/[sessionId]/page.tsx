@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { DebriefReport, type DebriefAmend } from '@/components/debrief/DebriefReport';
 import { ScoreRing } from '@/components/debrief/ScoreRing';
+import { Eyebrow } from '@/components/ui/PageHead';
 import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
 import '@/lib/cloud/sessionCloud'; // registers the session push handler
 import { downloadJson } from '@/lib/download';
@@ -70,12 +71,12 @@ export default function DebriefSessionPage() {
 
   if (session === null) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-3">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
         <p className="text-ink-2">Session “{params.sessionId}” not found on this device.</p>
         <Link href="/debrief" className="btn-primary">
           All sessions
         </Link>
-      </main>
+      </div>
     );
   }
 
@@ -92,13 +93,12 @@ export default function DebriefSessionPage() {
           <div className="flex min-w-0 items-center gap-5">
             <ScoreRing percent={session.score.percent} />
             <div className="min-w-0">
-              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.11em] text-amber-strong">
-                <span aria-hidden className="h-0.5 w-4 bg-amber" />
-                Session report
+              <div className="mb-1.5">
+                <Eyebrow>Session report</Eyebrow>
               </div>
-              <h1 className="truncate text-2xl font-bold tracking-[-0.02em]">
+              <p className="truncate text-2xl font-bold tracking-[-0.02em]">
                 {session.scenario.title}
-              </h1>
+              </p>
               <p className="mt-1 text-xs text-muted">
                 Completed {new Date(session.endedAtIso).toLocaleString()} ·{' '}
                 {Math.floor(session.snapshot.elapsedSec / 60)} min · session {session.sessionId}

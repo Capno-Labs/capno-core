@@ -7,9 +7,9 @@ import { formatClock } from '@/lib/format';
 // load-bearing (engine, scoring, schema, archives) and must not change.
 const STATUS_META: { status: ActionStatus; glyph: string; word: string; cls: string }[] = [
   { status: 'done', glyph: '✓', word: 'Observed', cls: 'bg-green text-[#0d1a10]' },
-  { status: 'delayed', glyph: '◐', word: 'Delayed', cls: 'bg-amber text-[#1b1c17]' },
+  { status: 'delayed', glyph: '◐', word: 'Delayed', cls: 'bg-amber text-on-amber' },
   { status: 'incorrect', glyph: '✗', word: 'Incorrect', cls: 'bg-red-solid text-white' },
-  { status: 'missed', glyph: '—', word: 'Missed', cls: 'bg-panel-3 text-ink' },
+  { status: 'missed', glyph: '—', word: 'Missed', cls: 'bg-faint text-surface' },
 ];
 
 const STATUS_BADGE: Record<ActionStatus, string> = {
@@ -72,7 +72,7 @@ export function ActionMarkRow({
             aria-label={`${action.label}: ${s.word}`}
             onClick={() => onMark(current === s.status ? 'pending' : s.status)}
             className={`${btnSize} rounded text-sm font-bold transition ${
-              current === s.status ? s.cls : 'bg-panel-3 text-muted hover:bg-panel-3'
+              current === s.status ? s.cls : 'bg-panel-3 text-muted hover:bg-line-2 hover:text-ink'
             }`}
           >
             <span className="flex flex-col items-center leading-none">
