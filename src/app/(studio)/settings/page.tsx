@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
+import { PageHead } from '@/components/ui/PageHead';
 import { createOpenRouterProvider, gatewayConfigured } from '@/lib/llm';
 import { toast } from '@/lib/store/toastStore';
 import { useLlmSettingsStore } from '@/lib/store/llmSettingsStore';
@@ -56,13 +57,12 @@ export default function SettingsPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-2xl space-y-4 p-4 md:p-8">
-        <header>
-          <Link href="/" className="text-xs text-faint hover:text-ink-2">
-            ← home
-          </Link>
-          <h1 className="text-2xl font-bold">Settings</h1>
-        </header>
+      <div className="mx-auto max-w-2xl space-y-4">
+        <PageHead
+          eyebrow="Workspace"
+          title="Settings"
+          lede="Everything here is optional — Capno runs fully offline with nothing configured."
+        />
 
         <section className="card space-y-4">
           <div>
@@ -163,7 +163,7 @@ export default function SettingsPage() {
             Simulation only — not for clinical use.
           </p>
         </section>
-      </main>
+      </div>
     </FacultyGate>
   );
 }

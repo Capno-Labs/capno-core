@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { PageHead } from '@/components/ui/PageHead';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuthStore } from '@/lib/cloud/authStore';
 
@@ -24,11 +24,8 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 px-6 py-12">
-      <Link href="/" className="text-xs text-faint hover:text-ink-2">
-        ← home
-      </Link>
-      <h1 className="text-2xl font-bold">Institution account</h1>
+    <div className="mx-auto flex max-w-md flex-col gap-4 py-10">
+      <PageHead eyebrow="Workspace" title="Institution account" />
 
       {status === 'unconfigured' && (
         <div className="card space-y-2 text-sm text-muted">
@@ -119,6 +116,6 @@ export default function AccountPage() {
       <p className="text-center text-xs text-faint">
         Signing in is optional. Everything works offline on this device without an account.
       </p>
-    </main>
+    </div>
   );
 }

@@ -56,7 +56,7 @@ export function FacultyGate({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
+    <div className="flex min-h-[60vh] items-center justify-center px-6">
       <form onSubmit={submit} className="card w-full max-w-sm space-y-4">
         <h1 className="text-lg font-bold">Faculty access</h1>
         <p className="text-sm text-muted">Enter the faculty PIN for this installation.</p>
@@ -85,6 +85,6 @@ export function FacultyGate({ children }: { children: React.ReactNode }) {
           </Link>
         )}
       </form>
-    </main>
+    </div>
   );
 }

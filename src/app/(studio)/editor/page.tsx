@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { ScenarioEditor } from '@/components/editor/ScenarioEditor';
+import { PageHead } from '@/components/ui/PageHead';
 import type { Scenario } from '@/lib/engine/types';
 import { getScenario } from '@/lib/scenarios';
 
@@ -20,21 +20,14 @@ function EditorContent() {
   if (initial === undefined) return null;
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 px-4 py-6">
-      <header>
-        <Link href="/scenarios" className="text-xs text-faint hover:text-ink-2">
-          ← library
-        </Link>
-        <h1 className="text-2xl font-bold">Case editor</h1>
-        <p className="mt-1 text-sm text-muted">
-          Saved scenarios are stored on this device and appear in the library, where you can
-          organize them into collections that match your syllabus — and they sync to your
-          institution&apos;s cloud library when you are signed in as faculty. Editing a built-in
-          scenario saves a custom copy that shadows it. Export/import JSON files to share manually.
-        </p>
-      </header>
+    <div className="space-y-4">
+      <PageHead
+        eyebrow="Authoring"
+        title="Case editor"
+        lede="Saved scenarios are stored on this device and appear in the library, where you can organize them into collections that match your syllabus — and they sync to your institution's cloud library when you are signed in as faculty. Editing a built-in scenario saves a custom copy that shadows it. Export/import JSON files to share manually."
+      />
       <ScenarioEditor initial={initial ?? undefined} key={id ?? 'new'} />
-    </main>
+    </div>
   );
 }
 
