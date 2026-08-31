@@ -24,12 +24,12 @@ import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
  * Faculty controller for a live session. A sticky command bar (title, clock,
- * session controls) sits over the cockpit. The cockpit is two zones:
- * live monitor preview + vital controls + patient background on the left,
- * and the case flow (events with their linked learner actions) + notes/log
- * in a right rail. At the `desk` breakpoint the right rail is width-capped
- * so the monitor keeps its size; below `lg` (iPad portrait) the zones
- * collapse to a single monitor-first stack.
+ * session controls) sits over the cockpit. Up to `desk` the cockpit is two
+ * columns (monitor preview + physiology on the left, case flow + notes/log
+ * on the right — iPad landscape keeps this layout); at `desk` it becomes a
+ * three-zone cockpit: case-flow rail, monitor with notes/log beneath, and a
+ * physiology rail. Below `lg` (iPad portrait) everything collapses to a
+ * single monitor-first stack.
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
@@ -136,10 +136,12 @@ export default function FacultyRunPage() {
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
               <div className="min-w-0">
-                <Link href="/scenarios" className="text-xs text-faint hover:text-ink-2">
-                  ← library
-                </Link>
-                <h1 className="truncate text-xl font-bold">{engine.scenario.title}</h1>
+                <div className="text-[10px] font-extrabold uppercase tracking-[0.11em] text-amber-strong">
+                  Live session
+                </div>
+                <h1 className="truncate text-xl font-bold tracking-[-0.02em]">
+                  {engine.scenario.title}
+                </h1>
               </div>
               <span className="shrink-0 font-mono text-3xl font-bold tabular-nums text-ink">
                 {formatClock(snapshot.elapsedSec)}
@@ -172,36 +174,49 @@ export default function FacultyRunPage() {
 
         <PreStartPanel />
 
-        {/* Cockpit grid. Both zones need min-w-0 so waveforms and truncated
-            text can shrink inside grid tracks. */}
-        <div className="grid gap-3 lg:grid-cols-2 desk:grid-cols-[minmax(0,1fr)_minmax(380px,460px)]">
-          {/* Left zone (first in DOM so the single-column stack leads with
-              the monitor): preview + physiology controls + patient. */}
-          <div className="min-w-0 space-y-3">
-            <div className="overflow-hidden rounded-xl ring-1 ring-line">
-              <div className="flex items-center justify-between bg-panel px-3 py-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-faint">
-                  Live monitor (what students see)
-                </span>
-                <button
-                  className="text-xs text-muted hover:text-ink"
-                  onClick={() => setAlarmsSilenced(!snapshot.alarmsSilenced)}
-                >
-                  {snapshot.alarmsSilenced ? '🔕 alarms silenced' : '🔔 silence alarms'}
-                </button>
+        {/* Cockpit grid. Below `desk` this is the proven two-column layout
+            (iPad landscape stays two columns — see tailwind.config.ts); at
+            `desk` the wrappers dissolve (display: contents) into the
+            prototype's three-zone cockpit: case-flow rail | monitor +
+            notes/log | physiology rail. Every zone needs min-w-0 so
+            waveforms and truncated text can shrink inside grid tracks. */}
+        <div className="grid gap-3 lg:grid-cols-2 desk:grid-cols-[300px_minmax(0,1fr)_340px]">
+          {/* lg left column (first in DOM so the single-column stack leads
+              with the monitor): preview + physiology controls. */}
+          <div className="min-w-0 space-y-3 desk:contents">
+            <div className="min-w-0 desk:col-start-2 desk:row-start-1">
+              <div className="overflow-hidden rounded-xl ring-1 ring-line">
+                <div className="flex items-center justify-between bg-panel px-3 py-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-faint">
+                    Live monitor (what students see)
+                  </span>
+                  <button
+                    className="text-xs text-muted hover:text-ink"
+                    onClick={() => setAlarmsSilenced(!snapshot.alarmsSilenced)}
+                  >
+                    {snapshot.alarmsSilenced ? '🔕 alarms silenced' : '🔔 silence alarms'}
+                  </button>
+                </div>
+                <MonitorDisplay snapshot={snapshot} compact />
               </div>
-              <MonitorDisplay snapshot={snapshot} compact />
             </div>
-            <VitalControls />
-            <PatientCard patient={engine.scenario.patient} />
+            <div className="min-w-0 space-y-3 desk:col-start-3 desk:row-start-1 desk:row-span-2 desk:self-start">
+              <VitalControls />
+              <CopilotPanel />
+            </div>
           </div>
 
-          {/* Right rail: case flow (events + linked actions), notes, log. */}
-          <div className="min-w-0 space-y-3">
-            <CopilotPanel />
-            <FlowPanel />
-            <NotesPanel />
-            <LogPanel />
+          {/* lg right column: case flow (events + linked actions) + patient,
+              then notes and log (which sit under the monitor at desk). */}
+          <div className="min-w-0 space-y-3 desk:contents">
+            <div className="min-w-0 space-y-3 desk:col-start-1 desk:row-start-1 desk:row-span-2 desk:self-start">
+              <FlowPanel />
+              <PatientCard patient={engine.scenario.patient} />
+            </div>
+            <div className="min-w-0 space-y-3 desk:col-start-2 desk:row-start-2 desk:self-start">
+              <NotesPanel />
+              <LogPanel />
+            </div>
           </div>
         </div>
       </main>
