@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { DebriefReport, type DebriefAmend } from '@/components/debrief/DebriefReport';
+import { ScoreRing } from '@/components/debrief/ScoreRing';
 import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
 import '@/lib/cloud/sessionCloud'; // registers the session push handler
 import { downloadJson } from '@/lib/download';
@@ -80,18 +81,31 @@ export default function DebriefSessionPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-4xl space-y-4 px-4 py-8">
+      <div className="mx-auto max-w-4xl space-y-4">
         {isMemoryOnly(session.sessionId) && (
           <div className="no-print rounded-md bg-amber-soft p-3 text-sm text-amber-strong ring-1 ring-amber/40">
             Device storage is full — this debrief is held in memory only and will be lost when the
             tab closes. Export it now (PDF, or JSON once available) and free up space.
           </div>
         )}
-        <header className="no-print flex flex-wrap items-center justify-between gap-3">
-          <Link href="/debrief" className="text-xs text-faint hover:text-ink-2">
-            ← all sessions
-          </Link>
-          <div className="flex gap-2">
+        <header className="no-print card flex flex-wrap items-center justify-between gap-x-6 gap-y-4 !p-5">
+          <div className="flex min-w-0 items-center gap-5">
+            <ScoreRing percent={session.score.percent} />
+            <div className="min-w-0">
+              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.11em] text-amber-strong">
+                <span aria-hidden className="h-0.5 w-4 bg-amber" />
+                Session report
+              </div>
+              <h1 className="truncate text-2xl font-bold tracking-[-0.02em]">
+                {session.scenario.title}
+              </h1>
+              <p className="mt-1 text-xs text-muted">
+                Completed {new Date(session.endedAtIso).toLocaleString()} ·{' '}
+                {Math.floor(session.snapshot.elapsedSec / 60)} min · session {session.sessionId}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Link
               className="btn-primary"
               href={`/faculty/run/${session.scenario.id}?code=${session.sessionCode ?? session.sessionId}`}
@@ -99,7 +113,7 @@ export default function DebriefSessionPage() {
             >
               ▶ Run next student
             </Link>
-            <button className="btn-primary" onClick={() => window.print()}>
+            <button className="btn-secondary" onClick={() => window.print()}>
               🖨 Export PDF
             </button>
             <button
@@ -113,7 +127,7 @@ export default function DebriefSessionPage() {
           </div>
         </header>
         <DebriefReport session={session} amend={amend} />
-      </main>
+      </div>
     </FacultyGate>
   );
 }

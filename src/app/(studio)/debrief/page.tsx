@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { ConfirmButton } from '@/components/ui/ConfirmButton';
+import { PageHead } from '@/components/ui/PageHead';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible } from '@/lib/cloud/outbox';
 import { listCloudSessions, type CloudSessionSummary } from '@/lib/cloud/sessionCloud';
@@ -84,17 +85,12 @@ export default function DebriefListPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-        <header>
-          <Link href="/" className="text-xs text-faint hover:text-ink-2">
-            ← home
-          </Link>
-          <h1 className="text-2xl font-bold">Past sessions</h1>
-          <p className="mt-1 text-sm text-muted">
-            Sessions are stored on this device. Open one for the full timeline, scores, and PDF
-            export. Use JSON export to back up session history or move it to another machine.
-          </p>
-        </header>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <PageHead
+          eyebrow="Debriefs"
+          title="Debrief while it's fresh."
+          lede="Sessions are stored on this device. Open one for the full timeline, scores, and PDF export. Use JSON export to back up session history or move it to another machine."
+        />
 
         <div className="flex flex-wrap gap-2">
           <button
@@ -243,7 +239,7 @@ export default function DebriefListPage() {
             </ul>
           </section>
         )}
-      </main>
+      </div>
     </FacultyGate>
   );
 }

@@ -37,11 +37,12 @@ export default function CloudDebriefPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-4xl space-y-4 px-4 py-8">
+      <div className="mx-auto max-w-4xl space-y-4">
         <header className="no-print flex flex-wrap items-center justify-between gap-3">
-          <Link href="/debrief" className="text-xs text-faint hover:text-ink-2">
-            ← all sessions
-          </Link>
+          <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.11em] text-amber-strong">
+            <span aria-hidden className="h-0.5 w-4 bg-amber" />
+            Institution archive
+          </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-faint">
               Institution archive — read-only (amend on the device that ran the session)
@@ -60,7 +61,7 @@ export default function CloudDebriefPage() {
           </p>
         )}
         {session && <DebriefReport session={session} />}
-      </main>
+      </div>
     </FacultyGate>
   );
 }
