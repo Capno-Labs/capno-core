@@ -419,7 +419,7 @@ export function EventListEditor({
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
             {event.autoAtSec !== undefined ? (
-              <span className="rounded bg-blue-soft px-1 py-px font-semibold tracking-wider text-amber-strong ring-1 ring-blue/30">
+              <span className="rounded bg-blue-soft px-1 py-px font-semibold tracking-wider text-blue ring-1 ring-blue/30">
                 AUTO {fmtTime(event.autoAtSec)}
               </span>
             ) : (

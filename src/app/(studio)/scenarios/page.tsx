@@ -6,6 +6,7 @@ import { FacultyGate } from '@/components/FacultyGate';
 import { CollectionSection } from '@/components/library/CollectionSection';
 import { SyllabusImportPanel } from '@/components/library/SyllabusImportPanel';
 import { ConfirmButton } from '@/components/ui/ConfirmButton';
+import { PageHead } from '@/components/ui/PageHead';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, enqueue, getPushedAt, isQueued } from '@/lib/cloud/outbox';
 import { mergeCloudScenarios, pullScenarios } from '@/lib/cloud/scenarioCloud';
@@ -220,7 +221,7 @@ export default function ScenarioLibraryPage() {
     if (isQueued('scenario', s.id))
       return { label: 'sync pending', className: 'bg-amber-soft text-amber-strong' };
     if (getPushedAt('scenario', s.id))
-      return { label: 'cloud', className: 'bg-blue-soft text-amber-strong' };
+      return { label: 'cloud', className: 'bg-blue-soft text-blue' };
     return { label: 'local only', className: 'bg-panel-2 text-muted' };
   };
 
@@ -309,15 +310,13 @@ export default function ScenarioLibraryPage() {
 
   return (
     <FacultyGate>
-      <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <Link href="/" className="text-xs text-faint hover:text-ink-2">
-              ← home
-            </Link>
-            <h1 className="text-2xl font-bold">Case library</h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <PageHead
+          eyebrow="Case library"
+          title="What are you teaching?"
+          lede="Reviewed cases, your drafts, and collections in one place."
+          actions={
+            <div className="flex flex-wrap gap-2">
             <Link href="/editor" className="btn-secondary">
               ✏️ New scenario
             </Link>
@@ -349,8 +348,9 @@ export default function ScenarioLibraryPage() {
             <Link href="/debrief" className="btn-ghost">
               Past sessions
             </Link>
-          </div>
-        </header>
+            </div>
+          }
+        />
 
         {/* Renders nothing unless AI settings are configured. */}
         <SyllabusImportPanel onChanged={refresh} />
@@ -392,15 +392,20 @@ export default function ScenarioLibraryPage() {
           </form>
         )}
 
-        <div className="card ring-1 ring-blue/30">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        {/* Dark hero variant — fixed near-black surface in both themes. */}
+        <div className="card relative overflow-hidden !bg-[#11120f] !p-6 !ring-[#3d4237]">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-amber/10"
+          />
+          <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="text-lg font-bold">Quick start — freeform session</h2>
-              <p className="mt-1 text-sm text-muted">
+              <h2 className="text-lg font-bold text-[#f5f5ed]">Quick start — freeform session</h2>
+              <p className="mt-1 text-sm text-[#b8bbb0]">
                 Standardized patient, normal baseline vitals, no scripted events — you drive
                 everything live.
               </p>
-              <div className="mt-2 text-[11px] text-faint">~15 min</div>
+              <div className="mt-2 text-[11px] text-[#878b7e]">~15 min</div>
             </div>
             <Link href={`/faculty/run/${QUICK_START_ID}`} className="btn-primary shrink-0">
               ▶ Quick start
@@ -534,7 +539,7 @@ export default function ScenarioLibraryPage() {
         {filtered.length === 0 && !anyCollectionItemVisible && (
           <p className="card text-sm text-muted">No scenarios match those filters.</p>
         )}
-      </main>
+      </div>
     </FacultyGate>
   );
 
@@ -554,7 +559,7 @@ export default function ScenarioLibraryPage() {
                       {s.tags.difficulty}
                     </span>
                     {customIds.has(s.id) && (
-                      <span className="rounded bg-blue-soft px-1.5 py-0.5 font-semibold text-amber-strong">
+                      <span className="rounded bg-blue-soft px-1.5 py-0.5 font-semibold text-blue">
                         custom
                       </span>
                     )}

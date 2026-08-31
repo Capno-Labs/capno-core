@@ -108,7 +108,7 @@ export function SessionControls() {
         <button
           className={`rounded px-2 py-1 text-xs font-semibold ring-1 ${
             snapshot.autoEventsEnabled
-              ? 'bg-blue-soft text-amber-strong ring-blue/30'
+              ? 'bg-blue-soft text-blue ring-blue/30'
               : 'bg-panel-2 text-muted ring-line hover:bg-panel-3'
           }`}
           aria-pressed={snapshot.autoEventsEnabled}

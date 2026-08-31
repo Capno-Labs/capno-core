@@ -57,7 +57,7 @@ export function EventDetailEditor({
         />
         <span className="text-sm font-bold">{title}</span>
         {event.autoAtSec !== undefined ? (
-          <span className="rounded bg-blue-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-strong ring-1 ring-blue/30">
+          <span className="rounded bg-blue-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-blue ring-1 ring-blue/30">
             AUTO {fmtTime(event.autoAtSec)}
           </span>
         ) : (

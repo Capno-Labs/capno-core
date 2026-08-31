@@ -272,7 +272,7 @@ export function FlowPanel() {
           <button
             className={`rounded px-2 py-1 text-xs font-semibold transition ${
               showAddForm
-                ? 'bg-blue-soft text-amber-strong ring-1 ring-blue/30'
+                ? 'bg-blue-soft text-blue ring-1 ring-blue/30'
                 : 'bg-panel-2 text-muted hover:bg-panel-3'
             }`}
             onClick={() => setShowAddForm(!showAddForm)}

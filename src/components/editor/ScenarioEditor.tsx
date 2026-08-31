@@ -482,7 +482,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {undoScenario && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-blue-soft p-3 text-sm text-amber-strong ring-1 ring-blue/30">
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-blue-soft p-3 text-sm text-blue ring-1 ring-blue/30">
           <span className="flex-1">AI draft loaded — your previous work was replaced.</span>
           <button className="btn-secondary !py-1 text-xs" onClick={undoDraftLoad}>
             Undo
