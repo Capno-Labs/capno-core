@@ -70,7 +70,7 @@ export default function DebriefSessionPage() {
   if (session === null) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-3">
-        <p className="text-slate-300">Session “{params.sessionId}” not found on this device.</p>
+        <p className="text-ink-2">Session “{params.sessionId}” not found on this device.</p>
         <Link href="/debrief" className="btn-primary">
           All sessions
         </Link>
@@ -82,13 +82,13 @@ export default function DebriefSessionPage() {
     <FacultyGate>
       <main className="mx-auto max-w-4xl space-y-4 px-4 py-8">
         {isMemoryOnly(session.sessionId) && (
-          <div className="no-print rounded-md bg-amber-950/60 p-3 text-sm text-amber-300 ring-1 ring-amber-700">
+          <div className="no-print rounded-md bg-amber-soft p-3 text-sm text-amber-strong ring-1 ring-amber/40">
             Device storage is full — this debrief is held in memory only and will be lost when the
             tab closes. Export it now (PDF, or JSON once available) and free up space.
           </div>
         )}
         <header className="no-print flex flex-wrap items-center justify-between gap-3">
-          <Link href="/debrief" className="text-xs text-slate-500 hover:text-slate-300">
+          <Link href="/debrief" className="text-xs text-faint hover:text-ink-2">
             ← all sessions
           </Link>
           <div className="flex gap-2">

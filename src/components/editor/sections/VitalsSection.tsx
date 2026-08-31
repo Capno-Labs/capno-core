@@ -25,10 +25,10 @@ export function VitalsSection({
   return (
     <div className="space-y-4">
       <section className="card space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           Baseline vitals
         </h2>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-faint">
           The patient’s state when the case starts. Events ramp vitals away from (and back to)
           these numbers.
         </p>
@@ -38,10 +38,10 @@ export function VitalsSection({
         />
       </section>
       <section className="card space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           BP monitoring
         </h2>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-2">
           <input
             type="checkbox"
             checked={artLine}
@@ -68,7 +68,7 @@ export function VitalsSection({
             />
           </div>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-faint">
           Without an arterial line, the monitor shows the last cuff reading — it only updates when
           the cuff cycles. The staleness between readings is often the teaching point.
         </p>

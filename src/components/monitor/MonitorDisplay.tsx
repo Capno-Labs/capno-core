@@ -58,17 +58,17 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
       {/* Header: alarms + sound + status + clock */}
       <div className="flex items-center justify-between gap-3">
         <AlarmBanner alarms={snapshot.alarms} silenced={snapshot.alarmsSilenced} />
-        <div className="flex items-center gap-3 whitespace-nowrap font-mono text-slate-300">
+        <div className="flex items-center gap-3 whitespace-nowrap font-mono text-[#dce3d9]">
           <button
             onClick={() => setSoundOn(!soundOn)}
-            className="rounded px-1.5 py-0.5 text-base ring-1 ring-slate-700 hover:bg-slate-800"
+            className="rounded px-1.5 py-0.5 text-base ring-1 ring-monitor-grid hover:bg-monitor-panel"
             title={soundOn ? 'Sound on (pulse tone + alarms)' : 'Sound off'}
             aria-label={soundOn ? 'Turn monitor sound off' : 'Turn monitor sound on'}
           >
             {soundOn ? '🔊' : '🔇'}
           </button>
           {frozen && (
-            <span className="rounded bg-slate-700 px-2 py-0.5 text-xs uppercase tracking-widest">
+            <span className="rounded bg-[#293027] px-2 py-0.5 text-xs uppercase tracking-widest">
               {snapshot.status === 'idle' ? 'standby' : snapshot.status}
             </span>
           )}
@@ -96,7 +96,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
                 <span className="text-xs font-mono text-vital-ecg/80">{RHYTHM_LABELS[v.rhythm]}</span>
               )}
             </div>
-            <Waveform kind="ecg" color="#22e05f" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="ecg" color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
           </div>
           <VitalTile label="HR" value={String(Math.round(v.hr))} unit="bpm" color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>

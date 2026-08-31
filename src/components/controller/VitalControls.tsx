@@ -57,7 +57,7 @@ function VitalSlider({
 
   return (
     <div className="flex items-center gap-2">
-      <span className="w-16 shrink-0 text-xs font-semibold text-slate-300">{meta.label}</span>
+      <span className="w-16 shrink-0 text-xs font-semibold text-ink-2">{meta.label}</span>
       <input
         type="range"
         min={meta.min}
@@ -69,7 +69,7 @@ function VitalSlider({
         onKeyUp={(e) => {
           if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') commit();
         }}
-        className="h-2 flex-1 cursor-pointer accent-sky-500"
+        className="h-2 flex-1 cursor-pointer accent-amber"
         aria-label={`${meta.label} target`}
       />
       <span className="flex w-24 shrink-0 items-center justify-end">
@@ -103,12 +103,12 @@ function VitalSlider({
               e.currentTarget.blur();
             }
           }}
-          className={`w-16 rounded bg-slate-800 px-1 py-0.5 text-right font-mono text-sm tabular-nums outline-none ring-sky-500 focus:ring-1 ${
-            draft !== null || text !== null ? 'text-sky-400' : 'text-slate-200'
+          className={`w-16 rounded bg-panel-2 px-1 py-0.5 text-right font-mono text-sm tabular-nums outline-none ring-amber focus:ring-1 ${
+            draft !== null || text !== null ? 'text-amber-strong' : 'text-ink'
           }`}
           aria-label={`${meta.label} typed target`}
         />
-        <span className="ml-0.5 w-7 text-[10px] text-slate-500">{meta.unit}</span>
+        <span className="ml-0.5 w-7 text-[10px] text-faint">{meta.unit}</span>
       </span>
     </div>
   );
@@ -129,17 +129,17 @@ export function VitalControls() {
   return (
     <section className="card space-y-3" data-tour="vitals">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Vitals</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Vitals</h2>
         <div className="flex items-center gap-1" role="radiogroup" aria-label="Transition speed">
-          <span className="mr-1 text-[10px] uppercase text-slate-500">ramp</span>
+          <span className="mr-1 text-[10px] uppercase text-faint">ramp</span>
           {TRANSITIONS.map((t) => (
             <button
               key={t.sec}
               onClick={() => setOverSec(t.sec)}
               className={`rounded px-2 py-1 text-xs font-semibold ${
                 overSec === t.sec
-                  ? 'bg-sky-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-amber text-[#1b1c17]'
+                  : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
             >
               {t.label}
@@ -156,10 +156,10 @@ export function VitalControls() {
           </div>
 
         {snapshot.nibp ? (
-          <div className="flex items-center justify-between gap-2 rounded-md bg-slate-800/60 px-2 py-1.5">
-            <span className="text-xs text-slate-400">
+          <div className="flex items-center justify-between gap-2 rounded-md bg-panel-2 px-2 py-1.5">
+            <span className="text-xs text-muted">
               Cuff last read{' '}
-              <span className="font-mono text-slate-200">
+              <span className="font-mono text-ink">
                 {snapshot.nibp.sbp}/{snapshot.nibp.dbp}
               </span>{' '}
               at {Math.floor(snapshot.nibp.atSec / 60)}:
@@ -180,8 +180,8 @@ export function VitalControls() {
             </span>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2 rounded-md bg-slate-800/60 px-2 py-1.5">
-            <span className="text-xs text-slate-400">
+          <div className="flex items-center justify-between gap-2 rounded-md bg-panel-2 px-2 py-1.5">
+            <span className="text-xs text-muted">
               <span className="font-semibold text-vital-nibp">Arterial line in place</span> — the
               monitor shows beat-to-beat pressure and an ART waveform.
             </span>
@@ -205,7 +205,7 @@ export function VitalControls() {
                 className={`rounded px-2 py-1 text-xs font-semibold ${
                   snapshot.vitals.rhythm === r
                     ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    : 'bg-panel-2 text-muted hover:bg-panel-3'
                 }`}
               >
                 {RHYTHM_LABELS[r]}
@@ -225,7 +225,7 @@ export function VitalControls() {
                   className={`rounded px-2 py-1 text-xs font-semibold ${
                     (snapshot.vitals.pvcFrequency ?? 'occasional') === f
                       ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      : 'bg-panel-2 text-muted hover:bg-panel-3'
                   }`}
                 >
                   {PVC_FREQUENCY_LABELS[f]}
@@ -245,7 +245,7 @@ export function VitalControls() {
                 className={`rounded px-2 py-1 text-xs font-semibold ${
                   (snapshot.vitals.capnoShape ?? 'normal') === s
                     ? 'bg-vital-etco2/20 text-vital-etco2 ring-1 ring-vital-etco2'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    : 'bg-panel-2 text-muted hover:bg-panel-3'
                 }`}
               >
                 {CAPNO_SHAPE_LABELS[s]}

@@ -51,9 +51,9 @@ export function DocumentInput({
         aria-label={ariaLabel}
         disabled={disabled}
       />
-      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+      <div className="flex flex-wrap items-center gap-3 text-xs text-faint">
         <button
-          className="hover:text-slate-300"
+          className="hover:text-ink-2"
           onClick={() => fileInput.current?.click()}
           disabled={disabled}
         >
@@ -77,7 +77,7 @@ export function DocumentInput({
           </span>
         )}
         {truncated && (
-          <span className="text-amber-400/90">Document was truncated to fit the limit.</span>
+          <span className="text-amber-strong">Document was truncated to fit the limit.</span>
         )}
       </div>
     </div>

@@ -67,15 +67,15 @@ export function TrendStrip({
           </span>
         ))}
         {events.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 text-slate-400">
-            <span className="inline-block h-3 w-px bg-slate-400" /> event
+          <span className="inline-flex items-center gap-1.5 text-muted">
+            <span className="inline-block h-3 w-px bg-faint" /> event
           </span>
         )}
       </div>
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="w-full min-w-[480px] rounded bg-slate-800/40 ring-1 ring-slate-700"
+          className="w-full min-w-[480px] rounded bg-panel-2 ring-1 ring-line"
           role="img"
           aria-label="Vitals trends over the scenario"
         >
@@ -117,7 +117,7 @@ export function TrendStrip({
         </svg>
       </div>
       {events.length > 0 && (
-        <figcaption className="mt-1 text-xs text-slate-500">
+        <figcaption className="mt-1 text-xs text-faint">
           Dashed lines: {events.map((e) => `${fmt(e.t)} ${e.label}`).join(' · ')}
         </figcaption>
       )}

@@ -25,14 +25,14 @@ export function DraftPreviewCard({
     `~${draft.estimatedMinutes} min`,
   ];
   return (
-    <section className="card space-y-2 ring-1 !ring-sky-800">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-sky-400">
+    <section className="card space-y-2 ring-1 !ring-blue/30">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-amber-strong">
         ✨ Draft ready — not loaded yet
       </h2>
-      <p className="text-sm font-semibold text-slate-100">{draft.title}</p>
-      <p className="text-sm text-slate-300">{draft.summary}</p>
-      <p className="text-xs text-slate-400">{counts.join(' · ')}</p>
-      <p className="text-xs text-amber-400/90">
+      <p className="text-sm font-semibold text-ink">{draft.title}</p>
+      <p className="text-sm text-ink-2">{draft.summary}</p>
+      <p className="text-xs text-muted">{counts.join(' · ')}</p>
+      <p className="text-xs text-amber-strong">
         AI-generated content is unreviewed — after loading, check every drug effect, vital value,
         and timing before use with learners.
       </p>

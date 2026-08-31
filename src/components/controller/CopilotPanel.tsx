@@ -90,8 +90,8 @@ export function CopilotPanel() {
 
   return (
     <section className="card space-y-2">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-        ✨ Co-pilot <span className="font-normal normal-case text-slate-500">(AI proposes — you apply)</span>
+      <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
+        ✨ Co-pilot <span className="font-normal normal-case text-faint">(AI proposes — you apply)</span>
       </h2>
 
       <form
@@ -117,17 +117,17 @@ export function CopilotPanel() {
       {proposals.length > 0 && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-wider text-slate-500">
+            <span className="text-[10px] uppercase tracking-wider text-faint">
               Proposed commands
             </span>
             <span className="flex gap-2">
               {pendingCount > 1 && (
-                <button className="text-xs text-emerald-400 hover:text-emerald-300" onClick={applyAll}>
+                <button className="text-xs text-green hover:text-green" onClick={applyAll}>
                   Apply all ({pendingCount})
                 </button>
               )}
               <button
-                className="text-xs text-slate-500 hover:text-slate-300"
+                className="text-xs text-faint hover:text-ink-2"
                 onClick={() => setProposals([])}
               >
                 Dismiss all
@@ -140,14 +140,14 @@ export function CopilotPanel() {
                 key={`${p.label}-${i}`}
                 className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs ring-1 ${
                   p.applied
-                    ? 'bg-slate-800/80 text-slate-500 ring-slate-700'
-                    : 'bg-slate-900 text-slate-200 ring-sky-500/50'
+                    ? 'bg-panel-2 text-faint ring-line'
+                    : 'bg-panel text-ink ring-amber/50'
                 }`}
               >
                 <span className="min-w-0">
                   <span className="font-semibold">{p.label}</span>
                   {p.warnings.map((w) => (
-                    <span key={w} className="block text-[10px] text-amber-400">
+                    <span key={w} className="block text-[10px] text-amber-strong">
                       ⚠ {w}
                     </span>
                   ))}
@@ -158,13 +158,13 @@ export function CopilotPanel() {
                   ) : (
                     <>
                       <button
-                        className="rounded bg-emerald-900/60 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-800/60"
+                        className="rounded bg-green-soft px-2 py-0.5 font-semibold text-green hover:bg-green-soft"
                         onClick={() => apply(i)}
                       >
                         Apply
                       </button>
                       <button
-                        className="rounded px-1.5 py-0.5 text-slate-500 hover:text-slate-300"
+                        className="rounded px-1.5 py-0.5 text-faint hover:text-ink-2"
                         onClick={() => dismiss(i)}
                         aria-label={`Dismiss ${p.label}`}
                       >
@@ -179,18 +179,18 @@ export function CopilotPanel() {
         </div>
       )}
 
-      {result?.reply && <p className="text-xs text-slate-400">{result.reply}</p>}
+      {result?.reply && <p className="text-xs text-muted">{result.reply}</p>}
       {result && result.errors.length > 0 && (
         <ul className="space-y-0.5">
           {result.errors.map((e) => (
-            <li key={e} className="text-xs text-red-400">
+            <li key={e} className="text-xs text-red">
               {e}
             </li>
           ))}
         </ul>
       )}
 
-      <p className="text-[10px] text-slate-500">
+      <p className="text-[10px] text-faint">
         AI proposes — nothing changes until you apply. Verify against your scenario script.
       </p>
     </section>

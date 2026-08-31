@@ -11,10 +11,10 @@ export default function ErrorPage({
 }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-6 px-6 py-12 text-center">
-      <div className="font-mono text-4xl text-red-400">⚠</div>
+      <div className="font-mono text-4xl text-red">⚠</div>
       <div className="card w-full">
         <h1 className="text-xl font-bold">Something went wrong</h1>
-        <p className="mt-2 break-words text-sm text-slate-400">
+        <p className="mt-2 break-words text-sm text-muted">
           {error.message || 'An unexpected error occurred.'}
         </p>
         <div className="mt-5 flex justify-center gap-3">
@@ -26,7 +26,7 @@ export default function ErrorPage({
           </Link>
         </div>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-faint">
         A running session on another tab or device is not affected by this error.
       </p>
     </main>

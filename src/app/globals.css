@@ -2,12 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens. Dark is the default theme (no attribute); [data-theme='light']
+   overrides. Values are space-separated RGB triples so Tailwind's
+   `rgb(var(--x) / <alpha-value>)` mapping keeps opacity modifiers working —
+   keep the triple format uniform or alpha variants silently break.
+   The patient monitor never uses these: monitor-* / vital-* colors are
+   literal hex in tailwind.config.ts so the monitor stays dark in both themes. */
 :root {
   color-scheme: dark;
+  --surface: 13 15 12; /* #0d0f0c */
+  --panel: 21 23 19; /* #151713 */
+  --panel-2: 32 35 29; /* #20231d */
+  --panel-3: 42 46 37; /* #2a2e25 */
+  --line: 48 52 43; /* #30342b */
+  --line-2: 61 66 55; /* #3d4237 */
+  --ink: 242 243 236; /* #f2f3ec */
+  --ink-2: 214 216 204; /* #d6d8cc */
+  --muted: 179 182 171; /* #b3b6ab */
+  --faint: 135 139 126; /* #878b7e */
+  --amber: 250 204 21; /* #facc15 — product accent */
+  --amber-strong: 255 225 100; /* amber-tinted text on dark */
+  --amber-soft: 58 51 20; /* amber-tinted surface */
+  --green: 115 239 130;
+  --green-soft: 22 46 26;
+  --red: 248 113 113;
+  --red-solid: 185 28 28; /* fill-weight red, both themes */
+  --red-soft: 58 24 24;
+  --blue: 96 165 250;
+  --blue-soft: 23 37 58;
+  --cyan: 103 232 249;
+  --cyan-soft: 17 46 51;
+  --radius-card: 16px;
+  --radius-ctl: 10px;
+  --shadow-card: 0 2px 5px -1px rgba(0, 0, 0, 0.4), 0 1px 3px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lift: 0 6px 12px -2px rgba(0, 0, 0, 0.5), 0 3px 7px -3px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --surface: 244 244 239; /* #f4f4ef */
+  --panel: 255 255 255;
+  --panel-2: 238 238 232; /* #eeeee8 */
+  --panel-3: 226 226 218; /* #e2e2da */
+  --line: 216 217 208; /* #d8d9d0 */
+  --line-2: 196 198 187; /* #c4c6bb */
+  --ink: 27 28 23; /* #1b1c17 */
+  --ink-2: 58 60 51; /* #3a3c33 */
+  --muted: 104 107 97; /* #686b61 */
+  --faint: 140 143 132; /* #8c8f84 */
+  --amber-strong: 161 98 7; /* #a16207 — amber text passes contrast on cream */
+  --amber-soft: 249 240 200;
+  --green: 22 130 55;
+  --green-soft: 222 240 224;
+  --red: 185 28 28;
+  --red-soft: 250 226 226;
+  --blue: 29 78 216;
+  --blue-soft: 224 232 248;
+  --cyan: 14 116 144;
+  --cyan-soft: 219 240 244;
+  --shadow-card: 0 2px 5px -1px rgba(27, 28, 23, 0.1), 0 1px 3px -1px rgba(27, 28, 23, 0.06);
+  --shadow-lift: 0 6px 14px -2px rgba(27, 28, 23, 0.14), 0 3px 7px -3px rgba(27, 28, 23, 0.08);
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+  @apply bg-surface text-ink antialiased;
 }
 
 /* Shared control styles.
@@ -16,31 +74,31 @@ body {
    visible :focus-visible rings everywhere (keyboard parity with hover). */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition duration-150 ease-out hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-ctl px-3 py-2 text-sm font-semibold transition duration-150 ease-out hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
   }
   .btn-primary {
-    @apply btn bg-sky-600 text-white shadow-[0_2px_5px_-1px_rgba(2,132,199,0.4),0_1px_3px_-1px_rgba(0,0,0,0.3)] hover:bg-sky-500;
+    @apply btn bg-amber text-[#1b1c17] shadow-card hover:brightness-105;
   }
   .btn-secondary {
-    @apply btn bg-slate-700 text-slate-100 shadow-[0_2px_5px_-1px_rgba(0,0,0,0.35)] hover:bg-slate-600;
+    @apply btn bg-panel-2 text-ink shadow-card ring-1 ring-line hover:bg-panel-3;
   }
   .btn-danger {
-    @apply btn bg-red-700 text-white shadow-[0_2px_5px_-1px_rgba(185,28,28,0.4),0_1px_3px_-1px_rgba(0,0,0,0.3)] hover:bg-red-600;
+    @apply btn bg-red-solid text-white shadow-card hover:brightness-110;
   }
   .btn-ghost {
-    @apply btn bg-transparent text-slate-300 ring-1 ring-slate-700 hover:bg-slate-800;
+    @apply btn bg-transparent text-ink-2 ring-1 ring-line hover:bg-panel-2;
   }
   .card {
-    @apply rounded-xl bg-slate-900 p-4 ring-1 ring-slate-800 shadow-[0_2px_5px_-1px_rgba(0,0,0,0.35),0_1px_3px_-1px_rgba(0,0,0,0.25)];
+    @apply rounded-card bg-panel p-4 shadow-card ring-1 ring-line;
   }
   .card-interactive {
-    @apply card transition duration-150 ease-out hover:-translate-y-0.5 hover:shadow-[0_6px_12px_-2px_rgba(0,0,0,0.45),0_3px_7px_-3px_rgba(0,0,0,0.35)] focus-visible:outline-none focus-visible:ring-2;
+    @apply card transition duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2;
   }
   .input {
-    @apply w-full rounded-md border-0 bg-slate-800 px-3 py-2 text-sm text-slate-100 ring-1 ring-slate-700 transition duration-150 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500;
+    @apply w-full rounded-ctl border-0 bg-panel-2 px-3 py-2 text-sm text-ink ring-1 ring-line transition duration-150 placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-amber;
   }
   .label {
-    @apply mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-400;
+    @apply mb-1 block text-xs font-semibold uppercase tracking-wider text-faint;
   }
   /* Stripe-style arrow affordance: the arrow nudges right on hover of the parent link. */
   .link-arrow {
@@ -53,21 +111,22 @@ body {
 }
 
 /* Waveform graticule: the canvas above it is transparent; this owns the
-   monitor background so erased strips reveal the grid instead of flat black. */
+   monitor background so erased strips reveal the grid instead of flat black.
+   Always dark — the monitor does not follow the app theme. */
 .wave-graticule {
-  background-color: #05080d;
+  background-color: #080a08;
   background-image:
     repeating-linear-gradient(
       to right,
-      rgba(18, 32, 58, 0.5) 0,
-      rgba(18, 32, 58, 0.5) 1px,
+      rgba(41, 48, 39, 0.5) 0,
+      rgba(41, 48, 39, 0.5) 1px,
       transparent 1px,
       transparent 26px
     ),
     repeating-linear-gradient(
       to bottom,
-      rgba(18, 32, 58, 0.5) 0,
-      rgba(18, 32, 58, 0.5) 1px,
+      rgba(41, 48, 39, 0.5) 0,
+      rgba(41, 48, 39, 0.5) 1px,
       transparent 1px,
       transparent 26px
     );
@@ -94,6 +153,9 @@ body {
 
 /* Print styles for the debrief PDF export */
 @media print {
+  :root {
+    color-scheme: light;
+  }
   body {
     background: white !important;
     color: black !important;

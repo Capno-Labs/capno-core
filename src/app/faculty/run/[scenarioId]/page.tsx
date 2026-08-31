@@ -103,7 +103,7 @@ export default function FacultyRunPage() {
   if (notFound) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-3">
-        <p className="text-slate-300">Scenario “{params.scenarioId}” not found.</p>
+        <p className="text-ink-2">Scenario “{params.scenarioId}” not found.</p>
         <Link href="/scenarios" className="btn-primary">
           Back to library
         </Link>
@@ -132,21 +132,21 @@ export default function FacultyRunPage() {
             visible while faculty scroll the panels. Kept to one compact row
             so the monitor preview keeps its height on iPad (still fully
             supported, just no longer the primary device). */}
-        <div className="sticky top-0 z-20 -mx-3 space-y-2 border-b border-slate-800 bg-slate-950/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
+        <div className="sticky top-0 z-20 -mx-3 space-y-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
               <div className="min-w-0">
-                <Link href="/scenarios" className="text-xs text-slate-500 hover:text-slate-300">
+                <Link href="/scenarios" className="text-xs text-faint hover:text-ink-2">
                   ← library
                 </Link>
                 <h1 className="truncate text-xl font-bold">{engine.scenario.title}</h1>
               </div>
-              <span className="shrink-0 font-mono text-3xl font-bold tabular-nums text-white">
+              <span className="shrink-0 font-mono text-3xl font-bold tabular-nums text-ink">
                 {formatClock(snapshot.elapsedSec)}
               </span>
               {imminentAuto && (
                 <span
-                  className="shrink-0 self-center rounded bg-amber-950/80 px-2 py-1 text-xs font-semibold text-amber-300 ring-1 ring-amber-600 motion-safe:animate-pulse"
+                  className="shrink-0 self-center rounded bg-amber-soft px-2 py-1 text-xs font-semibold text-amber-strong ring-1 ring-amber/40 motion-safe:animate-pulse"
                   title="Scripted event about to fire automatically"
                 >
                   ⏱ {imminentAuto.label} · {formatClock(imminentAuto.remaining)}
@@ -178,13 +178,13 @@ export default function FacultyRunPage() {
           {/* Left zone (first in DOM so the single-column stack leads with
               the monitor): preview + physiology controls + patient. */}
           <div className="min-w-0 space-y-3">
-            <div className="overflow-hidden rounded-xl ring-1 ring-slate-800">
-              <div className="flex items-center justify-between bg-slate-900 px-3 py-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div className="overflow-hidden rounded-xl ring-1 ring-line">
+              <div className="flex items-center justify-between bg-panel px-3 py-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-faint">
                   Live monitor (what students see)
                 </span>
                 <button
-                  className="text-xs text-slate-400 hover:text-slate-200"
+                  className="text-xs text-muted hover:text-ink"
                   onClick={() => setAlarmsSilenced(!snapshot.alarmsSilenced)}
                 >
                   {snapshot.alarmsSilenced ? '🔕 alarms silenced' : '🔔 silence alarms'}

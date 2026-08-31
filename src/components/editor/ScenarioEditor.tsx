@@ -362,23 +362,23 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       case 'history':
         return (
           <section className="card">
-            <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">
+            <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted">
               Version history ({scenario.id})
             </h2>
             {history.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-faint">
                 No saved versions yet — “Save version” snapshots the case here.
               </p>
             ) : (
               <ul className="space-y-1 text-sm">
                 {history.map((v, i) => (
-                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded bg-slate-800/60 px-2 py-1">
+                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded bg-panel-2 px-2 py-1">
                     <span>
                       {new Date(v.savedAtIso).toLocaleString()}{' '}
-                      <span className="text-xs text-slate-500">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
+                      <span className="text-xs text-faint">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
                     </span>
                     {i > 0 && (
-                      <button className="text-xs text-sky-400 hover:text-sky-300" onClick={() => restoreVersion(v)}>
+                      <button className="text-xs text-amber-strong hover:text-amber-strong" onClick={() => restoreVersion(v)}>
                         restore
                       </button>
                     )}
@@ -394,7 +394,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   return (
     <div className="space-y-4">
       {/* Toolbar — sticky so Save and issue counts stay visible on long sections. */}
-      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 bg-slate-950/95 py-2 backdrop-blur">
+      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 bg-surface/95 py-2 backdrop-blur">
         <button
           className="btn-primary"
           onClick={save}
@@ -437,20 +437,20 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           {'</>'} Edit JSON
         </button>
         {savedAt && (
-          <span className="text-xs text-emerald-400">
+          <span className="text-xs text-green">
             Saved {savedAt}
-            {cloudState === 'syncing' && <span className="text-slate-400"> · syncing…</span>}
-            {cloudState === 'synced' && <span className="text-sky-400"> · synced to cloud</span>}
+            {cloudState === 'syncing' && <span className="text-muted"> · syncing…</span>}
+            {cloudState === 'synced' && <span className="text-amber-strong"> · synced to cloud</span>}
             {cloudState === 'failed' && (
-              <span className="text-amber-400"> · cloud sync pending (will retry)</span>
+              <span className="text-amber-strong"> · cloud sync pending (will retry)</span>
             )}
           </span>
         )}
         {!validation.ok && (
-          <span className="text-xs text-amber-400">{validation.errors.length} validation issue(s)</span>
+          <span className="text-xs text-amber-strong">{validation.errors.length} validation issue(s)</span>
         )}
         {validation.ok && warnings.length > 0 && (
-          <span className="text-xs text-amber-400/80">
+          <span className="text-xs text-amber-strong">
             {warnings.length} authoring warning{warnings.length === 1 ? '' : 's'}
           </span>
         )}
@@ -461,7 +461,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       {draft && <DraftPreviewCard draft={draft} onLoad={loadDraft} onDiscard={() => setDraft(null)} />}
 
       {draftError && (
-        <div className="space-y-2 rounded-md bg-red-950/60 p-3 text-sm text-red-300 ring-1 ring-red-800">
+        <div className="space-y-2 rounded-md bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
           <p className="font-semibold">The AI draft failed validation:</p>
           <ul className="list-disc space-y-0.5 pl-5">
             {draftError.errors.map((e, i) => (
@@ -482,7 +482,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {undoScenario && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-sky-950/50 p-3 text-sm text-sky-300 ring-1 ring-sky-800">
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-blue-soft p-3 text-sm text-amber-strong ring-1 ring-blue/30">
           <span className="flex-1">AI draft loaded — your previous work was replaced.</span>
           <button className="btn-secondary !py-1 text-xs" onClick={undoDraftLoad}>
             Undo
@@ -494,7 +494,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {aiDraft && (
-        <div className="rounded-md bg-amber-950/50 p-3 text-sm text-amber-300 ring-1 ring-amber-700">
+        <div className="rounded-md bg-amber-soft p-3 text-sm text-amber-strong ring-1 ring-amber/40">
           ⚠ AI-generated draft — requires faculty review of all clinical content (drug effects,
           vital values, timings) before use with learners. Remove the “{AI_GENERATED_TAG}” topic
           tag after review.
@@ -502,7 +502,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {globalErrors.length > 0 && (
-        <div className="rounded-md bg-red-950/60 p-3 text-sm text-red-300 ring-1 ring-red-800">
+        <div className="rounded-md bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
           <ul className="list-disc space-y-0.5 pl-5">
             {globalErrors.map((e, i) => (
               <li key={i}>{e}</li>
@@ -512,10 +512,10 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {issues.globalWarnings.length > 0 && (
-        <div className="rounded-md bg-amber-950/40 p-3 text-sm ring-1 ring-amber-900">
+        <div className="rounded-md bg-amber-soft p-3 text-sm ring-1 ring-amber/40">
           <ul className="list-disc space-y-0.5 pl-5">
             {issues.globalWarnings.map((w, i) => (
-              <li key={i} className={w.severity === 'warning' ? 'text-amber-300' : 'text-slate-400'}>
+              <li key={i} className={w.severity === 'warning' ? 'text-amber-strong' : 'text-muted'}>
                 <span className="font-mono text-xs">{w.path}</span>: {w.message}
               </li>
             ))}
@@ -545,7 +545,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           ) : (
             <>
               {activeIssues && activeIssues.errors.length > 0 && (
-                <div className="rounded-md bg-red-950/60 p-3 text-sm text-red-300 ring-1 ring-red-800">
+                <div className="rounded-md bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
                   <ul className="list-disc space-y-0.5 pl-5">
                     {activeIssues.errors.map((e, i) => (
                       <li key={i}>{e}</li>
@@ -554,13 +554,13 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                 </div>
               )}
               {activeIssues && activeIssues.warnings.length > 0 && (
-                <div className="rounded-md bg-amber-950/40 p-3 text-sm ring-1 ring-amber-900">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-400">
+                <div className="rounded-md bg-amber-soft p-3 text-sm ring-1 ring-amber/40">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-strong">
                     Authoring warnings — saving is not blocked
                   </p>
                   <ul className="list-disc space-y-0.5 pl-5">
                     {activeIssues.warnings.map((w, i) => (
-                      <li key={i} className={w.severity === 'warning' ? 'text-amber-300' : 'text-slate-400'}>
+                      <li key={i} className={w.severity === 'warning' ? 'text-amber-strong' : 'text-muted'}>
                         <span className="font-mono text-xs">{w.path}</span>: {w.message}
                       </li>
                     ))}

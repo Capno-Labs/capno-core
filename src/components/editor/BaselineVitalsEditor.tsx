@@ -39,7 +39,7 @@ function VitalNumberField({
 
   return (
     <div>
-      <span className="block text-[10px] uppercase tracking-wider text-slate-500">
+      <span className="block text-[10px] uppercase tracking-wider text-faint">
         {meta.label}
         {meta.unit ? ` (${meta.unit})` : ''}
       </span>
@@ -104,7 +104,7 @@ export function BaselineVitalsEditor({
         </div>
         <p
           className={`mt-1 text-xs ${
-            vitals.dbp > maxDbpFor(vitals.sbp) ? 'text-red-400' : 'text-slate-500'
+            vitals.dbp > maxDbpFor(vitals.sbp) ? 'text-red' : 'text-faint'
           }`}
         >
           DBP must be at least {MIN_PULSE_PRESSURE} below SBP (currently ≤ {maxDbpFor(vitals.sbp)}

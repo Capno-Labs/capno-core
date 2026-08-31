@@ -115,7 +115,7 @@ export function FlowPanel() {
     if (ev.autoAtSec === undefined) {
       return {
         hint: (
-          <span className="font-mono text-[10px] text-slate-500">
+          <span className="font-mono text-[10px] text-faint">
             {ev.phaseHint ? `when ready · ${ev.phaseHint}` : 'when ready'}
           </span>
         ),
@@ -126,7 +126,7 @@ export function FlowPanel() {
     if (!snapshot.autoEventsEnabled || remaining <= 0) {
       return {
         hint: (
-          <span className="font-mono text-[10px] text-slate-500">
+          <span className="font-mono text-[10px] text-faint">
             suggested ~{formatClock(ev.autoAtSec)}
           </span>
         ),
@@ -136,7 +136,7 @@ export function FlowPanel() {
     const imminent = running && remaining <= IMMINENT_SEC;
     return {
       hint: (
-        <span className={`font-mono text-[10px] ${imminent ? 'text-amber-300' : 'text-sky-400'}`}>
+        <span className={`font-mono text-[10px] ${imminent ? 'text-amber-strong' : 'text-amber-strong'}`}>
           {running ? `auto in ${formatClock(remaining)}` : `auto at ${formatClock(ev.autoAtSec)}`}
         </span>
       ),
@@ -155,7 +155,7 @@ export function FlowPanel() {
     // on the card that is already next: pinning it would change nothing.
     const pinControl = !isFired && (isPinned || !isNext) && (
       <button
-        className="text-[10px] font-semibold text-slate-500 hover:text-sky-300"
+        className="text-[10px] font-semibold text-faint hover:text-amber-strong"
         onClick={(e) => {
           pinNextEvent(isPinned ? null : ev.id);
           // Drop focus: the shortcut hook ignores keys while a button is
@@ -170,7 +170,7 @@ export function FlowPanel() {
     // scenarios. Authored events are saved from the case editor instead.
     const saveControl = !authoredIds.has(ev.id) && (
       <button
-        className="text-[10px] font-semibold text-slate-500 hover:text-sky-300"
+        className="text-[10px] font-semibold text-faint hover:text-amber-strong"
         title="Save this improvised event to your personal library"
         onClick={(e) => {
           const result = saveEventToLibrary(payloadFromEvent(ev));
@@ -188,7 +188,7 @@ export function FlowPanel() {
       <div
         key={ev.id}
         className={`space-y-1.5 rounded-md p-1.5 ring-1 ${
-          imminent ? 'bg-amber-950/40 ring-amber-600' : 'bg-slate-900/60 ring-slate-800'
+          imminent ? 'bg-amber-soft ring-amber/40' : 'bg-panel/60 ring-line'
         }`}
       >
         <button
@@ -197,7 +197,7 @@ export function FlowPanel() {
           title={ev.description}
           className={`w-full rounded-md px-2.5 py-2 text-left text-xs font-semibold ring-1 transition ${
             CATEGORY_STYLES[ev.category]
-          } ${fired.has(ev.id) ? 'bg-slate-800/80 text-slate-500' : 'bg-slate-900 text-slate-200'} ${
+          } ${fired.has(ev.id) ? 'bg-panel-2 text-faint' : 'bg-panel text-ink'} ${
             flashId === ev.id ? 'motion-safe:animate-event-fire' : ''
           }`}
         >
@@ -218,7 +218,7 @@ export function FlowPanel() {
                 </span>
               )}
               {isNext && (
-                <span className="rounded bg-sky-600 px-1 py-0.5 text-[9px] font-bold uppercase text-white">
+                <span className="rounded bg-amber text-[#1b1c17] px-1 py-0.5 text-[9px] font-bold uppercase">
                   Next up · N
                 </span>
               )}
@@ -231,7 +231,7 @@ export function FlowPanel() {
               `block` on the span: line-clamp-2 needs its display:-webkit-box
               to survive the cascade or the clamp is inert. */}
           {isNext && ev.description && (
-            <span className="line-clamp-2 mt-0.5 text-[10px] font-normal leading-tight text-slate-400">
+            <span className="line-clamp-2 mt-0.5 text-[10px] font-normal leading-tight text-muted">
               {ev.description}
             </span>
           )}
@@ -262,9 +262,9 @@ export function FlowPanel() {
   return (
     <section className="card space-y-2" data-tour="flow">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
           Flow
-          <span className="ml-2 font-normal normal-case text-slate-600">
+          <span className="ml-2 font-normal normal-case text-faint">
             {fired.size}/{events.length} fired
           </span>
         </h2>
@@ -272,8 +272,8 @@ export function FlowPanel() {
           <button
             className={`rounded px-2 py-1 text-xs font-semibold transition ${
               showAddForm
-                ? 'bg-sky-900/60 text-sky-300 ring-1 ring-sky-700'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                ? 'bg-blue-soft text-amber-strong ring-1 ring-blue/30'
+                : 'bg-panel-2 text-muted hover:bg-panel-3'
             }`}
             onClick={() => setShowAddForm(!showAddForm)}
             aria-pressed={showAddForm}
@@ -284,8 +284,8 @@ export function FlowPanel() {
           <button
             className={`rounded px-2 py-1 text-xs font-semibold transition ${
               criticalOnly
-                ? 'bg-red-900/60 text-red-300 ring-1 ring-red-700'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                ? 'bg-red-soft text-red ring-1 ring-red/40'
+                : 'bg-panel-2 text-muted hover:bg-panel-3'
             }`}
             onClick={() => setCriticalOnly(!criticalOnly)}
             aria-pressed={criticalOnly}
@@ -312,20 +312,20 @@ export function FlowPanel() {
         {next && !visibleEvents.some((ev) => ev.id === next.id) && eventCard(next)}
         {visibleEvents.map(eventCard)}
         {visibleEvents.length === 0 && !next && (
-          <p className="text-xs text-slate-500">No events match “{filter}”.</p>
+          <p className="text-xs text-faint">No events match “{filter}”.</p>
         )}
       </div>
 
       {otherGroups.length > 0 && (
-        <div className="space-y-3 border-t border-slate-800 pt-2">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="space-y-3 border-t border-line pt-2">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted">
             Other learner actions
           </h3>
           {otherGroups.map(({ phase, actions }) => (
             <div key={phase.id}>
               <h4
                 className={`mb-1 text-[11px] font-bold uppercase tracking-wider ${
-                  phase.id === snapshot.phaseId ? 'text-sky-400' : 'text-slate-500'
+                  phase.id === snapshot.phaseId ? 'text-amber-strong' : 'text-faint'
                 }`}
               >
                 {phase.label}
@@ -349,13 +349,13 @@ export function FlowPanel() {
 
       {hiddenCount > 0 && (
         <button
-          className="text-xs text-sky-400 hover:text-sky-300"
+          className="text-xs text-amber-strong hover:text-amber-strong"
           onClick={() => setCriticalOnly(false)}
         >
           {hiddenCount} non-critical action{hiddenCount === 1 ? '' : 's'} hidden — show all
         </button>
       )}
-      <p className="text-[10px] text-slate-500">
+      <p className="text-[10px] text-faint">
         Events can be re-fired; the next event shows its description, hover for the rest. Press N
         to fire the next event; “make next” points N at a different card.{' '}
         {ACTION_LEGEND}

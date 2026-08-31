@@ -54,12 +54,12 @@ export function CodeInput({
           return (
             <div
               key={i}
-              className={`flex h-16 w-12 items-center justify-center rounded-lg bg-slate-800 font-mono text-3xl text-slate-100 transition-shadow duration-150 ${
+              className={`flex h-16 w-12 items-center justify-center rounded-lg bg-panel-2 font-mono text-3xl text-ink transition-shadow duration-150 ${
                 char && full
                   ? 'ring-2 ring-vital-ecg/60'
                   : active
-                    ? 'ring-2 ring-sky-500'
-                    : 'ring-1 ring-slate-700'
+                    ? 'ring-2 ring-amber'
+                    : 'ring-1 ring-line'
               }`}
             >
               {char ? (
@@ -67,7 +67,7 @@ export function CodeInput({
                   {char}
                 </span>
               ) : (
-                active && <span className="h-8 w-0.5 animate-pulse rounded bg-sky-400" />
+                active && <span className="h-8 w-0.5 animate-pulse rounded bg-blue" />
               )}
             </div>
           );

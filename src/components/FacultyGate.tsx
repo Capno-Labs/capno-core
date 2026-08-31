@@ -59,7 +59,7 @@ export function FacultyGate({ children }: { children: React.ReactNode }) {
     <main className="flex min-h-screen items-center justify-center px-6">
       <form onSubmit={submit} className="card w-full max-w-sm space-y-4">
         <h1 className="text-lg font-bold">Faculty access</h1>
-        <p className="text-sm text-slate-400">Enter the faculty PIN for this installation.</p>
+        <p className="text-sm text-muted">Enter the faculty PIN for this installation.</p>
         <input
           className="input text-center font-mono text-xl tracking-[0.5em]"
           type="password"
@@ -72,14 +72,14 @@ export function FacultyGate({ children }: { children: React.ReactNode }) {
           }}
           aria-label="Faculty PIN"
         />
-        {error && <p className="text-sm text-red-400">Incorrect PIN.</p>}
+        {error && <p className="text-sm text-red">Incorrect PIN.</p>}
         <button type="submit" className="btn-primary w-full">
           Unlock
         </button>
         {supabaseConfigured() && (
           <Link
             href="/account"
-            className="block text-center text-xs text-sky-400 hover:text-sky-300"
+            className="block text-center text-xs text-amber-strong hover:text-amber-strong"
           >
             or sign in with your institution account →
           </Link>

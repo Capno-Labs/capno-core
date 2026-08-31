@@ -20,8 +20,8 @@ const PRIMARY = [
     href: '/student',
     title: 'Join as Student Display',
     desc: 'Full-screen patient monitor for the sim room. Join with the session code or link from your instructor.',
-    accent: 'ring-sky-500/40 hover:ring-sky-400',
-    arrow: 'text-sky-400',
+    accent: 'ring-amber/40 hover:ring-amber',
+    arrow: 'text-amber-strong',
     cta: 'Join with a code',
   },
 ];
@@ -50,7 +50,7 @@ export default function HomePage() {
           alt=""
           className="mx-auto h-40 w-auto [filter:drop-shadow(0_0_16px_rgba(250,204,21,0.25))] md:h-48"
         />
-        <p className="mx-auto mt-3 max-w-xl text-slate-400">
+        <p className="mx-auto mt-3 max-w-xl text-muted">
           Open anesthesia simulation platform — faculty-controlled patient monitor, scenario
           engine, and structured debriefing for the sim lab.
         </p>
@@ -64,7 +64,7 @@ export default function HomePage() {
             className={`card-interactive flex flex-col gap-1.5 !p-5 ring-2 ${r.accent}`}
           >
             <h2 className="text-xl font-bold">{r.title}</h2>
-            <p className="text-sm text-slate-400">{r.desc}</p>
+            <p className="text-sm text-muted">{r.desc}</p>
             <span className={`mt-auto pt-1 text-sm font-semibold ${r.arrow}`}>
               {r.cta} <span className="link-arrow">→</span>
             </span>
@@ -77,15 +77,15 @@ export default function HomePage() {
           <Link
             key={r.href}
             href={r.href}
-            className="card flex flex-col gap-1 !p-4 ring-1 ring-slate-800 transition hover:ring-slate-600"
+            className="card flex flex-col gap-1 !p-4 ring-1 ring-line transition hover:ring-line-2"
           >
             <h2 className="text-base font-bold">{r.title}</h2>
-            <p className="text-sm text-slate-400">{r.desc}</p>
+            <p className="text-sm text-muted">{r.desc}</p>
           </Link>
         ))}
       </div>
 
-      <p className="text-center text-sm text-slate-400">
+      <p className="text-center text-sm text-muted">
         New here?{' '}
         <Link
           href="/faculty/run/laryngospasm-lma?demo=1"
@@ -93,24 +93,24 @@ export default function HomePage() {
         >
           Try the guided demo →
         </Link>{' '}
-        <span className="text-slate-500">(laryngospasm after LMA placement)</span>
+        <span className="text-faint">(laryngospasm after LMA placement)</span>
       </p>
 
-      <footer className="text-center text-xs text-slate-600">
+      <footer className="text-center text-xs text-faint">
         For simulation and education only — not for clinical use. · Apache-2.0 core ·{' '}
-        <a className="underline hover:text-slate-400" href="https://capno.app">
+        <a className="underline hover:text-muted" href="https://capno.app">
           capno.app
         </a>{' '}
         ·{' '}
-        <a className="underline hover:text-slate-400" href="https://github.com/Capno-Labs/capno-core">
+        <a className="underline hover:text-muted" href="https://github.com/Capno-Labs/capno-core">
           GitHub
         </a>{' '}
         ·{' '}
-        <Link className="underline hover:text-slate-400" href="/account">
+        <Link className="underline hover:text-muted" href="/account">
           Account
         </Link>{' '}
         ·{' '}
-        <Link className="underline hover:text-slate-400" href="/settings">
+        <Link className="underline hover:text-muted" href="/settings">
           Settings
         </Link>
       </footer>

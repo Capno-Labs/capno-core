@@ -28,15 +28,15 @@ function Chip({
     <button
       onClick={onClick}
       title={event.description}
-      className={`shrink-0 rounded-md bg-slate-900 px-2 py-1 text-left text-xs ring-1 transition hover:bg-slate-800 ${className}`}
+      className={`shrink-0 rounded-md bg-panel px-2 py-1 text-left text-xs ring-1 transition hover:bg-panel-2 ${className}`}
     >
       <span className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${CATEGORY_DOT[event.category]}`} />
-        <span className="font-semibold text-slate-200">
+        <span className="font-semibold text-ink">
           {event.label || event.id || 'untitled'}
         </span>
       </span>
-      {sub && <span className="mt-0.5 block text-[10px] text-slate-500">{sub}</span>}
+      {sub && <span className="mt-0.5 block text-[10px] text-faint">{sub}</span>}
     </button>
   );
 }
@@ -58,16 +58,16 @@ export function EventTimeline({
   const runEndSec = estimatedMinutes * 60;
 
   return (
-    <div className="space-y-2 rounded bg-slate-900/60 p-2 ring-1 ring-slate-800">
-      <p className="text-[10px] uppercase tracking-wider text-slate-500">
+    <div className="space-y-2 rounded bg-panel/60 p-2 ring-1 ring-line">
+      <p className="text-[10px] uppercase tracking-wider text-faint">
         Run preview — the timed schedule and the faculty-fired sequence
       </p>
       <div>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-400">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-strong">
           Timed (automatic)
         </span>
         {autos.length === 0 ? (
-          <p className="text-xs text-slate-500">No automatic events — nothing fires on a timer.</p>
+          <p className="text-xs text-faint">No automatic events — nothing fires on a timer.</p>
         ) : (
           <div className="mt-1 flex items-center gap-1.5 overflow-x-auto pb-1">
             {autos.map(({ event, index }) => {
@@ -77,23 +77,23 @@ export function EventTimeline({
                   key={index}
                   event={event}
                   onClick={() => onSelect(index)}
-                  className={late ? 'ring-amber-500/60' : 'ring-sky-500/40'}
+                  className={late ? 'ring-amber/50' : 'ring-amber/40'}
                   sub={`${fmtTime(event.autoAtSec ?? 0)}${late ? ' · after est. end' : ''}`}
                 />
               );
             })}
-            <span className="shrink-0 text-[10px] text-slate-600">
+            <span className="shrink-0 text-[10px] text-faint">
               est. end {fmtTime(runEndSec)}
             </span>
           </div>
         )}
       </div>
       <div>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
           Faculty-fired (when learners act)
         </span>
         {manuals.length === 0 ? (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-faint">
             No faculty-fired events — nothing to trigger in response to learner actions.
           </p>
         ) : (
@@ -103,7 +103,7 @@ export function EventTimeline({
                 key={index}
                 event={event}
                 onClick={() => onSelect(index)}
-                className="ring-slate-700"
+                className="ring-line"
                 sub={`when ready${event.phaseHint ? ` · ${event.phaseHint}` : ''}`}
               />
             ))}

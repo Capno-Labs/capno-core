@@ -49,7 +49,7 @@ export function EventDetailEditor({
   };
 
   return (
-    <section aria-label={`Editing event: ${title}`} className="space-y-2 rounded bg-slate-800/60 p-3">
+    <section aria-label={`Editing event: ${title}`} className="space-y-2 rounded bg-panel-2 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span
           className={`inline-block h-2 w-2 rounded-full ${CATEGORY_DOT[event.category]}`}
@@ -57,16 +57,16 @@ export function EventDetailEditor({
         />
         <span className="text-sm font-bold">{title}</span>
         {event.autoAtSec !== undefined ? (
-          <span className="rounded bg-sky-950 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-sky-300 ring-1 ring-sky-800">
+          <span className="rounded bg-blue-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-amber-strong ring-1 ring-blue/30">
             AUTO {fmtTime(event.autoAtSec)}
           </span>
         ) : (
-          <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-slate-400 ring-1 ring-slate-700">
+          <span className="rounded bg-panel px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-muted ring-1 ring-line">
             FACULTY-FIRED
           </span>
         )}
         {warningCount > 0 && (
-          <span className="rounded bg-amber-950 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400 ring-1 ring-amber-800">
+          <span className="rounded bg-amber-soft px-1.5 py-0.5 text-[10px] font-semibold text-amber-strong ring-1 ring-amber/40">
             ⚠ {warningCount}
           </span>
         )}
@@ -81,7 +81,7 @@ export function EventDetailEditor({
             </button>
           )}
           <button
-            className="btn-ghost !px-2 !py-1 text-red-400"
+            className="btn-ghost !px-2 !py-1 text-red"
             onClick={onRemove}
             aria-label={`remove event ${title}`}
           >
@@ -158,12 +158,12 @@ export function EventDetailEditor({
       <div className="space-y-1.5">
         <span className="label">Trigger</span>
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex overflow-hidden rounded-md ring-1 ring-slate-700" role="group">
+          <div className="flex overflow-hidden rounded-md ring-1 ring-line" role="group">
             <button
               className={`px-3 py-1.5 text-xs font-semibold ${
                 event.autoAtSec !== undefined
-                  ? 'bg-sky-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-amber text-[#1b1c17]'
+                  : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
               aria-pressed={event.autoAtSec !== undefined}
               onClick={() => onSetAuto(true)}
@@ -173,8 +173,8 @@ export function EventDetailEditor({
             <button
               className={`px-3 py-1.5 text-xs font-semibold ${
                 event.autoAtSec === undefined
-                  ? 'bg-sky-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-amber text-[#1b1c17]'
+                  : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
               aria-pressed={event.autoAtSec === undefined}
               onClick={() => onSetAuto(false)}
@@ -196,13 +196,13 @@ export function EventDetailEditor({
                   }
                 />
               </div>
-              <span className="pb-2 font-mono text-xs text-slate-400">
+              <span className="pb-2 font-mono text-xs text-muted">
                 = {fmtTime(event.autoAtSec)}
               </span>
             </div>
           )}
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-faint">
           {event.autoAtSec !== undefined
             ? 'Fires by itself at this elapsed time — use for scripted deterioration. Faculty can still fire it early, which cancels the timer.'
             : 'No timer. Faculty taps it when learners act — use for treatment responses and improvised turns.'}
@@ -215,7 +215,7 @@ export function EventDetailEditor({
             {actions.map((a) => (
               <label
                 key={a.id}
-                className="flex cursor-pointer items-center gap-2 rounded bg-slate-900/60 px-2 py-1 text-sm text-slate-300"
+                className="flex cursor-pointer items-center gap-2 rounded bg-panel/60 px-2 py-1 text-sm text-ink-2"
               >
                 <input
                   type="checkbox"
@@ -223,13 +223,13 @@ export function EventDetailEditor({
                   onChange={() => toggleLinked(a.id)}
                 />
                 <span className="min-w-0 truncate" title={a.description ?? a.label}>
-                  {a.critical && <span className="mr-1 text-red-400">●</span>}
+                  {a.critical && <span className="mr-1 text-red">●</span>}
                   {a.label || a.id || '(unnamed action)'}
                 </span>
               </label>
             ))}
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-faint">
             The actions this event embodies or responds to — the run screen shows them under the
             event’s card so firing and marking happen in one place. Unlinked actions stay in the
             general checklist.

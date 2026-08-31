@@ -74,7 +74,7 @@ export function CollectionSection({
         ) : (
           <h2 className="label !mb-0">
             📚 {collection.title}{' '}
-            <span className="font-normal normal-case text-slate-600">
+            <span className="font-normal normal-case text-faint">
               ({items.length + missingIds.length})
             </span>
           </h2>
@@ -82,14 +82,14 @@ export function CollectionSection({
         {showControls && !editing && (
           <>
             <button
-              className="text-xs text-slate-500 hover:text-slate-300"
+              className="text-xs text-faint hover:text-ink-2"
               onClick={() => setEditing(true)}
               title="Rename collection"
             >
               ✎ rename
             </button>
             <button
-              className="text-xs text-slate-500 hover:text-slate-300"
+              className="text-xs text-faint hover:text-ink-2"
               onClick={onExport}
               title="Export the collection and its custom scenarios as one JSON bundle"
             >
@@ -99,15 +99,15 @@ export function CollectionSection({
               label="🗑 delete"
               confirmLabel="Delete collection (scenarios are kept)"
               title="Delete collection — its scenarios are not deleted"
-              className="text-xs text-slate-500 hover:text-slate-300"
+              className="text-xs text-faint hover:text-ink-2"
               onConfirm={onDelete}
             />
           </>
         )}
       </div>
-      {collection.description && <p className="text-sm text-slate-500">{collection.description}</p>}
+      {collection.description && <p className="text-sm text-faint">{collection.description}</p>}
       {items.length === 0 && missingIds.length === 0 && (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-faint">
           Empty — use “＋ Collection…” on any scenario card to add cases.
         </p>
       )}
@@ -151,7 +151,7 @@ export function CollectionSection({
           missingIds.map((id) => (
             <li
               key={id}
-              className="flex items-center justify-between gap-2 rounded border border-dashed border-slate-800 px-3 py-2 text-xs text-slate-500"
+              className="flex items-center justify-between gap-2 rounded border border-dashed border-line px-3 py-2 text-xs text-faint"
             >
               <span>
                 <code>{id}</code> — not on this device: it was deleted here or belongs to a

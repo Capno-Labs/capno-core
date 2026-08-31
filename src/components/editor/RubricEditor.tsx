@@ -32,7 +32,7 @@ export function RubricEditor({
           0,
         );
         return (
-          <div key={i} className="space-y-2 rounded bg-slate-800/60 p-2">
+          <div key={i} className="space-y-2 rounded bg-panel-2 p-2">
             <div className="flex items-start gap-2">
               <div className="grid flex-1 grid-cols-2 gap-2">
                 <div>
@@ -53,7 +53,7 @@ export function RubricEditor({
                 </div>
               </div>
               <button
-                className="btn-ghost mt-5 shrink-0 !px-2 !py-1 text-red-400"
+                className="btn-ghost mt-5 shrink-0 !px-2 !py-1 text-red"
                 onClick={() => onChange(rubric.filter((_, j) => j !== i))}
                 aria-label={`remove category ${category.label || i + 1}`}
               >
@@ -83,18 +83,18 @@ export function RubricEditor({
                         {a.label || a.id}
                         {a.critical && <span title="critical action"> ★</span>}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-faint">
                         {a.points} pt{a.points === 1 ? '' : 's'}
                       </span>
                     </label>
                   </li>
                 ))}
                 {staleIds.map((id) => (
-                  <li key={id} className="flex items-center gap-2 text-sm text-red-400">
+                  <li key={id} className="flex items-center gap-2 text-sm text-red">
                     <span className="font-mono">{id}</span>
                     <span className="text-xs">— no such action</span>
                     <button
-                      className="text-xs underline hover:text-red-300"
+                      className="text-xs underline hover:text-red"
                       onClick={() =>
                         patch(i, { actionIds: category.actionIds.filter((x) => x !== id) })
                       }
@@ -114,7 +114,7 @@ export function RubricEditor({
       >
         + Add rubric category
       </button>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-faint">
         Scoring policy: done = full points, delayed = half, missed/incorrect = 0; critical actions
         are additionally surfaced on the debrief report.
       </p>

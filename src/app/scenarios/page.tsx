@@ -41,9 +41,9 @@ import {
 import { toast } from '@/lib/store/toastStore';
 
 const DIFFICULTY_STYLES: Record<Difficulty, string> = {
-  beginner: 'bg-emerald-900/60 text-emerald-300',
-  intermediate: 'bg-amber-900/60 text-amber-300',
-  advanced: 'bg-red-900/60 text-red-300',
+  beginner: 'bg-green-soft text-green',
+  intermediate: 'bg-amber-soft text-amber-strong',
+  advanced: 'bg-red-soft text-red',
 };
 
 /** Section id for scenarios without a curriculum-domain tag. */
@@ -218,10 +218,10 @@ export default function ScenarioLibraryPage() {
     if (builtInIds.has(s.id)) return null; // bundled — always available, never synced
     if (authStatus !== 'signed_in') return null;
     if (isQueued('scenario', s.id))
-      return { label: 'sync pending', className: 'bg-amber-900/60 text-amber-300' };
+      return { label: 'sync pending', className: 'bg-amber-soft text-amber-strong' };
     if (getPushedAt('scenario', s.id))
-      return { label: 'cloud', className: 'bg-sky-900/60 text-sky-300' };
-    return { label: 'local only', className: 'bg-slate-800 text-slate-400' };
+      return { label: 'cloud', className: 'bg-blue-soft text-amber-strong' };
+    return { label: 'local only', className: 'bg-panel-2 text-muted' };
   };
 
   const matchesSource = (s: Scenario, wanted: SourceFilter): boolean => {
@@ -312,7 +312,7 @@ export default function ScenarioLibraryPage() {
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <Link href="/" className="text-xs text-slate-500 hover:text-slate-300">
+            <Link href="/" className="text-xs text-faint hover:text-ink-2">
               ← home
             </Link>
             <h1 className="text-2xl font-bold">Case library</h1>
@@ -385,22 +385,22 @@ export default function ScenarioLibraryPage() {
               Cancel
             </button>
             {pendingAddId && (
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-faint">
                 “{scenarioById.get(pendingAddId)?.title ?? pendingAddId}” will be added to it.
               </span>
             )}
           </form>
         )}
 
-        <div className="card ring-1 ring-sky-700/60">
+        <div className="card ring-1 ring-blue/30">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-lg font-bold">Quick start — freeform session</h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-muted">
                 Standardized patient, normal baseline vitals, no scripted events — you drive
                 everything live.
               </p>
-              <div className="mt-2 text-[11px] text-slate-500">~15 min</div>
+              <div className="mt-2 text-[11px] text-faint">~15 min</div>
             </div>
             <Link href={`/faculty/run/${QUICK_START_ID}`} className="btn-primary shrink-0">
               ▶ Quick start
@@ -408,7 +408,7 @@ export default function ScenarioLibraryPage() {
           </div>
         </div>
 
-        <div className="sticky top-0 z-10 -mx-4 space-y-2 border-b border-slate-800/60 bg-slate-950/95 px-4 py-2 backdrop-blur">
+        <div className="sticky top-0 z-10 -mx-4 space-y-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur">
           <div className="flex flex-wrap gap-2">
             <input
               className="input w-56"
@@ -463,8 +463,8 @@ export default function ScenarioLibraryPage() {
                 onClick={() => toggleDomain(d)}
                 className={`rounded px-2 py-1 text-xs font-semibold transition ${
                   selectedDomains.has(d)
-                    ? 'bg-sky-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    ? 'bg-amber text-[#1b1c17]'
+                    : 'bg-panel-2 text-muted hover:bg-panel-3'
                 }`}
               >
                 {d}
@@ -472,7 +472,7 @@ export default function ScenarioLibraryPage() {
             ))}
             {selectedDomains.size > 0 && (
               <button
-                className="px-1.5 py-1 text-xs text-slate-500 hover:text-slate-300"
+                className="px-1.5 py-1 text-xs text-faint hover:text-ink-2"
                 onClick={() => setSelectedDomains(new Set())}
               >
                 ✕ clear
@@ -515,7 +515,7 @@ export default function ScenarioLibraryPage() {
             <section key={sec.title} className="space-y-3">
               <h2 className="label !mb-0">
                 {sec.title}{' '}
-                <span className="font-normal normal-case text-slate-600">({sec.items.length})</span>
+                <span className="font-normal normal-case text-faint">({sec.items.length})</span>
               </h2>
               <ul className="space-y-3">
                 {sec.items.map((s) => (
@@ -532,7 +532,7 @@ export default function ScenarioLibraryPage() {
           </ul>
         )}
         {filtered.length === 0 && !anyCollectionItemVisible && (
-          <p className="card text-sm text-slate-400">No scenarios match those filters.</p>
+          <p className="card text-sm text-muted">No scenarios match those filters.</p>
         )}
       </main>
     </FacultyGate>
@@ -548,13 +548,13 @@ export default function ScenarioLibraryPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-lg font-bold">{s.title}</h2>
-                  <p className="mt-1 text-sm text-slate-400">{s.summary}</p>
+                  <p className="mt-1 text-sm text-muted">{s.summary}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                     <span className={`rounded px-1.5 py-0.5 font-semibold ${DIFFICULTY_STYLES[s.tags.difficulty]}`}>
                       {s.tags.difficulty}
                     </span>
                     {customIds.has(s.id) && (
-                      <span className="rounded bg-sky-900/60 px-1.5 py-0.5 font-semibold text-sky-300">
+                      <span className="rounded bg-blue-soft px-1.5 py-0.5 font-semibold text-amber-strong">
                         custom
                       </span>
                     )}
@@ -563,14 +563,14 @@ export default function ScenarioLibraryPage() {
                         key={t}
                         className={`rounded px-1.5 py-0.5 ${
                           t === domainOf(s)
-                            ? 'bg-slate-700 font-semibold text-slate-200'
-                            : 'bg-slate-800 text-slate-400'
+                            ? 'bg-panel-3 font-semibold text-ink'
+                            : 'bg-panel-2 text-muted'
                         }`}
                       >
                         {t}
                       </span>
                     ))}
-                    <span className="text-slate-500">~{s.estimatedMinutes} min</span>
+                    <span className="text-faint">~{s.estimatedMinutes} min</span>
                     {(() => {
                       const badge = cloudBadge(s);
                       return badge ? (
@@ -646,16 +646,16 @@ export default function ScenarioLibraryPage() {
               </div>
 
               <button
-                className="mt-2 text-xs text-sky-400 hover:text-sky-300"
+                className="mt-2 text-xs text-amber-strong hover:text-amber-strong"
                 onClick={() => setExpanded(expanded === expandKey ? null : expandKey)}
               >
                 {expanded === expandKey ? 'Hide details ▲' : 'Objectives & setup ▼'}
               </button>
               {expanded === expandKey && (
-                <div className="mt-3 grid gap-4 border-t border-slate-800 pt-3 text-sm sm:grid-cols-2">
+                <div className="mt-3 grid gap-4 border-t border-line pt-3 text-sm sm:grid-cols-2">
                   <div>
                     <h3 className="label">Learning objectives</h3>
-                    <ul className="list-disc space-y-1 pl-4 text-slate-300">
+                    <ul className="list-disc space-y-1 pl-4 text-ink-2">
                       {s.learningObjectives.map((o, i) => (
                         <li key={i}>{o}</li>
                       ))}
@@ -663,7 +663,7 @@ export default function ScenarioLibraryPage() {
                   </div>
                   <div>
                     <h3 className="label">Setup</h3>
-                    <ul className="list-disc space-y-1 pl-4 text-slate-300">
+                    <ul className="list-disc space-y-1 pl-4 text-ink-2">
                       {s.setup.map((o, i) => (
                         <li key={i}>{o}</li>
                       ))}

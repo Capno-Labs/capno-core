@@ -3,9 +3,9 @@
 import { useToastStore, type Toast } from '@/lib/store/toastStore';
 
 const VARIANT_STYLES: Record<Toast['variant'], string> = {
-  success: 'ring-emerald-700 text-emerald-300',
-  error: 'ring-red-700 text-red-300',
-  info: 'ring-slate-600 text-slate-200',
+  success: 'ring-green/40 text-green',
+  error: 'ring-red/40 text-red',
+  info: 'ring-line-2 text-ink',
 };
 
 /** Fixed bottom-center toast stack. Mounted once in the root layout. */
@@ -23,7 +23,7 @@ export function Toaster() {
         <button
           key={t.id}
           onClick={() => dismiss(t.id)}
-          className={`pointer-events-auto rounded-md bg-slate-800 px-3 py-2 text-sm shadow-lg ring-1 ${VARIANT_STYLES[t.variant]}`}
+          className={`pointer-events-auto rounded-md bg-panel-2 px-3 py-2 text-sm shadow-lg ring-1 ${VARIANT_STYLES[t.variant]}`}
         >
           {t.message}
         </button>

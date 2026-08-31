@@ -58,7 +58,7 @@ export default function SettingsPage() {
     <FacultyGate>
       <main className="mx-auto max-w-2xl space-y-4 p-4 md:p-8">
         <header>
-          <Link href="/" className="text-xs text-slate-500 hover:text-slate-300">
+          <Link href="/" className="text-xs text-faint hover:text-ink-2">
             ← home
           </Link>
           <h1 className="text-2xl font-bold">Settings</h1>
@@ -67,13 +67,13 @@ export default function SettingsPage() {
         <section className="card space-y-4">
           <div>
             <h2 className="text-lg font-bold">AI assistance (optional)</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-muted">
               Optional. Capno works fully offline without this. When configured, AI features
               (sim co-pilot, scenario drafting) send scenario data and your typed prompts to
               OpenRouter using your own API key and model choice.
             </p>
             {gatewayConfigured() && !settings && (
-              <p className="mt-2 rounded border border-emerald-900 bg-emerald-950/40 p-2 text-sm text-emerald-300">
+              <p className="mt-2 rounded border border-green/30 bg-green-soft p-2 text-sm text-green">
                 Managed AI is active on this deployment: signed-in accounts get the sim
                 co-pilot and scenario drafting with no key — prompts go through your
                 institution&apos;s gateway instead of your own OpenRouter account. Saving a
@@ -92,7 +92,7 @@ export default function SettingsPage() {
               placeholder="sk-or-…"
               autoComplete="off"
             />
-            <span className="block text-xs text-slate-500">
+            <span className="block text-xs text-faint">
               Stored only in this browser&apos;s localStorage — never sent anywhere except
               OpenRouter.
             </span>
@@ -110,7 +110,7 @@ export default function SettingsPage() {
           </label>
 
           <details>
-            <summary className="cursor-pointer text-sm text-slate-400">Advanced</summary>
+            <summary className="cursor-pointer text-sm text-muted">Advanced</summary>
             <label className="mt-2 block space-y-1">
               <span className="text-sm font-semibold">Base URL</span>
               <input
@@ -120,7 +120,7 @@ export default function SettingsPage() {
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="https://openrouter.ai/api/v1"
               />
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-faint">
                 Only change this for a self-hosted OpenAI-compatible gateway.
               </span>
             </label>
@@ -157,7 +157,7 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-faint">
             AI output is simulation-authoring assistance only — not clinical guidance. All
             AI-generated content must be reviewed by faculty before use with learners.
             Simulation only — not for clinical use.

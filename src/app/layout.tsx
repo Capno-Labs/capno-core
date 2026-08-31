@@ -43,16 +43,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#05080d',
+  themeColor: '#0d0f0c',
   width: 'device-width',
   initialScale: 1,
   // Prevent accidental pinch-zoom on the touch controller in the lab.
   maximumScale: 1,
 };
 
+// Applies a stored light-theme preference before hydration so there is no
+// flash of the wrong theme. Dark is the no-attribute default, so users with
+// nothing stored take the zero-cost path. Key must match src/lib/theme.ts.
+const themeInitScript = `try{if(localStorage.getItem('capno:theme:v1')==='light'){document.documentElement.dataset.theme='light';document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#f4f4ef')}}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
         <ServiceWorkerRegistrar />
         <Toaster />

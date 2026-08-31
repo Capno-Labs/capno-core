@@ -4,13 +4,13 @@ import type { LogEntry } from '@/lib/engine/types';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 const KIND_COLORS: Record<LogEntry['kind'], string> = {
-  session: 'text-slate-400',
-  phase: 'text-sky-400',
-  event: 'text-red-400',
-  vital_change: 'text-amber-300',
-  action: 'text-emerald-400',
+  session: 'text-muted',
+  phase: 'text-amber-strong',
+  event: 'text-red',
+  vital_change: 'text-amber-strong',
+  action: 'text-green',
   note: 'text-violet-300',
-  alarm: 'text-red-300',
+  alarm: 'text-red',
 };
 
 /** Live chronological event log (newest first). */
@@ -20,20 +20,20 @@ export function LogPanel() {
 
   return (
     <section className="card">
-      <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-slate-400">Log</h2>
+      <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted">Log</h2>
       <ul className="max-h-56 space-y-0.5 overflow-y-auto font-mono text-xs">
         {[...snapshot.log].reverse().map((entry, i) => (
           <li key={`${entry.t}-${i}`} className="flex gap-2">
-            <span className="shrink-0 tabular-nums text-slate-500">
+            <span className="shrink-0 tabular-nums text-faint">
               {Math.floor(entry.t / 60)}:{String(entry.t % 60).padStart(2, '0')}
             </span>
             <span className={KIND_COLORS[entry.kind]}>
               {entry.label}
-              {entry.detail && <span className="text-slate-500"> — {entry.detail}</span>}
+              {entry.detail && <span className="text-faint"> — {entry.detail}</span>}
             </span>
           </li>
         ))}
-        {snapshot.log.length === 0 && <li className="text-slate-500">No entries yet.</li>}
+        {snapshot.log.length === 0 && <li className="text-faint">No entries yet.</li>}
       </ul>
     </section>
   );

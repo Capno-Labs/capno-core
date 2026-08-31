@@ -9,10 +9,10 @@ import type { TransportHealth, TransportState } from '@/lib/sync';
  */
 
 const DOT: Record<TransportState, string> = {
-  connecting: 'bg-amber-400',
-  connected: 'bg-emerald-400',
-  error: 'bg-red-500',
-  closed: 'bg-slate-600',
+  connecting: 'bg-amber',
+  connected: 'bg-green',
+  error: 'bg-red-solid',
+  closed: 'bg-panel-3',
 };
 
 const CLOUD_TITLE: Record<TransportState, string> = {
@@ -27,7 +27,7 @@ export function SyncHealthBadge({ health }: { health: TransportHealth[] }) {
   const local = health.find((h) => h.kind === 'broadcast');
   const cloud = health.find((h) => h.kind === 'supabase');
   return (
-    <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-slate-400">
+    <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted">
       {local && (
         <span
           className="inline-flex items-center gap-1"

@@ -57,7 +57,7 @@ export function VitalTile({
         <span className={`text-[11px] font-semibold uppercase tracking-wider ${color} opacity-80`}>
           {label}
         </span>
-        {unit && <span className="text-[10px] text-slate-500">{unit}</span>}
+        {unit && <span className="text-[10px] text-[#8d9688]">{unit}</span>}
       </div>
       <div className="flex items-baseline gap-1">
         <span
@@ -73,7 +73,7 @@ export function VitalTile({
           </span>
         )}
       </div>
-      {sub && <div className="mt-0.5 text-xs font-mono text-slate-400">{sub}</div>}
+      {sub && <div className="mt-0.5 text-xs font-mono text-[#a8b0a2]">{sub}</div>}
     </div>
   );
 }

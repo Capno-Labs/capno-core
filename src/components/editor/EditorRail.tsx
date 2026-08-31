@@ -38,15 +38,15 @@ export function EditorRail({
             aria-current={isActive ? 'true' : undefined}
             className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition duration-150 ${
               isActive
-                ? 'bg-slate-800 font-semibold text-slate-100 ring-1 ring-slate-700'
-                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                ? 'bg-panel-2 font-semibold text-ink ring-1 ring-line'
+                : 'text-muted hover:bg-panel-2 hover:text-ink'
             }`}
             onClick={() => onSelect(s.id)}
           >
             <span className="desk:flex-1">{s.label}</span>
             {counts && counts.errors > 0 && (
               <span
-                className="rounded bg-red-950 px-1.5 py-0.5 text-[10px] font-semibold text-red-300 ring-1 ring-red-800"
+                className="rounded bg-red-soft px-1.5 py-0.5 text-[10px] font-semibold text-red ring-1 ring-red/40"
                 title={`${counts.errors} validation issue${counts.errors === 1 ? '' : 's'}`}
               >
                 {counts.errors}
@@ -54,7 +54,7 @@ export function EditorRail({
             )}
             {counts && counts.warnings > 0 && (
               <span
-                className="rounded bg-amber-950 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400 ring-1 ring-amber-800"
+                className="rounded bg-amber-soft px-1.5 py-0.5 text-[10px] font-semibold text-amber-strong ring-1 ring-amber/40"
                 title={`${counts.warnings} authoring warning${counts.warnings === 1 ? '' : 's'}`}
               >
                 ⚠ {counts.warnings}
