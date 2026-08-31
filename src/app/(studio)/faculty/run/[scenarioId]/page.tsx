@@ -132,7 +132,7 @@ export default function FacultyRunPage() {
             visible while faculty scroll the panels. Kept to one compact row
             so the monitor preview keeps its height on iPad (still fully
             supported, just no longer the primary device). */}
-        <div className="sticky top-0 z-20 -mx-3 space-y-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
+        <div className="sticky top-[var(--topbar-h)] z-20 -mx-3 space-y-2 border-b border-line bg-surface/95 px-3 py-2 backdrop-blur md:-mx-4 md:px-4">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
               <div className="min-w-0">

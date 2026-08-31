@@ -163,6 +163,11 @@ body {
   .no-print {
     display: none !important;
   }
+  /* The app shell collapses on paper: no sidebar column, no content padding. */
+  .print-main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
   .print-report {
     background: white !important;
     color: black !important;

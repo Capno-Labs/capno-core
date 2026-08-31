@@ -408,7 +408,7 @@ export default function ScenarioLibraryPage() {
           </div>
         </div>
 
-        <div className="sticky top-0 z-10 -mx-4 space-y-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur">
+        <div className="sticky top-[var(--topbar-h)] z-10 -mx-4 space-y-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur">
           <div className="flex flex-wrap gap-2">
             <input
               className="input w-56"
