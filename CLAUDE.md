@@ -104,36 +104,27 @@ instead of guessing in either direction.
   module-level singleton (one session per device by design). `teardown()`
   must clear it — leaking intervals shows up as double-speed clocks.
 - localStorage keys are versioned (`capno:sessions:v1`,
-  `capno:custom-scenarios:v1`, `capno:collections:v1`,
-  `capno:event-library:v1`, `capno:cloud-outbox:v1`,
-  `capno:cloud-sync-meta:v1`, `capno:llm-settings:v1`, `capno:demo:v1`,
-  `capno:monitor-sound:v1`, `capno:theme:v1`). If you change a stored shape, add a new
-  versioned key and migrate; don't mutate the old shape in place
-  (`legacyStorage.ts` migrates the old `labsim:*` keys).
+  `capno:custom-scenarios:v1`, `capno:theme:v1`, …— grep `'capno:` for
+  the full set). If you change a stored shape, add a new versioned key
+  and migrate; don't mutate the old shape in place (`legacyStorage.ts`
+  migrates the old `labsim:*` keys).
 - The LLM co-pilot never gets new engine surface: it emits `CopilotCommand`s
   that are validated/clamped in `src/lib/llm/copilot.ts` and applied through
   existing `controllerStore` actions only (propose + confirm — the faculty
   controller stays the single authority). Session lifecycle
   (start/pause/reset/end) is deliberately not LLM-controllable.
 - AI-generated scenario drafts carry an `ai-generated` topic tag (see
-  invariant 7 — clinical content is reviewed material). Don't strip the tag
-  programmatically; reviewers remove it in the editor after review. In the
-  editor, a valid draft shows a preview card and is loaded only on explicit
-  faculty action (with undo); invalid drafts open the raw-JSON surface for
-  repair.
-- In the editor, the raw-JSON surface is opt-in ("Edit JSON" in the
-  toolbar) and *replaces* the form while open — the two never edit the
-  document at the same time. JSON text is regenerated from the scenario
-  when the surface opens and becomes the source of truth only after
-  "Apply JSON". Preserve that direction or you'll create silent data loss.
+  invariant 7 — clinical content is reviewed material). Don't strip the
+  tag programmatically; reviewers remove it in the editor after review.
+- In the editor, the raw-JSON surface is opt-in ("Edit JSON") and
+  *replaces* the form while open. JSON text is regenerated when the
+  surface opens and becomes the source of truth only on "Apply JSON".
+  Preserve that direction or you'll create silent data loss.
 - All pages are client components (`'use client'`) — the app is
   local-first and stateful. Don't convert to server components.
-- Changing caching behavior requires bumping `VERSION` in `public/sw.js`.
-- Icons are generated — edit `scripts/gen-icons.mjs` and run
-  `npm run icons`; never hand-edit the PNGs.
-- Vitest runs in a Node environment — tests must not touch DOM. Pure logic
-  is unit-testable even in component dirs (e.g. `waveforms.test.ts`);
-  rendering is verified via the build and the `verify` skill.
+- Housekeeping: caching changes require bumping `VERSION` in
+  `public/sw.js`; icons are generated (`npm run icons`), never hand-edit
+  the PNGs; vitest runs in Node, so tests must not touch DOM.
 - Nothing unbounded goes into `SimSnapshot` — it's rebroadcast in full
   twice a second, so wire size must not grow with session length. Vitals
   history (`engine.getHistory()`) is archive-only (that's why
