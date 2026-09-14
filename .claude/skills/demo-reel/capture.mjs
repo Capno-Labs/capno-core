@@ -16,7 +16,11 @@
 import { copyFile, mkdir, readFile, rm, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+// PLAYWRIGHT_MJS points at a playwright index.mjs outside the container
+// (e.g. a maintainer-machine install); default is the container's global.
+const { chromium } = await import(
+  process.env.PLAYWRIGHT_MJS ?? '/opt/node22/lib/node_modules/playwright/index.mjs'
+);
 
 const BASE = process.env.CAPNO_URL ?? 'http://localhost:3000';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
