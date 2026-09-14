@@ -18,7 +18,9 @@ npm run dev            # http://localhost:3000; prefer build+start for final ass
 node .claude/skills/demo-reel/capture.mjs
 ```
 
-`CAPNO_URL` overrides the server. The sim runs in real time (~5 min),
+`CAPNO_URL` overrides the server; `PLAYWRIGHT_MJS` overrides the
+Playwright import path when running outside the container (point it at
+an installed `playwright/index.mjs`). The sim runs in real time (~5 min),
 logs each beat, self-checks output dimensions/sizes, and exits non-zero
 on failure. If a selector has drifted, fix `capture.mjs` against the
 component source — don't work around it inline. Outputs land in
