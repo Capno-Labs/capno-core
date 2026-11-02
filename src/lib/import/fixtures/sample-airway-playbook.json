@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "title": "Week 9 Airway Planning Lab - Instructor Playbook.docx",
+  "blocks": [
+    { "id": "b1", "paragraph": 1, "kind": "heading", "level": 1, "text": "WEEK 9 — AIRWAY PLANNING LAB" },
+    { "id": "b2", "paragraph": 2, "kind": "paragraph", "text": "SIM 301 — Simulation Instructor Playbook · Week 9" },
+    { "id": "b3", "paragraph": 3, "kind": "heading", "level": 2, "text": "LEARNING OBJECTIVES" },
+    { "id": "b4", "paragraph": 4, "kind": "paragraph", "text": "Recognize a potentially difficult airway before induction and work through a backup plan when the first approach fails." },
+    { "id": "b5", "paragraph": 5, "kind": "listItem", "text": "Completing a focused airway exam" },
+    { "id": "b6", "paragraph": 6, "kind": "listItem", "text": "Agreeing a primary and backup plan with the attending and surgeon" },
+    { "id": "b7", "paragraph": 7, "kind": "listItem", "text": "Checking that backup equipment is at the bedside" },
+    { "id": "b8", "paragraph": 8, "kind": "heading", "level": 2, "text": "REQUIRED EQUIPMENT" },
+    { "id": "b9", "paragraph": 9, "kind": "listItem", "text": "Simulator running the baseline program" },
+    { "id": "b10", "paragraph": 10, "kind": "listItem", "text": "Bougie" },
+    { "id": "b11", "paragraph": 11, "kind": "listItem", "text": "Video laryngoscope" },
+    { "id": "b12", "paragraph": 12, "kind": "heading", "level": 2, "text": "SECTION 3 — SCENARIO-AT-A-GLANCE" },
+    { "id": "b13", "paragraph": 13, "kind": "heading", "level": 3, "text": "Scenario 1 — Knee Arthroscopy" },
+    {
+      "id": "b14", "paragraph": 14, "kind": "table",
+      "text": "Row | Content\nProcedure | Knee Arthroscopy\nPatient summary | Woman with long-standing rheumatoid arthritis. Limited neck mobility — neck pain with any extension.\nCritical event | Difficult laryngoscopy with limited neck mobility requiring in-line stabilization.\nPrimary learning objectives | Perform a focused airway exam; gather prior records and the surgeon's view; keep the head neutral during laryngoscopy",
+      "tableCells": [
+        ["Row", "Content"],
+        ["Procedure", "Knee Arthroscopy"],
+        ["Patient summary", "Woman with long-standing rheumatoid arthritis. Limited neck mobility — neck pain with any extension."],
+        ["Critical event", "Difficult laryngoscopy with limited neck mobility requiring in-line stabilization."],
+        ["Primary learning objectives", "Perform a focused airway exam; gather prior records and the surgeon's view; keep the head neutral during laryngoscopy"]
+      ]
+    },
+    { "id": "b15", "paragraph": 15, "kind": "heading", "level": 2, "text": "SECTION 4 — INSTRUCTOR TIMELINE" },
+    { "id": "b16", "paragraph": 16, "kind": "heading", "level": 3, "text": "HOW TO RUN THIS TIMELINE" },
+    { "id": "b17", "paragraph": 17, "kind": "paragraph", "text": "Run the scenarios in order. Advance to the next row only when the Progress when trigger is met." },
+    { "id": "b18", "paragraph": 18, "kind": "heading", "level": 3, "text": "SCENARIO 1 — Knee Arthroscopy" },
+    { "id": "b19", "paragraph": 19, "kind": "paragraph", "text": "Critical event: difficult laryngoscopy with limited neck mobility requiring in-line stabilization." },
+    {
+      "id": "b20", "paragraph": 20, "kind": "table",
+      "text": "Stage | Instructor action | Surgeon action | SIM ACTION | Expected student actions / responses | Progress when\nSetup | Check equipment at the bedside. | — | Baseline program running; normal baseline. | Students help prepare the room. | Room ready and scene set.\nAirway exam & info gathering | Play the patient; share prior records only when asked. | Says an asleep intubation is acceptable. | — | Perform a focused airway exam; ask for prior records and the surgeon's view | Airway exam done.\nInduction & first laryngoscopy | Let them induce with in-line stabilization. | — | Switch on the airway occluder; hold the mouth partly closed; no view. | Continue mask ventilation (non-emergency pathway); name alternatives | Students state the next step.",
+      "tableCells": [
+        ["Stage", "Instructor action", "Surgeon action", "SIM ACTION", "Expected student actions / responses", "Progress when"],
+        ["Setup", "Check equipment at the bedside.", "—", "Baseline program running; normal baseline.", "Students help prepare the room.", "Room ready and scene set."],
+        ["Airway exam & info gathering", "Play the patient; share prior records only when asked.", "Says an asleep intubation is acceptable.", "—", "Perform a focused airway exam; ask for prior records and the surgeon's view", "Airway exam done."],
+        ["Induction & first laryngoscopy", "Let them induce with in-line stabilization.", "—", "Switch on the airway occluder; hold the mouth partly closed; no view.", "Continue mask ventilation (non-emergency pathway); name alternatives", "Students state the next step."]
+      ]
+    },
+    { "id": "b21", "paragraph": 21, "kind": "heading", "level": 2, "text": "ASSESSMENT TOOL" },
+    {
+      "id": "b22", "paragraph": 22, "kind": "table",
+      "text": "Task | Performs | Performs with Assistance | Does Not Perform\nAirway Assessment (1) | Complete focused airway exam | Misses some components | No airway exam performed\nIntubation (1) | Secures the airway | Secures the airway with assistance | Unable to secure the airway",
+      "tableCells": [
+        ["Task", "Performs", "Performs with Assistance", "Does Not Perform"],
+        ["Airway Assessment (1)", "Complete focused airway exam", "Misses some components", "No airway exam performed"],
+        ["Intubation (1)", "Secures the airway", "Secures the airway with assistance", "Unable to secure the airway"]
+      ]
+    }
+  ]
+}
