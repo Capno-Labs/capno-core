@@ -452,4 +452,11 @@ export interface ArchivedSession {
   history?: VitalsHistorySample[];
   /** Names of the learners in the session, entered at debrief. */
   learnerNames?: string[];
+  /**
+   * Cloud `scenario_versions.id` the run was pinned to — the exact approved
+   * definition the session ran against. Absent offline, for unsynced
+   * scenarios, and in pre-pinning archives. The frozen `scenario` above is
+   * always the authoritative copy of what ran.
+   */
+  scenarioVersionId?: number;
 }

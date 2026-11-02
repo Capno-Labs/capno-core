@@ -58,6 +58,7 @@ const archivedSessionSchema = z
       .array(z.object({ t: z.number() }).passthrough())
       .optional(),
     learnerNames: z.array(z.string()).optional(),
+    scenarioVersionId: z.number().int().optional(),
   })
   .passthrough();
 

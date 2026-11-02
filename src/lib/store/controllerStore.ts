@@ -15,8 +15,9 @@ import type {
   ScenarioEvent,
   SimSnapshot,
 } from '../engine/types';
-import { cloudEligible, drain, enqueue } from '../cloud/outbox';
+import { cloudEligible, drain, enqueue, pinnedVersionId } from '../cloud/outbox';
 import '../cloud/sessionCloud'; // registers the session push handler
+import { getVersionHistory } from '../scenarios/customStore';
 import { createSyncChannels, type SyncChannel, type TransportHealth } from '../sync';
 import { archiveSession } from './sessionArchive';
 
@@ -142,9 +143,16 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       publish();
       const snapshot = engine.snapshot();
       const score = scoreSession(engine.scenario, snapshot.actions);
+      // Pin the archive to the cloud version row this scenario's local head
+      // was last pushed as — only when the local head is exactly what the
+      // cloud has (bundled scenarios and unsynced edits pin nothing).
+      const versionId = cloudEligible()
+        ? pinnedVersionId(engine.scenario.id, getVersionHistory(engine.scenario.id)[0]?.savedAtIso)
+        : null;
       const result = archiveSession({
         sessionId: snapshot.sessionId,
         sessionCode: get().sessionCode,
+        ...(versionId !== null ? { scenarioVersionId: versionId } : {}),
         // The effective scenario (authored + live-added events) keeps the
         // archive self-consistent with firedEventIds and the debrief log.
         scenario: engine.getEffectiveScenario(),

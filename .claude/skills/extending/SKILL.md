@@ -57,6 +57,13 @@ succeed on its own first — cloud pushes go through the outbox, never
 inline. Validate anything pulled from the cloud with the same zod boundary
 as file imports.
 
+Review state (`scenarios.status`, `approved_*`) is owned by the database
+trigger `scenarios_review_guard` (`db/migrations/0004_scenario_review.sql`):
+the head upsert in `scenarioCloud.ts` must never name those columns, and
+approval goes through `approveScenario()` only. Per-scenario cloud facts
+(version id, review state) live in the sync meta (`outbox.ts`
+`SyncMetaEntry`) — add fields there, never a new storage key.
+
 ## Touch scoring
 
 The policy (done=full, delayed=half, missed/incorrect=0, critical actions
