@@ -219,8 +219,8 @@ export default function DebriefListPage() {
                   <div>
                     <h3 className="font-bold">{s.title}</h3>
                     <p className="text-xs text-faint">
-                      {s.endedAtIso ? new Date(s.endedAtIso).toLocaleString() : ''} · score{' '}
-                      {s.percent}%
+                      {s.endedAtIso ? new Date(s.endedAtIso).toLocaleString() : ''} ·{' '}
+                      {s.possible > 0 ? `score ${s.percent}%` : 'faculty-scored'}
                       {s.learnerNames.length > 0 ? ` · ${s.learnerNames.join(', ')}` : ''}
                     </p>
                   </div>
