@@ -162,7 +162,8 @@ export default function DebriefListPage() {
                 <h2 className="font-bold">{s.scenario.title}</h2>
                 <p className="text-xs text-faint">
                   {new Date(s.endedAtIso).toLocaleString()} · session {s.sessionId} ·{' '}
-                  {Math.floor(s.snapshot.elapsedSec / 60)} min · score {s.score.percent}%
+                  {Math.floor(s.snapshot.elapsedSec / 60)} min ·{' '}
+                  {s.score.possible > 0 ? `score ${s.score.percent}%` : 'faculty-scored'}
                 </p>
               </div>
               <div className="flex gap-2">

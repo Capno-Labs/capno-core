@@ -253,7 +253,12 @@ library) edits scenarios as forms with a live JSON pane:
 - **💾 Save version** stores the scenario on this device with version history.
   Signed-in faculty also see a cloud status after saving ("syncing… / synced
   to cloud / cloud sync pending"), and the library badges each custom
-  scenario **cloud / sync pending / local only**.
+  scenario **cloud / sync pending / local only**. The **History** section
+  shows the institution copy's review state (**draft / review / published**)
+  and, for faculty who may approve, an **Approve & publish** button: it
+  publishes the saved version as the approved one, and sessions run from then
+  on are recorded against that exact version. Saving an edit over a
+  published scenario returns it to draft until it is approved again.
 - **⬇ Export JSON / ⬆ Import JSON** move scenario files between machines.
 - **▶ Test run** opens the controller on your draft (enabled once it's valid
   and saved).
@@ -264,6 +269,32 @@ See [scenario.schema.md](scenario.schema.md) for the full field reference, or
 export a built-in scenario as a working example. Clinical content in the five
 built-ins is reviewed material — have new clinical content reviewed by faculty
 before using it for assessment.
+
+## 9b. Importing an existing run sheet
+
+**📄 Import run sheet** in the library turns an instructor guide you already
+teach from into a scenario draft — without rewriting it.
+
+1. **Paste** the run sheet text (Word: select all, copy, paste), or upload a
+   `.txt`/`.md` file. When your institution runs the hosted import service
+   and you are signed in, you can upload the `.docx`/`.pdf` directly.
+2. Capno finds the scenarios the sheet describes (one draft per
+   "Scenario N"), and lifts objectives, equipment/setup, phase headings,
+   instructor cue lines (as events), the assessment table (as expected
+   actions and rubric categories) and the debrief prompts — each shown
+   next to the source text it came from.
+3. **Review**: every field carries a status — *from source* (quoted
+   verbatim), *suggested* (an inference such as patient sex from a
+   pronoun), *not in source*, or *confirmed*. Accept what is right, edit
+   what is not, enter what the sheet leaves out. Vital signs, doses,
+   patient demographics and event effects are **never** filled in for you.
+4. **Save to library** is enabled only when the review queue is empty. The
+   scenario lands in the library tagged `imported`, opens in the editor,
+   and follows the normal save / version / approval path.
+
+Imported rubric rows keep their wording and carry no point values, so the
+debrief shows a **faculty-scored rubric** (your marks and the row
+descriptors) instead of a percentage.
 
 ## 10. Troubleshooting
 
