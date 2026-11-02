@@ -37,6 +37,20 @@ The canonical smoke flow:
 4. Rhythm/CO₂ buttons are named by their RHYTHM_LABELS / CAPNO_SHAPE_LABELS
    text (e.g. `Sinus with PVCs`).
 
+## Run-sheet import flow
+
+1. `goto /scenarios/import`, fill `getByLabel('Run sheet text')` with the
+   contents of `src/lib/import/fixtures/sample-airway-guide.md`, click
+   `/review pasted text/i`. The review page (`/scenarios/import?source=…`)
+   shows two scenario tabs, a **Review queue** pill with the unresolved
+   count, and the source blocks on the left.
+2. Hover/click a field's `source bN` link → block `#block-bN` gets
+   `ring-amber`. `Save to library` stays disabled until the queue is empty;
+   vitals and patient demographics must be typed by hand (never defaulted).
+3. After saving, `/editor?id=<slug>` opens with the `imported` tag; running
+   it and ending the session gives a debrief that reads
+   **Faculty-scored rubric — no automatic score** (all actions have 0 points).
+
 ## Gotchas
 
 - The waveform is a sweep display that redraws in place: after changing HR or

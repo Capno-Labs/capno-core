@@ -91,7 +91,18 @@ export default function DebriefSessionPage() {
         )}
         <header className="no-print card flex flex-wrap items-center justify-between gap-x-6 gap-y-4 !p-5">
           <div className="flex min-w-0 items-center gap-5">
-            <ScoreRing percent={session.score.percent} />
+            {session.score.possible > 0 ? (
+              <ScoreRing percent={session.score.percent} />
+            ) : (
+              <div
+                className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-panel-2 text-center text-[11px] font-bold leading-tight text-muted"
+                title="Imported checklist with no point values — scored by faculty"
+              >
+                Faculty
+                <br />
+                scored
+              </div>
+            )}
             <div className="min-w-0">
               <div className="mb-1.5">
                 <Eyebrow>Session report</Eyebrow>
