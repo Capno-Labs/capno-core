@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 import type { ArchivedSession, SimSnapshot } from '../engine/types';
-import { mergeImported, parseSessionExport, serializeSessions } from './sessionExport';
+import {
+  mergeImported,
+  parseSessionExport,
+  serializeSessions,
+  validateArchivedSession,
+} from './sessionExport';
 
 function makeSession(sessionId: string, endedAtIso: string): ArchivedSession {
   const scenario = BUILT_IN_SCENARIOS[0];
@@ -76,6 +81,24 @@ describe('sessionExport', () => {
     const result = parseSessionExport(JSON.stringify(tampered));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('validateArchivedSession accepts archives with and without a version pin', () => {
+    const unpinned = makeSession('AB12', '2026-01-02T10:00:00.000Z');
+    const plain = validateArchivedSession(unpinned);
+    expect(plain.ok).toBe(true);
+    if (plain.ok) expect(plain.session.scenarioVersionId).toBeUndefined();
+
+    const pinned = { ...unpinned, scenarioVersionId: 42 };
+    const result = validateArchivedSession(pinned);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.session.scenarioVersionId).toBe(42);
+    // Survives the export file format too.
+    const roundTrip = parseSessionExport(serializeSessions([pinned]));
+    expect(roundTrip.ok && roundTrip.sessions[0].scenarioVersionId).toBe(42);
+
+    expect(validateArchivedSession({ ...unpinned, scenarioVersionId: '42' }).ok).toBe(false);
+    expect(validateArchivedSession({ ...unpinned, scenarioVersionId: 4.5 }).ok).toBe(false);
   });
 
   it('merge: local record wins on sessionId collision', () => {

@@ -60,6 +60,13 @@ async function pushSessionById(sessionId: string): Promise<{ ok: true } | PushFa
   const { error } = await supabase.from('sessions').upsert({
     id: cloudRowId(session),
     scenario_id: scenarioPushed ? session.scenario.id : null,
+    // Version pin (migration 0004). Only named when the run recorded one, so
+    // offline runs still push to a database that has not run 0004. The
+    // sessions_version_guard trigger nulls a pin that does not belong to
+    // scenario_id rather than rejecting the push.
+    ...(session.scenarioVersionId !== undefined
+      ? { scenario_version_id: scenarioPushed ? session.scenarioVersionId : null }
+      : {}),
     scenario_snapshot: session.scenario,
     sim_snapshot: session.snapshot,
     score: session.score,
@@ -108,7 +115,9 @@ export async function fetchCloudSession(cloudId: string): Promise<ArchivedSessio
   if (!supabase || !cloudEligible()) return null;
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, scenario_snapshot, sim_snapshot, score, history, learner_names, session_code, ended_at')
+    .select(
+      'id, scenario_snapshot, sim_snapshot, score, history, learner_names, session_code, scenario_version_id, ended_at',
+    )
     .eq('id', cloudId)
     .single();
   if (error || !data) return null;
@@ -119,6 +128,9 @@ export async function fetchCloudSession(cloudId: string): Promise<ArchivedSessio
     endedAtIso: String(data.ended_at),
     score: data.score,
     ...(data.session_code ? { sessionCode: String(data.session_code) } : {}),
+    ...(typeof data.scenario_version_id === 'number'
+      ? { scenarioVersionId: data.scenario_version_id }
+      : {}),
     ...(data.history ? { history: data.history } : {}),
     ...(Array.isArray(data.learner_names) && data.learner_names.length > 0
       ? { learnerNames: data.learner_names }

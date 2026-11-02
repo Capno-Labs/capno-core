@@ -30,7 +30,33 @@ export interface OutboxOp {
   attempts: number;
 }
 
-type SyncMeta = Record<string, { pushedAtIso: string }>;
+/** Review state of a cloud scenario head (mirrors `scenarios.status`). */
+export type CloudScenarioStatus = 'draft' | 'review' | 'published';
+
+export function isCloudScenarioStatus(value: unknown): value is CloudScenarioStatus {
+  return value === 'draft' || value === 'review' || value === 'published';
+}
+
+/**
+ * Per-(kind,id) sync bookkeeping. Scenario entries additionally remember what
+ * the cloud knows about the head, so a run can pin its archive to the exact
+ * version row and the editor can show review state offline. All fields after
+ * `pushedAtIso` are additive (same `capno:cloud-sync-meta:v1` key; older
+ * entries simply lack them).
+ */
+export interface SyncMetaEntry {
+  pushedAtIso: string;
+  /** Scenario: id of the `scenario_versions` row the cloud head currently equals. */
+  cloudVersionId?: number;
+  /** Scenario: `savedAtIso` of the local head when `cloudVersionId` was recorded. */
+  pushedSavedAtIso?: string;
+  /** Scenario: review state of the cloud head as last seen. */
+  cloudStatus?: CloudScenarioStatus;
+}
+
+type SyncMeta = Record<string, SyncMetaEntry>;
+
+export type SyncMetaPatch = Partial<Omit<SyncMetaEntry, 'pushedAtIso'>>;
 
 /** Executes one push. Registered by scenarioCloud/sessionCloud to avoid import cycles. */
 export type PushHandler = (
@@ -86,14 +112,38 @@ function metaKey(kind: OutboxKind, id: string): string {
   return `${kind}:${id}`;
 }
 
-export function markPushed(kind: OutboxKind, id: string): void {
+/**
+ * Record a successful push. Existing bookkeeping (version id, review state)
+ * survives unless `patch` overrides it — drain calls this with no patch right
+ * after a handler that may already have recorded the version it pushed.
+ */
+export function markPushed(kind: OutboxKind, id: string, patch: SyncMetaPatch = {}): void {
   const meta = readSyncMeta();
-  meta[metaKey(kind, id)] = { pushedAtIso: new Date().toISOString() };
+  const key = metaKey(kind, id);
+  meta[key] = { ...meta[key], ...patch, pushedAtIso: new Date().toISOString() };
   writeSyncMeta(meta);
 }
 
 export function getPushedAt(kind: OutboxKind, id: string): string | null {
   return readSyncMeta()[metaKey(kind, id)]?.pushedAtIso ?? null;
+}
+
+export function getSyncMeta(kind: OutboxKind, id: string): SyncMetaEntry | null {
+  return readSyncMeta()[metaKey(kind, id)] ?? null;
+}
+
+/**
+ * The cloud version row a run of this scenario should pin to, or null when
+ * the cloud copy may differ from the local head (never pushed, edited since
+ * the last push, or a push still queued). `headSavedAtIso` is the local head's
+ * `savedAtIso`; the pin is only trusted when it matches the push record.
+ */
+export function pinnedVersionId(scenarioId: string, headSavedAtIso: string | undefined): number | null {
+  const entry = getSyncMeta('scenario', scenarioId);
+  if (!entry || entry.cloudVersionId === undefined) return null;
+  if (!headSavedAtIso || entry.pushedSavedAtIso !== headSavedAtIso) return null;
+  if (isQueued('scenario', scenarioId)) return null;
+  return entry.cloudVersionId;
 }
 
 export function isQueued(kind: OutboxKind, id: string): boolean {

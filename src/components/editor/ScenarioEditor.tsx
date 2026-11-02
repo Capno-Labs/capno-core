@@ -4,7 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GeneratePanel } from '@/components/editor/GeneratePanel';
 import { useAuthStore } from '@/lib/cloud/authStore';
-import { cloudEligible, drain, enqueue, getPushedAt } from '@/lib/cloud/outbox';
+import {
+  cloudEligible,
+  drain,
+  enqueue,
+  getPushedAt,
+  getSyncMeta,
+  type CloudScenarioStatus,
+} from '@/lib/cloud/outbox';
+import { approveScenario, refreshScenarioStatus } from '@/lib/cloud/scenarioCloud';
+import { Pill, type PillTone } from '@/components/ui/Pill';
 import { downloadJson } from '@/lib/download';
 import { lintScenario, type LintWarning } from '@/lib/engine/lint';
 import { validateScenario, parseScenario } from '@/lib/engine/schema';
@@ -80,6 +89,12 @@ function blankScenario(): Scenario {
 
 const RAIL_IDS: SectionId[] = [...SECTIONS.map((s) => s.id), 'history'];
 
+const STATUS_TONE: Record<CloudScenarioStatus, PillTone> = {
+  draft: 'neutral',
+  review: 'amber',
+  published: 'green',
+};
+
 export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   const router = useRouter();
   const [scenario, setScenario] = useState<Scenario>(initial ?? blankScenario());
@@ -90,6 +105,13 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [history, setHistory] = useState<ScenarioVersion[]>([]);
   const [cloudState, setCloudState] = useState<'idle' | 'syncing' | 'synced' | 'failed'>('idle');
+  /** Review state of the cloud head (null: never synced or unknown). */
+  const [cloudStatus, setCloudStatus] = useState<CloudScenarioStatus | null>(null);
+  const [approving, setApproving] = useState(false);
+  // Subscribed so the approve affordance appears/disappears with sign-in.
+  const authStatus = useAuthStore((s) => s.status);
+  const authRole = useAuthStore((s) => s.profile?.role);
+  const canApprove = cloudEligible();
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const [activeSection, setActiveSection] = useState<SectionId>('overview');
@@ -111,6 +133,22 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   useEffect(() => {
     setHistory(getVersionHistory(scenario.id));
   }, [scenario.id, savedAt]);
+
+  // Review state: what the last sync remembered, refreshed from the cloud for
+  // saved scenarios when a faculty account is available (one small select;
+  // nothing happens unconfigured or signed out).
+  useEffect(() => {
+    const id = scenario.id;
+    setCloudStatus(getSyncMeta('scenario', id)?.cloudStatus ?? null);
+    if (!cloudEligible() || !getPushedAt('scenario', id)) return;
+    let cancelled = false;
+    void refreshScenarioStatus(id).then((status) => {
+      if (!cancelled && status) setCloudStatus(status);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [scenario.id, savedAt, authStatus, authRole]);
 
   useEffect(() => {
     useAuthStore.getState().init();
@@ -220,7 +258,39 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       void drain().then((r) => {
         if (r.dropped.length > 0) setErrors((prev) => [...prev, ...r.dropped]);
         setCloudState(getPushedAt('scenario', id) ? 'synced' : 'failed');
+        setCloudStatus(getSyncMeta('scenario', id)?.cloudStatus ?? null);
       });
+    }
+  };
+
+  /**
+   * Approve & publish: pushes the saved head and pins it as the approved
+   * version. The database decides who may approve (42501 → permanent
+   * failure with a plain-language message); the saved local copy is never
+   * affected either way.
+   */
+  const approve = async () => {
+    if (formDirty || jsonDirty) {
+      toast('Save your changes before approving', 'error');
+      return;
+    }
+    if (history.length === 0) {
+      toast('Save a version first', 'error');
+      return;
+    }
+    setApproving(true);
+    try {
+      const result = await approveScenario(scenario.id);
+      if (result.ok) {
+        setCloudStatus('published');
+        setCloudState('synced');
+        toast('Approved and published', 'success');
+      } else {
+        toast(result.permanent ? result.error : `Could not approve: ${result.error}`, 'error');
+        setCloudStatus(getSyncMeta('scenario', scenario.id)?.cloudStatus ?? null);
+      }
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -362,9 +432,39 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       case 'history':
         return (
           <section className="card">
-            <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted">
-              Version history ({scenario.id})
-            </h2>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
+                Version history ({scenario.id})
+              </h2>
+              {cloudStatus && (
+                <Pill
+                  tone={STATUS_TONE[cloudStatus]}
+                  title="Review state of the institution copy of this scenario"
+                >
+                  {cloudStatus}
+                </Pill>
+              )}
+              {canApprove && (
+                <button
+                  className="btn-primary ml-auto !py-1 text-xs"
+                  disabled={approving || cloudStatus === 'published' || formDirty || jsonDirty}
+                  title={
+                    cloudStatus === 'published'
+                      ? 'Already published — editing and saving starts a new draft'
+                      : 'Publish the saved version to the institution library as the approved version'
+                  }
+                  onClick={() => void approve()}
+                >
+                  {approving ? 'Approving…' : 'Approve & publish'}
+                </button>
+              )}
+            </div>
+            {canApprove && (
+              <p className="mb-2 text-xs text-faint">
+                Sessions run against the approved version. Saving a new edit over a published
+                scenario returns it to draft until it is approved again.
+              </p>
+            )}
             {history.length === 0 ? (
               <p className="text-sm text-faint">
                 No saved versions yet — “Save version” snapshots the case here.

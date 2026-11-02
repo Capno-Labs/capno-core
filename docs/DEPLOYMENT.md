@@ -66,8 +66,12 @@ all work offline (localStorage).
 
 1. Create a project at supabase.com.
 2. SQL editor → paste and run `db/schema.sql` (roles, scenarios, sessions,
-   RLS policies). If the project already ran an older Capno schema, run
-   `db/migrations/0002_production_layer.sql` instead (idempotent).
+   RLS policies). If the project already ran an older Capno schema, run the
+   files in `db/migrations/` that it is missing, in order
+   (`0002_production_layer.sql` → `0003_session_code.sql` →
+   `0004_scenario_review.sql`; each is idempotent). App builds that include
+   scenario approval need `0004` — without it the scenario pull and pinned
+   session pushes fail against the old schema (see the migration header).
 3. Authentication → Providers → make sure **Email** is enabled. Capno uses
    email/password sign-in (magic links behave badly in installed PWAs and on
    shared lab machines).
@@ -96,6 +100,27 @@ self-promotion. To onboard faculty:
 3. They sign in at `/account`. Faculty/admin accounts bypass the PIN gate,
    and their scenario saves and session debriefs sync to the institution
    archive automatically.
+
+### Approval and versions
+
+Every cloud scenario head carries a review `status` — `draft`, `review`, or
+`published` — and every "Save version" appends an immutable row to
+`scenario_versions`. Saves from the editor never change the status. **Approve
+& publish** (editor → History) pins the saved head to its version row and
+sets `status = 'published'`; `is_published` (which the RLS policies read) is
+derived from that by the `scenarios_review_guard` trigger, so do not write it
+directly. Editing a published scenario and saving returns it to `draft` —
+the approved version row itself is never modified, and sessions already run
+against it keep pointing at it (`sessions.scenario_version_id`). Offline
+runs, and runs of scenarios not yet synced, record no pin.
+
+Who may approve is decided in the database by
+`public.can_publish_scenario(org uuid)`: in this schema any faculty or admin
+account (SQL-editor and service-role callers are trusted). Installations
+with organizations can replace that function body with
+`create or replace function` — the signature is the contract the trigger
+relies on. A refusal reaches the editor as "Your account can't approve
+scenarios in this organization".
 
 A `student`-role account can sign in but cannot push to cloud storage —
 the app says so explicitly and keeps everything on the device.
