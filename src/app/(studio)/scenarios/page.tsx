@@ -319,6 +319,9 @@ export default function ScenarioLibraryPage() {
             <Link href="/editor" className="btn-secondary">
               ✏️ New scenario
             </Link>
+            <Link href="/scenarios/import" className="btn-secondary">
+              📄 Import run sheet
+            </Link>
             <button
               className="btn-ghost"
               onClick={() => {

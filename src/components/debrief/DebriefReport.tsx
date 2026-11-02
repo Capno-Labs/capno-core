@@ -89,6 +89,13 @@ export function DebriefReport({
 
   const recordByActionId = new Map(snapshot.actions.map((r) => [r.actionId, r]));
   const phaseLabelById = new Map(scenario.phases.map((p) => [p.id, p.label]));
+  // No points anywhere ⇒ an imported checklist scored by faculty, not the app.
+  const manualRubric = score.possible === 0;
+  const statusCount = (status: ActionStatus) =>
+    snapshot.actions.filter((r) => r.status === status).length;
+  const markedCount = statusCount('done') + statusCount('delayed');
+  const delayedCount = statusCount('delayed');
+  const incorrectCount = statusCount('incorrect');
 
   return (
     <article className="print-report card space-y-8 !p-6 md:!p-8">
@@ -146,6 +153,19 @@ export function DebriefReport({
       {/* Outcome summary */}
       <section>
         <h2 className="mb-3 text-lg font-bold">Outcome summary</h2>
+        {manualRubric ? (
+          // An imported checklist carries no point values: the record is
+          // what faculty marked, not a percentage the app made up.
+          <div className="rounded-ctl bg-panel-2 px-4 py-3 text-sm">
+            <p className="font-semibold text-ink">Faculty-scored rubric — no automatic score</p>
+            <p className="mt-1 text-ink-2">
+              {markedCount} of {scenario.expectedActions.length} rubric items marked as observed
+              {delayedCount > 0 ? `, ${delayedCount} delayed` : ''}
+              {incorrectCount > 0 ? `, ${incorrectCount} incorrect` : ''}. Use the program&apos;s own
+              scoring rule with the marks below.
+            </p>
+          </div>
+        ) : (
         <div className="flex flex-wrap items-center gap-6">
           <div className="text-center motion-safe:animate-pop-in">
             <div className={`text-5xl font-bold tabular-nums ${tier.text}`}>
@@ -185,6 +205,7 @@ export function DebriefReport({
             </tbody>
           </table>
         </div>
+        )}
       </section>
 
       {/* What happened: vitals trends + timeline */}
@@ -252,7 +273,9 @@ export function DebriefReport({
                 <th className="py-1.5 pr-3 font-semibold">Phase</th>
                 <th className="py-1.5 pr-3 font-semibold">Marked</th>
                 <th className="py-1.5 pr-3 font-semibold">Status</th>
-                <th className="py-1.5 text-right font-semibold">Points</th>
+                <th className={manualRubric ? 'py-1.5 font-semibold' : 'py-1.5 text-right font-semibold'}>
+                  {manualRubric ? 'Rubric descriptors' : 'Points'}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -295,9 +318,15 @@ export function DebriefReport({
                         </select>
                       )}
                     </td>
-                    <td className="py-1.5 text-right font-mono tabular-nums">
-                      {earnedPoints(a, r)}/{a.points}
-                    </td>
+                    {manualRubric ? (
+                      <td className="max-w-md whitespace-pre-wrap py-1.5 text-xs text-ink-2">
+                        {a.description ?? '—'}
+                      </td>
+                    ) : (
+                      <td className="py-1.5 text-right font-mono tabular-nums">
+                        {earnedPoints(a, r)}/{a.points}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -306,7 +335,9 @@ export function DebriefReport({
         </div>
       </section>
 
-      {/* Critical actions, promoted */}
+      {/* Critical actions, promoted (an imported checklist with no critical
+          rows has nothing to promote — and "all 0 completed" would mislead). */}
+      {!(manualRubric && score.criticalDone.length + score.criticalMissed.length === 0) && (
       <section>
         <h2 className="mb-2 text-lg font-bold">Missed or delayed critical actions</h2>
         {score.criticalMissed.length > 0 ? (
@@ -331,6 +362,7 @@ export function DebriefReport({
           </p>
         )}
       </section>
+      )}
 
       {/* Faculty notes */}
       {(snapshot.notes.length > 0 || amend) && (
