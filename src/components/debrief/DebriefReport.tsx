@@ -93,9 +93,10 @@ export function DebriefReport({
   const manualRubric = score.possible === 0;
   const statusCount = (status: ActionStatus) =>
     snapshot.actions.filter((r) => r.status === status).length;
-  const markedCount = statusCount('done') + statusCount('delayed');
+  const doneCount = statusCount('done');
   const delayedCount = statusCount('delayed');
   const incorrectCount = statusCount('incorrect');
+  const unmarkedCount = scenario.expectedActions.length - doneCount - delayedCount - incorrectCount;
 
   return (
     <article className="print-report card space-y-8 !p-6 md:!p-8">
@@ -159,9 +160,10 @@ export function DebriefReport({
           <div className="rounded-ctl bg-panel-2 px-4 py-3 text-sm">
             <p className="font-semibold text-ink">Faculty-scored rubric — no automatic score</p>
             <p className="mt-1 text-ink-2">
-              {markedCount} of {scenario.expectedActions.length} rubric items marked as observed
+              {doneCount} of {scenario.expectedActions.length} rubric items observed
               {delayedCount > 0 ? `, ${delayedCount} delayed` : ''}
-              {incorrectCount > 0 ? `, ${incorrectCount} incorrect` : ''}. Use the program&apos;s own
+              {incorrectCount > 0 ? `, ${incorrectCount} incorrect` : ''}
+              {unmarkedCount > 0 ? `, ${unmarkedCount} not marked` : ''}. Use the program&apos;s own
               scoring rule with the marks below.
             </p>
           </div>
