@@ -94,7 +94,7 @@ export function MonitorDisplay({
 
   // With no pulse there is nothing for the oximeter to read: the tile shows
   // dashes rather than whatever saturation the scenario holds underneath.
-  const noPulse = !oximeterHasSignal(v.rhythm);
+  const noPulse = !oximeterHasSignal(v);
 
   // NIBP cuff mode: show the last measured reading and how stale it is.
   // nibp === null means an arterial line is in place (continuous BP + trace).
@@ -117,7 +117,7 @@ export function MonitorDisplay({
 
   // The banner names the lost signal instead of quoting a number the tile
   // no longer shows. Levels are untouched.
-  const shownAlarms = displayAlarms(snapshot.alarms, v.rhythm, cuff);
+  const shownAlarms = displayAlarms(snapshot.alarms, v, cuff);
 
   // Slightly shorter traces when the ART row makes it four waveforms.
   const waveH = compact ? (art ? 'h-11' : 'h-14') : art ? 'h-16 md:h-24' : 'h-20 md:h-28';
@@ -195,7 +195,7 @@ export function MonitorDisplay({
                 </span>
                 <span className="text-xs font-mono text-vital-nibp/80">0–170</span>
               </div>
-              <Waveform kind="art" clock={clock} color="#f87171" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} sbp={v.sbp} dbp={v.dbp} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
+              <Waveform kind="art" clock={clock} pulseless={noPulse} color="#f87171" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} sbp={v.sbp} dbp={v.dbp} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
             </div>
             <VitalTile
               label="ART"
@@ -213,7 +213,7 @@ export function MonitorDisplay({
             <span className="px-1 text-xs font-bold uppercase tracking-wider text-vital-spo2">
               Pleth
             </span>
-            <Waveform kind="pleth" clock={clock} color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="pleth" clock={clock} pulseless={noPulse} color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
           </div>
           <VitalTile label="SpO₂" value={noPulse ? NO_READING : String(Math.round(v.spo2))} unit="%" color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={noPulse ? undefined : v.spo2} large={!compact} />
         </div>

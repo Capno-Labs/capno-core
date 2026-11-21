@@ -471,6 +471,156 @@ describe('SimulationEngine', () => {
     expect(roundTripped).toEqual(snap);
   });
 
+  describe('pulse, separate from the rhythm', () => {
+    const cuffScenario = (): Scenario => ({ ...scenario(), monitoring: { nibpIntervalSec: 120 } });
+    const engineWithCuff = () => new SimulationEngine(cuffScenario(), 'TEST');
+    const spo2Alarm = (e: SimulationEngine) => e.snapshot().alarms.find((a) => a.vital === 'spo2');
+
+    it('starts with a pulse, and reports the flag in the vitals', () => {
+      const e = newEngine();
+      expect(e.getVitals().pulseless).toBe(false);
+    });
+
+    it('can start pulseless from the scenario baseline', () => {
+      const s: Scenario = { ...scenario(), baselineVitals: { ...scenario().baselineVitals, pulseless: true } };
+      expect(new SimulationEngine(s, 'TEST').getVitals().pulseless).toBe(true);
+    });
+
+    it('takes the pulse away without touching the rhythm or any number (PEA)', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.getVitals();
+      e.setPulseless(true);
+      const after = e.getVitals();
+      expect(after).toEqual({ ...before, pulseless: true });
+      expect(e.snapshot().log.at(-1)).toMatchObject({ kind: 'vital_change', label: 'Pulse → absent' });
+    });
+
+    it('raises only an oximeter no-pulse warning for PEA — no rhythm alarm, the heart rate looks fine', () => {
+      const e = newEngine();
+      e.start();
+      expect(e.snapshot().alarms).toEqual([]);
+      e.setPulseless(true);
+      const alarms = e.snapshot().alarms;
+      expect(alarms).toEqual([{ vital: 'spo2', level: 'warning', message: 'SpO₂ NO PULSE' }]);
+    });
+
+    it('names the lost pulse rather than a saturation, at the level the saturation would alarm', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('spo2', 60);
+      expect(spo2Alarm(e)).toMatchObject({ level: 'critical', message: 'SpO₂ LOW 60' });
+      e.setPulseless(true);
+      expect(spo2Alarm(e)).toEqual({ vital: 'spo2', level: 'critical', message: 'SpO₂ NO PULSE' });
+      e.setPulseless(false);
+      expect(spo2Alarm(e)).toMatchObject({ message: 'SpO₂ LOW 60' });
+    });
+
+    it('raises the no-pulse alarm in every rhythm that cannot perfuse', () => {
+      for (const rhythm of ['vfib', 'asystole', 'pea', 'torsades'] as const) {
+        const e = newEngine();
+        e.start();
+        e.setRhythm(rhythm);
+        expect(spo2Alarm(e)?.message).toBe('SpO₂ NO PULSE');
+        expect(e.snapshot().alarms.some((a) => a.vital === 'rhythm' && a.level === 'critical')).toBe(true);
+      }
+    });
+
+    it('keeps the flag when the rhythm changes, until it is given back', () => {
+      const e = newEngine();
+      e.start();
+      e.setRhythm('vtach');
+      e.setPulseless(true); // pulseless VT
+      e.setRhythm('sinus'); // an organized rhythm returns — still no pulse: PEA
+      expect(e.getVitals().pulseless).toBe(true);
+      e.setPulseless(false); // return of circulation
+      expect(e.getVitals().pulseless).toBe(false);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Pulse → present' });
+    });
+
+    it('is driven by authored effects', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('PEA arrest', { rhythm: 'sinus_tach', pulseless: true });
+      expect(e.getVitals()).toMatchObject({ rhythm: 'sinus_tach', pulseless: true });
+      e.applyNamedEffect('ROSC', { pulseless: false });
+      expect(e.getVitals().pulseless).toBe(false);
+    });
+
+    it('fails the cuff with no pulse, whatever pressure the scenario holds', () => {
+      const e = engineWithCuff();
+      e.start();
+      const pressure = e.getVitals().sbp;
+      expect(pressure).toBeGreaterThan(60);
+      e.setPulseless(true);
+      e.cycleNibp();
+      expect(e.snapshot().nibp).toMatchObject({ sbp: 0, dbp: 0 });
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'NIBP — no reading' });
+      // The same in a rhythm that cannot perfuse.
+      e.setPulseless(false);
+      e.setRhythm('vfib');
+      e.cycleNibp();
+      expect(e.snapshot().nibp).toMatchObject({ sbp: 0, dbp: 0 });
+      // With a pulse back, the cuff reads again.
+      e.setRhythm('sinus');
+      e.cycleNibp();
+      expect(e.snapshot().nibp?.sbp).toBe(Math.round(pressure));
+    });
+
+    it('logs nothing when the pulse is already as asked', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.getFullLog().length;
+      e.setPulseless(false);
+      expect(e.getFullLog().length).toBe(before);
+    });
+
+    it('returns to the baseline on reset', () => {
+      const e = newEngine();
+      e.start();
+      e.setPulseless(true);
+      e.reset();
+      expect(e.getVitals().pulseless).toBe(false);
+    });
+  });
+
+  describe('escape rhythms', () => {
+    it('bring a faster heart rate into their range once, on selection', () => {
+      for (const [rhythm, hr] of [
+        ['junctional', 50],
+        ['av_block_3', 45],
+        ['idioventricular', 35],
+      ] as const) {
+        const e = newEngine();
+        e.start();
+        e.setVital('hr', 80);
+        e.setRhythm(rhythm);
+        e.tick(6);
+        expect(e.getVitals().hr).toBe(hr);
+        // The instructor stays free to re-dial it (accelerated variants).
+        e.setVital('hr', 80);
+        expect(e.getVitals().hr).toBe(80);
+      }
+    });
+
+    it('leave a rate already in range alone', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('hr', 44);
+      e.setRhythm('junctional');
+      e.tick(6);
+      expect(e.getVitals().hr).toBe(44);
+    });
+
+    it('do not override a rate the same authored effect sets', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('Accelerated junctional', { rhythm: 'junctional', vitals: { hr: 85 } });
+      e.tick(6);
+      expect(e.getVitals().hr).toBe(85);
+    });
+  });
+
   describe('ECG morphology', () => {
     const lastLog = (e: SimulationEngine) => e.snapshot().log.at(-1);
 

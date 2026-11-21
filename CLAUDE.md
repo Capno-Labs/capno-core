@@ -147,7 +147,7 @@ instead of guessing in either direction.
 - The monitor shows *measured* values, not always the snapshot's. The HR tile
   is `vitals.hr × clock.measuredRate()` (counted from the beats the shared
   `BeatClock` drew, so it can sit a beat off the slider and wanders in AF);
-  SpO₂ shows `--` in pulseless rhythms and NIBP `--/--` after a cuff cycle
+  SpO₂ shows `--` whenever `hasPulse(vitals)` is false and NIBP `--/--` after a cuff cycle
   below 30 mmHg systolic (`src/components/monitor/readouts.ts`); a capnogram breath can
   peak up to 4% under the EtCO₂ number. All of it is display
   only — alarm levels, the log, history and the debrief use engine values.

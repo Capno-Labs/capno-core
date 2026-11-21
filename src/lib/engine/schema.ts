@@ -22,6 +22,15 @@ const rhythmSchema = z.enum([
   'vfib',
   'pea',
   'asystole',
+  'av_block_1',
+  'av_block_mobitz1',
+  'av_block_mobitz2',
+  'av_block_3',
+  'junctional',
+  'aflutter',
+  'torsades',
+  'paced',
+  'idioventricular',
 ]);
 
 const capnoShapeSchema = z.enum(['normal', 'bronchospasm', 'curare_cleft']);
@@ -67,6 +76,7 @@ const vitalsSchema = numericVitalsPartial
     capnoShape: capnoShapeSchema.optional(),
     pvcFrequency: pvcFrequencySchema.optional(),
     ecg: ecgSchema.optional(),
+    pulseless: z.boolean().optional(),
   })
   .refine(pulsePressureOk, { message: PULSE_PRESSURE_MSG, path: ['dbp'] });
 
@@ -82,6 +92,7 @@ export const vitalEffectSchema = z.object({
   capnoShape: capnoShapeSchema.optional(),
   pvcFrequency: pvcFrequencySchema.optional(),
   ecg: ecgSchema.optional(),
+  pulseless: z.boolean().optional(),
   overSec: z.number().min(0).optional(),
   afterSec: z.number().min(0).optional(),
 });

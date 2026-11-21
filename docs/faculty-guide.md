@@ -167,9 +167,26 @@ the value changes over the selected **ramp** speed — **Instant / 3 s / 10 s**
 stalling a timed session; Instant is for corrections.
 
 **Rhythm** buttons switch the ECG: Sinus Rhythm, Sinus Bradycardia, Sinus
-Tachycardia, Sinus with PVCs, Sinus with PACs, Atrial Fibrillation, SVT,
-Ventricular Tachycardia, Ventricular Fibrillation, PEA, Asystole. Pulseless
-rhythms flatten the pleth and zero the pulse display automatically.
+Tachycardia, Sinus with PVCs, Sinus with PACs, Atrial Fibrillation, Atrial
+Flutter, SVT, Junctional Rhythm, First-degree AV Block, AV Block Mobitz I and
+Mobitz II, Complete Heart Block, Ventricular Paced, Idioventricular Rhythm,
+Ventricular Tachycardia, Torsades de Pointes, Ventricular Fibrillation, PEA,
+Asystole. Three of them are slow by definition, so selecting one above its
+range brings the heart rate down once: Junctional to 50, Complete Heart Block
+to 45, Idioventricular to 35. Re-dial the rate afterwards for an accelerated
+variant. In complete block the escape beats are narrow (junctional) unless
+you set **QRS** to Wide (ventricular escape). Mobitz II is always drawn wide,
+as it usually is in life.
+
+**Pulse** is separate from the rhythm. **Absent** keeps the rhythm on the ECG
+and takes the pulse away: that is PEA with any organized rhythm, or pulseless
+VT. The pleth and arterial trace go flat, SpO₂ shows dashes, the pulse tone
+stops and the cuff fails to read — but the heart rate still counts and the
+only alarm is the oximeter's "SpO₂ NO PULSE", which is exactly how PEA is
+missed. It does not move the pressures: dial those yourself. Pulse stays
+absent when you change rhythm, so switch it back to **Present** for return of
+circulation. VF, torsades and asystole never have a pulse; the PEA button
+remains as a ready-made wide-complex PEA.
 
 **ECG complex** controls change how each beat is drawn, whatever the rhythm:
 **ST II** steps the ST segment in half-millimetre steps (negative is

@@ -10,10 +10,14 @@ const alarm = (vital: AlarmState['vital'], message: string, level: AlarmState['l
 });
 
 describe('lost-signal readouts', () => {
-  it('loses the oximeter signal only in pulseless rhythms', () => {
-    for (const rhythm of ['vfib', 'pea', 'asystole'] as const) expect(oximeterHasSignal(rhythm)).toBe(false);
-    for (const rhythm of ['sinus', 'afib', 'pvc', 'svt', 'vtach'] as const) {
-      expect(oximeterHasSignal(rhythm)).toBe(true);
+  it('loses the oximeter signal whenever there is no pulse', () => {
+    for (const rhythm of ['vfib', 'pea', 'asystole', 'torsades'] as const) {
+      expect(oximeterHasSignal({ rhythm })).toBe(false);
+    }
+    for (const rhythm of ['sinus', 'afib', 'pvc', 'svt', 'vtach', 'paced', 'av_block_3'] as const) {
+      expect(oximeterHasSignal({ rhythm })).toBe(true);
+      // PEA / pulseless VT: an organized rhythm with the pulse taken away.
+      expect(oximeterHasSignal({ rhythm, pulseless: true })).toBe(false);
     }
   });
 
@@ -33,7 +37,7 @@ describe('lost-signal readouts', () => {
       alarm('sbp', 'SBP LOW 0'),
       alarm('etco2', 'EtCO₂ LOW 10'),
     ];
-    const shown = displayAlarms(alarms, 'vfib', { sbp: 0, dbp: 0, atSec: 60 });
+    const shown = displayAlarms(alarms, { rhythm: 'vfib' }, { sbp: 0, dbp: 0, atSec: 60 });
     expect(shown.map((a) => a.message)).toEqual([
       'RHYTHM: VFIB',
       'SpO₂ NO PULSE',
@@ -48,14 +52,14 @@ describe('lost-signal readouts', () => {
 
   it('quotes the numbers as usual while there is a signal', () => {
     const alarms = [alarm('spo2', 'SpO₂ LOW 84'), alarm('sbp', 'SBP LOW 62')];
-    expect(displayAlarms(alarms, 'sinus_tach', { sbp: 62, dbp: 34, atSec: 60 })).toEqual(alarms);
+    expect(displayAlarms(alarms, { rhythm: 'sinus_tach' }, { sbp: 62, dbp: 34, atSec: 60 })).toEqual(alarms);
     // Arterial line in a perfusing rhythm: nothing to relabel either.
-    expect(displayAlarms(alarms, 'afib', null)).toEqual(alarms);
+    expect(displayAlarms(alarms, { rhythm: 'afib' }, null)).toEqual(alarms);
   });
 
   it('keeps a low arterial-line pressure as a number even in arrest', () => {
     const alarms = [alarm('sbp', 'SBP LOW 0')];
-    expect(displayAlarms(alarms, 'asystole', null)).toEqual(alarms);
+    expect(displayAlarms(alarms, { rhythm: 'asystole' }, null)).toEqual(alarms);
   });
 
   it('reads an ST level only where there are complexes to measure it on', () => {

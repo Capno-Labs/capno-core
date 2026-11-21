@@ -13,6 +13,7 @@ import type {
 import {
   CAPNO_SHAPE_LABELS,
   ecgMorphologyApplies,
+  rhythmPerfuses,
   formatStMm,
   NORMAL_ECG,
   PVC_FREQUENCY_LABELS,
@@ -142,6 +143,7 @@ export function VitalControls() {
   const setCapnoShape = useControllerStore((s) => s.setCapnoShape);
   const setPvcFrequency = useControllerStore((s) => s.setPvcFrequency);
   const setEcg = useControllerStore((s) => s.setEcg);
+  const setPulseless = useControllerStore((s) => s.setPulseless);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
   const [overSec, setOverSec] = useState(3);
@@ -244,6 +246,43 @@ export function VitalControls() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <span className="label">Pulse</span>
+          {rhythmPerfuses(snapshot.vitals.rhythm) ? (
+            <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Pulse">
+              <button
+                onClick={() => setPulseless(false)}
+                className={ecgChip(!snapshot.vitals.pulseless)}
+                aria-pressed={!snapshot.vitals.pulseless}
+              >
+                Present
+              </button>
+              <button
+                onClick={() => setPulseless(true)}
+                className={
+                  snapshot.vitals.pulseless
+                    ? 'rounded-ctl bg-red-soft px-2 py-1 text-xs font-semibold text-red ring-1 ring-red'
+                    : 'rounded-ctl bg-panel-2 px-2 py-1 text-xs font-semibold text-muted hover:bg-panel-3'
+                }
+                aria-pressed={Boolean(snapshot.vitals.pulseless)}
+                title="Keep this rhythm on the ECG but take the pulse away: PEA, or pulseless VT. The pleth and arterial trace go flat, SpO₂ loses its reading and the cuff fails. Set the pressures yourself."
+              >
+                Absent (PEA / pulseless VT)
+              </button>
+              {snapshot.vitals.pulseless && (
+                <span className="text-xs text-faint">
+                  stays absent when you change rhythm — switch back to Present for return of circulation
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-faint">
+              None — this rhythm never has a pulse
+              {snapshot.vitals.pulseless ? ' (and Pulse is set to Absent for the next rhythm)' : ''}.
+            </span>
+          )}
         </div>
 
         {snapshot.vitals.rhythm === 'pvc' && (

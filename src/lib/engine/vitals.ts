@@ -1,5 +1,5 @@
 import type { AlarmState, NumericVitals, Vitals } from './types';
-import { NUMERIC_VITAL_KEYS } from './types';
+import { hasPulse, NUMERIC_VITAL_KEYS } from './types';
 
 /** Display metadata for each numeric vital (units, formatting, slider range). */
 export interface VitalMeta {
@@ -98,7 +98,7 @@ const ALARM_LIMITS: AlarmLimit[] = [
   { vital: 'temp', warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
 ];
 
-const LETHAL_RHYTHMS = new Set(['vtach', 'vfib', 'pea', 'asystole']);
+const LETHAL_RHYTHMS = new Set(['vtach', 'vfib', 'torsades', 'pea', 'asystole']);
 
 /** Evaluate the current vitals against alarm limits. */
 export function evaluateAlarms(vitals: Vitals): AlarmState[] {
@@ -112,9 +112,19 @@ export function evaluateAlarms(vitals: Vitals): AlarmState[] {
     });
   }
 
+  // An oximeter with no pulse to read raises a technical alarm, not a number.
+  // With an organized rhythm on the ECG this may be the only alarm — the
+  // heart rate looks fine. That is PEA, and the monitor will not name it.
+  const noPulse = !hasPulse(vitals);
+
   for (const lim of ALARM_LIMITS) {
     const v = vitals[lim.vital];
     const meta = VITAL_META[lim.vital];
+    if (lim.vital === 'spo2' && noPulse) {
+      const critical = lim.critLow !== undefined && v < lim.critLow;
+      alarms.push({ vital: 'spo2', level: critical ? 'critical' : 'warning', message: 'SpO₂ NO PULSE' });
+      continue;
+    }
     if (lim.critLow !== undefined && v < lim.critLow) {
       alarms.push({ vital: lim.vital, level: 'critical', message: `${meta.label} LOW ${v.toFixed(meta.decimals)}` });
     } else if (lim.critHigh !== undefined && v > lim.critHigh) {

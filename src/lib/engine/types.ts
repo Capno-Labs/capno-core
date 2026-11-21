@@ -23,7 +23,16 @@ export type Rhythm =
   | 'vtach'
   | 'vfib'
   | 'pea'
-  | 'asystole';
+  | 'asystole'
+  | 'av_block_1'
+  | 'av_block_mobitz1'
+  | 'av_block_mobitz2'
+  | 'av_block_3'
+  | 'junctional'
+  | 'aflutter'
+  | 'torsades'
+  | 'paced'
+  | 'idioventricular';
 
 export const RHYTHM_LABELS: Record<Rhythm, string> = {
   sinus: 'Sinus Rhythm',
@@ -37,7 +46,39 @@ export const RHYTHM_LABELS: Record<Rhythm, string> = {
   vfib: 'Ventricular Fibrillation',
   pea: 'PEA',
   asystole: 'Asystole',
+  av_block_1: 'First-degree AV Block',
+  av_block_mobitz1: 'AV Block — Mobitz I',
+  av_block_mobitz2: 'AV Block — Mobitz II',
+  av_block_3: 'Complete Heart Block',
+  junctional: 'Junctional Rhythm',
+  aflutter: 'Atrial Flutter',
+  torsades: 'Torsades de Pointes',
+  paced: 'Ventricular Paced',
+  idioventricular: 'Idioventricular Rhythm',
 };
+
+/**
+ * Rhythms with no ventricular ejection at all — the patient is pulseless
+ * whatever the `pulseless` flag says. (`pea` is the legacy wide-complex PEA
+ * rhythm; PEA with any other organized rhythm is that rhythm plus
+ * `pulseless: true`.)
+ */
+const NON_PERFUSING_RHYTHMS: ReadonlySet<Rhythm> = new Set(['vfib', 'pea', 'asystole', 'torsades']);
+
+/** Whether the rhythm can produce a pulse at all. */
+export function rhythmPerfuses(rhythm: Rhythm): boolean {
+  return !NON_PERFUSING_RHYTHMS.has(rhythm);
+}
+
+/**
+ * Whether the patient has a pulse: the rhythm can perfuse, and the pulse has
+ * not been taken away (PEA, pulseless VT). Everything pulse-dependent on the
+ * monitor — pleth, arterial trace, SpO₂, the pulse tone, a cuff reading —
+ * follows this, not the rhythm alone.
+ */
+export function hasPulse(vitals: Pick<Vitals, 'rhythm' | 'pulseless'>): boolean {
+  return rhythmPerfuses(vitals.rhythm) && !vitals.pulseless;
+}
 
 /**
  * Capnograph trace morphology. `normal` is the square expiratory plateau;
@@ -129,11 +170,17 @@ const MORPHOLOGY_RHYTHMS: ReadonlySet<Rhythm> = new Set([
   'pac',
   'afib',
   'svt',
+  'av_block_1',
+  'av_block_mobitz1',
+  'av_block_mobitz2',
+  'av_block_3',
+  'junctional',
 ]);
 
 /**
  * Whether the rhythm has normal-pattern complexes that ECG morphology
- * reshapes and an ST level can be read from — not VT, VF, PEA or asystole.
+ * reshapes and an ST level can be read from — not VT, VF, torsades, PEA,
+ * asystole, flutter, or the wide paced and idioventricular complexes.
  */
 export function ecgMorphologyApplies(rhythm: Rhythm): boolean {
   return MORPHOLOGY_RHYTHMS.has(rhythm);
@@ -202,6 +249,13 @@ export interface Vitals extends NumericVitals {
   pvcFrequency?: PvcFrequency;
   /** ECG complex morphology (ST, T wave, QRS width, QT). Absent = normal. */
   ecg?: EcgMorphology;
+  /**
+   * No pulse despite an organized rhythm: pulseless electrical activity
+   * (any organized rhythm) or pulseless VT. Absent = false. VF, torsades,
+   * asystole and the legacy `pea` rhythm are pulseless regardless — see
+   * hasPulse().
+   */
+  pulseless?: boolean;
 }
 
 /** Mean arterial pressure derived from SBP/DBP. */
@@ -291,6 +345,9 @@ export interface VitalEffect {
   /** ECG morphology change: only the fields listed change. `stMm` ramps over
    *  `overSec`; T wave, QRS width and QT apply immediately. */
   ecg?: EcgMorphology;
+  /** Take the pulse away (true) or give it back (false), independent of the
+   *  rhythm. Applied immediately. */
+  pulseless?: boolean;
   /** Seconds over which numeric targets are reached. Default 0 (instant). */
   overSec?: number;
   /** Seconds to wait after the trigger before this effect begins. Default 0. */

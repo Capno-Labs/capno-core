@@ -42,6 +42,10 @@ may not reflect the patient *now*; if you want a fresh pressure, ask for the
 cuff to be cycled. Scenarios with an arterial line show a continuous **ART**
 pressure instead.
 
+**A rhythm on the screen is not a pulse.** The ECG shows electrical activity
+only. If the pleth is flat and SpO₂ shows dashes while the ECG still looks
+organized, check for a pulse.
+
 **Dashes mean no signal, not zero.** If SpO₂ shows `--`, the oximeter has no
 pulse to read; if NIBP shows `--/--`, the cuff found no pressure. Look at the
 patient and the rhythm, not for a number.
