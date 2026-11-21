@@ -44,8 +44,10 @@ export function ActionMarkRow({
   const btnSize = large ? 'h-10 min-w-10 px-1.5' : 'h-7 w-7';
 
   return (
-    <li className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
-      <div className="min-w-0">
+    // Wraps: in a narrow column the mark buttons drop below the label instead
+    // of squeezing it to one word per line (the label keeps at least 9rem).
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
+      <div className="min-w-0 flex-1 basis-36">
         <p className="text-sm text-ink" title={action.description ?? action.label}>
           {action.critical && (
             <span className="mr-1 text-red" title="critical action">
