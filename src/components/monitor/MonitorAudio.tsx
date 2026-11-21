@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { SimSnapshot } from '@/lib/engine/types';
-import { isPulseless } from './waveforms';
+import type { BeatClock } from './beatClock';
+import { isPulseless, R_OFFSET_MS } from './waveforms';
 import { migrateLegacyKey } from '@/lib/legacyStorage';
 
 const PREF_KEY = 'capno:monitor-sound:v1';
@@ -10,7 +11,9 @@ const PREF_KEY = 'capno:monitor-sound:v1';
 /**
  * Monitor audio via Web Audio (no dependencies):
  *  - Pulse tone: one short beep per heartbeat, pitch mapped to SpO₂ — the
- *    falling-pitch desaturation cue anesthetists are trained to hear.
+ *    falling-pitch desaturation cue anesthetists are trained to hear. Beats
+ *    come from the monitor's shared BeatClock, so each beep lands on the R
+ *    wave being drawn (and an irregular rhythm sounds irregular).
  *  - Alarm tone: repeating two-tone while a critical alarm is active and
  *    faculty has not silenced alarms.
  *
@@ -44,11 +47,28 @@ function pulseFrequency(spo2: number): number {
   return 880 * Math.pow(2, (Math.min(100, spo2) - 100) / 30);
 }
 
-export function MonitorAudio({ snapshot, enabled }: { snapshot: SimSnapshot; enabled: boolean }) {
+/** How often the pulse-tone scheduler looks for new beats. A beat is seen at
+ *  its start and its R wave falls R_OFFSET_MS later, so this only has to be
+ *  comfortably shorter than that lead. */
+const BEAT_POLL_MS = 25;
+/** A beat noticed this long after its R wave (timers throttled in a hidden
+ *  tab) is dropped rather than beeped late. */
+const LATE_BEEP_SEC = 0.1;
+
+export function MonitorAudio({
+  snapshot,
+  enabled,
+  clock,
+}: {
+  snapshot: SimSnapshot;
+  enabled: boolean;
+  /** The monitor's shared heartbeat clock (see MonitorDisplay). */
+  clock: BeatClock;
+}) {
   const ctxRef = useRef<AudioContext | null>(null);
   // Live values read by the schedulers without re-registering timers.
-  const live = useRef({ snapshot, enabled });
-  live.current = { snapshot, enabled };
+  const live = useRef({ snapshot, enabled, clock });
+  live.current = { snapshot, enabled, clock };
 
   useEffect(() => {
     if (!enabled) return;
@@ -77,18 +97,22 @@ export function MonitorAudio({ snapshot, enabled }: { snapshot: SimSnapshot; ena
       osc.stop(at + durSec);
     };
 
-    // ── Pulse tone: self-rescheduling timeout so rate follows live HR ──
-    let pulseTimer: ReturnType<typeof setTimeout> | null = null;
-    const schedulePulse = () => {
-      const { snapshot: s, enabled: on } = live.current;
+    // ── Pulse tone: one beep on the R wave of every beat the clock starts ──
+    let heard = live.current.clock.count;
+    const pulseTimer = setInterval(() => {
+      const { snapshot: s, enabled: on, clock: beats } = live.current;
+      beats.tick(performance.now());
+      const fresh = beats.count - heard;
+      heard = beats.count;
+      if (fresh <= 0) return;
       const v = s.vitals;
-      const silent =
-        !on || s.status !== 'running' || isPulseless(v.rhythm) || v.hr <= 0;
-      const intervalMs = silent ? 500 : Math.max(250, 60000 / v.hr);
-      if (!silent) beep(pulseFrequency(v.spo2), 0.06, 0.12);
-      pulseTimer = setTimeout(schedulePulse, intervalMs);
-    };
-    schedulePulse();
+      if (!on || s.status !== 'running' || isPulseless(v.rhythm) || v.hr <= 0) return;
+      for (const beat of beats.recent().slice(-fresh)) {
+        const untilR = beat.startSec + R_OFFSET_MS / 1000 - beats.t;
+        if (untilR < -LATE_BEEP_SEC) continue;
+        beep(pulseFrequency(v.spo2), 0.06, 0.12, ctx.currentTime + Math.max(0, untilR));
+      }
+    }, BEAT_POLL_MS);
 
     // ── Alarm tone: two-tone burst every 2 s while critical + not silenced ──
     const alarmTimer = setInterval(() => {
@@ -100,7 +124,7 @@ export function MonitorAudio({ snapshot, enabled }: { snapshot: SimSnapshot; ena
     }, 2000);
 
     return () => {
-      if (pulseTimer) clearTimeout(pulseTimer);
+      clearInterval(pulseTimer);
       clearInterval(alarmTimer);
       void ctx.suspend();
     };
