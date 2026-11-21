@@ -113,7 +113,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
           {stored.drafts.map((d) => (
             <button
               key={d.draftId}
-              className={d.draftId === draftId ? 'btn-primary !px-2 !py-1 text-xs' : 'btn-ghost !px-2 !py-1 text-xs'}
+              className={d.draftId === draftId ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
               onClick={() => setDraftId(d.draftId)}
             >
               {d.fields.title.value ?? d.draftId}

@@ -138,7 +138,7 @@ export function CopilotPanel() {
             {proposals.map((p, i) => (
               <li
                 key={`${p.label}-${i}`}
-                className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs ring-1 ${
+                className={`flex items-center justify-between gap-2 rounded-ctl px-2.5 py-1.5 text-xs ring-1 ${
                   p.applied
                     ? 'bg-panel-2 text-faint ring-line'
                     : 'bg-panel text-ink ring-brand/50'
@@ -158,13 +158,13 @@ export function CopilotPanel() {
                   ) : (
                     <>
                       <button
-                        className="rounded bg-green-soft px-2 py-0.5 font-semibold text-green hover:bg-green-soft"
+                        className="rounded-ctl bg-green-soft px-2 py-0.5 font-semibold text-green hover:bg-green-soft"
                         onClick={() => apply(i)}
                       >
                         Apply
                       </button>
                       <button
-                        className="rounded px-1.5 py-0.5 text-faint hover:text-ink-2"
+                        className="rounded-ctl px-1.5 py-0.5 text-faint hover:text-ink-2"
                         onClick={() => dismiss(i)}
                         aria-label={`Dismiss ${p.label}`}
                       >

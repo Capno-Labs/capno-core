@@ -43,6 +43,8 @@ const config: Config = {
         // with no DEFAULT here a stray `bg-amber` would compile to nothing.
         warn: { DEFAULT: v('warn'), strong: v('warn-strong'), soft: v('warn-soft') },
         'on-warn': '#0d1725',
+        // Ink for text on a green fill ("Observed" marks).
+        'on-green': '#0d1a10',
         // Note: `extend` DEEP-merges these into Tailwind's built-in
         // green/red/cyan/violet scales, so numeric classes (`red-300`) still
         // compile with the default palette values and are NOT theme-aware.
@@ -50,6 +52,18 @@ const config: Config = {
         red: { DEFAULT: v('red'), solid: v('red-solid'), soft: v('red-soft') },
         cyan: { DEFAULT: v('cyan'), soft: v('cyan-soft') },
         violet: { DEFAULT: v('violet'), soft: v('violet-soft') },
+        // Event categories: a fixed colour language shared by the run screen
+        // and the editor. Mid-weight hues that read in both themes; always
+        // paired with the category label, never used for text.
+        cat: {
+          physiology: '#ef4444',
+          airway: '#0ea5e9',
+          circulation: '#f43f5e',
+          drug: '#10b981',
+          equipment: '#f59e0b',
+          surgical: '#f97316',
+          resolution: '#14b8a6',
+        },
         // Poster surfaces (.surface-blue / .surface-ink): theme-invariant
         // literals from the landing page.
         poster: {

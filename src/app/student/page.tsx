@@ -161,12 +161,12 @@ function StudentContent() {
   return (
     <main className="relative h-screen">
       {phase === 'stale' && (
-        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-monitor-stale-bg px-3 py-1 text-xs text-monitor-stale-ink ring-1 ring-monitor-stale-line">
+        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-ctl bg-monitor-stale-bg px-3 py-1 text-xs text-monitor-stale-ink ring-1 ring-monitor-stale-line">
           Connection to controller lost — showing last received data
         </div>
       )}
       {phase === 'ended' && (
-        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded bg-monitor-panel px-3 py-1 text-xs text-monitor-ink ring-1 ring-monitor-grid">
+        <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-ctl bg-monitor-panel px-3 py-1 text-xs text-monitor-ink ring-1 ring-monitor-grid">
           Session ended by faculty
         </div>
       )}
@@ -180,7 +180,7 @@ function StudentContent() {
       )}
       {typeof document !== 'undefined' && document.fullscreenEnabled && (
         <button
-          className="absolute right-2 top-2 z-10 rounded bg-monitor-panel p-1.5 text-monitor-ink opacity-40 ring-1 ring-monitor-grid transition-opacity hover:opacity-100"
+          className="absolute right-2 top-2 z-10 rounded-ctl bg-monitor-panel p-1.5 text-monitor-ink opacity-40 ring-1 ring-monitor-grid transition-opacity hover:opacity-100"
           title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           onClick={() => {

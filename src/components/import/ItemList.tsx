@@ -94,7 +94,7 @@ export function ItemList({
         <span className="text-xs font-semibold text-ink">
           {label} <span className="font-normal text-faint">({items.length})</span>
         </span>
-        <button className="btn-ghost !px-2 !py-0.5 text-xs" onClick={add}>
+        <button className="btn-ghost btn-sm" onClick={add}>
           + Add
         </button>
       </div>
@@ -135,15 +135,15 @@ export function ItemList({
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {(item.status === 'extracted' || item.status === 'proposed' || item.status === 'unresolved') &&
                     item.value !== null && (
-                      <button className="btn-secondary !px-2 !py-0.5 text-xs" onClick={() => confirm(i, item.value)}>
+                      <button className="btn-secondary btn-sm" onClick={() => confirm(i, item.value)}>
                         Accept
                       </button>
                     )}
-                  <button className="btn-ghost !px-2 !py-0.5 text-xs" onClick={() => startEdit(i)}>
+                  <button className="btn-ghost btn-sm" onClick={() => startEdit(i)}>
                     Edit
                   </button>
                   <button
-                    className="btn-ghost !px-2 !py-0.5 text-xs"
+                    className="btn-ghost btn-sm"
                     onClick={() => onChange(items.filter((_, j) => j !== i))}
                   >
                     Remove
@@ -162,11 +162,11 @@ export function ItemList({
                 />
                 {error && <p className="text-xs text-red">{error}</p>}
                 <div className="flex gap-2">
-                  <button className="btn-primary !px-2 !py-1 text-xs" onClick={save}>
+                  <button className="btn-primary btn-sm" onClick={save}>
                     Save
                   </button>
                   <button
-                    className="btn-ghost !px-2 !py-1 text-xs"
+                    className="btn-ghost btn-sm"
                     onClick={() => {
                       if (items[i].value === null) onChange(items.filter((_, j) => j !== i));
                       setEditing(null);

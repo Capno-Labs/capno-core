@@ -176,7 +176,7 @@ export function DebriefReport({
               <span className="hidden print:inline">{score.percent}%</span>
             </div>
             <div
-              className={`keep-badge-bg mx-auto mt-1 h-1 rounded ${tier.band}`}
+              className={`keep-badge-bg mx-auto mt-1 h-1 rounded-ctl ${tier.band}`}
               style={{ width: `${Math.max(8, score.percent)}%` }}
             />
             <div className="mt-1 text-xs text-faint">
@@ -192,9 +192,9 @@ export function DebriefReport({
                     {c.earned}/{c.possible}
                   </td>
                   <td className="pl-3 py-0.5 w-40">
-                    <div className="keep-badge-bg h-2 w-full rounded bg-panel-3">
+                    <div className="keep-badge-bg h-2 w-full rounded-ctl bg-panel-3">
                       <div
-                        className="anim-bar h-2 origin-left rounded bg-green motion-safe:animate-bar-grow"
+                        className="anim-bar h-2 origin-left rounded-ctl bg-green motion-safe:animate-bar-grow"
                         style={{
                           width: `${c.possible ? (c.earned / c.possible) * 100 : 0}%`,
                           animationDelay: `${150 + i * 90}ms`,
@@ -307,7 +307,7 @@ export function DebriefReport({
                       </span>
                       {amend && (
                         <select
-                          className="no-print ml-2 rounded bg-panel-2 px-1 py-0.5 text-xs text-ink-2 ring-1 ring-line"
+                          className="no-print ml-2 rounded-ctl bg-panel-2 px-1 py-0.5 text-xs text-ink-2 ring-1 ring-line"
                           value={shown}
                           onChange={(e) => amend.markAction(a.id, e.target.value as ActionStatus)}
                           aria-label={`Amend status for ${a.label}`}
@@ -398,7 +398,7 @@ export function DebriefReport({
                 <li key={i}>
                   <span className="font-mono text-faint">{fmt(n.t)}</span> — {n.text}
                   {n.postHoc && (
-                    <span className="keep-badge-bg ml-2 rounded bg-panel-2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted ring-1 ring-line">
+                    <span className="keep-badge-bg ml-2 rounded-ctl bg-panel-2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted ring-1 ring-line">
                       added at debrief
                     </span>
                   )}

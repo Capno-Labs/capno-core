@@ -95,7 +95,7 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <div className="space-y-2 rounded-md bg-panel/60 p-2 ring-1 ring-line">
+    <div className="space-y-2 rounded-ctl bg-panel/60 p-2 ring-1 ring-line">
       <div>
         <span className="label">Start from a template (optional)</span>
         <select

@@ -33,7 +33,7 @@ export function NotesPanel() {
       {snapshot.notes.length > 0 && (
         <ul className="max-h-40 space-y-1 overflow-y-auto text-sm">
           {[...snapshot.notes].reverse().map((n, i) => (
-            <li key={i} className="rounded bg-panel-2 px-2 py-1">
+            <li key={i} className="rounded-ctl bg-panel-2 px-2 py-1">
               <span className="mr-2 font-mono text-xs text-faint">
                 {Math.floor(n.t / 60)}:{String(Math.floor(n.t % 60)).padStart(2, '0')}
               </span>

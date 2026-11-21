@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@/components/ui/Icon';
 import { useRef } from 'react';
 import { DOCUMENT_CHAR_LIMIT } from '@/lib/llm/generator';
 
@@ -57,7 +58,7 @@ export function DocumentInput({
           onClick={() => fileInput.current?.click()}
           disabled={disabled}
         >
-          ⬆ Upload .txt / .md
+          <Icon name="upload" size={14} /> Upload .txt / .md
         </button>
         <input
           ref={fileInput}

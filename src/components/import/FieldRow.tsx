@@ -171,10 +171,10 @@ export function FieldRow({
           {spec.hint && <p className="text-[10px] text-faint">{spec.hint}</p>}
           {error && <p className="text-xs text-red">{error}</p>}
           <div className="flex gap-2">
-            <button className="btn-primary !px-2 !py-1 text-xs" onClick={save}>
+            <button className="btn-primary btn-sm" onClick={save}>
               Save
             </button>
-            <button className="btn-ghost !px-2 !py-1 text-xs" onClick={() => setEditing(false)}>
+            <button className="btn-ghost btn-sm" onClick={() => setEditing(false)}>
               Cancel
             </button>
           </div>
@@ -183,20 +183,20 @@ export function FieldRow({
       {!editing && (
         <div className="mt-1 flex flex-wrap gap-1.5">
           {(field.status === 'extracted' || field.status === 'proposed') && (
-            <button className="btn-secondary !px-2 !py-0.5 text-xs" onClick={() => confirm(field.value)}>
+            <button className="btn-secondary btn-sm" onClick={() => confirm(field.value)}>
               Accept
             </button>
           )}
-          <button className="btn-ghost !px-2 !py-0.5 text-xs" onClick={startEdit}>
+          <button className="btn-ghost btn-sm" onClick={startEdit}>
             {field.status === 'unresolved' ? 'Enter value' : 'Edit'}
           </button>
           {field.status === 'unresolved' && spec.kind === 'stringList' && (
-            <button className="btn-ghost !px-2 !py-0.5 text-xs" onClick={() => confirm([])}>
+            <button className="btn-ghost btn-sm" onClick={() => confirm([])}>
               Confirm none
             </button>
           )}
           {field.status === 'unresolved' && spec.optional && (
-            <button className="btn-ghost !px-2 !py-0.5 text-xs" onClick={() => confirm(null)}>
+            <button className="btn-ghost btn-sm" onClick={() => confirm(null)}>
               Not applicable
             </button>
           )}

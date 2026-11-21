@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@/components/ui/Icon';
 import { useEffect, useRef, useState } from 'react';
 import type {
   ExpectedAction,
@@ -253,7 +254,7 @@ export function EventListEditor({
   );
 
   const templatePanel = showTemplates && (
-    <div className="space-y-2 rounded bg-panel-2 p-3">
+    <div className="space-y-2 rounded-ctl bg-panel-2 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="label !mb-0">Event templates</span>
         <input
@@ -276,17 +277,17 @@ export function EventListEditor({
           </span>
           {savedEvents.length > 0 && (
             <button
-              className="btn-ghost !px-2 !py-0.5 text-xs"
+              className="btn-ghost btn-sm"
               onClick={() => downloadJson('capno-events.library.json', serializeLibraryFile(savedEvents))}
             >
-              ⬇ Export
+              <Icon name="download" size={14} /> Export
             </button>
           )}
           <button
-            className="btn-ghost !px-2 !py-0.5 text-xs"
+            className="btn-ghost btn-sm"
             onClick={() => libraryFileInput.current?.click()}
           >
-            ⬆ Import
+            <Icon name="upload" size={14} /> Import
           </button>
           <input
             ref={libraryFileInput}
@@ -309,7 +310,7 @@ export function EventListEditor({
             {visibleSaved.map((entry) => (
               <li
                 key={entry.id}
-                className="flex flex-wrap items-center gap-2 rounded bg-panel/60 px-2 py-1.5 ring-1 ring-line"
+                className="flex flex-wrap items-center gap-2 rounded-ctl bg-panel/60 px-2 py-1.5 ring-1 ring-line"
               >
                 <span
                   className={`inline-block h-2 w-2 shrink-0 rounded-full ${CATEGORY_DOT[entry.category]}`}
@@ -322,11 +323,11 @@ export function EventListEditor({
                 <span className="text-[10px] text-faint">
                   saved {new Date(entry.savedAtIso).toLocaleDateString()}
                 </span>
-                <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => insertSaved(entry)}>
+                <button className="btn-secondary btn-sm" onClick={() => insertSaved(entry)}>
                   Insert
                 </button>
                 <button
-                  className="btn-ghost !px-2 !py-1 text-xs text-red"
+                  className="btn-ghost btn-sm text-red"
                   onClick={() => removeFromLibrary(entry)}
                   aria-label={`delete ${entry.label} from library`}
                 >
@@ -349,7 +350,7 @@ export function EventListEditor({
               {items.map((t) => (
                 <li
                   key={t.id}
-                  className="flex flex-wrap items-center gap-2 rounded bg-panel/60 px-2 py-1.5 ring-1 ring-line"
+                  className="flex flex-wrap items-center gap-2 rounded-ctl bg-panel/60 px-2 py-1.5 ring-1 ring-line"
                 >
                   <span
                     className={`inline-block h-2 w-2 shrink-0 rounded-full ${CATEGORY_DOT[t.category]}`}
@@ -360,7 +361,7 @@ export function EventListEditor({
                     {t.effects.length === 0 ? 'log only' : t.effects.map(effectSummary).join(' | ')}
                   </span>
                   <span className="text-[10px] text-faint">{t.source}</span>
-                  <button className="btn-secondary !px-2 !py-1 text-xs" onClick={() => insertTemplate(t)}>
+                  <button className="btn-secondary btn-sm" onClick={() => insertTemplate(t)}>
                     Insert
                   </button>
                 </li>
@@ -378,7 +379,7 @@ export function EventListEditor({
   if (events.length === 0) {
     return (
       <div className="space-y-2">
-        <div className="space-y-1 rounded bg-panel-2 p-3 text-xs text-muted">
+        <div className="space-y-1 rounded-ctl bg-panel-2 p-3 text-xs text-muted">
           <p className="font-semibold text-ink-2">No events yet — events are the script of the case.</p>
           <p>
             <span className="text-warn-strong">Automatic</span> events fire on a timer and drive the
@@ -419,11 +420,11 @@ export function EventListEditor({
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
             {event.autoAtSec !== undefined ? (
-              <span className="rounded bg-brand-soft px-1 py-px font-semibold tracking-wider text-brand-strong ring-1 ring-brand/30">
+              <span className="rounded-ctl bg-brand-soft px-1 py-px font-semibold tracking-wider text-brand-strong ring-1 ring-brand/30">
                 AUTO {fmtTime(event.autoAtSec)}
               </span>
             ) : (
-              <span className="rounded bg-panel px-1 py-px font-semibold tracking-wider text-muted ring-1 ring-line">
+              <span className="rounded-ctl bg-panel px-1 py-px font-semibold tracking-wider text-muted ring-1 ring-line">
                 FACULTY
               </span>
             )}
@@ -431,7 +432,7 @@ export function EventListEditor({
               {event.effects.length} effect{event.effects.length === 1 ? '' : 's'}
             </span>
             {warningCount > 0 && (
-              <span className="rounded bg-warn-soft px-1 py-px font-semibold text-warn-strong ring-1 ring-warn/40">
+              <span className="rounded-ctl bg-warn-soft px-1 py-px font-semibold text-warn-strong ring-1 ring-warn/40">
                 ⚠ {warningCount}
               </span>
             )}
@@ -448,7 +449,7 @@ export function EventListEditor({
         <div className="space-y-3 lg:w-72 lg:shrink-0">
           <ul
             role="list"
-            className="divide-y divide-line overflow-hidden rounded bg-panel/40 ring-1 ring-line"
+            className="divide-y divide-line overflow-hidden rounded-ctl bg-panel/40 ring-1 ring-line"
           >
             {phaseGrouped
               ? groups.map((g) => (

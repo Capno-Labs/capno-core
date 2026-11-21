@@ -103,7 +103,7 @@ function VitalSlider({
               e.currentTarget.blur();
             }
           }}
-          className={`w-16 rounded bg-panel-2 px-1 py-0.5 text-right font-mono text-sm tabular-nums outline-none ring-focus focus:ring-1 ${
+          className={`w-16 rounded-ctl bg-panel-2 px-1 py-0.5 text-right font-mono text-sm tabular-nums outline-none ring-focus focus:ring-1 ${
             draft !== null || text !== null ? 'text-brand-strong' : 'text-ink'
           }`}
           aria-label={`${meta.label} typed target`}
@@ -136,7 +136,7 @@ export function VitalControls() {
             <button
               key={t.sec}
               onClick={() => setOverSec(t.sec)}
-              className={`rounded px-2 py-1 text-xs font-semibold ${
+              className={`rounded-ctl px-2 py-1 text-xs font-semibold ${
                 overSec === t.sec
                   ? 'bg-brand text-on-brand'
                   : 'bg-panel-2 text-muted hover:bg-panel-3'
@@ -156,7 +156,7 @@ export function VitalControls() {
           </div>
 
         {snapshot.nibp ? (
-          <div className="flex items-center justify-between gap-2 rounded-md bg-panel-2 px-2 py-1.5">
+          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
             <span className="text-xs text-muted">
               Cuff last read{' '}
               <span className="font-mono text-ink">
@@ -167,11 +167,11 @@ export function VitalControls() {
               the monitor updates when the cuff cycles.
             </span>
             <span className="flex shrink-0 gap-1.5">
-              <button className="btn-secondary !py-1 text-xs" onClick={cycleNibp}>
+              <button className="btn-secondary btn-sm" onClick={cycleNibp}>
                 Cycle NIBP now
               </button>
               <button
-                className="btn-secondary !py-1 text-xs"
+                className="btn-secondary btn-sm"
                 onClick={() => setArtLine(true)}
                 title="Switch to continuous arterial pressure with an ART waveform on the monitor"
               >
@@ -180,7 +180,7 @@ export function VitalControls() {
             </span>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2 rounded-md bg-panel-2 px-2 py-1.5">
+          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
             <span className="text-xs text-muted">
               <span className="font-semibold text-vital-nibp">Arterial line in place</span> — the
               monitor shows beat-to-beat pressure and an ART waveform.
@@ -202,7 +202,7 @@ export function VitalControls() {
               <button
                 key={r}
                 onClick={() => setRhythm(r)}
-                className={`rounded px-2 py-1 text-xs font-semibold ${
+                className={`rounded-ctl px-2 py-1 text-xs font-semibold ${
                   snapshot.vitals.rhythm === r
                     ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg'
                     : 'bg-panel-2 text-muted hover:bg-panel-3'
@@ -222,7 +222,7 @@ export function VitalControls() {
                 <button
                   key={f}
                   onClick={() => setPvcFrequency(f)}
-                  className={`rounded px-2 py-1 text-xs font-semibold ${
+                  className={`rounded-ctl px-2 py-1 text-xs font-semibold ${
                     (snapshot.vitals.pvcFrequency ?? 'occasional') === f
                       ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg'
                       : 'bg-panel-2 text-muted hover:bg-panel-3'
@@ -242,7 +242,7 @@ export function VitalControls() {
               <button
                 key={s}
                 onClick={() => setCapnoShape(s)}
-                className={`rounded px-2 py-1 text-xs font-semibold ${
+                className={`rounded-ctl px-2 py-1 text-xs font-semibold ${
                   (snapshot.vitals.capnoShape ?? 'normal') === s
                     ? 'bg-vital-etco2/20 text-vital-etco2 ring-1 ring-vital-etco2'
                     : 'bg-panel-2 text-muted hover:bg-panel-3'

@@ -9,7 +9,7 @@ const KIND_COLORS: Record<LogEntry['kind'], string> = {
   event: 'text-red',
   vital_change: 'text-warn-strong',
   action: 'text-green',
-  note: 'text-violet-300',
+  note: 'text-violet',
   alarm: 'text-red',
 };
 
