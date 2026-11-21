@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { LogoTile } from '@/components/brand/LogoTile';
 import { BootOverlay } from '@/components/monitor/BootOverlay';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
+import { unlockMonitorAudio } from '@/components/monitor/monitorAudioContext';
 import { SyncHealthBadge } from '@/components/SyncHealthBadge';
 import { CodeInput } from '@/components/ui/CodeInput';
 import { Icon } from '@/components/ui/Icon';
@@ -55,6 +56,9 @@ function StudentContent() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    // The Join click is the gesture browsers require before audio may play,
+    // so the monitor has its pulse tone and alarms from the first beat.
+    unlockMonitorAudio();
     join(code);
   };
 
@@ -106,7 +110,13 @@ function StudentContent() {
             Supabase realtime backend on both sides.
           </p>
           <div className="flex justify-center gap-2">
-            <button className="btn-primary" onClick={() => join(sessionId)}>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                unlockMonitorAudio();
+                join(sessionId);
+              }}
+            >
               Retry
             </button>
             <button className="btn-ghost" onClick={leave}>
@@ -192,7 +202,7 @@ function StudentContent() {
         </button>
       )}
       {!booted && <BootOverlay onDone={() => setBooted(true)} />}
-      <MonitorDisplay snapshot={snapshot} showRhythmLabel={false} />
+      <MonitorDisplay snapshot={snapshot} showRhythmLabel={false} soundRole="display" />
     </main>
   );
 }
