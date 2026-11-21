@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
+import { CapnoSymbol } from '@/components/brand/CapnoSymbol';
 import { deriveTurningPoints, type TurningPoint } from '@/lib/debrief/turningPoints';
 import { earnedPoints } from '@/lib/engine/scoring';
 import type { ActionStatus, ArchivedSession, FacultyNote, LogEntry } from '@/lib/engine/types';
@@ -103,7 +103,7 @@ export function DebriefReport({
       {/* Header */}
       <header className="border-b border-line pb-4">
         <p className="flex items-center gap-2 text-xs uppercase tracking-widest text-faint">
-          <CapnoGlyph className="h-4 w-auto shrink-0" />
+          <CapnoSymbol className="h-4 w-4 shrink-0" />
           CAPNO Studio debrief report · simulation only — not a clinical record
         </p>
         <h1 className="mt-1 text-2xl font-bold">{scenario.title}</h1>

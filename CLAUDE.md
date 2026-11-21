@@ -130,8 +130,10 @@ instead of guessing in either direction.
 - All pages are client components (`'use client'`) — the app is
   local-first and stateful. Don't convert to server components.
 - Housekeeping: caching changes require bumping `VERSION` in
-  `public/sw.js`; icons are generated (`npm run icons`), never hand-edit
-  the PNGs; vitest runs in Node, so tests must not touch DOM.
+  `public/sw.js`; the logo, app icons and share card are exports of the
+  brand asset pack (`docs/brand.md`) — replace them from the pack, never
+  redraw or hand-edit them; vitest runs in Node, so tests must not touch
+  DOM.
 - Nothing unbounded goes into `SimSnapshot` — it's rebroadcast in full
   twice a second, so wire size must not grow with session length. Vitals
   history (`engine.getHistory()`) is archive-only (that's why

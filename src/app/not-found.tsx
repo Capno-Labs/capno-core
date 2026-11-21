@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LogoTile } from '@/components/brand/LogoTile';
+import { BrandMark } from '@/components/brand/BrandMark';
 import { NAV } from '@/components/shell/nav';
 import { DISPLAY_COPY } from '@/lib/displayCopy';
 
@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <main className="surface-blue flex min-h-screen items-center px-6 py-12">
       <div className="relative mx-auto w-full max-w-2xl">
-        <LogoTile size="lg" />
+        <BrandMark size="lg" tone="white" />
         <p className="mt-8 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-poster-muted">
           Error 404
         </p>

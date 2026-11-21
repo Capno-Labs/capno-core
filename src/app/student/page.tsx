@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { LogoTile } from '@/components/brand/LogoTile';
+import { BrandMark } from '@/components/brand/BrandMark';
 import { BootOverlay } from '@/components/monitor/BootOverlay';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
 import { PreBrief } from '@/components/monitor/PreBrief';
@@ -67,7 +67,7 @@ function StudentContent() {
     return (
       <main className="surface-blue flex min-h-screen items-center justify-center px-6 py-10">
         <div className="relative w-full max-w-md">
-          <LogoTile size="lg" />
+          <BrandMark size="lg" tone="white" />
           <h1 className="display mt-6 text-[clamp(2.75rem,12vw,4.5rem)]">
             {DISPLAY_COPY.studentJoin.map((line, i) => (
               <span
@@ -143,7 +143,7 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <div className="motion-safe:animate-pulse">
-          <LogoTile size="lg" />
+          <BrandMark size="lg" />
         </div>
         <div className="flex gap-2" aria-hidden>
           {sessionId.split('').map((char, i) => (
