@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { AlarmState } from '@/lib/engine/types';
 import { formatStMm } from '@/lib/engine/types';
-import { cuffReadingFailed, displayAlarms, oximeterHasSignal, stIsMeasurable } from './readouts';
+import {
+  cuffReadingFailed,
+  displayAlarms,
+  oximeterHasSignal,
+  stIsMeasurable,
+  TOF_PULSE_INTERVAL_MS,
+  twitchHeights,
+} from './readouts';
 
 const alarm = (vital: AlarmState['vital'], message: string, level: AlarmState['level'] = 'critical'): AlarmState => ({
   vital,
@@ -80,3 +87,36 @@ describe('lost-signal readouts', () => {
   });
 });
 
+describe('twitch bars', () => {
+  it('stimulates at 2 Hz', () => {
+    expect(1000 / TOF_PULSE_INTERVAL_MS).toBe(2);
+  });
+
+  it('draws four equal twitches with no block', () => {
+    expect(twitchHeights({ count: 4, ratio: 100 })).toEqual([1, 1, 1, 1]);
+  });
+
+  it('slopes from the first twitch down to the ratio', () => {
+    const h = twitchHeights({ count: 4, ratio: 40 });
+    expect(h[0]).toBe(1);
+    expect(h[3]).toBeCloseTo(0.4);
+    // Fade runs down the train: each twitch no taller than the one before.
+    expect(h[1]).toBeLessThan(h[0]);
+    expect(h[2]).toBeLessThan(h[1]);
+    expect(h[3]).toBeLessThan(h[2]);
+  });
+
+  it('loses the fourth twitch first, then the third, the second and the first', () => {
+    const present = (count: number) => twitchHeights({ count, ratio: null }).map((h) => h > 0);
+    expect(present(3)).toEqual([true, true, true, false]);
+    expect(present(2)).toEqual([true, true, false, false]);
+    expect(present(1)).toEqual([true, false, false, false]);
+    expect(present(0)).toEqual([false, false, false, false]);
+  });
+
+  it('does not jump as the fourth twitch returns', () => {
+    const three = twitchHeights({ count: 3, ratio: null });
+    const four = twitchHeights({ count: 4, ratio: 0 });
+    three.forEach((h, i) => expect(four[i]).toBeCloseTo(h));
+  });
+});

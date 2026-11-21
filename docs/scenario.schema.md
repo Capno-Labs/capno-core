@@ -99,6 +99,27 @@ monitor shows the plateau no higher than the peak and PEEP no higher than the
 plateau. Alarms: airway pressure above 40 or below 8 cmH₂O, minute volume
 under 3 or over 12 L/min, inspired oxygen under 20%.
 
+Optional: `nmb` — the neuromuscular block, as a twitch monitor finds it. Its
+presence, even as `{}`, attaches a twitch monitor from the start (faculty can
+also attach one during a session): a TOF tile with the reading and four bars
+for the twitches of the last train.
+
+| Field | Range | Meaning |
+|---|---|---|
+| `tofCount` | 0–4, whole | Train-of-four count: twitches present after four stimuli. |
+| `tofRatio` | 0–100 % | Fourth twitch as a percentage of the first. Read only while the count is 4. |
+| `ptc` | 0–15, whole | Post-tetanic count. Read only while the count is 0. |
+
+Fields left out mean no block (count 4, ratio 100%). A count under 4 takes
+the ratio to 0 unless you state one, so a later recovery climbs from 0. The
+tile shows the ratio when all four twitches are present and the count alone
+when fewer are, with the post-tetanic count beneath at a count of 0. Like the
+cuff, the twitch monitor shows its last measurement: it stimulates every
+15 seconds (or when faculty press **Stimulate now**), so a change appears at
+the next measurement, not at once. There are no alarms on it. It is a
+reading, not a drug model: a reversal event states the count and ratio it
+produces and how fast (`overSec`).
+
 Optional: `fico2` — inspired CO2 in mmHg (0–30), the level the trace returns
 to between breaths. Normally 0; above zero is rebreathing (exhausted
 absorbent, a stuck valve) and the baseline rises to it. Shown beside the
@@ -155,6 +176,7 @@ Faculty-triggerable (or automatic) occurrences:
     { "capnoShape": "bronchospasm" },                         // CO2 trace morphology, instant
     { "fico2": 8, "overSec": 300 },                           // rebreathing: the baseline creeps up
     { "vent": { "pip": 42 }, "overSec": 60 },                 // peak airway pressure climbing; plateau unchanged
+    { "nmb": { "tofCount": 4, "tofRatio": 90 }, "overSec": 120 }, // block reversing: four twitches, ratio climbing to 90%
     { "ecg": { "stMm": -1, "stV5Mm": -2 }, "overSec": 60 },   // ST depression developing over 60 s, deeper in V5
     { "ecg": { "tWave": "peaked", "qrs": "wide" } },          // other ECG changes switch instantly
     { "rhythm": "sinus_tach", "pulseless": true },            // PEA: the rhythm stays, the pulse goes
@@ -165,7 +187,8 @@ Faculty-triggerable (or automatic) occurrences:
 
 Effects ramp numeric vitals linearly to the target over `overSec` seconds
 (0/omitted = instant); the ST levels in `ecg`, `fico2` and every reading in
-`vent` ramp the same way. An
+`vent` and `nmb` ramp the same way (a ramping count passes through the whole
+numbers between). An
 `ecg` effect changes only the fields it lists — to return to normal, set
 them explicitly (`"stMm": 0`, `"tWave": "normal"`). `afterSec` delays the
 effect after the trigger.

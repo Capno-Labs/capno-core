@@ -36,6 +36,10 @@ The canonical smoke flow:
    `HR`, `Et Agent`). Ramp preset buttons: `Instant`, `3 s`, `10 s`.
 4. Rhythm/CO₂ buttons are named by their RHYTHM_LABELS / CAPNO_SHAPE_LABELS
    text (e.g. `Sinus with PVCs`).
+5. Twitch monitor: click `Attach twitch monitor`; the steppers are
+   `getByLabel('Count target')`, `Ratio target` (only at count 4) and
+   `PTC target` (only at count 0). The TOF tile changes at the next
+   measurement — click `Stimulate now` rather than waiting 15 s.
 
 ## Run-sheet import flow
 

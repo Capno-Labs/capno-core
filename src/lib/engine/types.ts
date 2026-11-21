@@ -175,6 +175,55 @@ export function minuteVentilation(vtMl: number, rr: number): number {
   return (vtMl * rr) / 1000;
 }
 
+// ── Neuromuscular monitoring ─────────────────────────────────────────────────
+
+/**
+ * The patient's neuromuscular block, as a twitch monitor would find it. Like
+ * the vitals, these are authored or instructor-set targets: a scenario says
+ * what the monitor would count, not which drug was given.
+ */
+export interface NeuromuscularBlock {
+  /** Train-of-four count: twitches present after four stimuli, 0–4. */
+  tofCount: number;
+  /** Train-of-four ratio: the fourth twitch as a percentage of the first,
+   *  0–100. Read only while all four twitches are present. Capped at 100, as
+   *  a normalised or electromyographic reading is; a raw acceleromyograph
+   *  can read higher (Thilen et al., Anesthesiology 2023;138:13). */
+  tofRatio: number;
+  /** Post-tetanic count: twitches after a tetanic stimulus, 0–PTC_MAX. Read
+   *  only while the train-of-four count is 0. */
+  ptc: number;
+}
+
+export const NMB_KEYS = ['tofCount', 'tofRatio', 'ptc'] as const satisfies readonly (keyof NeuromuscularBlock)[];
+export type NmbKey = (typeof NMB_KEYS)[number];
+
+/** Highest post-tetanic count the sim will hold: 15, the most a Blink
+ *  TwitchView or an Organon TOF-Watch SX counts (a Philips IntelliVue NMT
+ *  counts to 20, an IDMED TOFscan to 10). */
+export const PTC_MAX = 15;
+
+export const NMB_META: Record<NmbKey, VentMeta> = {
+  tofCount: { label: 'TOF count', unit: 'of 4', min: 0, max: 4, step: 1 },
+  tofRatio: { label: 'TOF ratio', unit: '%', min: 0, max: 100, step: 5 },
+  ptc: { label: 'PTC', unit: 'twitches', min: 0, max: PTC_MAX, step: 1 },
+};
+
+/** No neuromuscular blocker on board: four equal twitches. */
+export const UNBLOCKED: NeuromuscularBlock = { tofCount: 4, tofRatio: 100, ptc: 0 };
+
+/**
+ * What the twitch monitor last measured. The ratio is null unless all four
+ * twitches were present, and the post-tetanic count is null unless none was.
+ */
+export interface TofReading {
+  count: number;
+  ratio: number | null;
+  ptc: number | null;
+  /** Elapsed scenario seconds when the monitor stimulated. */
+  atSec: number;
+}
+
 /** Highest inspired CO2 the sim will hold, mmHg. Reported cases of a stuck
  *  expiratory valve reach 30 (Lee et al., Korean J Anesthesiol 2013;65:337). */
 export const FICO2_MAX = 30;
@@ -359,6 +408,14 @@ export interface Vitals extends NumericVitals {
   /** Volatile agent in use. Absent = sevoflurane. */
   agent?: AnestheticAgent;
   /**
+   * Neuromuscular block. In a scenario's baseline, its presence (even as
+   * `{}`) attaches a twitch monitor from the start; fields left out mean no
+   * block (four twitches, ratio 100%). In a snapshot it is present, with every
+   * field, while the twitch monitor is attached — the true state, where
+   * `snapshot.tof` is what the monitor last measured.
+   */
+  nmb?: Partial<NeuromuscularBlock>;
+  /**
    * No pulse despite an organized rhythm: pulseless electrical activity
    * (any organized rhythm) or pulseless VT. Absent = false. VF, torsades,
    * asystole and the legacy `pea` rhythm are pulseless regardless — see
@@ -464,6 +521,9 @@ export interface VitalEffect {
   vent?: Partial<Ventilation>;
   /** Switch the volatile agent. Applied immediately. */
   agent?: AnestheticAgent;
+  /** Neuromuscular block targets: only the fields listed change, and each
+   *  ramps over `overSec`. The monitor shows them at its next measurement. */
+  nmb?: Partial<NeuromuscularBlock>;
   /** Seconds over which numeric targets are reached. Default 0 (instant). */
   overSec?: number;
   /** Seconds to wait after the trigger before this effect begins. Default 0. */
@@ -651,6 +711,12 @@ export interface SimSnapshot {
    * absent in snapshots archived before it existed.
    */
   gas?: { agent: AnestheticAgent; mac: number };
+  /**
+   * The twitch monitor's last measurement. Present only while a twitch
+   * monitor is attached; like the cuff, it updates when the monitor
+   * stimulates, not when the block changes.
+   */
+  tof?: TofReading;
   /** True while the monitor shows a V5 lead under lead II. Optional: absent
    *  (= lead II only) in snapshots archived before the V5 lead existed. */
   v5Lead?: boolean;

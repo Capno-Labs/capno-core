@@ -216,6 +216,23 @@ describe('scenario schema', () => {
     expect(validateScenario(unknown).ok).toBe(false);
   });
 
+  it('accepts a neuromuscular block on baseline and effects, within range', () => {
+    const doc = JSON.parse(JSON.stringify(inductionHypotension));
+    doc.baselineVitals.nmb = {};
+    expect(validateScenario(doc).ok).toBe(true);
+    doc.baselineVitals.nmb = { tofCount: 0, ptc: 2 };
+    doc.events[0].effects[0].nmb = { tofCount: 4, tofRatio: 85 };
+    expect(validateScenario(doc).ok).toBe(true);
+    for (const bad of [{ tofCount: 5 }, { tofCount: 2.5 }, { tofRatio: 120 }, { ptc: 16 }, { ptc: -1 }, { t1: 50 }]) {
+      const d = JSON.parse(JSON.stringify(doc));
+      d.baselineVitals.nmb = bad;
+      expect(validateScenario(d).ok, JSON.stringify(bad)).toBe(false);
+      const e = JSON.parse(JSON.stringify(doc));
+      e.events[0].effects[0].nmb = bad;
+      expect(validateScenario(e).ok, JSON.stringify(bad)).toBe(false);
+    }
+  });
+
   it('accepts machine readings and an agent on baseline and effects, within range', () => {
     const doc = JSON.parse(JSON.stringify(inductionHypotension));
     doc.baselineVitals.vent = {};

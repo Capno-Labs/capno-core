@@ -11,6 +11,7 @@ import {
 } from '@/lib/engine/types';
 import { MIN_PULSE_PRESSURE, VITAL_META, maxDbpFor } from '@/lib/engine/vitals';
 import { EcgMorphologyFields } from './EcgMorphologyFields';
+import { NmbFields } from './NmbFields';
 import { VentFields } from './VentFields';
 
 /**
@@ -215,6 +216,16 @@ export function BaselineVitalsEditor({
             else delete next.vent;
             if (agent) next.agent = agent;
             else delete next.agent;
+            onChange(next);
+          }}
+        />
+        <NmbFields
+          mode="baseline"
+          nmb={vitals.nmb}
+          onChange={(nmb) => {
+            const next = { ...vitals };
+            if (nmb) next.nmb = nmb;
+            else delete next.nmb;
             onChange(next);
           }}
         />

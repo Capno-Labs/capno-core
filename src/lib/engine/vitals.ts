@@ -1,5 +1,16 @@
-import type { AlarmState, AnestheticAgent, NumericVitals, Patient, Ventilation, VentKey, Vitals } from './types';
-import { hasPulse, minuteVentilation, NUMERIC_VITAL_KEYS, VENT_META } from './types';
+import type {
+  AlarmState,
+  AnestheticAgent,
+  NeuromuscularBlock,
+  NmbKey,
+  NumericVitals,
+  Patient,
+  TofReading,
+  Ventilation,
+  VentKey,
+  Vitals,
+} from './types';
+import { hasPulse, minuteVentilation, NMB_META, NUMERIC_VITAL_KEYS, VENT_META } from './types';
 
 /** Display metadata for each numeric vital (units, formatting, slider range). */
 export interface VitalMeta {
@@ -105,6 +116,70 @@ export function esophagealEtco2(trueEtco2: number, breaths: number): number {
  *  "imCO2 High" limit (Philips IntelliVue MX750/MX850 Instructions for Use;
  *  IntelliVue Configuration Guide, Rel. G.0). */
 export const FICO2_ALARM_HIGH = 4;
+
+// ── Neuromuscular monitoring ─────────────────────────────────────────────────
+
+/** Clamp a neuromuscular-block field to its range. */
+export function clampNmb(key: NmbKey, value: number): number {
+  const m = NMB_META[key];
+  return Math.min(m.max, Math.max(m.min, value));
+}
+
+/**
+ * Seconds between the twitch monitor's automatic measurements: 15, the cycle
+ * of an Organon TOF-Watch SX (Operator Manual 33.512/A) and an option on an
+ * IDMED TOFscan. Trains should be at least 12 s apart (Fuchs-Buder et al.,
+ * Acta Anaesthesiol Scand 2023;67:994, Table 3); a Blink TwitchView repeats
+ * every 20 s and a Philips IntelliVue NMT offers 12 s to 60 min.
+ */
+export const TOF_INTERVAL_SEC = 15;
+
+/**
+ * Depth of block, as the 2023 ASA guideline grades it for a quantitative
+ * monitor (Thilen et al., Anesthesiology 2023;138:13, depth-of-block table;
+ * the same scheme is in Fuchs-Buder et al. 2023, Table 10):
+ * complete — post-tetanic count 0; deep — post-tetanic count 1 or more with
+ * no train-of-four response; moderate — count 1–3; shallow — ratio under
+ * 0.4; minimal — ratio 0.4 to under 0.9; acceptable recovery — 0.9 or more.
+ */
+export type BlockDepth = 'complete' | 'deep' | 'moderate' | 'shallow' | 'minimal' | 'recovered';
+
+export const BLOCK_DEPTH_LABELS: Record<BlockDepth, string> = {
+  complete: 'complete block',
+  deep: 'deep block',
+  moderate: 'moderate block',
+  shallow: 'shallow block',
+  minimal: 'minimal block',
+  recovered: 'acceptable recovery',
+};
+
+/** Ratio (%) at and above which recovery is acceptable — the ASA's threshold
+ *  to confirm before extubation (Thilen 2023, recommendation 3). */
+export const TOF_RATIO_RECOVERED = 90;
+/** Ratio (%) below which a four-twitch block is shallow rather than minimal. */
+export const TOF_RATIO_MINIMAL = 40;
+
+export function blockDepth(reading: Pick<TofReading, 'count' | 'ratio' | 'ptc'>): BlockDepth {
+  if (reading.count === 0) return (reading.ptc ?? 0) >= 1 ? 'deep' : 'complete';
+  if (reading.count < 4 || reading.ratio === null) return 'moderate';
+  if (reading.ratio < TOF_RATIO_MINIMAL) return 'shallow';
+  return reading.ratio < TOF_RATIO_RECOVERED ? 'minimal' : 'recovered';
+}
+
+/**
+ * What a twitch monitor reads from a block: the count, the ratio only when
+ * all four twitches are present, and the post-tetanic count only when none
+ * is.
+ */
+export function tofReading(nmb: NeuromuscularBlock, atSec: number): TofReading {
+  const count = Math.round(clampNmb('tofCount', nmb.tofCount));
+  return {
+    count,
+    ratio: count === 4 ? Math.round(clampNmb('tofRatio', nmb.tofRatio)) : null,
+    ptc: count === 0 ? Math.round(clampNmb('ptc', nmb.ptc)) : null,
+    atSec,
+  };
+}
 
 // ── Anesthesia machine ───────────────────────────────────────────────────────
 

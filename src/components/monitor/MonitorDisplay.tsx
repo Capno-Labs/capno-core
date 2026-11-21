@@ -15,6 +15,7 @@ import { BeatClock } from './beatClock';
 import { MonitorAudio, useSoundLevel } from './MonitorAudio';
 import { unlockMonitorAudio, useMonitorAudioRunning } from './monitorAudioContext';
 import { nextSoundLevel, type SoundLevel, type SoundRole } from './soundPref';
+import { TofTile } from './TofTile';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
 import { cuffReadingFailed, displayAlarms, NO_READING, oximeterHasSignal, stIsMeasurable } from './readouts';
@@ -327,6 +328,7 @@ export function MonitorDisplay({
               />
             </>
           )}
+          {snapshot.tof && <TofTile reading={snapshot.tof} />}
         </div>
       </div>
     </div>

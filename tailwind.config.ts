@@ -119,6 +119,11 @@ const config: Config = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.35' },
         },
+        // One twitch of a train-of-four: the bar jumps up from the baseline.
+        twitch: {
+          '0%': { transform: 'scaleY(0)' },
+          '100%': { transform: 'scaleY(1)' },
+        },
         'char-pop': {
           '0%': { transform: 'scale(0.7)', opacity: '0' },
           '60%': { transform: 'scale(1.12)', opacity: '1' },
@@ -163,6 +168,7 @@ const config: Config = {
       },
       animation: {
         'alarm-flash': 'alarm-flash 1s ease-in-out infinite',
+        twitch: 'twitch 120ms ease-out backwards',
         'char-pop': 'char-pop 180ms ease-out',
         shake: 'shake 350ms ease-in-out',
         'crt-line': 'crt-line 450ms ease-out both',

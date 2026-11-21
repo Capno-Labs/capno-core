@@ -7,7 +7,9 @@ import type {
   EcgMorphology,
   FacultyNote,
   LogEntry,
+  NeuromuscularBlock,
   NibpReading,
+  NmbKey,
   NumericVitals,
   Patient,
   PvcFrequency,
@@ -16,6 +18,7 @@ import type {
   ScenarioEvent,
   SimSnapshot,
   SimStatus,
+  TofReading,
   VentKey,
   Ventilation,
   VitalEffect,
@@ -28,6 +31,8 @@ import {
   FICO2_MAX,
   formatStMm,
   hasPulse,
+  NMB_KEYS,
+  NMB_META,
   NORMAL_ECG,
   NUMERIC_VITAL_KEYS,
   PVC_FREQUENCY_LABELS,
@@ -38,10 +43,12 @@ import {
   ST_MM_MAX,
   ST_MM_MIN,
   T_WAVE_LABELS,
+  UNBLOCKED,
   VENT_KEYS,
   VENT_META,
 } from './types';
 import {
+  clampNmb,
   clampVent,
   clampVital,
   defaultVentilation,
@@ -50,6 +57,8 @@ import {
   maxDbpFor,
   measuredEtco2,
   roundVital,
+  TOF_INTERVAL_SEC,
+  tofReading,
   VITAL_META,
 } from './vitals';
 
@@ -62,6 +71,29 @@ function baselineVentilation(patient: Patient, stated: Partial<Ventilation> | un
     if (value !== undefined) vent[key] = clampVent(key, value);
   }
   return vent;
+}
+
+/**
+ * Fewer than four twitches means there is no fourth to compare, so the ratio
+ * is 0 unless stated — and a later recovery climbs from there, not from the
+ * 100% of an unblocked patient.
+ */
+function withRatioFollowingCount(patch: Partial<NeuromuscularBlock>): Partial<NeuromuscularBlock> {
+  return patch.tofCount !== undefined && patch.tofCount < 4 && patch.tofRatio === undefined
+    ? { ...patch, tofRatio: 0 }
+    : patch;
+}
+
+/** A scenario's starting neuromuscular block: none, with whatever the
+ *  baseline states laid over it. */
+function baselineNmb(stated: Partial<NeuromuscularBlock> | undefined): NeuromuscularBlock {
+  const nmb = { ...UNBLOCKED };
+  const asked = withRatioFollowingCount(stated ?? {});
+  for (const key of NMB_KEYS) {
+    const value = asked[key];
+    if (value !== undefined) nmb[key] = clampNmb(key, value);
+  }
+  return nmb;
 }
 
 function clampFico2(value: number): number {
@@ -139,6 +171,11 @@ export class SimulationEngine {
   /** The monitor shows the machine tiles. Faculty can toggle at runtime. */
   private ventShown: boolean;
   private agent: AnestheticAgent;
+  /** Neuromuscular block; each field ramps like a numeric vital. */
+  private nmb: NeuromuscularBlock;
+  private nmbRamps: Partial<Record<NmbKey, { target: number; ratePerSec: number }>> = {};
+  /** The twitch monitor's last measurement; null = no twitch monitor attached. */
+  private lastTof: TofReading | null = null;
   /** ECG complex morphology. The ST level ramps like a numeric vital. */
   private ecg: Required<EcgMorphology>;
   private stRamps: Partial<Record<StField, { target: number; ratePerSec: number }>> = {};
@@ -203,7 +240,7 @@ export class SimulationEngine {
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.preBriefEnabled = options?.preBrief ?? false;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
-    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, vent, agent, ...numeric } =
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, vent, agent, nmb, ...numeric } =
       scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
@@ -211,6 +248,8 @@ export class SimulationEngine {
     this.vent = baselineVentilation(scenario.patient, vent);
     this.ventShown = vent !== undefined;
     this.agent = agent ?? 'sevoflurane';
+    this.nmb = baselineNmb(nmb);
+    this.lastTof = nmb !== undefined ? tofReading(this.nmb, 0) : null;
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
     this.pulseless = pulseless ?? false;
@@ -338,7 +377,7 @@ export class SimulationEngine {
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
     this.phaseChangedAtSec = 0;
-    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, vent, agent, ...numeric } =
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, vent, agent, nmb, ...numeric } =
       this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
@@ -349,6 +388,9 @@ export class SimulationEngine {
     this.ventRamps = {};
     this.ventShown = vent !== undefined;
     this.agent = agent ?? 'sevoflurane';
+    this.nmb = baselineNmb(nmb);
+    this.nmbRamps = {};
+    this.lastTof = nmb !== undefined ? tofReading(this.nmb, 0) : null;
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
     this.stRamps = {};
@@ -449,6 +491,15 @@ export class SimulationEngine {
       this.vent[key] = next;
       if (next === ramp.target) delete this.ventRamps[key];
     }
+    for (const key of NMB_KEYS) {
+      const ramp = this.nmbRamps[key];
+      if (!ramp) continue;
+      const step = ramp.ratePerSec * dtSec;
+      const cur = this.nmb[key];
+      const next = cur < ramp.target ? Math.min(ramp.target, cur + step) : Math.max(ramp.target, cur - step);
+      this.nmb[key] = next;
+      if (next === ramp.target) delete this.nmbRamps[key];
+    }
     if (this.fico2Ramp) {
       const { target, ratePerSec } = this.fico2Ramp;
       const step = ratePerSec * dtSec;
@@ -468,6 +519,11 @@ export class SimulationEngine {
     // Automatic NIBP cuff cycle.
     if (this.lastNibp && this.elapsedSec - this.lastNibp.atSec >= this.nibpIntervalSec()) {
       this.cycleNibp();
+    }
+
+    // Automatic twitch-monitor measurement.
+    if (this.lastTof && this.elapsedSec - this.lastTof.atSec >= TOF_INTERVAL_SEC) {
+      this.measureTof();
     }
 
     // Vitals history sample every 10 s (archive-only; not broadcast).
@@ -658,6 +714,76 @@ export class SimulationEngine {
     if (agent === this.agent) return;
     this.agent = agent;
     this.addLog('vital_change', `Agent → ${AGENT_LABELS[agent]}`);
+  }
+
+  /**
+   * Set the neuromuscular block. Only the fields in `patch` change; each ramps
+   * to its target over `overSec` seconds (0 = instant). The monitor shows the
+   * change at its next measurement, not at once. Taking the count below four
+   * takes the ratio to 0 with it — there is no fourth twitch to compare —
+   * unless the patch says otherwise.
+   */
+  setNmb(patch: Partial<NeuromuscularBlock>, overSec = 0): void {
+    const asked = withRatioFollowingCount(patch);
+    for (const key of NMB_KEYS) {
+      const value = asked[key];
+      if (value === undefined) continue;
+      const target = clampNmb(key, value);
+      if (target === this.getNmbTarget(key)) continue;
+      const distance = Math.abs(target - this.nmb[key]);
+      if (overSec <= 0 || distance === 0) {
+        delete this.nmbRamps[key];
+        this.nmb[key] = target;
+      } else {
+        this.nmbRamps[key] = { target, ratePerSec: distance / overSec };
+      }
+      // The ratio following the count down is not a separate decision.
+      if (patch[key] === undefined) continue;
+      const meta = NMB_META[key];
+      this.addLog(
+        'vital_change',
+        `${meta.label} → ${target}${key === 'tofRatio' ? '%' : ''}`,
+        overSec > 0 ? `over ${overSec}s` : undefined,
+      );
+    }
+  }
+
+  /** Where a block field is headed: its ramp target if ramping, else its value now. */
+  getNmbTarget(key: NmbKey): number {
+    return this.nmbRamps[key]?.target ?? this.nmb[key];
+  }
+
+  /** Attach or remove the twitch monitor (faculty toggle). Attaching measures at once. */
+  setTofAttached(on: boolean): void {
+    if (on === (this.lastTof !== null)) return;
+    if (on) {
+      this.addLog('vital_change', 'Twitch monitor attached');
+      this.measureTof();
+    } else {
+      this.lastTof = null;
+      this.addLog('vital_change', 'Twitch monitor removed');
+    }
+  }
+
+  getTofAttached(): boolean {
+    return this.lastTof !== null;
+  }
+
+  /** Stimulate now (automatic interval or faculty "stimulate"). Logged only
+   *  when the reading differs from the last one — the monitor repeats every
+   *  few seconds. */
+  measureTof(): void {
+    const prev = this.lastTof;
+    const next = tofReading(this.nmb, this.elapsedSec);
+    this.lastTof = next;
+    if (prev && prev.count === next.count && prev.ratio === next.ratio && prev.ptc === next.ptc) return;
+    const text =
+      next.ratio !== null
+        ? `TOF ${next.ratio}%`
+        : next.ptc !== null
+          ? `TOF count 0, PTC ${next.ptc}`
+          : `TOF count ${next.count}`;
+    this.addLog('vital_change', text, 'twitch monitor');
   }
 
   /** Where the inspired CO2 is headed: its ramp target if ramping, else its value now. */
@@ -881,6 +1007,15 @@ export class SimulationEngine {
       fico2: Math.round(this.fico2 * 10) / 10,
       pvcFrequency: this.pvcFrequency,
       ...(this.ventShown ? { vent: this.shownVent() } : {}),
+      ...(this.lastTof
+        ? {
+            nmb: {
+              tofCount: Math.round(this.nmb.tofCount),
+              tofRatio: Math.round(this.nmb.tofRatio),
+              ptc: Math.round(this.nmb.ptc),
+            },
+          }
+        : {}),
       agent: this.agent,
       ecg: {
         ...this.ecg,
@@ -950,6 +1085,7 @@ export class SimulationEngine {
       vitals,
       nibp: this.lastNibp ? { ...this.lastNibp, atSec: Math.floor(this.lastNibp.atSec) } : null,
       v5Lead: this.v5Lead,
+      ...(this.lastTof ? { tof: { ...this.lastTof, atSec: Math.floor(this.lastTof.atSec) } } : {}),
       gas: {
         agent: this.agent,
         mac: Math.round(macMultiple(this.agent, vitals.agentEt, this.scenario.patient.age) * 100) / 100,
@@ -979,6 +1115,7 @@ export class SimulationEngine {
     if (effect.ecg) this.setEcg(effect.ecg, effect.overSec ?? 0);
     if (effect.pulseless !== undefined) this.setPulseless(effect.pulseless);
     if (effect.vent) this.setVent(effect.vent, effect.overSec ?? 0);
+    if (effect.nmb) this.setNmb(effect.nmb, effect.overSec ?? 0);
     if (effect.agent) this.setAgent(effect.agent);
     if (effect.vitals) {
       for (const key of NUMERIC_VITAL_KEYS) {

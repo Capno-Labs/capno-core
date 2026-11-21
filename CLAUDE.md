@@ -144,6 +144,9 @@ instead of guessing in either direction.
   `snapshot.nibp` (last measured), not live values. Only artLine scenarios
   show live pressure. Don't "fix" a stale NIBP tile — the staleness is the
   teaching point.
+- The TOF tile shows `snapshot.tof` — what the twitch monitor last measured —
+  not `vitals.nmb`, the true block. It refreshes every 15 s or on "Stimulate
+  now", so a block change appears late by design, like the cuff.
 - The monitor shows *measured* values, not always the snapshot's. The HR tile
   is `vitals.hr × clock.measuredRate()` (counted from the beats the shared
   `BeatClock` drew, so it can sit a beat off the slider and wanders in AF);

@@ -11,11 +11,14 @@ import {
   QT_INTERVAL_LABELS,
   RHYTHM_LABELS,
   T_WAVE_LABELS,
+  NMB_KEYS,
+  NMB_META,
   VENT_KEYS,
   VENT_META,
 } from '@/lib/engine/types';
 import { VITAL_META } from '@/lib/engine/vitals';
 import { EcgMorphologyFields } from './EcgMorphologyFields';
+import { NmbFields } from './NmbFields';
 import { VentFields } from './VentFields';
 
 /**
@@ -52,6 +55,10 @@ export function effectSummary(effect: VitalEffect): string {
     if (value !== undefined) parts.push(`${VENT_META[key].label}→${value}`);
   }
   if (effect.agent) parts.push(`agent→${AGENT_LABELS[effect.agent]}`);
+  for (const key of NMB_KEYS) {
+    const value = effect.nmb?.[key];
+    if (value !== undefined) parts.push(`${NMB_META[key].label}→${value}`);
+  }
   if (parts.length === 0) return 'no changes yet';
   const timing: string[] = [];
   if (effect.afterSec) timing.push(`after ${effect.afterSec}s`);
@@ -206,6 +213,16 @@ export function EffectEditor({
             else delete next.vent;
             if (agent) next.agent = agent;
             else delete next.agent;
+            onChange(next);
+          }}
+        />
+        <NmbFields
+          mode="effect"
+          nmb={effect.nmb}
+          onChange={(nmb) => {
+            const next = { ...effect };
+            if (nmb) next.nmb = nmb;
+            else delete next.nmb;
             onChange(next);
           }}
         />
