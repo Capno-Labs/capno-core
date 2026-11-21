@@ -57,7 +57,7 @@ export function EventDetailEditor({
         />
         <span className="text-sm font-bold">{title}</span>
         {event.autoAtSec !== undefined ? (
-          <span className="rounded bg-blue-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-blue ring-1 ring-blue/30">
+          <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-brand-strong ring-1 ring-brand/30">
             AUTO {fmtTime(event.autoAtSec)}
           </span>
         ) : (
@@ -66,7 +66,7 @@ export function EventDetailEditor({
           </span>
         )}
         {warningCount > 0 && (
-          <span className="rounded bg-amber-soft px-1.5 py-0.5 text-[10px] font-semibold text-amber-strong ring-1 ring-amber/40">
+          <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn-strong ring-1 ring-warn/40">
             ⚠ {warningCount}
           </span>
         )}
@@ -162,7 +162,7 @@ export function EventDetailEditor({
             <button
               className={`px-3 py-1.5 text-xs font-semibold ${
                 event.autoAtSec !== undefined
-                  ? 'bg-amber text-on-amber'
+                  ? 'bg-brand text-on-brand'
                   : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
               aria-pressed={event.autoAtSec !== undefined}
@@ -173,7 +173,7 @@ export function EventDetailEditor({
             <button
               className={`px-3 py-1.5 text-xs font-semibold ${
                 event.autoAtSec === undefined
-                  ? 'bg-amber text-on-amber'
+                  ? 'bg-brand text-on-brand'
                   : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
               aria-pressed={event.autoAtSec === undefined}

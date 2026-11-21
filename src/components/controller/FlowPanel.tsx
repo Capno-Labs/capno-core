@@ -106,7 +106,7 @@ export function FlowPanel() {
     ? scenario.expectedActions.filter((a) => !a.critical).length
     : 0;
 
-  // One computation per card feeds both the hint text and the amber "about
+  // One computation per card feeds both the hint text and the orange "about
   // to fire" treatment, so they can never disagree. A past-due unfired auto
   // will never auto-fire (the engine schedules only future events when the
   // toggle flips on mid-run), so it shows as a suggestion, not a countdown.
@@ -136,7 +136,7 @@ export function FlowPanel() {
     const imminent = running && remaining <= IMMINENT_SEC;
     return {
       hint: (
-        <span className={`font-mono text-[10px] ${imminent ? 'text-amber-strong' : 'text-muted'}`}>
+        <span className={`font-mono text-[10px] ${imminent ? 'text-warn-strong' : 'text-muted'}`}>
           {running ? `auto in ${formatClock(remaining)}` : `auto at ${formatClock(ev.autoAtSec)}`}
         </span>
       ),
@@ -155,7 +155,7 @@ export function FlowPanel() {
     // on the card that is already next: pinning it would change nothing.
     const pinControl = !isFired && (isPinned || !isNext) && (
       <button
-        className="text-[10px] font-semibold text-faint hover:text-amber-strong"
+        className="text-[10px] font-semibold text-faint hover:text-brand-strong"
         onClick={(e) => {
           pinNextEvent(isPinned ? null : ev.id);
           // Drop focus: the shortcut hook ignores keys while a button is
@@ -170,7 +170,7 @@ export function FlowPanel() {
     // scenarios. Authored events are saved from the case editor instead.
     const saveControl = !authoredIds.has(ev.id) && (
       <button
-        className="text-[10px] font-semibold text-faint hover:text-amber-strong"
+        className="text-[10px] font-semibold text-faint hover:text-brand-strong"
         title="Save this improvised event to your personal library"
         onClick={(e) => {
           const result = saveEventToLibrary(payloadFromEvent(ev));
@@ -188,7 +188,7 @@ export function FlowPanel() {
       <div
         key={ev.id}
         className={`space-y-1.5 rounded-md p-1.5 ring-1 ${
-          imminent ? 'bg-amber-soft ring-amber/40' : 'bg-panel/60 ring-line'
+          imminent ? 'bg-warn-soft ring-warn/40' : 'bg-panel/60 ring-line'
         }`}
       >
         <button
@@ -218,7 +218,7 @@ export function FlowPanel() {
                 </span>
               )}
               {isNext && (
-                <span className="rounded bg-amber text-on-amber px-1 py-0.5 text-[9px] font-bold uppercase">
+                <span className="rounded bg-brand text-on-brand px-1 py-0.5 text-[9px] font-bold uppercase">
                   Next up · N
                 </span>
               )}
@@ -272,7 +272,7 @@ export function FlowPanel() {
           <button
             className={`rounded px-2 py-1 text-xs font-semibold transition ${
               showAddForm
-                ? 'bg-blue-soft text-blue ring-1 ring-blue/30'
+                ? 'bg-brand-soft text-brand-strong ring-1 ring-brand/30'
                 : 'bg-panel-2 text-muted hover:bg-panel-3'
             }`}
             onClick={() => setShowAddForm(!showAddForm)}
@@ -325,7 +325,7 @@ export function FlowPanel() {
             <div key={phase.id}>
               <h4
                 className={`mb-1 text-[11px] font-bold uppercase tracking-wider ${
-                  phase.id === snapshot.phaseId ? 'text-amber-strong' : 'text-faint'
+                  phase.id === snapshot.phaseId ? 'text-brand-strong' : 'text-faint'
                 }`}
               >
                 {phase.label}
@@ -349,7 +349,7 @@ export function FlowPanel() {
 
       {hiddenCount > 0 && (
         <button
-          className="text-xs text-amber-strong hover:underline"
+          className="text-xs text-brand-strong hover:underline"
           onClick={() => setCriticalOnly(false)}
         >
           {hiddenCount} non-critical action{hiddenCount === 1 ? '' : 's'} hidden — show all

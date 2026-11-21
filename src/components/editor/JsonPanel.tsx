@@ -31,7 +31,7 @@ export function JsonPanel({
         </h2>
         {dirty ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-strong">unapplied edits</span>
+            <span className="text-xs text-warn-strong">unapplied edits</span>
             <button className="btn-primary !py-1 text-xs" onClick={onApply}>
               Apply JSON
             </button>

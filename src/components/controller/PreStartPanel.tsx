@@ -39,9 +39,9 @@ export function PreStartPanel() {
       };
 
   return (
-    <section className="card space-y-3 ring-1 !ring-blue/30" data-tour="connect">
+    <section className="card space-y-3 ring-1 !ring-brand/30" data-tour="connect">
       <div className="flex items-start justify-between gap-2">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-amber-strong">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-brand-strong">
           Before you start
         </h2>
         <button

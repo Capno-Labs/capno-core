@@ -310,7 +310,7 @@ export function SyllabusImportPanel({ onChanged }: { onChanged: () => void }) {
         </>
       )}
 
-      <p className="text-xs text-amber-strong">
+      <p className="text-xs text-warn-strong">
         AI-generated drafts are unreviewed. Faculty must review all clinical content — drug
         effects, vital-sign values, and timings — before use with learners.
       </p>

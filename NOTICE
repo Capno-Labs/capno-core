@@ -9,3 +9,8 @@ CAPNO, CAPNO Studio, and the Capno Labs name, logos, and brand assets
 are trademarks of Capno Labs LLC. Consistent with Section 6 of the
 Apache License 2.0, no trademark rights are granted; brand assets in
 this repository are included for faithful builds of this software.
+
+The display typeface in src/fonts/ is a subset of Inter Tight
+(Copyright 2022 The Inter Project Authors,
+https://github.com/rsms/inter-tight), licensed under the SIL Open
+Font License, Version 1.1 — see src/fonts/OFL.txt.

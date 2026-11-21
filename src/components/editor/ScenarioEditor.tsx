@@ -91,7 +91,7 @@ const RAIL_IDS: SectionId[] = [...SECTIONS.map((s) => s.id), 'history'];
 
 const STATUS_TONE: Record<CloudScenarioStatus, PillTone> = {
   draft: 'neutral',
-  review: 'amber',
+  review: 'warn',
   published: 'green',
 };
 
@@ -478,7 +478,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                       <span className="text-xs text-faint">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
                     </span>
                     {i > 0 && (
-                      <button className="text-xs text-amber-strong hover:underline" onClick={() => restoreVersion(v)}>
+                      <button className="text-xs text-brand-strong hover:underline" onClick={() => restoreVersion(v)}>
                         restore
                       </button>
                     )}
@@ -540,17 +540,17 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           <span className="text-xs text-green">
             Saved {savedAt}
             {cloudState === 'syncing' && <span className="text-muted"> · syncing…</span>}
-            {cloudState === 'synced' && <span className="text-amber-strong"> · synced to cloud</span>}
+            {cloudState === 'synced' && <span className="text-brand-strong"> · synced to cloud</span>}
             {cloudState === 'failed' && (
-              <span className="text-amber-strong"> · cloud sync pending (will retry)</span>
+              <span className="text-warn-strong"> · cloud sync pending (will retry)</span>
             )}
           </span>
         )}
         {!validation.ok && (
-          <span className="text-xs text-amber-strong">{validation.errors.length} validation issue(s)</span>
+          <span className="text-xs text-warn-strong">{validation.errors.length} validation issue(s)</span>
         )}
         {validation.ok && warnings.length > 0 && (
-          <span className="text-xs text-amber-strong">
+          <span className="text-xs text-warn-strong">
             {warnings.length} authoring warning{warnings.length === 1 ? '' : 's'}
           </span>
         )}
@@ -582,7 +582,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {undoScenario && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-blue-soft p-3 text-sm text-blue ring-1 ring-blue/30">
+        <div className="flex flex-wrap items-center gap-2 rounded-md bg-brand-soft p-3 text-sm text-brand-strong ring-1 ring-brand/30">
           <span className="flex-1">AI draft loaded — your previous work was replaced.</span>
           <button className="btn-secondary !py-1 text-xs" onClick={undoDraftLoad}>
             Undo
@@ -594,7 +594,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {aiDraft && (
-        <div className="rounded-md bg-amber-soft p-3 text-sm text-amber-strong ring-1 ring-amber/40">
+        <div className="rounded-md bg-warn-soft p-3 text-sm text-warn-strong ring-1 ring-warn/40">
           ⚠ AI-generated draft — requires faculty review of all clinical content (drug effects,
           vital values, timings) before use with learners. Remove the “{AI_GENERATED_TAG}” topic
           tag after review.
@@ -612,10 +612,10 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {issues.globalWarnings.length > 0 && (
-        <div className="rounded-md bg-amber-soft p-3 text-sm ring-1 ring-amber/40">
+        <div className="rounded-md bg-warn-soft p-3 text-sm ring-1 ring-warn/40">
           <ul className="list-disc space-y-0.5 pl-5">
             {issues.globalWarnings.map((w, i) => (
-              <li key={i} className={w.severity === 'warning' ? 'text-amber-strong' : 'text-muted'}>
+              <li key={i} className={w.severity === 'warning' ? 'text-warn-strong' : 'text-muted'}>
                 <span className="font-mono text-xs">{w.path}</span>: {w.message}
               </li>
             ))}
@@ -654,13 +654,13 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                 </div>
               )}
               {activeIssues && activeIssues.warnings.length > 0 && (
-                <div className="rounded-md bg-amber-soft p-3 text-sm ring-1 ring-amber/40">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-strong">
+                <div className="rounded-md bg-warn-soft p-3 text-sm ring-1 ring-warn/40">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-warn-strong">
                     Authoring warnings — saving is not blocked
                   </p>
                   <ul className="list-disc space-y-0.5 pl-5">
                     {activeIssues.warnings.map((w, i) => (
-                      <li key={i} className={w.severity === 'warning' ? 'text-amber-strong' : 'text-muted'}>
+                      <li key={i} className={w.severity === 'warning' ? 'text-warn-strong' : 'text-muted'}>
                         <span className="font-mono text-xs">{w.path}</span>: {w.message}
                       </li>
                     ))}

@@ -63,7 +63,7 @@ export function EventTimeline({
         Run preview — the timed schedule and the faculty-fired sequence
       </p>
       <div>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-strong">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-warn-strong">
           Timed (automatic)
         </span>
         {autos.length === 0 ? (
@@ -77,7 +77,7 @@ export function EventTimeline({
                   key={index}
                   event={event}
                   onClick={() => onSelect(index)}
-                  className={late ? 'ring-amber/50' : 'ring-amber/40'}
+                  className={late ? 'ring-warn/50' : 'ring-warn/40'}
                   sub={`${fmtTime(event.autoAtSec ?? 0)}${late ? ' · after est. end' : ''}`}
                 />
               );

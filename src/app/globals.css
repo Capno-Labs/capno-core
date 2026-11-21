@@ -6,78 +6,104 @@
    overrides. Values are space-separated RGB triples so Tailwind's
    `rgb(var(--x) / <alpha-value>)` mapping keeps opacity modifiers working —
    keep the triple format uniform or alpha variants silently break.
+
+   The palette continues the capno.app landing page: navy ink surfaces in
+   dark, white / cool tint / navy type in light, and brand blue as the one
+   interactive accent. Amber is NOT a UI colour — it is reserved for the logo
+   mark and EtCO2 (vital-etco2). Caution states use --warn (orange).
+
    The patient monitor never uses these: monitor-* / vital-* colors are
    literal hex in tailwind.config.ts so the monitor stays dark in both themes. */
 :root {
   color-scheme: dark;
-  --surface: 13 15 12; /* #0d0f0c */
-  --panel: 21 23 19; /* #151713 */
-  --panel-2: 32 35 29; /* #20231d */
-  --panel-3: 42 46 37; /* #2a2e25 */
-  --line: 48 52 43; /* #30342b */
-  --line-2: 61 66 55; /* #3d4237 */
-  --ink: 242 243 236; /* #f2f3ec */
-  --ink-2: 214 216 204; /* #d6d8cc */
-  --muted: 179 182 171; /* #b3b6ab */
-  --faint: 135 139 126; /* #878b7e */
-  --amber: 250 204 21; /* #facc15 — product accent */
-  --amber-strong: 255 225 100; /* amber-tinted text on dark */
-  --amber-soft: 58 51 20; /* amber-tinted surface */
+  --surface: 13 23 37; /* #0d1725 — landing --ink */
+  --panel: 20 35 56; /* #142338 — landing --ink-raised */
+  --panel-2: 28 47 74; /* #1c2f4a */
+  --panel-3: 36 58 90; /* #243a5a */
+  --line: 43 67 102; /* #2b4366 */
+  --line-2: 58 86 127; /* #3a567f */
+  --ink: 244 247 251; /* #f4f7fb */
+  --ink-2: 220 229 241; /* #dce5f1 */
+  --muted: 184 197 216; /* #b8c5d8 — landing --muted-on-dark */
+  --faint: 143 161 184; /* #8fa1b8 */
+  --brand: 7 84 248; /* #0754f8 — fills only; white text on it is 5.8:1 */
+  --brand-strong: 122 167 255; /* #7aa7ff — brand as TEXT on dark (plain brand is 3.1:1) */
+  --brand-soft: 20 48 107; /* brand-tinted surface */
+  --brand-hover: 255 255 255; /* primary button hover fill: a decisive swap, no lift */
+  --on-brand-hover: 13 23 37;
+  --focus: 96 165 250; /* #60a5fa focus ring */
+  --warn: 249 115 22; /* #f97316 — caution fills and dots */
+  --warn-strong: 253 186 116; /* caution text on dark */
+  --warn-soft: 61 39 24; /* caution-tinted surface */
   --green: 115 239 130;
-  --green-soft: 22 46 26;
+  --green-soft: 20 52 44;
   --red: 248 113 113;
   --red-solid: 185 28 28; /* fill-weight red, both themes */
-  --red-soft: 58 24 24;
-  --blue: 96 165 250;
-  --blue-soft: 23 37 58;
+  --red-soft: 64 28 40;
   --cyan: 103 232 249;
-  --cyan-soft: 17 46 51;
+  --cyan-soft: 18 52 70;
+  --violet: 196 181 253;
+  --violet-soft: 46 36 92;
   --radius-card: 16px;
-  --radius-ctl: 10px;
-  --shadow-card: 0 2px 5px -1px rgba(0, 0, 0, 0.4), 0 1px 3px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lift: 0 6px 12px -2px rgba(0, 0, 0, 0.5), 0 3px 7px -3px rgba(0, 0, 0, 0.35);
+  --radius-ctl: 8px;
+  --shadow-card: 0 2px 5px -1px rgba(2, 12, 48, 0.5), 0 1px 3px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 6px 12px -2px rgba(2, 12, 48, 0.6), 0 3px 7px -3px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 30px 60px -20px rgba(2, 12, 48, 0.8), 0 18px 36px -18px rgba(0, 0, 0, 0.6);
 }
 
 [data-theme='light'] {
   color-scheme: light;
-  --surface: 244 244 239; /* #f4f4ef */
+  --surface: 246 249 252; /* #f6f9fc — landing --bg-tint */
   --panel: 255 255 255;
-  --panel-2: 238 238 232; /* #eeeee8 */
-  --panel-3: 226 226 218; /* #e2e2da */
-  --line: 216 217 208; /* #d8d9d0 */
-  --line-2: 196 198 187; /* #c4c6bb */
-  --ink: 27 28 23; /* #1b1c17 */
-  --ink-2: 58 60 51; /* #3a3c33 */
-  --muted: 104 107 97; /* #686b61 */
-  --faint: 140 143 132; /* #8c8f84 */
-  --amber-strong: 161 98 7; /* #a16207 — amber text passes contrast on cream */
-  --amber-soft: 249 240 200;
+  --panel-2: 238 243 248; /* #eef3f8 */
+  --panel-3: 227 234 242; /* #e3eaf2 */
+  --line: 219 227 236; /* #dbe3ec */
+  --line-2: 196 208 222; /* #c4d0de */
+  --ink: 10 37 64; /* #0a2540 — landing --navy */
+  --ink-2: 44 64 88; /* #2c4058 */
+  --muted: 66 84 102; /* #425466 — landing --slate */
+  --faint: 91 109 133; /* #5b6d85 — landing --muted (its --faint fails AA) */
+  --brand-strong: 7 84 248; /* brand passes as text on white (5.8:1) */
+  --brand-soft: 231 239 255;
+  --brand-hover: 13 23 37;
+  --on-brand-hover: 255 255 255;
+  --focus: 59 130 246; /* #3b82f6 */
+  --warn-strong: 194 65 12; /* #c2410c */
+  --warn-soft: 255 237 213;
   --green: 22 130 55;
   --green-soft: 222 240 224;
   --red: 185 28 28;
   --red-soft: 250 226 226;
-  --blue: 29 78 216;
-  --blue-soft: 224 232 248;
   --cyan: 14 116 144;
   --cyan-soft: 219 240 244;
-  --shadow-card: 0 2px 5px -1px rgba(27, 28, 23, 0.1), 0 1px 3px -1px rgba(27, 28, 23, 0.06);
-  --shadow-lift: 0 6px 14px -2px rgba(27, 28, 23, 0.14), 0 3px 7px -3px rgba(27, 28, 23, 0.08);
+  --violet: 109 40 217;
+  --violet-soft: 237 233 254;
+  /* The landing page's layered shadows, verbatim. */
+  --shadow-card: 0 2px 5px -1px rgba(50, 50, 93, 0.25), 0 1px 3px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lift: 0 6px 12px -2px rgba(50, 50, 93, 0.25), 0 3px 7px -3px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 13px 27px -5px rgba(50, 50, 93, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.3);
 }
 
 body {
   @apply bg-surface text-ink antialiased;
 }
 
+/* Keyboard focus for anything that doesn't draw its own ring (.btn/.input do). */
+:focus-visible {
+  outline: 2px solid rgb(var(--focus));
+  outline-offset: 2px;
+}
+
 /* Shared control styles.
-   Depth + motion follow a Stripe-style system: layered low-alpha shadows,
-   ~150ms ease transitions, a subtle hover lift on interactive surfaces, and
+   Shape + motion follow the landing page: pill buttons, one 150ms ease for
+   every hover, a decisive colour swap on the primary instead of a lift, and
    visible :focus-visible rings everywhere (keyboard parity with hover). */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-ctl px-3 py-2 text-sm font-semibold transition duration-150 ease-out hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold transition duration-150 ease-brand disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
   }
   .btn-primary {
-    @apply btn bg-amber text-on-amber shadow-card hover:brightness-105;
+    @apply btn bg-brand text-on-brand shadow-card hover:bg-brand-hover hover:text-on-brand-hover disabled:hover:bg-brand disabled:hover:text-on-brand;
   }
   .btn-secondary {
     @apply btn bg-panel-2 text-ink shadow-card ring-1 ring-line hover:bg-panel-3;
@@ -88,37 +114,116 @@ body {
   .btn-ghost {
     @apply btn bg-transparent text-ink-2 ring-1 ring-line hover:bg-panel-2;
   }
+  /* On the blue poster surface: white pill, and an outlined ghost. */
+  .btn-on-blue {
+    @apply btn bg-white text-poster-ink hover:bg-poster-tint;
+  }
+  .btn-ghost-on-blue {
+    @apply btn bg-transparent text-white hover:bg-white/10;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  }
+  /* Size modifiers — combine with a variant: `btn-secondary btn-sm`. */
+  .btn-sm {
+    @apply px-2.5 py-1 text-xs;
+  }
+  .btn-icon {
+    @apply h-9 w-9 p-0;
+  }
   .card {
     @apply rounded-card bg-panel p-4 shadow-card ring-1 ring-line;
   }
   .card-interactive {
-    @apply card transition duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-none focus-visible:ring-2;
+    @apply card transition duration-150 ease-brand hover:shadow-lift hover:ring-brand/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus;
   }
-  /* Dark hero card: a fixed near-black surface in BOTH themes (deliberately
-     outside the theme tokens), used for marquee CTAs. Pair its text with
-     .card-hero-ink / .card-hero-muted so the palette lives in one place. */
+  /* Poster card for marquee CTAs: use as `card-hero surface-blue` — the
+     landing page's blue field in BOTH themes (deliberately outside the theme
+     tokens). Pair its text with .card-hero-ink / .card-hero-muted so the
+     palette lives in one place. */
   .card-hero {
-    @apply card relative overflow-hidden bg-[#11120f] ring-[#3d4237];
+    @apply card ring-0;
   }
   .card-hero-ink {
-    color: #f5f5ed;
+    color: #fff;
   }
   .card-hero-muted {
-    color: #b8bbb0;
+    color: #dce7ff; /* landing --on-blue-muted: >=4.5:1 on brand blue */
   }
   .input {
-    @apply w-full rounded-ctl border-0 bg-panel-2 px-3 py-2 text-sm text-ink ring-1 ring-line transition duration-150 placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-amber;
+    @apply w-full rounded-ctl border-0 bg-panel-2 px-3 py-2 text-sm text-ink ring-1 ring-line transition duration-150 placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-focus;
   }
   .label {
-    @apply mb-1 block text-xs font-semibold uppercase tracking-wider text-faint;
+    @apply mb-1 block font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-faint;
   }
-  /* Stripe-style arrow affordance: the arrow nudges right on hover of the parent link. */
+  /* Inline text link in the brand colour. */
+  .link {
+    @apply font-semibold text-brand-strong underline-offset-2 hover:underline;
+  }
+  /* Arrow affordance: the arrow nudges right on hover of the parent link. */
   .link-arrow {
-    @apply inline-block transition-transform duration-150 ease-out;
+    @apply inline-block transition-transform duration-150 ease-brand;
   }
   a:hover .link-arrow,
+  button:hover .link-arrow,
   .card-interactive:hover .link-arrow {
     transform: translateX(3px);
+  }
+
+  /* Display type: Inter Tight 900, a caps/digits/punctuation SUBSET
+     (" !&'(),-./0-9:;?A-Z" plus en/em dash and right quote). Static authored
+     headlines only — never scenario titles, names, emails, or any user data,
+     which would fall back to Arial Black mid-word. */
+  .display {
+    @apply font-display;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.05em;
+    word-spacing: 0.1em;
+    line-height: 0.92;
+    text-wrap: balance;
+  }
+
+  /* Blue surface: the landing page's poster field — glow, print grain, white
+     type. Entry screens only; never the live controller (the grain's blend
+     layer is costly on large scrolling areas). Content inside must be
+     positioned (relative) so it paints above the grain. */
+  .surface-blue {
+    position: relative;
+    overflow: clip;
+    contain: paint;
+    color: #fff;
+    background:
+      radial-gradient(ellipse 70% 55% at 10% 6%, rgba(255, 255, 255, 0.16) 0, transparent 70%),
+      radial-gradient(ellipse 85% 60% at 85% 108%, rgba(2, 24, 92, 0.55) 0, transparent 70%),
+      #0754f8;
+  }
+  /* Ink surface: the landing page's dark product band, fixed in both themes. */
+  .surface-ink {
+    position: relative;
+    overflow: clip;
+    contain: paint;
+    color: #fff;
+    background: #0d1725;
+  }
+  .surface-blue::before,
+  .surface-ink::before {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .surface-ink::before {
+    opacity: 0.2;
+  }
+  /* The blue ring disappears on blue: white ring, ink gap. */
+  .surface-blue :focus-visible {
+    outline-color: #fff;
+  }
+  .surface-blue .btn:focus-visible {
+    --tw-ring-color: #fff;
+    --tw-ring-offset-color: #0d1725;
   }
 }
 
@@ -147,6 +252,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .btn,
   .card-interactive,
+  .input,
   .link-arrow {
     transition: none !important;
     transform: none !important;
@@ -158,7 +264,8 @@ body {
   .animate-crt-fade,
   .animate-bar-grow,
   .animate-pop-in,
-  .animate-event-fire {
+  .animate-event-fire,
+  .animate-poster-rise {
     animation: none !important;
   }
 }
@@ -173,6 +280,16 @@ body {
     color: black !important;
   }
   .no-print {
+    display: none !important;
+  }
+  /* Poster surfaces never reach paper: no field, no grain. */
+  .surface-blue,
+  .surface-ink {
+    background: none !important;
+    color: black !important;
+  }
+  .surface-blue::before,
+  .surface-ink::before {
     display: none !important;
   }
   /* The app shell collapses on paper: no sidebar column, no content padding. */

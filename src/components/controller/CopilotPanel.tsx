@@ -141,13 +141,13 @@ export function CopilotPanel() {
                 className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-xs ring-1 ${
                   p.applied
                     ? 'bg-panel-2 text-faint ring-line'
-                    : 'bg-panel text-ink ring-amber/50'
+                    : 'bg-panel text-ink ring-brand/50'
                 }`}
               >
                 <span className="min-w-0">
                   <span className="font-semibold">{p.label}</span>
                   {p.warnings.map((w) => (
-                    <span key={w} className="block text-[10px] text-amber-strong">
+                    <span key={w} className="block text-[10px] text-warn-strong">
                       ⚠ {w}
                     </span>
                   ))}

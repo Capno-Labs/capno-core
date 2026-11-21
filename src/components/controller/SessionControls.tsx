@@ -52,7 +52,7 @@ export function SessionControls() {
               />
             )}
             {status === 'paused' && (
-              <span className="h-1.5 w-1.5 rounded-full bg-amber" title="Session paused" />
+              <span className="h-1.5 w-1.5 rounded-full bg-warn" title="Session paused" />
             )}
           </div>
         </div>
@@ -108,7 +108,7 @@ export function SessionControls() {
         <button
           className={`rounded px-2 py-1 text-xs font-semibold ring-1 ${
             snapshot.autoEventsEnabled
-              ? 'bg-blue-soft text-blue ring-blue/30'
+              ? 'bg-brand-soft text-brand-strong ring-brand/30'
               : 'bg-panel-2 text-muted ring-line hover:bg-panel-3'
           }`}
           aria-pressed={snapshot.autoEventsEnabled}

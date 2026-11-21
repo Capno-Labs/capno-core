@@ -7,7 +7,7 @@ import { formatClock } from '@/lib/format';
 // load-bearing (engine, scoring, schema, archives) and must not change.
 const STATUS_META: { status: ActionStatus; glyph: string; word: string; cls: string }[] = [
   { status: 'done', glyph: '✓', word: 'Observed', cls: 'bg-green text-[#0d1a10]' },
-  { status: 'delayed', glyph: '◐', word: 'Delayed', cls: 'bg-amber text-on-amber' },
+  { status: 'delayed', glyph: '◐', word: 'Delayed', cls: 'bg-warn text-on-warn' },
   { status: 'incorrect', glyph: '✗', word: 'Incorrect', cls: 'bg-red-solid text-white' },
   { status: 'missed', glyph: '—', word: 'Missed', cls: 'bg-faint text-surface' },
 ];
@@ -15,7 +15,7 @@ const STATUS_META: { status: ActionStatus; glyph: string; word: string; cls: str
 const STATUS_BADGE: Record<ActionStatus, string> = {
   pending: '',
   done: 'text-green',
-  delayed: 'text-amber-strong',
+  delayed: 'text-warn-strong',
   incorrect: 'text-red',
   missed: 'text-muted',
 };

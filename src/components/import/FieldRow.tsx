@@ -7,9 +7,9 @@ import type { FieldSpec } from './fieldRegistry';
 
 export const STATUS_TONE: Record<FieldStatus, PillTone> = {
   extracted: 'green',
-  proposed: 'amber',
+  proposed: 'warn',
   unresolved: 'red',
-  confirmed: 'blue',
+  confirmed: 'brand',
 };
 
 export const STATUS_LABEL: Record<FieldStatus, string> = {

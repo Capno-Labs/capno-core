@@ -1,17 +1,17 @@
 import type { ReactNode } from 'react';
 
-/** Amber eyebrow label — the shared kicker above page and section titles. */
+/** Brand eyebrow label — the shared kicker above page and section titles. */
 export function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.11em] text-amber-strong">
-      <span aria-hidden className="h-0.5 w-4 bg-amber" />
+    <div className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.11em] text-brand-strong">
+      <span aria-hidden className="h-0.5 w-4 bg-brand" />
       {children}
     </div>
   );
 }
 
 /**
- * Standard page header: amber eyebrow, tight display title, muted lede, and
+ * Standard page header: brand eyebrow, tight display title, muted lede, and
  * an optional action slot on the right. Replaces the per-page back-link
  * headers — navigation lives in the shell.
  */

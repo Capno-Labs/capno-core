@@ -7,9 +7,10 @@ export const THEME_STORAGE_KEY = 'capno:theme:v1';
 
 export type Theme = 'dark' | 'light';
 
+// Must equal --surface in globals.css for each theme (designGuard.test.ts checks).
 export const THEME_COLORS: Record<Theme, string> = {
-  dark: '#0d0f0c',
-  light: '#f4f4ef',
+  dark: '#0d1725',
+  light: '#f6f9fc',
 };
 
 export function getStoredTheme(): Theme {

@@ -54,7 +54,7 @@ export function EditorRail({
             )}
             {counts && counts.warnings > 0 && (
               <span
-                className="rounded bg-amber-soft px-1.5 py-0.5 text-[10px] font-semibold text-amber-strong ring-1 ring-amber/40"
+                className="rounded bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn-strong ring-1 ring-warn/40"
                 title={`${counts.warnings} authoring warning${counts.warnings === 1 ? '' : 's'}`}
               >
                 ⚠ {counts.warnings}

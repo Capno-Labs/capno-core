@@ -10,7 +10,7 @@ export function OfflineCard() {
     <div className="mx-1 mb-1 rounded-ctl bg-panel p-3 ring-1 ring-line">
       <div className="flex items-center gap-2 text-xs font-bold text-ink">
         <span
-          className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-green' : 'bg-amber'}`}
+          className={`h-1.5 w-1.5 rounded-full ${online ? 'bg-green' : 'bg-warn'}`}
           aria-hidden
         />
         {online ? 'Offline ready' : 'Offline mode'}
