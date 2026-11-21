@@ -197,5 +197,23 @@ describe('scenario schema', () => {
     unknown.baselineVitals.rhythm = 'wenckebach';
     expect(validateScenario(unknown).ok).toBe(false);
   });
+
+  it('accepts the capnogram shapes and an inspired CO2 of 0–30 mmHg', () => {
+    for (const shape of ['normal', 'bronchospasm', 'curare_cleft', 'cardiogenic', 'leak', 'esophageal']) {
+      const doc = JSON.parse(JSON.stringify(inductionHypotension));
+      doc.baselineVitals.capnoShape = shape;
+      doc.baselineVitals.fico2 = 6;
+      doc.events[0].effects = [{ capnoShape: shape, fico2: 0, overSec: 30 }];
+      expect(validateScenario(doc).ok, shape).toBe(true);
+    }
+    for (const fico2 of [-1, 31]) {
+      const bad = JSON.parse(JSON.stringify(inductionHypotension));
+      bad.baselineVitals.fico2 = fico2;
+      expect(validateScenario(bad).ok).toBe(false);
+    }
+    const unknown = JSON.parse(JSON.stringify(inductionHypotension));
+    unknown.baselineVitals.capnoShape = 'rebreathing';
+    expect(validateScenario(unknown).ok).toBe(false);
+  });
 });
 

@@ -207,6 +207,23 @@ about a third of intraoperative ischemia, V5 about three-quarters, and the
 two together four-fifths (London et al., *Anesthesiology* 1988). T-wave, QRS
 and QT settings apply to both leads.
 
+**CO₂ waveform** buttons change the capnogram's shape: Normal, Bronchospasm
+(shark fin), Curare cleft, Cardiogenic oscillations (ripples in time with the
+heart as a slow breath tails off — clearest at low respiratory rates) and
+Cuff / circuit leak (the trace peaks early and sags). Those change the picture
+only. **Esophageal intubation** changes the reading too: the EtCO₂ number and
+the trace start under 10 mmHg, shrink with each breath and are gone by the
+seventh, and the low-CO₂ alarm follows — the point being that a few small
+waves are not a tracheal tube: the trace has to be sustained for at least
+seven breaths. Select Normal again when the tube is re-sited. **Inspired
+CO₂** raises the baseline the trace returns to between breaths, for
+rebreathing; it follows the selected ramp, shows as "Fi" beside the
+respiratory rate, and alarms above 4 mmHg. It does not move EtCO₂ — in real
+rebreathing that climbs too, so raise it yourself. The leak shape likewise
+changes only the picture; lower EtCO₂ yourself for the low reading a leak
+gives. The trace is drawn on a 0–50 mmHg scale, which becomes 0–75 once the
+reading passes 50.
+
 **NIBP behaves like a real cuff.** In the default cuff mode, the sliders set
 the patient's *true* pressure, but the monitor shows the **last measured**
 reading, which updates only when the cuff cycles — the panel shows "Cuff last

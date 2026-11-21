@@ -69,7 +69,7 @@ export const FIELD_SPECS: FieldSpec[] = [
   { path: 'baselineVitals.agentEt', label: 'Agent Et (%)', section: 'vitals', kind: 'number' },
   { path: 'baselineVitals.agentFi', label: 'Agent Fi (%)', section: 'vitals', kind: 'number' },
   { path: 'baselineVitals.rhythm', label: 'Rhythm', section: 'vitals', kind: 'enum', options: RHYTHMS },
-  { path: 'baselineVitals.capnoShape', label: 'Capnograph shape', section: 'vitals', kind: 'enum', options: ['normal', 'bronchospasm', 'curare_cleft'], optional: true },
+  { path: 'baselineVitals.capnoShape', label: 'Capnograph shape', section: 'vitals', kind: 'enum', options: ['normal', 'bronchospasm', 'curare_cleft', 'cardiogenic', 'leak', 'esophageal'], optional: true },
   { path: 'baselineVitals.pvcFrequency', label: 'PVC frequency', section: 'vitals', kind: 'enum', options: ['rare', 'occasional', 'trigeminy', 'bigeminy'], optional: true },
   { path: 'monitoring', label: 'Monitoring', section: 'vitals', kind: 'json', optional: true, hint: '{ "artLine": true } or { "nibpIntervalSec": 180 }' },
 

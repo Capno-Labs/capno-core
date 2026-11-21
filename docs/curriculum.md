@@ -278,6 +278,19 @@ leaves a range fails the build. Where no source was found, that is said.
 | Capnogram plateau up to 4% under the EtCO₂ number | Consistent with a 2.4% median variation of repeated EtCO₂ readings in stable ventilated patients: Hess & Agarwal, *J Clin Monit* 1992;8:111 |
 | Breath length varies ±4% | **No source.** No breath-to-breath figure was found for ventilated patients; kept small by choice |
 
+**Capnography**
+
+| What the monitor does | Source |
+| --- | --- |
+| Normal trace: baseline at zero (inspired gas is CO₂-free), upstroke, plateau ending at the end-tidal value | Kodali & Urman, *J Emerg Trauma Shock* 2014;7:332–40 ([PMC4231274](https://pmc.ncbi.nlm.nih.gov/articles/PMC4231274/)); Anderson & Breen, *Crit Care* 2000;4:207–15 ([PMC150038](https://pmc.ncbi.nlm.nih.gov/articles/PMC150038/)); Goldin et al., *Capnography*, StatPearls ([NBK482169](https://www.ncbi.nlm.nih.gov/sites/books/NBK482169/)) |
+| Esophageal intubation: a first reading of at most 7 mmHg, shrinking each breath, nothing from the seventh breath on | Chrimes et al., *Anaesthesia* 2022;77:1395–415 ([PMC9804892](https://pmc.ncbi.nlm.nih.gov/articles/PMC9804892/)): usually no trace, but CO₂ can appear after mask ventilation; a tracheal trace must hold consistent or rising amplitude for at least seven breaths and peak more than 7.5 mmHg above baseline. Anderson & Breen 2000: the first reading is usually under 10 mmHg and falls each breath. The 0.7 step per breath is a choice |
+| Rebreathing: the baseline rises to the inspired CO₂ (0–30 mmHg), shown as "Fi" | StatPearls NBK482169 (baseline fails to return to zero; causes); case reports with inspired CO₂ of 4 to 30 mmHg, EtCO₂ rising too: Lee et al., *Korean J Anesthesiol* 2013;65:337 (PMC3822027); Vasudevan et al., *J Anaesthesiol Clin Pharmacol* 2013;29:108 (PMC3590513). The sim does not raise EtCO₂ by itself |
+| Inspired CO₂ alarm above 4 mmHg | Philips IntelliVue MX750/MX850 Instructions for Use and IntelliVue Configuration Guide Rel. G.0: "imCO2 High" factory default 4 mmHg. Whether that alarm is switched on by default was not clear from the manual. One manufacturer |
+| Cardiogenic oscillations: ripples at the heart rate | Suarez-Sipmann et al., *J Clin Monit Comput* 2013;27:47 (PMID 22911273); *Indian J Anaesth* 2023;67:760 (PMC10488579). That they sit on the tail of a long expiration is from a vendor guide only (GE, *CO₂ Monitoring and Capnometry*) — a drawing choice |
+| Leak: an early peak that sags | StatPearls NBK482169: a leak dilutes the sample, giving low values and a distorted trace. **No source describes one shape**; this one is a drawing choice, and the number is not lowered automatically |
+| Bronchospasm "shark fin"; curare cleft | StatPearls NBK482169 (prolonged sloping upstroke and upsloping plateau); *Turk J Anaesthesiol Reanim* 2020;48:84 (PMC7001811) |
+| Scale 0–50 mmHg, or 0–75 above 50 | Dräger Vamos operating instructions (0–50 default, 0–75); Philips IntelliVue (50 mmHg default). Switching between them automatically is a choice |
+
 **Alarm sounds**
 
 | What the monitor does | Source |

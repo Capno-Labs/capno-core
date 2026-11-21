@@ -61,9 +61,24 @@ The floor is 0, so arrest states (`sbp: 0, dbp: 0`) remain valid.
 
 Optional: `capnoShape` — capnograph trace morphology: `normal` (default),
 `bronchospasm` (the slurred, upsloping "shark fin" of obstructed expiration),
-or `curare_cleft` (a normal plateau with a transient notch — spontaneous
-respiratory effort during partial neuromuscular blockade).
-Display-only; the EtCO2 number is unaffected.
+`curare_cleft` (a normal plateau with a transient notch — spontaneous
+respiratory effort during partial neuromuscular blockade), `cardiogenic`
+(ripples in time with the heartbeat as a long expiration tails off), or
+`leak` (the trace peaks early and sags — a cuff or circuit leak). These are
+display-only; the EtCO2 number is unaffected.
+
+`esophageal` is the exception: the tube is in the esophagus, so the *measured*
+EtCO2 starts at no more than 7 mmHg, shrinks with each breath and reads zero
+from the seventh breath on, whatever `etco2` is set to — the number, the
+trace and the low-CO2 alarm all follow. Set the shape back to `normal` and
+the monitor reads the authored value again.
+
+Optional: `fico2` — inspired CO2 in mmHg (0–30), the level the trace returns
+to between breaths. Normally 0; above zero is rebreathing (exhausted
+absorbent, a stuck valve) and the baseline rises to it. Shown beside the
+respiratory rate as "Fi", with a warning alarm above 4 mmHg. In an effect it
+ramps over `overSec`. It does not change `etco2` — and in reported cases of
+rebreathing EtCO2 rose as well, so raise that in the same effect.
 
 Optional: `pvcFrequency` — how often an ectopic complex replaces a sinus
 beat while the rhythm is `pvc`: `rare` (1:8), `occasional` (1:4, default),
@@ -112,6 +127,7 @@ Faculty-triggerable (or automatic) occurrences:
     { "vitals": { "sbp": 55, "dbp": 30 }, "overSec": 120 },  // ramp over 120 s
     { "rhythm": "sinus_tach" },                               // rhythm switches instantly
     { "capnoShape": "bronchospasm" },                         // CO2 trace morphology, instant
+    { "fico2": 8, "overSec": 300 },                           // rebreathing: the baseline creeps up
     { "ecg": { "stMm": -1, "stV5Mm": -2 }, "overSec": 60 },   // ST depression developing over 60 s, deeper in V5
     { "ecg": { "tWave": "peaked", "qrs": "wide" } },          // other ECG changes switch instantly
     { "rhythm": "sinus_tach", "pulseless": true },            // PEA: the rhythm stays, the pulse goes

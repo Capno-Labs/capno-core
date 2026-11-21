@@ -471,6 +471,118 @@ describe('SimulationEngine', () => {
     expect(roundTripped).toEqual(snap);
   });
 
+  describe('capnography: inspired CO2 and the esophageal tube', () => {
+    it('starts with no inspired CO2 and reports it in the vitals', () => {
+      expect(newEngine().getVitals().fico2).toBe(0);
+    });
+
+    it('starts from the scenario baseline when it sets one', () => {
+      const s: Scenario = { ...scenario(), baselineVitals: { ...scenario().baselineVitals, fico2: 6 } };
+      expect(new SimulationEngine(s, 'TEST').getVitals().fico2).toBe(6);
+    });
+
+    it('ramps inspired CO2 like a numeric vital, clamped to 0–30 mmHg', () => {
+      const e = newEngine();
+      e.start();
+      e.setFico2(8, 40);
+      expect(e.getFico2Target()).toBe(8);
+      e.tick(10);
+      expect(e.getVitals().fico2).toBeCloseTo(2, 5);
+      e.tick(40);
+      expect(e.getVitals().fico2).toBe(8);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'FiCO₂ → 8 mmHg', detail: 'over 40s' });
+      e.setFico2(99);
+      expect(e.getVitals().fico2).toBe(30);
+      e.setFico2(-5);
+      expect(e.getVitals().fico2).toBe(0);
+    });
+
+    it('is driven by authored effects and returns to baseline on reset', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('Absorbent exhausted', { fico2: 10, overSec: 20 });
+      e.tick(10);
+      expect(e.getVitals().fico2).toBeCloseTo(5, 5);
+      e.reset();
+      expect(e.getVitals().fico2).toBe(0);
+    });
+
+    it('leaves EtCO2 alone, and alarms once inspired CO2 passes 4 mmHg', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.snapshot();
+      e.setFico2(4);
+      expect(e.snapshot().alarms).toEqual(before.alarms); // at the limit: quiet
+      e.setFico2(8);
+      const after = e.snapshot();
+      expect(after.vitals.etco2).toBe(before.vitals.etco2);
+      expect(after.alarms).toEqual([{ vital: 'etco2', level: 'warning', message: 'FiCO₂ high 8' }]);
+      e.setFico2(0);
+      expect(e.snapshot().alarms).toEqual(before.alarms);
+    });
+
+    it('caps the first esophageal reading at what the patient would really show', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('etco2', 4);
+      e.setCapnoShape('esophageal');
+      expect(e.snapshot().vitals.etco2).toBe(4);
+    });
+
+    it('shows a little CO2 that dies away over six breaths with a tube in the esophagus', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('rr', 12); // one breath every 5 s
+      e.setVital('etco2', 40);
+      e.setCapnoShape('esophageal');
+      const measured = () => e.snapshot().vitals.etco2;
+      const readings = [measured()];
+      for (let breath = 1; breath < 6; breath++) {
+        e.tick(5);
+        readings.push(measured());
+      }
+      // Starts under 10 mmHg and under the 7.5 mmHg a tracheal trace must clear…
+      expect(readings[0]).toBeLessThan(7.5);
+      expect(readings[0]).toBeGreaterThan(0);
+      // …and falls with every breath — never the sustained trace of a tracheal tube.
+      for (let i = 1; i < readings.length; i++) expect(readings[i]).toBeLessThanOrEqual(readings[i - 1]);
+      expect(readings[5]).toBeLessThan(readings[0] / 3);
+      e.tick(5);
+      expect(measured()).toBe(0); // nothing from the seventh breath on
+      e.tick(60);
+      expect(measured()).toBe(0);
+      // What the patient would show from the trachea is untouched…
+      expect(e.getVitals().etco2).toBe(40);
+      // …and the monitor alarms on what it measures.
+      expect(e.snapshot().alarms.some((a) => a.vital === 'etco2' && a.level === 'critical')).toBe(true);
+    });
+
+    it('reads normally again as soon as the tube is back in the trachea', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('etco2', 38);
+      e.setCapnoShape('esophageal');
+      e.tick(120);
+      expect(e.snapshot().vitals.etco2).toBe(0);
+      e.setCapnoShape('normal');
+      expect(e.snapshot().vitals.etco2).toBe(38);
+      // A second misplacement starts its own decay from the top.
+      e.setCapnoShape('esophageal');
+      expect(e.snapshot().vitals.etco2).toBe(7);
+    });
+
+    it('leaves the EtCO2 number alone for the display-only shapes', () => {
+      for (const shape of ['bronchospasm', 'curare_cleft', 'cardiogenic', 'leak'] as const) {
+        const e = newEngine();
+        e.start();
+        const etco2 = e.snapshot().vitals.etco2;
+        e.setCapnoShape(shape);
+        e.tick(60);
+        expect(e.snapshot().vitals.etco2).toBe(etco2);
+      }
+    });
+  });
+
   describe('pulse, separate from the rhythm', () => {
     const cuffScenario = (): Scenario => ({ ...scenario(), monitoring: { nibpIntervalSec: 120 } });
     const engineWithCuff = () => new SimulationEngine(cuffScenario(), 'TEST');
