@@ -33,7 +33,7 @@ The canonical smoke flow:
    `/join/i`. Assert monitor content via `document.body.innerText`.
 3. Sliders: range inputs are `getByLabel('<label> target')`, the typed boxes
    are `getByLabel('<label> typed target')` (labels from VITAL_META, e.g.
-   `HR`, `Et Sev`). Ramp preset buttons: `Instant`, `3 s`, `10 s`.
+   `HR`, `Et Agent`). Ramp preset buttons: `Instant`, `3 s`, `10 s`.
 4. Rhythm/CO₂ buttons are named by their RHYTHM_LABELS / CAPNO_SHAPE_LABELS
    text (e.g. `Sinus with PVCs`).
 

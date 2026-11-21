@@ -7,6 +7,7 @@ import { eventSchema } from '../engine/schema';
 import { scoreSession } from '../engine/scoring';
 import type {
   ActionStatus,
+  AnestheticAgent,
   CapnoShape,
   NumericVitals,
   EcgMorphology,
@@ -15,6 +16,7 @@ import type {
   Scenario,
   ScenarioEvent,
   SimSnapshot,
+  Ventilation,
 } from '../engine/types';
 import { cloudEligible, drain, enqueue, pinnedVersionId } from '../cloud/outbox';
 import '../cloud/sessionCloud'; // registers the session push handler
@@ -56,6 +58,11 @@ interface ControllerState {
   setRhythm: (rhythm: Rhythm) => void;
   setCapnoShape: (shape: CapnoShape) => void;
   setPvcFrequency: (freq: PvcFrequency) => void;
+  /** Set anesthesia-machine readings; each ramps over `overSec`. */
+  setVent: (patch: Partial<Ventilation>, overSec?: number) => void;
+  /** Show or hide the machine tiles on the monitor. */
+  setVentShown: (on: boolean) => void;
+  setAgent: (agent: AnestheticAgent) => void;
   /** Set the inspired CO2 (rebreathing), ramping over `overSec`. */
   setFico2: (target: number, overSec?: number) => void;
   /** Take the pulse away (PEA, pulseless VT) or give it back. */
@@ -196,6 +203,9 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setEcg: (patch, overSec = 0) => withEngine((e) => e.setEcg(patch, overSec)),
     setPulseless: (on) => withEngine((e) => e.setPulseless(on)),
     setFico2: (target, overSec = 0) => withEngine((e) => e.setFico2(target, overSec)),
+    setVent: (patch, overSec = 0) => withEngine((e) => e.setVent(patch, overSec)),
+    setVentShown: (on) => withEngine((e) => e.setVentShown(on)),
+    setAgent: (agent) => withEngine((e) => e.setAgent(agent)),
     // Firing an event or marking an action is live-session work: if the
     // session hasn't started (or is paused), the tap also starts/resumes it —
     // faculty shouldn't need a separate Start press to react to the room.

@@ -73,6 +73,32 @@ from the seventh breath on, whatever `etco2` is set to — the number, the
 trace and the low-CO2 alarm all follow. Set the shape back to `normal` and
 the monitor reads the authored value again.
 
+Optional: `agent` — the volatile agent `agentEt`/`agentFi` refer to:
+`sevoflurane` (default), `isoflurane` or `desflurane`. The monitor labels the
+tile SEV, ISO or DES and shows the end-tidal value as a multiple of the
+patient's age-adjusted MAC, computed from `patient.age`.
+
+Optional: `vent` — anesthesia-machine readings. Its presence, even as `{}`,
+puts three more tiles on the monitor from the start; leave it out for a case
+with no ventilator (faculty can still add the tiles during a session).
+
+| Field | Range | Meaning |
+| --- | --- | --- |
+| `fio2` | 0–100 % | Inspired oxygen. |
+| `pip` | 0–80 cmH₂O | Peak inspiratory pressure. |
+| `pplat` | 0–60 cmH₂O | Plateau pressure. |
+| `peep` | 0–25 cmH₂O | Positive end-expiratory pressure. |
+| `vt` | 0–1500 mL | Exhaled tidal volume. Minute volume is shown from it and `rr`. |
+
+Fields left out take the defaults for the patient: tidal volume 7 mL/kg of
+*predicted* body weight (from `patient.heightCm` and `sex`), PEEP 5, peak 18,
+plateau 16, FiO₂ 50. These are readings, not a lung model: nothing else moves
+when they change, so an effect that raises peak pressure for bronchospasm
+should also set the SpO₂, EtCO₂ and capnogram shape that go with it. The
+monitor shows the plateau no higher than the peak and PEEP no higher than the
+plateau. Alarms: airway pressure above 40 or below 8 cmH₂O, minute volume
+under 3 or over 12 L/min, inspired oxygen under 20%.
+
 Optional: `fico2` — inspired CO2 in mmHg (0–30), the level the trace returns
 to between breaths. Normally 0; above zero is rebreathing (exhausted
 absorbent, a stuck valve) and the baseline rises to it. Shown beside the
@@ -128,6 +154,7 @@ Faculty-triggerable (or automatic) occurrences:
     { "rhythm": "sinus_tach" },                               // rhythm switches instantly
     { "capnoShape": "bronchospasm" },                         // CO2 trace morphology, instant
     { "fico2": 8, "overSec": 300 },                           // rebreathing: the baseline creeps up
+    { "vent": { "pip": 42 }, "overSec": 60 },                 // peak airway pressure climbing; plateau unchanged
     { "ecg": { "stMm": -1, "stV5Mm": -2 }, "overSec": 60 },   // ST depression developing over 60 s, deeper in V5
     { "ecg": { "tWave": "peaked", "qrs": "wide" } },          // other ECG changes switch instantly
     { "rhythm": "sinus_tach", "pulseless": true },            // PEA: the rhythm stays, the pulse goes
@@ -137,7 +164,8 @@ Faculty-triggerable (or automatic) occurrences:
 ```
 
 Effects ramp numeric vitals linearly to the target over `overSec` seconds
-(0/omitted = instant); the ST level in `ecg.stMm` ramps the same way. An
+(0/omitted = instant); the ST levels in `ecg`, `fico2` and every reading in
+`vent` ramp the same way. An
 `ecg` effect changes only the fields it lists — to return to normal, set
 them explicitly (`"stMm": 0`, `"tWave": "normal"`). `afterSec` delays the
 effect after the trigger.

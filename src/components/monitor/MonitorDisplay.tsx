@@ -2,7 +2,14 @@
 
 import { useEffect, useRef } from 'react';
 import type { SimSnapshot } from '@/lib/engine/types';
-import { formatStMm, map, PVC_FREQUENCY_EVERY_N, RHYTHM_LABELS } from '@/lib/engine/types';
+import {
+  AGENT_TAGS,
+  formatStMm,
+  map,
+  minuteVentilation,
+  PVC_FREQUENCY_EVERY_N,
+  RHYTHM_LABELS,
+} from '@/lib/engine/types';
 import { AlarmBanner } from './AlarmBanner';
 import { BeatClock } from './beatClock';
 import { MonitorAudio, useSoundLevel } from './MonitorAudio';
@@ -121,6 +128,13 @@ export function MonitorDisplay({
   // The banner names the lost signal instead of quoting a number the tile
   // no longer shows. Levels are untouched.
   const shownAlarms = displayAlarms(snapshot.alarms, v, cuff);
+
+  // Anesthesia-machine readings, when the monitor shows them: the engine
+  // sends every field, already rounded and in order.
+  const vent =
+    v.vent && v.vent.pip !== undefined ? (v.vent as Required<NonNullable<typeof v.vent>>) : null;
+  const agent = snapshot.gas?.agent ?? v.agent ?? 'sevoflurane';
+  const mac = snapshot.gas?.mac;
 
   // A second ECG lead, when the monitor has one.
   const v5 = snapshot.v5Lead === true;
@@ -251,15 +265,18 @@ export function MonitorDisplay({
             label="EtCO₂"
             value={String(Math.round(v.etco2))}
             unit="mmHg"
-            sub={`RR ${Math.round(v.rr)}/min · Fi ${Math.round(v.fico2 ?? 0)}`}
+            sub={`RR ${Math.round(v.rr)}/min · Fi\u00a0${Math.round(v.fico2 ?? 0)}`}
             color="text-vital-etco2"
             alarm={alarmFor('etco2') ?? alarmFor('rr')}
             trendValue={v.etco2}
           />
         </div>
 
-        {/* Parameters without a trace (BP moves up beside its waveform in art mode) */}
-        <div className={`grid gap-2 ${art ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        {/* Parameters without a trace (BP moves up beside its waveform in art
+            mode). The strip fits as many tiles per row as it has room for —
+            each wide enough for a blood pressure — so the machine readings
+            wrap to a second row on a narrow display instead of squeezing it. */}
+        <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
           {cuff && (
             <VitalTile
               label="NIBP"
@@ -273,13 +290,43 @@ export function MonitorDisplay({
           )}
           <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" color="text-vital-temp" alarm={alarmFor('temp')} trendValue={v.temp} />
           <VitalTile
-            label="SEV"
+            label={AGENT_TAGS[agent]}
             value={v.agentEt.toFixed(1)}
             unit="% Et"
-            sub={`Fi ${v.agentFi.toFixed(1)} · Depth ${Math.round(v.depth)}`}
+            sub={`Fi ${v.agentFi.toFixed(1)}${mac === undefined ? '' : ` · MAC ${mac.toFixed(1)}`} · Depth ${Math.round(v.depth)}`}
             color="text-vital-agent"
             trendValue={v.agentEt}
           />
+          {vent && (
+            <>
+              <VitalTile
+                label="Paw"
+                value={String(vent.pip)}
+                unit="cmH₂O"
+                sub={`Pplat ${vent.pplat} · PEEP ${vent.peep}`}
+                color="text-monitor-ink"
+                alarm={alarmFor('paw')}
+                trendValue={vent.pip}
+              />
+              <VitalTile
+                label="VT"
+                value={String(vent.vt)}
+                unit="mL"
+                sub={`MV ${minuteVentilation(vent.vt, v.rr).toFixed(1)} L/min`}
+                color="text-monitor-ink"
+                alarm={alarmFor('vt')}
+                trendValue={vent.vt}
+              />
+              <VitalTile
+                label="O₂"
+                value={String(vent.fio2)}
+                unit="% Fi"
+                color="text-monitor-ink"
+                alarm={alarmFor('fio2')}
+                trendValue={vent.fio2}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>

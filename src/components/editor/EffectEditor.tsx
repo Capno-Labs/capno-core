@@ -2,6 +2,7 @@
 
 import type { CapnoShape, NumericVitals, Rhythm, VitalEffect } from '@/lib/engine/types';
 import {
+  AGENT_LABELS,
   CAPNO_SHAPE_LABELS,
   FICO2_MAX,
   formatStMm,
@@ -10,9 +11,12 @@ import {
   QT_INTERVAL_LABELS,
   RHYTHM_LABELS,
   T_WAVE_LABELS,
+  VENT_KEYS,
+  VENT_META,
 } from '@/lib/engine/types';
 import { VITAL_META } from '@/lib/engine/vitals';
 import { EcgMorphologyFields } from './EcgMorphologyFields';
+import { VentFields } from './VentFields';
 
 /**
  * Form editor for a single vital effect, shared by the case editor's event
@@ -43,6 +47,11 @@ export function effectSummary(effect: VitalEffect): string {
   if (effect.ecg?.qrs) parts.push(`QRS→${QRS_WIDTH_LABELS[effect.ecg.qrs]}`);
   if (effect.ecg?.qt) parts.push(`QT→${QT_INTERVAL_LABELS[effect.ecg.qt]}`);
   if (effect.pulseless !== undefined) parts.push(effect.pulseless ? 'pulse→absent' : 'pulse→present');
+  for (const key of VENT_KEYS) {
+    const value = effect.vent?.[key];
+    if (value !== undefined) parts.push(`${VENT_META[key].label}→${value}`);
+  }
+  if (effect.agent) parts.push(`agent→${AGENT_LABELS[effect.agent]}`);
   if (parts.length === 0) return 'no changes yet';
   const timing: string[] = [];
   if (effect.afterSec) timing.push(`after ${effect.afterSec}s`);
@@ -187,6 +196,19 @@ export function EffectEditor({
             <option value="present">Present</option>
           </select>
         </div>
+        <VentFields
+          mode="effect"
+          vent={effect.vent}
+          agent={effect.agent}
+          onChange={({ vent, agent }) => {
+            const next = { ...effect };
+            if (vent) next.vent = vent;
+            else delete next.vent;
+            if (agent) next.agent = agent;
+            else delete next.agent;
+            onChange(next);
+          }}
+        />
         <EcgMorphologyFields
           mode="effect"
           value={effect.ecg}

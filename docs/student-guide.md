@@ -35,8 +35,10 @@ toggle.
   **ECG V5**, is on screen it has its own "ST V5" — check both: ischemia
   often shows in one lead and not the other.
 - **Numeric tiles:** HR, blood pressure, SpO₂, EtCO₂ (with respiratory rate),
-  temperature, and end-tidal sevoflurane (SEV, with inspired fraction +
-  depth). Small arrows
+  temperature, and end-tidal volatile agent (SEV, ISO or DES, with inspired
+  fraction, MAC and depth). When the anesthesia machine is connected there
+  are three more: airway pressure (peak, with plateau and PEEP), tidal volume
+  (with minute volume) and inspired oxygen. Small arrows
   show whether a value is trending up or down.
 - **Elapsed clock:** scenario time since start. A **paused** badge means the
   instructor has frozen the scenario.

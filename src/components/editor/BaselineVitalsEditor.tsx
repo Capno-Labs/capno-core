@@ -11,6 +11,7 @@ import {
 } from '@/lib/engine/types';
 import { MIN_PULSE_PRESSURE, VITAL_META, maxDbpFor } from '@/lib/engine/vitals';
 import { EcgMorphologyFields } from './EcgMorphologyFields';
+import { VentFields } from './VentFields';
 
 /**
  * Form editor for a scenario's starting vitals.
@@ -204,6 +205,19 @@ export function BaselineVitalsEditor({
             <option value="absent">Absent (PEA / pulseless VT)</option>
           </select>
         </div>
+        <VentFields
+          mode="baseline"
+          vent={vitals.vent}
+          agent={vitals.agent}
+          onChange={({ vent, agent }) => {
+            const next = { ...vitals };
+            if (vent) next.vent = vent;
+            else delete next.vent;
+            if (agent) next.agent = agent;
+            else delete next.agent;
+            onChange(next);
+          }}
+        />
         <EcgMorphologyFields
           mode="baseline"
           value={vitals.ecg}

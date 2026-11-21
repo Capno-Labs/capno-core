@@ -33,6 +33,17 @@ the zod partial (`src/lib/engine/schema.ts`), every scenario's
 `baselineVitals`, `DEFAULT_VITALS`, a `VitalTile` in `MonitorDisplay`, and
 `SLIDER_KEYS` in `VitalControls`.
 
+## Add a machine reading
+
+Ventilator and gas readings are not numeric vitals: they live in the optional
+`vent` block (`Ventilation`, `VENT_KEYS`, `VENT_META` in
+`src/lib/engine/types.ts`), so existing scenarios stay valid. Extend together:
+those three, the default in `defaultVentilation` (`src/lib/engine/vitals.ts`,
+with its source), the zod `ventSchema`, a tile in `MonitorDisplay`, the
+generator's `SCHEMA_REFERENCE` and `docs/scenario.schema.md`. The controller
+and editor fields are generated from `VENT_KEYS`. An alarm on it goes in
+`evaluateAlarms` with a limit from a cited machine manual.
+
 ## Add a rhythm
 
 Extend together: the `Rhythm` union + `RHYTHM_LABELS`

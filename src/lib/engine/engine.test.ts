@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateSessionId, isValidSessionCode, SimulationEngine } from './engine';
 import { parseScenario } from './schema';
-import { clampVital } from './vitals';
+import { ageAdjustedMac, clampVital, defaultVentilation, MAC_AT_40, predictedBodyWeightKg } from './vitals';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
-import type { NumericVitals, Scenario, ScenarioEvent } from './types';
+import type { NumericVitals, Scenario, ScenarioEvent, Ventilation } from './types';
 
 const scenario = (): Scenario => BUILT_IN_SCENARIOS[0];
 
@@ -469,6 +469,212 @@ describe('SimulationEngine', () => {
     const snap = e.snapshot();
     const roundTripped = JSON.parse(JSON.stringify(snap));
     expect(roundTripped).toEqual(snap);
+  });
+
+  describe('anesthesia machine: ventilator readings, agent and MAC', () => {
+    const withVent = (vent: Scenario['baselineVitals']['vent'] = {}): Scenario => ({
+      ...scenario(),
+      baselineVitals: { ...scenario().baselineVitals, vent },
+    });
+
+    it('shows no machine readings unless the scenario or the instructor asks', () => {
+      const e = newEngine();
+      expect(e.getVentShown()).toBe(false);
+      expect('vent' in e.getVitals()).toBe(false);
+      e.start();
+      e.setVentShown(true);
+      expect(e.getVitals().vent).toBeDefined();
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Machine readings shown' });
+      e.setVentShown(false);
+      expect('vent' in e.getVitals()).toBe(false);
+    });
+
+    it('starts from defaults sized to the patient when the scenario states none', () => {
+      const s = withVent({});
+      const e = new SimulationEngine(s, 'TEST');
+      const vent = e.getVitals().vent as Ventilation;
+      expect(vent).toEqual(defaultVentilation(s.patient));
+      // Tidal volume follows predicted body weight, not actual weight: 6–8 mL/kg.
+      expect(vent.vt).toBe(Math.round((7 * predictedBodyWeightKg(s.patient)) / 10) * 10);
+      const perKg = vent.vt / predictedBodyWeightKg(s.patient);
+      expect(perKg).toBeGreaterThanOrEqual(6);
+      expect(perKg).toBeLessThanOrEqual(8);
+      // Pressures inside the interquartile ranges of a large surgical cohort.
+      expect(vent.pip).toBeGreaterThanOrEqual(15);
+      expect(vent.pip).toBeLessThanOrEqual(21);
+      expect(vent.pplat).toBeGreaterThanOrEqual(13);
+      expect(vent.pplat).toBeLessThanOrEqual(18.5);
+      expect(vent.pplat - vent.peep).toBeLessThan(15); // driving pressure
+      expect(vent.peep).toBe(5);
+      expect(vent.pip).toBeGreaterThan(vent.pplat);
+    });
+
+    it('lays the scenario\'s stated readings over the defaults', () => {
+      const e = new SimulationEngine(withVent({ pip: 34, fio2: 100 }), 'TEST');
+      const vent = e.getVitals().vent!;
+      expect(vent.pip).toBe(34);
+      expect(vent.fio2).toBe(100);
+      expect(vent.peep).toBe(defaultVentilation(scenario().patient).peep);
+    });
+
+    it('ramps each reading like a numeric vital, changing only what is asked', () => {
+      const e = new SimulationEngine(withVent({ pip: 20, pplat: 16 }), 'TEST');
+      e.start();
+      e.setVent({ pip: 44 }, 60);
+      expect(e.getVentTarget('pip')).toBe(44);
+      e.tick(30);
+      expect(e.getVitals().vent).toMatchObject({ pip: 32, pplat: 16 });
+      e.tick(30);
+      expect(e.getVitals().vent).toMatchObject({ pip: 44, pplat: 16 });
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'PIP → 44 cmH₂O', detail: 'over 60s' });
+    });
+
+    it('clamps readings to their ranges', () => {
+      const e = new SimulationEngine(withVent(), 'TEST');
+      e.start();
+      e.setVent({ fio2: -5, pip: 500, vt: -20 });
+      expect(e.getVitals().vent).toMatchObject({ fio2: 0, pip: 80, vt: 0 });
+      e.setVent({ fio2: 140 });
+      expect(e.getVitals().vent?.fio2).toBe(100);
+    });
+
+    it('never shows a plateau above the peak, or PEEP above the plateau', () => {
+      const e = new SimulationEngine(withVent({ pip: 20, pplat: 16, peep: 5 }), 'TEST');
+      e.start();
+      e.setVent({ pip: 0, vt: 0 }); // disconnection: pressure and volume are lost
+      expect(e.getVitals().vent).toMatchObject({ pip: 0, pplat: 0, peep: 0, vt: 0 });
+      e.setVent({ pip: 20 }); // reconnected: the plateau and PEEP it had come back
+      expect(e.getVitals().vent).toMatchObject({ pip: 20, pplat: 16, peep: 5 });
+    });
+
+    it('is driven by authored effects and returns to baseline on reset', () => {
+      const e = new SimulationEngine(withVent({ pip: 18 }), 'TEST');
+      e.start();
+      e.applyNamedEffect('Bronchospasm', { vent: { pip: 42 }, overSec: 20 });
+      e.tick(10);
+      expect(e.getVitals().vent?.pip).toBe(30);
+      e.setVentShown(false);
+      e.reset();
+      expect(e.getVitals().vent?.pip).toBe(18);
+      expect(e.getVentShown()).toBe(true);
+    });
+
+    describe('machine alarms (Dräger factory defaults)', () => {
+      const machine = () => {
+        const e = new SimulationEngine(withVent(), 'TEST');
+        e.start();
+        return e;
+      };
+      const machineAlarms = (e: SimulationEngine) =>
+        e.snapshot().alarms.filter((a) => a.vital === 'paw' || a.vital === 'vt' || a.vital === 'fio2');
+
+      it('is quiet on the default readings', () => {
+        expect(machineAlarms(machine())).toEqual([]);
+      });
+
+      it('alarms on airway pressure above 40 cmH2O', () => {
+        const e = machine();
+        e.setVent({ pip: 40 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVent({ pip: 45 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'Paw HIGH 45' }]);
+      });
+
+      it('alarms when no pressure is being generated — a disconnection', () => {
+        const e = machine();
+        e.setVent({ pip: 3, vt: 0 });
+        expect(machineAlarms(e)).toEqual([
+          { vital: 'paw', level: 'critical', message: 'APNEA PRESSURE' },
+          { vital: 'vt', level: 'warning', message: 'MV low 0.0' },
+        ]);
+      });
+
+      it('alarms on minute volume under 3 or over 12 L/min, from tidal volume and rate', () => {
+        const e = machine();
+        e.setVital('rr', 12);
+        e.setVent({ vt: 240 }); // 2.9 L/min
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV low 2.9' }]);
+        e.setVent({ vt: 500 }); // 6.0 L/min
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVital('rr', 26); // 13.0 L/min
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV high 13.0' }]);
+      });
+
+      it('alarms on inspired oxygen under 20% — a failed or crossed supply', () => {
+        const e = machine();
+        e.setVent({ fio2: 21 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVent({ fio2: 12 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'fio2', level: 'critical', message: 'FiO₂ LOW 12' }]);
+      });
+
+      it('raises none of them while the machine readings are hidden', () => {
+        const e = machine();
+        e.setVent({ pip: 60, fio2: 10 });
+        expect(machineAlarms(e).length).toBe(2);
+        e.setVentShown(false);
+        expect(machineAlarms(e)).toEqual([]);
+      });
+    });
+
+    it('defaults to sevoflurane and switches agent on request or by effect', () => {
+      const e = newEngine();
+      expect(e.getVitals().agent).toBe('sevoflurane');
+      expect(e.snapshot().gas?.agent).toBe('sevoflurane');
+      e.start();
+      e.setAgent('desflurane');
+      expect(e.snapshot().gas?.agent).toBe('desflurane');
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Agent → Desflurane' });
+      e.applyNamedEffect('Switch', { agent: 'isoflurane' });
+      expect(e.getVitals().agent).toBe('isoflurane');
+      e.reset();
+      expect(e.getVitals().agent).toBe('sevoflurane');
+    });
+
+    it('reports end-tidal agent as a multiple of the patient\'s age-adjusted MAC', () => {
+      const age = (years: number): Scenario => ({ ...scenario(), patient: { ...scenario().patient, age: years } });
+      const macAt = (years: number, agent: 'sevoflurane' | 'isoflurane' | 'desflurane', et: number) => {
+        const e = new SimulationEngine(age(years), 'TEST');
+        e.start();
+        e.setAgent(agent);
+        e.setVital('agentEt', et);
+        return e.snapshot().gas!.mac;
+      };
+      // One MAC at 40 for each agent's MAC value…
+      expect(macAt(40, 'sevoflurane', MAC_AT_40.sevoflurane)).toBeCloseTo(1, 2);
+      expect(macAt(40, 'isoflurane', MAC_AT_40.isoflurane)).toBeCloseTo(1, 1);
+      expect(macAt(40, 'desflurane', MAC_AT_40.desflurane)).toBeCloseTo(1, 2);
+      // …the same concentration is more MAC in an older patient, less in a younger one…
+      expect(macAt(80, 'sevoflurane', 1.8)).toBeGreaterThan(macAt(40, 'sevoflurane', 1.8));
+      expect(macAt(20, 'sevoflurane', 1.8)).toBeLessThan(macAt(40, 'sevoflurane', 1.8));
+      // …and nothing is nothing.
+      expect(macAt(40, 'sevoflurane', 0)).toBe(0);
+    });
+
+    it('computes predicted body weight by the ARDS Network formula', () => {
+      expect(predictedBodyWeightKg({ sex: 'male', heightCm: 152.4 })).toBeCloseTo(50, 6);
+      expect(predictedBodyWeightKg({ sex: 'female', heightCm: 152.4 })).toBeCloseTo(45.5, 6);
+      expect(predictedBodyWeightKg({ sex: 'male', heightCm: 180 })).toBeCloseTo(50 + 0.91 * 27.6, 6);
+      expect(predictedBodyWeightKg({ sex: 'female', heightCm: 165 })).toBeCloseTo(45.5 + 0.91 * 12.6, 6);
+    });
+
+    it('lowers MAC by about 6% per decade of age', () => {
+      expect(ageAdjustedMac('sevoflurane', 40)).toBeCloseTo(1.8, 6);
+      expect(ageAdjustedMac('isoflurane', 40)).toBeCloseTo(1.17, 6);
+      expect(ageAdjustedMac('desflurane', 40)).toBeCloseTo(6.6, 6);
+      const perDecade = ageAdjustedMac('sevoflurane', 50) / ageAdjustedMac('sevoflurane', 40);
+      expect(perDecade).toBeGreaterThan(0.93);
+      expect(perDecade).toBeLessThan(0.95);
+    });
+
+    it('keeps the snapshot serializable with machine readings on', () => {
+      const e = new SimulationEngine(withVent({ pip: 22 }), 'TEST');
+      e.start();
+      e.setVent({ vt: 380 }, 10);
+      e.tick(3);
+      const snap = e.snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
   });
 
   describe('capnography: inspired CO2 and the esophageal tube', () => {

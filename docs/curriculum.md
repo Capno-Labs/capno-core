@@ -291,6 +291,19 @@ leaves a range fails the build. Where no source was found, that is said.
 | Bronchospasm "shark fin"; curare cleft | StatPearls NBK482169 (prolonged sloping upstroke and upsloping plateau); *Turk J Anaesthesiol Reanim* 2020;48:84 (PMC7001811) |
 | Scale 0–50 mmHg, or 0–75 above 50 | Dräger Vamos operating instructions (0–50 default, 0–75); Philips IntelliVue (50 mmHg default). Switching between them automatically is a choice |
 
+**Anesthesia machine**
+
+| What the monitor does | Source |
+| --- | --- |
+| Default tidal volume 7 mL/kg predicted body weight; default PEEP 5 cmH₂O | Young et al., *Br J Anaesth* 2019;123:898–913 (PMID 31587835, abstract): initial tidal volume 6–8 mL/kg predicted body weight, PEEP 5. Hol et al., *Anesth Analg* 2020;131:1721 gives PEEP 0–5 |
+| Predicted body weight: 50 (men) or 45.5 (women) + 0.91 × (height cm − 152.4) | ARDS Network, *NEJM* 2000;342:1301, as given in Sasko et al., *PLoS One* 2018;13:e0199917 ([PMC6025863](https://pmc.ncbi.nlm.nih.gov/articles/PMC6025863)) |
+| Default peak 18 and plateau 16 cmH₂O; default FiO₂ 50% | LAS VEGAS investigators, *Eur J Anaesthesiol* 2017;34:492–507 ([PMC5502122](https://pmc.ncbi.nlm.nih.gov/articles/PMC5502122/)): medians in 9,864 surgical patients — peak 17.5, plateau 15.5, FiO₂ 0.52. FiO₂ guidance conflicts: WHO 2018 recommends 0.8; Hol 2020 recommends 0.21–0.4; 0.5 is common practice (Morkane et al., *Perioper Med* 2018;7:17). The default follows practice and is not advice |
+| Peak with a normal plateau means resistance; both raised means reduced compliance | Mora Carpio & Mora, *Ventilator Management*, StatPearls ([NBK448186](https://www.ncbi.nlm.nih.gov/sites/books/NBK448186/)); Gertler, *Anesthesiol Clin* 2021;39:415 (PMC8360707). The sim does not compute either — these are the faculty guide's hints for which reading to move |
+| Alarms: airway pressure above 40 or below 8 cmH₂O; minute volume under 3 or over 12 L/min; oxygen under 20% | Dräger Fabius GS premium Instructions for Use, SW 3.n (9038906, ed. 7) factory defaults. A Mindray A7 ships with 50/10, minute volume low 1 and oxygen low 18%. The real machine waits 15–30 s below the pressure threshold; the sim alarms at once |
+| MAC at 40: sevoflurane 1.8%, isoflurane 1.17%, desflurane 6.6%; adjusted by 10^(−0.00269 × (age − 40)) | Mapleson, *Br J Anaesth* 1996;76:179–85 (PMID 8777094); Nickalls & Mapleson, *Br J Anaesth* 2003;91:170–4. For teaching: awareness trials alerted below 0.7 age-adjusted MAC (Avidan et al., *NEJM* 2008;358:1097 and 2011;365:591). The sim shows MAC and raises no alarm on it |
+| Disconnection: no pressure, no tidal volume, no capnogram | Russell et al., *Anaesth Intensive Care* 1993;21:617 (the low-pressure alarm caught 37% of disconnections); Peng, Paulus & Gravenstein in *Capnography*, Cambridge University Press 2011 (capnography is the best monitor of a complete disconnection). The sim does not link these: set each |
+| Oxygen supply failure: inspired oxygen falls, the low-oxygen alarm sounds, saturation follows | Mudumbai et al., *Anesth Analg* 2010;110:1292; Bohringer et al., AHRQ PSNet WebM&M 2024 |
+
 **Alarm sounds**
 
 | What the monitor does | Source |

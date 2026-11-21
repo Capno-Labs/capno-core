@@ -69,6 +69,8 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "temp": 25-45 (Celsius), "depth": 0-100, "agentEt": %, "agentFi": %,
     "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole|av_block_1|av_block_mobitz1|av_block_mobitz2|av_block_3|junctional|aflutter|torsades|paced|idioventricular",
     "pulseless"?: true,   // no pulse despite an organized rhythm (PEA, pulseless VT); omit when the patient has a pulse
+    "vent"?: { "fio2"?: 0-100, "pip"?: 0-80, "pplat"?: 0-60, "peep"?: 0-25, "vt"?: 0-1500 },   // anesthesia-machine readings (%, cmH2O, cmH2O, cmH2O, mL). Present (even as {}) = the monitor shows machine tiles; omitted fields take defaults for the patient. Omit entirely for a case with no ventilator
+    "agent"?: "sevoflurane|isoflurane|desflurane",   // volatile agent; default sevoflurane
     "capnoShape"?: "normal|bronchospasm|curare_cleft|cardiogenic|leak|esophageal",   // capnograph morphology; default normal. esophageal makes the measured EtCO2 read under 10 mmHg and die away within six breaths
     "fico2"?: 0-30,   // inspired CO2 in mmHg (the capnogram baseline); above 0 = rebreathing; omit when 0
     "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",   // PVC coupling rate (pvc rhythm only); default occasional
@@ -83,6 +85,8 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "effects": [{ "vitals"?: { partial numeric vitals }, "rhythm"?: "...",
                   "capnoShape"?: "normal|bronchospasm|curare_cleft|cardiogenic|leak|esophageal", "fico2"?: 0-30, "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",
                   "ecg"?: { "stMm"?: -5..5, "stV5Mm"?: -5..5, "tWave"?: "...", "qrs"?: "...", "qt"?: "..." },   // only the fields listed change; stMm ramps over overSec. Set it only when the source states the ECG change.
+                  "vent"?: { "fio2"?: n, "pip"?: n, "pplat"?: n, "peep"?: n, "vt"?: n },   // machine reading targets; only the fields listed change, each ramps over overSec
+                  "agent"?: "sevoflurane|isoflurane|desflurane",
                   "pulseless"?: true|false,   // take the pulse away or give it back, whatever the rhythm (PEA = organized rhythm + pulseless true; pulseless VT = vtach + pulseless true). vfib, torsades, asystole and "pea" never have a pulse.
                   "overSec"?: rampSeconds, "afterSec"?: delaySeconds }]
   }],
