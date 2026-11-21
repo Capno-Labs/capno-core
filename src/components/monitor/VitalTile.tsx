@@ -8,6 +8,11 @@ interface VitalTileProps {
   unit?: string;
   /** The alarm limits for this number, printed small beside the unit. */
   limits?: string;
+  /** This number's limit alarms are switched off: an alarms-off mark takes
+   *  the place of the limits, as on a real monitor. */
+  alarmsOff?: boolean;
+  /** Selecting the number opens its alarm setup. Absent = not operable. */
+  onSetup?: () => void;
   sub?: string;
   color: string; // tailwind text color class
   alarm?: 'warning' | 'critical';
@@ -25,6 +30,8 @@ export function VitalTile({
   value,
   unit,
   limits,
+  alarmsOff = false,
+  onSetup,
   sub,
   color,
   alarm,
@@ -60,16 +67,40 @@ export function VitalTile({
         : 'ring-1 ring-monitor-grid';
 
   return (
-    <div className={`rounded-lg bg-monitor-panel px-3 py-2 ${alarmClass}`}>
+    <div
+      className={`rounded-lg bg-monitor-panel px-3 py-2 ${alarmClass} ${
+        onSetup ? 'cursor-pointer hover:bg-monitor-panel/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70' : ''
+      }`}
+      {...(onSetup
+        ? {
+            role: 'button',
+            tabIndex: 0,
+            'aria-label': `${label} alarm setup`,
+            onClick: onSetup,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSetup();
+              }
+            },
+          }
+        : {})}
+    >
       <div className="flex items-baseline justify-between gap-2">
         <span className={`text-[11px] font-semibold uppercase tracking-wider ${color} opacity-80`}>
           {label}
         </span>
         <span className="flex items-baseline gap-1.5 whitespace-nowrap text-[10px] text-[#8d9688]">
-          {limits && (
-            <span className="font-mono" title="Alarm limits">
-              {limits}
+          {alarmsOff ? (
+            <span title="Alarms off for this measurement" aria-label="Alarms off">
+              🔕
             </span>
+          ) : (
+            limits && (
+              <span className="font-mono" title="Alarm limits">
+                {limits}
+              </span>
+            )
           )}
           {unit && <span>{unit}</span>}
         </span>

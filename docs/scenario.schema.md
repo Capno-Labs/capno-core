@@ -18,7 +18,7 @@ scenario from the library for a complete working example.
 | `setup` | string[] | Room/equipment/confederate instructions for faculty. |
 | `estimatedMinutes` | number | Library display only. |
 | `targetDurationSec` | number? | Optional hard time budget for a scheduled lab slot. The run screen counts down against it and flags overruns; pacing display only, never drives engine behavior. |
-| `monitoring` | object? | What the monitor is connected to. Absent = NIBP cuff cycling every 180 s, ECG lead II only. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). `{ "v5": true }` adds a V5 ECG trace under lead II, with its own ST level. In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff, place a line, or add the V5 lead during a session. `alarmProfile` and `alarmLimits` set the alarm limits — see [Alarm limits](#alarm-limits). |
+| `monitoring` | object? | What the monitor is connected to. Absent = NIBP cuff cycling every 180 s, ECG lead II only. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). `{ "v5": true }` adds a V5 ECG trace under lead II, with its own ST level. In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff, place a line, or add the V5 lead during a session. `alarmProfile`, `alarmLimits` and `alarmsOff` set the alarm limits and which alarms start switched off — see [Alarm limits](#alarm-limits). |
 
 ## `patient`
 
@@ -190,6 +190,16 @@ listed change; `null` switches one off:
   }
 }
 ```
+
+`monitoring.alarmsOff` lists vitals whose limit alarms start switched off —
+`"alarmsOff": ["spo2"]` for the monitor someone left with the saturation
+alarm disabled. The monitor shows an alarms-off mark (🔕) beside that number
+in place of its limits. Only limit alarms are switched off: the oximeter's
+lost-signal alarm and the rhythm alarms still sound.
+
+During a session faculty set each vital's low and high limit and switch its
+alarms on or off by selecting the number on the monitor preview; a reset
+returns to what the scenario states.
 
 Each limit must lie in the vital's range, and the result must stay
 consistent — a critical limit at or beyond its warning limit, low limits

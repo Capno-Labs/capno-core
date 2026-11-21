@@ -270,6 +270,27 @@ switching back to the scenario's category restores the scenario's changes.
 The category is yours to choose, as on a real monitor: it does not follow the
 patient's age.
 
+**Alarm setup, on the monitor.** Select a number on the monitor preview — HR,
+SpO₂, EtCO₂, blood pressure or temperature — to open its alarm setup, as on a
+real monitor. (EtCO₂ opens with the breathing rate, which shares its tile.)
+
+- **High** and **Low** set that number's limits with − and +. A limit taken
+  to the end of its range reads **off**.
+- The red **crit** value beside each is the critical limit. You do not set
+  it; it moves only if you take a limit past it.
+- **🔔 Alarms on / 🔕 Alarms off** switches that number's limit alarms. While
+  off, every display shows 🔕 beside the number in place of its limits, and
+  it neither flashes nor sounds. The oximeter's "NO PULSE" and the rhythm
+  alarms are not limit alarms and still sound.
+
+Changes show on every display at once and are written to the log (the
+debrief shows when an alarm was switched off). Switching category returns to
+that category's limits; Reset returns to the scenario's. A scenario can also
+start with an alarm switched off — the monitor someone left that way.
+**🔔 silence alarms** above the preview is separate: it quiets whatever is
+alarming now, on every number. Only this screen can operate the monitor;
+student displays show the limits and the 🔕 marks but cannot change them.
+
 **Agent** buttons (SEV, ISO, DES) say which volatile the end-tidal number
 refers to. The agent tile shows it as a multiple of the patient's MAC,
 adjusted for age: the same concentration is more MAC in an older patient.

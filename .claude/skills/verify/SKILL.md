@@ -36,6 +36,10 @@ The canonical smoke flow:
    `HR`, `Et Agent`). Ramp preset buttons: `Instant`, `3 s`, `10 s`.
 4. Rhythm/CO₂ buttons are named by their RHYTHM_LABELS / CAPNO_SHAPE_LABELS
    text (e.g. `Sinus with PVCs`).
+6. Alarm setup: on the faculty preview, click the tile (`getByRole('button',
+   { name: 'HR alarm setup' })`); the dialog (`Alarm setup`) has
+   `Raise/Lower HR high alarm limit` buttons and an `HR alarms on — switch
+   off` toggle. The tile's limits text, or 🔕, follows.
 5. Twitch monitor: click `Attach twitch monitor`; the steppers are
    `getByLabel('Count target')`, `Ratio target` (only at count 4) and
    `PTC target` (only at count 0). The TOF tile changes at the next

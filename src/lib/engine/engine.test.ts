@@ -3,6 +3,7 @@ import { generateSessionId, isValidSessionCode, SimulationEngine } from './engin
 import { parseScenario } from './schema';
 import {
   ageAdjustedMac,
+  ALARM_LIMIT_STEP,
   ALARM_PROFILES,
   alarmLimitProblems,
   blockDepth,
@@ -785,6 +786,123 @@ describe('SimulationEngine', () => {
       e.reset();
       expect(e.snapshot().alarmProfile).toBe('pediatric');
       expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(170);
+    });
+
+    describe('set on the monitor during a session', () => {
+      it('sets the low and the high limit of one vital and leaves the rest alone', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'high', 125);
+        e.setAlarmLimit('hr', 'low', 45);
+        const limits = e.snapshot().alarmLimits!;
+        expect(limits.hr).toEqual({ warnLow: 45, warnHigh: 125, critLow: 40, critHigh: 140 });
+        expect(limits.sbp).toEqual(ALARM_PROFILES.adult.sbp);
+        e.setVital('hr', 120);
+        expect(e.snapshot().alarms).toEqual([]);
+        e.setVital('hr', 126);
+        expect(alarmOn(e, 'hr')).toEqual({ vital: 'hr', level: 'warning', message: 'HR high 126' });
+        expect(e.getFullLog().map((l) => l.label)).toEqual(
+          expect.arrayContaining(['HR high alarm limit → 125', 'HR low alarm limit → 45']),
+        );
+        // The shared profile object is never edited in place.
+        expect(ALARM_PROFILES.adult.hr.warnHigh).toBe(110);
+      });
+
+      it('logs a run of presses on one limit as one adjustment', () => {
+        const e = running();
+        const limitLog = () => e.getFullLog().map((l) => l.label).filter((l) => l.includes('alarm limit'));
+        e.setAlarmLimit('hr', 'high', 115);
+        e.tick(1);
+        e.setAlarmLimit('hr', 'high', 120);
+        e.setAlarmLimit('hr', 'high', 125);
+        expect(limitLog()).toEqual(['HR high alarm limit → 125']);
+        // Another limit, or the same one much later, is a new line.
+        e.setAlarmLimit('hr', 'low', 45);
+        e.tick(30);
+        e.setAlarmLimit('hr', 'low', 40);
+        expect(limitLog()).toEqual(['HR high alarm limit → 125', 'HR low alarm limit → 45', 'HR low alarm limit → 40']);
+      });
+
+      it('moves the critical limit only when the limit passes it', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'high', 150); // past the critical 140
+        expect(e.snapshot().alarmLimits!.hr).toMatchObject({ warnHigh: 150, critHigh: 150 });
+        e.setAlarmLimit('hr', 'low', 35); // past the critical 40
+        expect(e.snapshot().alarmLimits!.hr).toMatchObject({ warnLow: 35, critLow: 35 });
+        e.setAlarmLimit('sbp', 'low', 80); // not past 70
+        expect(e.snapshot().alarmLimits!.sbp).toMatchObject({ warnLow: 80, critLow: 70 });
+      });
+
+      it('switches a limit off at the end of the range, or with null', () => {
+        const e = running();
+        e.setAlarmLimit('spo2', 'low', 0);
+        expect(e.snapshot().alarmLimits!.spo2.warnLow).toBeUndefined();
+        e.setAlarmLimit('hr', 'high', null);
+        expect(e.snapshot().alarmLimits!.hr.warnHigh).toBeUndefined();
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'HR high alarm limit → off' });
+        // The critical tier is untouched: it is not the clinician's to set.
+        expect(e.snapshot().alarmLimits!.hr.critHigh).toBe(140);
+        e.setVital('hr', 130);
+        expect(e.snapshot().alarms).toEqual([]);
+        e.setVital('hr', 145);
+        expect(alarmOn(e, 'hr')).toMatchObject({ level: 'critical' });
+      });
+
+      it('keeps the low limit below the high one and inside the vital\'s range', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'low', 200);
+        const hr = e.snapshot().alarmLimits!.hr;
+        expect(hr.warnLow).toBe(hr.warnHigh! - ALARM_LIMIT_STEP.hr);
+        e.setAlarmLimit('etco2', 'high', -5);
+        const etco2 = e.snapshot().alarmLimits!.etco2;
+        expect(etco2.warnHigh).toBe(etco2.warnLow! + ALARM_LIMIT_STEP.etco2);
+        expect(alarmLimitProblems(e.snapshot().alarmLimits!)).toEqual([]);
+      });
+
+      it('switches one vital\'s alarms off and on without touching the others', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.setVital('spo2', 80);
+        expect(alarmOn(e, 'hr')).toBeDefined();
+        e.setAlarmOff('hr', true);
+        expect(e.snapshot().alarmsOff).toEqual(['hr']);
+        expect(alarmOn(e, 'hr')).toBeUndefined();
+        expect(alarmOn(e, 'spo2')).toMatchObject({ level: 'critical' });
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'HR alarms off' });
+        e.setAlarmOff('hr', false);
+        expect(e.snapshot().alarmsOff).toEqual([]);
+        expect(alarmOn(e, 'hr')).toMatchObject({ level: 'critical' });
+      });
+
+      it('still raises the lost-signal and rhythm alarms with the limit alarms off', () => {
+        const e = running();
+        e.setAlarmOff('spo2', true);
+        e.setAlarmOff('hr', true);
+        e.setRhythm('vfib');
+        const alarms = e.snapshot().alarms.map((a) => a.message);
+        expect(alarms).toContain('SpO₂ NO PULSE');
+        expect(alarms.some((m) => m.startsWith('RHYTHM'))).toBe(true);
+      });
+
+      it('starts with the alarms a scenario leaves off, and reset restores limits and switches', () => {
+        const e = running({ alarmsOff: ['spo2'] });
+        expect(e.snapshot().alarmsOff).toEqual(['spo2']);
+        e.setVital('spo2', 70);
+        expect(alarmOn(e, 'spo2')).toBeUndefined();
+        e.setAlarmOff('spo2', false);
+        e.setAlarmOff('temp', true);
+        e.setAlarmLimit('hr', 'high', 130);
+        e.reset();
+        expect(e.snapshot().alarmsOff).toEqual(['spo2']);
+        expect(e.snapshot().alarmLimits).toEqual(ALARM_PROFILES.adult);
+      });
+
+      it('goes back to the category\'s limits when the category is switched', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'high', 130);
+        e.setAlarmProfile('pediatric');
+        e.setAlarmProfile('adult');
+        expect(e.snapshot().alarmLimits).toEqual(ALARM_PROFILES.adult);
+      });
     });
 
     it('keeps the snapshot serializable with its limits', () => {

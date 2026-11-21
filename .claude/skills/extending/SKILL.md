@@ -70,6 +70,12 @@ limits joins `ALARM_VITALS` (types), every profile, `alarmLimitsSchema`, the
 generator's `SCHEMA_REFERENCE` and the table in `docs/scenario.schema.md`.
 Change a profile's numbers only with a source.
 
+At runtime the monitor is operated through `AlarmSetup`
+(`src/components/monitor/`), opened by selecting a tile: it calls
+`setAlarmLimit` / `setAlarmOff` (engine → `withAlarmLimit`, the `alarmsOff`
+set). `MonitorDisplay` only gets those actions (`alarmSetup` prop) on the
+faculty preview — student displays send nothing (invariant 3).
+
 ## Add a rhythm
 
 Extend together: the `Rhythm` union + `RHYTHM_LABELS`

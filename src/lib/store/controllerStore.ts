@@ -8,6 +8,8 @@ import { scoreSession } from '../engine/scoring';
 import type {
   ActionStatus,
   AlarmProfile,
+  AlarmSide,
+  AlarmVital,
   AnestheticAgent,
   CapnoShape,
   NumericVitals,
@@ -69,6 +71,10 @@ interface ControllerState {
   setNmb: (patch: Partial<NeuromuscularBlock>, overSec?: number) => void;
   /** Switch the monitor's patient category and its alarm limits. */
   setAlarmProfile: (profile: AlarmProfile) => void;
+  /** Set one vital's low or high alarm limit (`null` = off). */
+  setAlarmLimit: (vital: AlarmVital, side: AlarmSide, value: number | null) => void;
+  /** Switch one vital's limit alarms off or back on. */
+  setAlarmOff: (vital: AlarmVital, off: boolean) => void;
   /** Attach or remove the twitch monitor. */
   setTofAttached: (on: boolean) => void;
   /** Have the twitch monitor stimulate now. */
@@ -218,6 +224,8 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setAgent: (agent) => withEngine((e) => e.setAgent(agent)),
     setNmb: (patch, overSec = 0) => withEngine((e) => e.setNmb(patch, overSec)),
     setAlarmProfile: (profile) => withEngine((e) => e.setAlarmProfile(profile)),
+    setAlarmLimit: (vital, side, value) => withEngine((e) => e.setAlarmLimit(vital, side, value)),
+    setAlarmOff: (vital, off) => withEngine((e) => e.setAlarmOff(vital, off)),
     setTofAttached: (on) => withEngine((e) => e.setTofAttached(on)),
     measureTof: () => withEngine((e) => e.measureTof()),
     // Firing an event or marking an action is live-session work: if the

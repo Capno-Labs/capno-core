@@ -377,6 +377,9 @@ is a reading, not a drug model.
 | Critical systolic pressure 10 (pediatric) or 5 mmHg (neonatal) beyond each limit | Same manual: the extreme-pressure differences for invasive pressure. The monitor ships with extreme pressure alarms switched off; the sim uses the differences so blood pressure keeps a critical tier |
 | EtCO₂ and temperature limits the same for every category | Same manual: EtCO₂ 25–60 and temperature 36–39 for adult, pediatric and neonatal alike |
 | The category is chosen, not derived from age | Same manual: patient category is a setting of the monitor's profile |
+| Selecting a number opens its alarm setup: high and low limit, alarms on/off; the critical limit is shown, not set, and moves only if a limit passes it | Same manual, "Alarm Limits": the measurement alarm-limits window has the high and low yellow limit fields, an Alarms On/Off key and view-only red limits; "if you set the yellow alarm limit outside the red alarm limit, the monitor will automatically adapt the red alarm limit" |
+| A limit at the end of its range is off | Same manual: "setting the high alarm limit to 100 switches the high alarm off, or setting the low alarm limit to 0 switches it off" |
+| Limits print beside the number; an alarms-off mark replaces them when that measurement's alarms are off | Same manual: the limits are shown "next to the measurement numeric", and "the alarms off symbol is shown beside the measurement numeric" |
 
 The adult limits are the sim's long-standing set and are not from that
 manual: they are a little tighter than its adult defaults (HR 50–120, SpO₂
@@ -385,7 +388,12 @@ low 90 with desaturation at 80, systolic 90–160, breathing rate 8–30, EtCO�
 EtCO₂, breathing rate and temperature that the monitor does not have. The
 pediatric and neonatal critical breathing-rate limit (under 4) is carried
 over from the adult set, not sourced. The monitor also alarms on a neonatal
-saturation above 95; the sim has no high-saturation alarm.
+saturation above 95; the sim has no high-saturation alarm. The step each
+press moves a limit (5 for heart rate and pressure, 1 for saturation, EtCO₂
+and breathing rate, 0.5 °C) is a choice — the monitor offers a list of
+values. With a number's alarms off, the oximeter's lost-signal alarm and the
+rhythm alarms still sound; the manual treats technical alarms separately
+from limit alarms, and keeping the rhythm alarms is the sim's choice.
 
 **Alarm sounds**
 

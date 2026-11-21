@@ -623,6 +623,9 @@ export type AlarmLimits = Record<AlarmVital, AlarmBand>;
  */
 export type AlarmLimitOverrides = Partial<Record<AlarmVital, Partial<Record<AlarmBandKey, number | null>>>>;
 
+/** The two limits a clinician sets on a monitor: the low and the high warning limit. */
+export type AlarmSide = 'low' | 'high';
+
 export interface MonitoringConfig {
   /**
    * True = arterial line: BP displays continuously.
@@ -648,6 +651,12 @@ export interface MonitoringConfig {
    * change; `null` switches one off.
    */
   alarmLimits?: AlarmLimitOverrides;
+  /**
+   * Vitals whose limit alarms start switched off — the monitor someone left
+   * with an alarm disabled. Faculty can switch each on or off during a
+   * session.
+   */
+  alarmsOff?: AlarmVital[];
 }
 
 export interface Scenario {
@@ -775,6 +784,10 @@ export interface SimSnapshot {
    */
   alarmLimits?: AlarmLimits;
   alarmProfile?: AlarmProfile;
+  /** Vitals whose limit alarms are switched off: the monitor shows an
+   *  alarms-off mark beside the number in place of its limits. Optional:
+   *  absent (= none) in older snapshots. */
+  alarmsOff?: AlarmVital[];
   actions: ActionRecord[];
   /** In live broadcast snapshots this is a capped tail of the newest entries
    *  (snapshots go out twice a second — an uncapped log would grow every

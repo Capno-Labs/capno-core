@@ -3,6 +3,8 @@ import type {
   ActionStatus,
   AlarmLimits,
   AlarmProfile,
+  AlarmSide,
+  AlarmVital,
   AnestheticAgent,
   CapnoShape,
   EcgLead,
@@ -30,6 +32,7 @@ import type {
 import {
   AGENT_LABELS,
   ALARM_PROFILE_LABELS,
+  ALARM_VITALS,
   CAPNO_SHAPE_LABELS,
   FICO2_MAX,
   formatStMm,
@@ -60,6 +63,7 @@ import {
   maxDbpFor,
   measuredEtco2,
   resolveAlarmLimits,
+  withAlarmLimit,
   roundVital,
   TOF_INTERVAL_SEC,
   tofReading,
@@ -99,6 +103,9 @@ function baselineNmb(stated: Partial<NeuromuscularBlock> | undefined): Neuromusc
   }
   return nmb;
 }
+
+/** Presses on the same alarm limit this close together are one adjustment in the log. */
+const ALARM_LIMIT_LOG_MERGE_SEC = 5;
 
 function clampFico2(value: number): number {
   return Math.min(FICO2_MAX, Math.max(0, value));
@@ -211,6 +218,8 @@ export class SimulationEngine {
   /** The monitor's patient category and the alarm limits in force. */
   private alarmProfile: AlarmProfile;
   private alarmLimits: AlarmLimits;
+  /** Vitals whose limit alarms are switched off. */
+  private alarmsOff: Set<AlarmVital>;
 
   /** Arterial line in place: continuous BP, no cuff. Faculty can toggle at runtime. */
   private artLine: boolean;
@@ -269,6 +278,7 @@ export class SimulationEngine {
     this.v5Lead = scenario.monitoring?.v5 ?? false;
     this.alarmProfile = scenario.monitoring?.alarmProfile ?? 'adult';
     this.alarmLimits = resolveAlarmLimits(scenario.monitoring);
+    this.alarmsOff = new Set(scenario.monitoring?.alarmsOff);
     if (this.usesCuff()) {
       this.lastNibp = { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 };
     }
@@ -420,6 +430,7 @@ export class SimulationEngine {
     this.v5Lead = this.scenario.monitoring?.v5 ?? false;
     this.alarmProfile = this.scenario.monitoring?.alarmProfile ?? 'adult';
     this.alarmLimits = resolveAlarmLimits(this.scenario.monitoring);
+    this.alarmsOff = new Set(this.scenario.monitoring?.alarmsOff);
     this.lastNibp = this.usesCuff()
       ? { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 }
       : null;
@@ -846,6 +857,37 @@ export class SimulationEngine {
     return this.alarmProfile;
   }
 
+  /**
+   * Set one vital's low or high alarm limit, as on the monitor's alarm
+   * setup: `null`, or the end of the vital's range, switches that limit off;
+   * a critical limit the new limit passes moves with it.
+   */
+  setAlarmLimit(vital: AlarmVital, side: AlarmSide, value: number | null): void {
+    const key = side === 'low' ? 'warnLow' : 'warnHigh';
+    const before = this.alarmLimits[vital][key];
+    this.alarmLimits = withAlarmLimit(this.alarmLimits, vital, side, value);
+    const after = this.alarmLimits[vital][key];
+    if (after === before) return;
+    // One limit is usually reached with several presses: keep the log to
+    // where it ended up, not every step on the way.
+    const prefix = `${VITAL_META[vital].label} ${side} alarm limit → `;
+    const last = this.log.at(-1);
+    const t = Math.floor(this.elapsedSec);
+    if (last && last.kind === 'vital_change' && last.label.startsWith(prefix) && t - last.t <= ALARM_LIMIT_LOG_MERGE_SEC) {
+      this.log[this.log.length - 1] = { ...last, t, label: `${prefix}${after ?? 'off'}` };
+      return;
+    }
+    this.addLog('vital_change', `${prefix}${after ?? 'off'}`);
+  }
+
+  /** Switch one vital's limit alarms off or back on. */
+  setAlarmOff(vital: AlarmVital, off: boolean): void {
+    if (off === this.alarmsOff.has(vital)) return;
+    if (off) this.alarmsOff.add(vital);
+    else this.alarmsOff.delete(vital);
+    this.addLog('vital_change', `${VITAL_META[vital].label} alarms ${off ? 'off' : 'on'}`);
+  }
+
   /** Add or remove the V5 lead on the monitor at runtime (faculty toggle). */
   setV5Lead(on: boolean): void {
     if (on === this.v5Lead) return;
@@ -1121,10 +1163,11 @@ export class SimulationEngine {
         agent: this.agent,
         mac: Math.round(macMultiple(this.agent, vitals.agentEt, this.scenario.patient.age) * 100) / 100,
       },
-      alarms: evaluateAlarms(alarmVitals, this.alarmLimits),
+      alarms: evaluateAlarms(alarmVitals, this.alarmLimits, [...this.alarmsOff]),
       alarmsSilenced: this.alarmsSilenced,
       alarmLimits: this.alarmLimits,
       alarmProfile: this.alarmProfile,
+      alarmsOff: ALARM_VITALS.filter((v) => this.alarmsOff.has(v)),
       actions: this.actions.map((a) => ({ ...a })),
       log: this.log.slice(-SNAPSHOT_LOG_TAIL),
       notes: [...this.notes],

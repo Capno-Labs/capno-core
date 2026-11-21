@@ -445,6 +445,10 @@ export function VitalControls() {
               HR {limitsText(hrLimits)} · SBP {limitsText(sbpLimits)}
             </span>
           )}
+          <span className="basis-full text-xs text-faint">
+            Select a number on the monitor preview to set its high and low limit or switch its alarm
+            off.
+          </span>
         </div>
 
         <div className="space-y-1.5">

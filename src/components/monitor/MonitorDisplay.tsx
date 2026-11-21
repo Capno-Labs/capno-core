@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import type { SimSnapshot } from '@/lib/engine/types';
+import { useEffect, useRef, useState } from 'react';
+import type { AlarmVital, SimSnapshot } from '@/lib/engine/types';
 import {
   AGENT_TAGS,
   formatStMm,
@@ -11,6 +11,7 @@ import {
   RHYTHM_LABELS,
 } from '@/lib/engine/types';
 import { AlarmBanner } from './AlarmBanner';
+import { AlarmSetup, type AlarmSetupActions } from './AlarmSetup';
 import { BeatClock } from './beatClock';
 import { MonitorAudio, useSoundLevel } from './MonitorAudio';
 import { unlockMonitorAudio, useMonitorAudioRunning } from './monitorAudioContext';
@@ -33,6 +34,12 @@ interface MonitorDisplayProps {
    * starts with sound on, the faculty `preview` (the default) with it off.
    */
   soundRole?: SoundRole;
+  /**
+   * Makes the monitor operable: selecting a number opens its alarm setup
+   * (limits, alarms on/off). Absent = a display only. Passed by the faculty
+   * preview; student displays send nothing, so they do not get it.
+   */
+  alarmSetup?: AlarmSetupActions;
 }
 
 const SOUND_ICON: Record<SoundLevel, string> = { off: '🔇', low: '🔉', full: '🔊' };
@@ -58,7 +65,11 @@ export function MonitorDisplay({
   compact = false,
   showRhythmLabel = true,
   soundRole = 'preview',
+  alarmSetup,
 }: MonitorDisplayProps) {
+  // Which numeric's alarm setup is open (the vitals that tile alarms on).
+  const [setupVitals, setSetupVitals] = useState<AlarmVital[] | null>(null);
+  const setupFor = (...vitals: AlarmVital[]) => (alarmSetup ? () => setSetupVitals(vitals) : undefined);
   const v = snapshot.vitals;
   const frozen = snapshot.status !== 'running';
   const [soundLevel, setSoundLevel] = useSoundLevel(soundRole);
@@ -95,6 +106,7 @@ export function MonitorDisplay({
   // The limits in force, printed beside each number as a monitor does.
   // Absent in snapshots from before limits could vary: print nothing.
   const lim = snapshot.alarmLimits;
+  const isOff = (vital: AlarmVital) => snapshot.alarmsOff?.includes(vital) ?? false;
 
   // A monitor counts heart rate from the beats it detects, so the number
   // wanders by a beat or so in sinus rhythm and more in AF. Display only:
@@ -156,8 +168,16 @@ export function MonitorDisplay({
     : 'grid-cols-[1fr_minmax(128px,168px)] md:grid-cols-[1fr_minmax(168px,224px)]';
 
   return (
-    <div className="flex h-full flex-col gap-2 bg-monitor-bg p-2 md:p-3">
+    <div className="relative flex h-full flex-col gap-2 bg-monitor-bg p-2 md:p-3">
       <MonitorAudio snapshot={snapshot} level={soundLevel} clock={clock} />
+      {alarmSetup && setupVitals && (
+        <AlarmSetup
+          vitals={setupVitals}
+          snapshot={snapshot}
+          actions={alarmSetup}
+          onClose={() => setSetupVitals(null)}
+        />
+      )}
       {/* Header: alarms + sound + status + clock */}
       <div className="flex items-center justify-between gap-3">
         <AlarmBanner alarms={shownAlarms} silenced={snapshot.alarmsSilenced} />
@@ -212,7 +232,7 @@ export function MonitorDisplay({
             </div>
             <Waveform kind="ecg" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} ecg={v.ecg} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="HR" value={String(shownHr)} unit="bpm" limits={limitsText(lim?.hr)} sub={stSub} color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
+          <VitalTile label="HR" value={String(shownHr)} unit="bpm" limits={limitsText(lim?.hr)} alarmsOff={isOff('hr')} onSetup={setupFor('hr')} sub={stSub} color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>
         {v5 && (
           <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
@@ -241,6 +261,8 @@ export function MonitorDisplay({
               value={bpValue}
               unit="mmHg"
               limits={limitsText(lim?.sbp)}
+              alarmsOff={isOff('sbp')}
+              onSetup={setupFor('sbp')}
               sub={bpSub}
               color="text-vital-nibp"
               alarm={alarmFor('sbp') ?? alarmFor('dbp')}
@@ -255,7 +277,7 @@ export function MonitorDisplay({
             </span>
             <Waveform kind="pleth" clock={clock} pulseless={noPulse} color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="SpO₂" value={noPulse ? NO_READING : String(Math.round(v.spo2))} unit="%" limits={limitsText(lim?.spo2)} color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={noPulse ? undefined : v.spo2} large={!compact} />
+          <VitalTile label="SpO₂" value={noPulse ? NO_READING : String(Math.round(v.spo2))} unit="%" limits={limitsText(lim?.spo2)} alarmsOff={isOff('spo2')} onSetup={setupFor('spo2')} color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={noPulse ? undefined : v.spo2} large={!compact} />
         </div>
         <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
           <div className="min-w-0">
@@ -272,6 +294,8 @@ export function MonitorDisplay({
             value={String(Math.round(v.etco2))}
             unit="mmHg"
             limits={limitsText(lim?.etco2)}
+            alarmsOff={isOff('etco2')}
+            onSetup={setupFor('etco2', 'rr')}
             sub={`RR ${Math.round(v.rr)}/min · Fi\u00a0${Math.round(v.fico2 ?? 0)}`}
             color="text-vital-etco2"
             alarm={alarmFor('etco2') ?? alarmFor('rr')}
@@ -290,13 +314,15 @@ export function MonitorDisplay({
               value={bpValue}
               unit="mmHg"
               limits={limitsText(lim?.sbp)}
+              alarmsOff={isOff('sbp')}
+              onSetup={setupFor('sbp')}
               sub={bpSub}
               color="text-vital-nibp"
               alarm={alarmFor('sbp') ?? alarmFor('dbp')}
               trendValue={cuffFailed ? undefined : cuff.sbp}
             />
           )}
-          <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" limits={limitsText(lim?.temp)} color="text-vital-temp" alarm={alarmFor('temp')} trendValue={v.temp} />
+          <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" limits={limitsText(lim?.temp)} alarmsOff={isOff('temp')} onSetup={setupFor('temp')} color="text-vital-temp" alarm={alarmFor('temp')} trendValue={v.temp} />
           <VitalTile
             label={AGENT_TAGS[agent]}
             value={v.agentEt.toFixed(1)}

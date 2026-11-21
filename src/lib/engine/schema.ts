@@ -285,6 +285,7 @@ export const scenarioSchema = z
         v5: z.boolean().optional(),
         alarmProfile: z.enum(['adult', 'pediatric', 'neonatal']).optional(),
         alarmLimits: alarmLimitsSchema.optional(),
+        alarmsOff: z.array(z.enum(['hr', 'sbp', 'spo2', 'etco2', 'rr', 'temp'])).optional(),
       })
       .optional(),
   })
