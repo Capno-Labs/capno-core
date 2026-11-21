@@ -73,8 +73,14 @@ Change a profile's numbers only with a source.
 At runtime the monitor is operated through `AlarmSetup`
 (`src/components/monitor/`), opened by selecting a tile: it calls
 `setAlarmLimit` / `setAlarmOff` (engine → `withAlarmLimit`, the `alarmsOff`
-set). `MonitorDisplay` only gets those actions (`alarmSetup` prop) on the
-faculty preview — student displays send nothing (invariant 3).
+set). `MonitorDisplay` is operable where it is given `alarmSetup` actions:
+the faculty preview passes the store's, and a student display passes ones
+that send a `monitor` request (`src/lib/sync/monitorRequest.ts`) while
+`snapshot.learnerAlarmSetup` is true. The controller validates each request,
+counts it once (`createRequestGate` — a display can reach it on two
+transports) and applies it with `by: 'display'`, which marks the log line.
+The request vocabulary is deliberately two kinds; a test pins it, and
+invariant 3 says who decides on a third.
 
 ## Add a rhythm
 

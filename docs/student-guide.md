@@ -70,6 +70,12 @@ patient and the rhythm, not for a number.
   child has different limits from one set for an adult. A 🔕 in their place
   means that number's alarms are switched off — it will not flash or sound,
   so check whether that is what you want.
+- **You can set the alarms yourself**, unless your instructor has locked
+  them. Tap a number (HR, SpO₂, EtCO₂, blood pressure, temperature) to open
+  its alarm setup: − and + move the **High** and **Low** limit, and
+  **Alarms on/off** switches that number's alarms. The change applies to
+  every display and is recorded for the debrief, as it would be charted in
+  an OR. Limits and alarms are all you can change from here.
 - A yellow banner is a **warning** alarm; a flashing red banner is **critical**.
   🔕 means the instructor has silenced alarms.
 - Sound is **on by default**. If the top bar shows **🔈 tap for sound**, tap
@@ -83,7 +89,8 @@ patient and the rhythm, not for a number.
 
 ## Display tips
 
-- The view is **read-only** — refreshing or tapping can't change the patient.
+- Refreshing or tapping can't change the patient. The one thing you can
+  operate is the monitor's alarm setup (see Alarms and sound).
 - For a projector or wall display, tap the fullscreen button in the top-right
   corner (or F11, ⌃⌘F on Mac), or install Capno as an app (PWA) for a
   chrome-free screen.

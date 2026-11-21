@@ -1,19 +1,26 @@
 import type { SimSnapshot } from '../engine/types';
+import type { MonitorRequest } from './monitorRequest';
 
 /**
  * Realtime sync between the faculty controller (authoritative) and student
- * displays (read-only mirrors).
+ * displays (mirrors).
  *
- * Message flow is intentionally one-way state replication: the controller
- * broadcasts full snapshots on every tick and change. Snapshots are small
- * (a few KB) and full-state replication makes late joiners, refreshes, and
- * dropped messages a non-issue — a student display is always correct within
- * one tick of connecting.
+ * State flows one way: the controller broadcasts full snapshots on every
+ * tick and change. Snapshots are small (a few KB) and full-state replication
+ * makes late joiners, refreshes, and dropped messages a non-issue — a
+ * student display is always correct within one tick of connecting.
+ *
+ * A display sends two things back, neither of them state: `hello`, and
+ * `monitor` — a request to operate the monitor's alarm setup, which the
+ * controller validates and applies to its engine (see monitorRequest.ts).
  */
 
 export type SyncMessage =
   | { type: 'snapshot'; snapshot: SimSnapshot }
   | { type: 'hello' } // student asks the controller to re-broadcast immediately
+  // Student operates the alarm setup. Untrusted until parsed; `id` lets the
+  // controller count a request once when it arrives on two transports.
+  | { type: 'monitor'; id: string; request: MonitorRequest }
   | { type: 'bye' }; // controller left / session torn down
 
 export type TransportState = 'connecting' | 'connected' | 'error' | 'closed';

@@ -115,6 +115,9 @@ export function PreStartPanel() {
                 ? ` ${ALARM_PROFILE_LABELS[snapshot.alarmProfile]} alarm limits.`
                 : ''}
               {scenario.monitoring?.alarmLimits ? ' This case sets some limits of its own.' : ''}
+              {snapshot.learnerAlarmSetup
+                ? ' Learners can set alarm limits and switch alarms off on their display.'
+                : ' Only you can change alarm limits.'}
               {snapshot.alarmsOff && snapshot.alarmsOff.length > 0
                 ? ` Switched off: ${snapshot.alarmsOff.map((v) => VITAL_META[v].label).join(', ')}.`
                 : ''}

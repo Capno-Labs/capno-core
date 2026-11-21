@@ -3,15 +3,18 @@
 import { create } from 'zustand';
 import type { SimSnapshot } from '../engine/types';
 import { createSyncChannels, type SyncChannel, type TransportHealth } from '../sync';
+import { newRequestId, type MonitorRequest } from '../sync/monitorRequest';
 
 /**
- * Student display store — a read-only mirror. Joins a session by code and
- * renders whatever snapshot the faculty controller last broadcast.
+ * Student display store — a mirror. Joins a session by code and renders
+ * whatever snapshot the faculty controller last broadcast. It never changes
+ * simulation state: besides `hello`, the one thing it sends is a request to
+ * operate the monitor's alarm setup, which the controller checks and
+ * applies; the result comes back in the next snapshot.
  *
  * Liveness: the controller broadcasts a snapshot every 500 ms whether the
  * sim is running or not, so a local watchdog can detect a dead controller
- * (crashed tab, network loss) without any protocol additions. The student
- * still sends nothing but `hello`.
+ * (crashed tab, network loss) without any protocol additions.
  */
 
 /** No snapshot within this window after `hello` → the code is likely wrong. */
@@ -29,6 +32,8 @@ interface StudentState {
   syncHealth: TransportHealth[];
   join: (sessionId: string) => void;
   leave: () => void;
+  /** Ask the session to operate the monitor's alarm setup. */
+  requestMonitor: (request: MonitorRequest) => void;
 }
 
 let channel: SyncChannel | null = null;
@@ -76,6 +81,10 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     }, 1000);
     // Ask the controller for an immediate snapshot (covers late join/refresh).
     channel.send({ type: 'hello' });
+  },
+
+  requestMonitor: (request) => {
+    channel?.send({ type: 'monitor', id: newRequestId(), request });
   },
 
   leave: () => {

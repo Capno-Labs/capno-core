@@ -21,7 +21,7 @@ import { useStudentStore } from '@/lib/store/studentStore';
  * A ?code=XXXX link (copied from the faculty controller) joins directly.
  */
 function StudentContent() {
-  const { sessionId, snapshot, phase, syncHealth, join, leave } = useStudentStore();
+  const { sessionId, snapshot, phase, syncHealth, join, leave, requestMonitor } = useStudentStore();
   const [code, setCode] = useState('');
   const search = useSearchParams();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -209,7 +209,23 @@ function StudentContent() {
       ) : (
         <>
           {!booted && <BootOverlay onDone={() => setBooted(true)} />}
-          <MonitorDisplay snapshot={snapshot} showRhythmLabel={false} soundRole="display" />
+          <MonitorDisplay
+            snapshot={snapshot}
+            showRhythmLabel={false}
+            soundRole="display"
+            // Learners operate the alarm setup when faculty allow it. The
+            // display changes nothing itself: each press is a request, and
+            // the session's next snapshot shows the result.
+            alarmSetup={
+              snapshot.learnerAlarmSetup
+                ? {
+                    stepLimit: (vital, side, direction) =>
+                      requestMonitor({ kind: 'alarmLimitStep', vital, side, direction }),
+                    setOff: (vital, off) => requestMonitor({ kind: 'alarmOff', vital, off }),
+                  }
+                : undefined
+            }
+          />
         </>
       )}
     </main>

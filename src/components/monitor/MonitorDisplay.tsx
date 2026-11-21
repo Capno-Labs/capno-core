@@ -36,8 +36,9 @@ interface MonitorDisplayProps {
   soundRole?: SoundRole;
   /**
    * Makes the monitor operable: selecting a number opens its alarm setup
-   * (limits, alarms on/off). Absent = a display only. Passed by the faculty
-   * preview; student displays send nothing, so they do not get it.
+   * (limits, alarms on/off). Absent = a display only. The faculty preview
+   * passes actions on the session; a student display passes ones that send
+   * requests, while faculty allow learners to operate it.
    */
   alarmSetup?: AlarmSetupActions;
 }

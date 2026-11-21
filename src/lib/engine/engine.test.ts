@@ -822,6 +822,42 @@ describe('SimulationEngine', () => {
         expect(limitLog()).toEqual(['HR high alarm limit → 125', 'HR low alarm limit → 45', 'HR low alarm limit → 40']);
       });
 
+      it('steps a limit one press at a time, and a press inward switches an off limit on', () => {
+        const e = running();
+        e.stepAlarmLimit('hr', 'high', 1);
+        expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(110 + ALARM_LIMIT_STEP.hr);
+        e.stepAlarmLimit('hr', 'high', -1);
+        expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(110);
+        // SpO2 has no high limit: it sits at 100, so one press down turns it on.
+        expect(e.snapshot().alarmLimits!.spo2.warnHigh).toBeUndefined();
+        e.stepAlarmLimit('spo2', 'high', -1);
+        expect(e.snapshot().alarmLimits!.spo2.warnHigh).toBe(99);
+        e.stepAlarmLimit('spo2', 'high', 1);
+        expect(e.snapshot().alarmLimits!.spo2.warnHigh).toBeUndefined();
+      });
+
+      it('lets learners operate the alarm setup by default, and keeps the instructor\'s choice across reset', () => {
+        const e = running();
+        expect(e.snapshot().learnerAlarmSetup).toBe(true);
+        e.setLearnerAlarmSetup(false);
+        expect(e.snapshot().log.at(-1)).toMatchObject({ kind: 'session', label: 'Learner alarm setup off' });
+        e.reset();
+        expect(e.snapshot().learnerAlarmSetup).toBe(false);
+        expect(new SimulationEngine(scenario(), 'T', { learnerAlarmSetup: false }).getLearnerAlarmSetup()).toBe(false);
+      });
+
+      it('does not merge a learner\'s presses into the instructor\'s log line', () => {
+        const e = running();
+        e.stepAlarmLimit('hr', 'high', 1);
+        e.stepAlarmLimit('hr', 'high', 1, 'display');
+        e.stepAlarmLimit('hr', 'high', 1, 'display');
+        const lines = e.getFullLog().filter((l) => l.label.includes('alarm limit'));
+        expect(lines.map((l) => [l.label, l.detail])).toEqual([
+          ['HR high alarm limit → 115', undefined],
+          ['HR high alarm limit → 125', 'on a student display'],
+        ]);
+      });
+
       it('moves the critical limit only when the limit passes it', () => {
         const e = running();
         e.setAlarmLimit('hr', 'high', 150); // past the critical 140

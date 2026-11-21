@@ -421,6 +421,22 @@ export function withAlarmLimit(
 }
 
 /**
+ * Where one press of − (`direction` −1) or + (+1) takes a limit. A limit
+ * that is off sits at the end of its range, so a press inward switches it
+ * on; the result is passed to `withAlarmLimit`, which applies the rules.
+ */
+export function steppedAlarmLimit(
+  limits: AlarmLimits,
+  vital: AlarmVital,
+  side: AlarmSide,
+  direction: -1 | 1,
+): number {
+  const meta = VITAL_META[vital];
+  const current = limits[vital][side === 'low' ? 'warnLow' : 'warnHigh'] ?? (side === 'low' ? meta.min : meta.max);
+  return current + direction * ALARM_LIMIT_STEP[vital];
+}
+
+/**
  * What is wrong with a set of limits, if anything: a critical limit must lie
  * at or beyond its warning limit, and low below high. Empty = consistent.
  */
