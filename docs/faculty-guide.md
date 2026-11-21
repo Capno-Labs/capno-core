@@ -88,9 +88,18 @@ Tips and pitfalls:
   both ends. The controller page must be open.
 - **Leaving or reloading the controller page ends the session and generates a
   new code** — students will need to rejoin with the new one.
-- Monitor sound on the student display is **off by default** (browsers block
-  autoplay). Tap the 🔇 icon in the monitor's top bar once to enable the pulse
-  tone and alarm sounds; the choice is remembered on that device.
+- Monitor sound on the student display is **on by default**: joining with the
+  code starts the pulse tone and alarm sounds. A display opened from a join
+  link (or reloaded) shows **🔈 tap for sound** until someone taps or presses
+  a key — browsers will not play audio before that. The speaker button cycles
+  full → low → off, and the choice is remembered on that device.
+- Sound on your own **live monitor preview** is off by default, so the room
+  does not hear two monitors. Its speaker button works the same way and is
+  remembered separately.
+- **Alarm sounds follow priority.** A critical alarm is a repeating burst of
+  ten quick, high pulses; a warning is three slower, lower pulses repeated
+  less often. Warnings were silent before. **🔔 silence alarms** stops both on
+  every display.
 - For a clean projector image, put the browser in fullscreen (F11, or ⌃⌘F on
   Mac) or install Capno as a PWA (see [DEPLOYMENT.md](DEPLOYMENT.md)).
 
@@ -323,7 +332,8 @@ descriptors) instead of a percentage.
 | "Connection to controller lost — showing last received data" on the monitor | The controller tab was closed, reloaded, or lost network. Reopen it — students rejoin with the new code. |
 | "Session ended by faculty" on the monitor | You pressed **■ End session** — this is normal; students can join the next session's code. |
 | Cloud sync dot is red or orange | Cross-device sync is degraded — remote displays may be stale until it recovers (it reconnects on its own). Same-device windows are unaffected. |
-| No monitor sound | Sound defaults off — tap the 🔇 icon on the student display. |
+| No monitor sound | Check the device volume, then the speaker button on the monitor: **🔈 tap for sound** means the browser is waiting for a tap; 🔇 means it was turned off there. Your own preview is off by default. |
+| Alarm tone on a mild abnormality | Warnings now sound (three low pulses). Use **🔔 silence alarms**, or correct the vital. |
 | BP "stuck" while sliders move | That's NIBP cuff mode working as intended — press **Cycle NIBP now** or wait for the next cuff cycle. |
 | HR tile is a beat off the slider, or bounces in AF | The monitor counts rate from the beats it draws (§5). Alarms and the debrief use the slider value. |
 | SpO₂ or NIBP shows dashes | No pulse to measure (VF, PEA, asystole), or the cuff cycled at a systolic of 0 (§5). |

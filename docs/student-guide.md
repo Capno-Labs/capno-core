@@ -44,9 +44,14 @@ patient and the rhythm, not for a number.
 
 - A yellow banner is a **warning** alarm; a flashing red banner is **critical**.
   🔕 means the instructor has silenced alarms.
-- Sound is **off by default** — tap the 🔇 icon in the top bar to enable it.
-  You'll hear a per-beat pulse tone whose pitch falls as SpO₂ falls (listen for
-  the drop, like a real pulse oximeter) and an alarm tone for critical states.
+- Sound is **on by default**. If the top bar shows **🔈 tap for sound**, tap
+  anywhere once — the browser needs that before it will play. The speaker
+  button cycles full → low → off.
+- You'll hear a per-beat pulse tone whose pitch falls as SpO₂ falls (listen
+  for the drop, like a real pulse oximeter).
+- Alarm sounds follow priority: **critical** is a repeating burst of ten
+  quick, high pulses; a **warning** is three slower, lower pulses repeated
+  less often.
 
 ## Display tips
 

@@ -1,11 +1,13 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { SimSnapshot } from '@/lib/engine/types';
 import { map, PVC_FREQUENCY_EVERY_N, RHYTHM_LABELS } from '@/lib/engine/types';
 import { AlarmBanner } from './AlarmBanner';
 import { BeatClock } from './beatClock';
-import { MonitorAudio, useMonitorSoundPref } from './MonitorAudio';
+import { MonitorAudio, useSoundLevel } from './MonitorAudio';
+import { unlockMonitorAudio, useMonitorAudioRunning } from './monitorAudioContext';
+import { nextSoundLevel, type SoundLevel, type SoundRole } from './soundPref';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
 import { cuffReadingFailed, displayAlarms, NO_READING, oximeterHasSignal } from './readouts';
@@ -16,7 +18,19 @@ interface MonitorDisplayProps {
   compact?: boolean;
   /** Hidden on the student monitor — learners read the rhythm from the trace. */
   showRhythmLabel?: boolean;
+  /**
+   * Which monitor this is, for the sound default: the student `display`
+   * starts with sound on, the faculty `preview` (the default) with it off.
+   */
+  soundRole?: SoundRole;
 }
+
+const SOUND_ICON: Record<SoundLevel, string> = { off: '🔇', low: '🔉', full: '🔊' };
+const SOUND_TITLE: Record<SoundLevel, string> = {
+  off: 'Sound off — tap to turn on',
+  low: 'Sound low (pulse tone + alarms) — tap to turn off',
+  full: 'Sound on (pulse tone + alarms) — tap to turn down',
+};
 
 function formatClock(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -29,10 +43,29 @@ function formatClock(totalSec: number): string {
  * whether driven locally (faculty preview) or over the sync channel (student
  * display / projector).
  */
-export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = true }: MonitorDisplayProps) {
+export function MonitorDisplay({
+  snapshot,
+  compact = false,
+  showRhythmLabel = true,
+  soundRole = 'preview',
+}: MonitorDisplayProps) {
   const v = snapshot.vitals;
   const frozen = snapshot.status !== 'running';
-  const [soundOn, setSoundOn] = useMonitorSoundPref();
+  const [soundLevel, setSoundLevel] = useSoundLevel(soundRole);
+  // Sound is wanted but the browser has not been allowed to play it yet (a
+  // monitor opened from a link, or reloaded): the first tap or key press
+  // anywhere unlocks it, and the button says so meanwhile.
+  const audioRunning = useMonitorAudioRunning();
+  const soundLocked = soundLevel !== 'off' && !audioRunning;
+  useEffect(() => {
+    if (!soundLocked) return;
+    window.addEventListener('pointerdown', unlockMonitorAudio);
+    window.addEventListener('keydown', unlockMonitorAudio);
+    return () => {
+      window.removeEventListener('pointerdown', unlockMonitorAudio);
+      window.removeEventListener('keydown', unlockMonitorAudio);
+    };
+  }, [soundLocked]);
 
   // One heartbeat clock per monitor: the ECG, pleth, arterial trace and the
   // pulse tone all read the same beats, so they stay locked together.
@@ -92,18 +125,29 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
 
   return (
     <div className="flex h-full flex-col gap-2 bg-monitor-bg p-2 md:p-3">
-      <MonitorAudio snapshot={snapshot} enabled={soundOn} clock={clock} />
+      <MonitorAudio snapshot={snapshot} level={soundLevel} clock={clock} />
       {/* Header: alarms + sound + status + clock */}
       <div className="flex items-center justify-between gap-3">
         <AlarmBanner alarms={shownAlarms} silenced={snapshot.alarmsSilenced} />
         <div className="flex items-center gap-3 whitespace-nowrap font-mono text-[#dce3d9]">
           <button
-            onClick={() => setSoundOn(!soundOn)}
-            className="rounded px-1.5 py-0.5 text-base ring-1 ring-monitor-grid hover:bg-monitor-panel"
-            title={soundOn ? 'Sound on (pulse tone + alarms)' : 'Sound off'}
-            aria-label={soundOn ? 'Turn monitor sound off' : 'Turn monitor sound on'}
+            onClick={() => {
+              // While locked, the tap that reaches this button is the unlock
+              // itself — don't also change the level out from under it.
+              if (soundLocked) unlockMonitorAudio();
+              else setSoundLevel(nextSoundLevel(soundLevel));
+            }}
+            className={`rounded px-1.5 py-0.5 text-base ring-1 ring-monitor-grid hover:bg-monitor-panel ${
+              soundLocked ? 'motion-safe:animate-pulse' : ''
+            }`}
+            title={soundLocked ? 'Tap anywhere to start sound' : SOUND_TITLE[soundLevel]}
+            aria-label={soundLocked ? 'Start monitor sound' : `Monitor ${SOUND_TITLE[soundLevel].toLowerCase()}`}
           >
-            {soundOn ? '🔊' : '🔇'}
+            {soundLocked ? (
+              <span className="text-xs font-bold uppercase tracking-wider">🔈 tap for sound</span>
+            ) : (
+              SOUND_ICON[soundLevel]
+            )}
           </button>
           {frozen && (
             <span className="rounded bg-[#293027] px-2 py-0.5 text-xs uppercase tracking-widest">
