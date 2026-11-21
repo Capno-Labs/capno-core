@@ -1,5 +1,5 @@
-import type { AlarmState, NumericVitals, Vitals } from './types';
-import { hasPulse, NUMERIC_VITAL_KEYS } from './types';
+import type { AlarmState, AnestheticAgent, NumericVitals, Patient, Ventilation, VentKey, Vitals } from './types';
+import { hasPulse, minuteVentilation, NUMERIC_VITAL_KEYS, VENT_META } from './types';
 
 /** Display metadata for each numeric vital (units, formatting, slider range). */
 export interface VitalMeta {
@@ -21,8 +21,9 @@ export const VITAL_META: Record<keyof NumericVitals, VitalMeta> = {
   rr: { key: 'rr', label: 'RR', unit: '/min', min: 0, max: 60, step: 1, decimals: 0 },
   temp: { key: 'temp', label: 'Temp', unit: '°C', min: 30, max: 44, step: 0.1, decimals: 1 },
   depth: { key: 'depth', label: 'Depth', unit: '', min: 0, max: 100, step: 1, decimals: 0 },
-  agentEt: { key: 'agentEt', label: 'Et Sev', unit: '%', min: 0, max: 8, step: 0.1, decimals: 1 },
-  agentFi: { key: 'agentFi', label: 'Fi Sev', unit: '%', min: 0, max: 8, step: 0.1, decimals: 1 },
+  // Up to 18%: a desflurane vaporizer's range (sevoflurane's stops at 8).
+  agentEt: { key: 'agentEt', label: 'Et Agent', unit: '%', min: 0, max: 18, step: 0.1, decimals: 1 },
+  agentFi: { key: 'agentFi', label: 'Fi Agent', unit: '%', min: 0, max: 18, step: 0.1, decimals: 1 },
 };
 
 export const DEFAULT_VITALS: Vitals = {
@@ -105,6 +106,87 @@ export function esophagealEtco2(trueEtco2: number, breaths: number): number {
  *  IntelliVue Configuration Guide, Rel. G.0). */
 export const FICO2_ALARM_HIGH = 4;
 
+// ── Anesthesia machine ───────────────────────────────────────────────────────
+
+/** Clamp a machine reading to its range. */
+export function clampVent(key: VentKey, value: number): number {
+  const m = VENT_META[key];
+  return Math.min(m.max, Math.max(m.min, value));
+}
+
+/**
+ * Predicted body weight, kg, from height and sex — the ARDS Network formula
+ * (NEJM 2000;342:1301), as given in Sasko et al., PLoS One 2018;13:e0199917:
+ * 50 (men) or 45.5 (women) + 0.91 × (height in cm − 152.4).
+ */
+export function predictedBodyWeightKg(patient: Pick<Patient, 'sex' | 'heightCm'>): number {
+  const base = patient.sex === 'male' ? PBW.male : PBW.female;
+  return Math.max(PBW.floorKg, base + PBW.perCm * (patient.heightCm - PBW.fromCm));
+}
+const PBW = { male: 50, female: 45.5, perCm: 0.91, fromCm: 152.4, floorKg: 25 } as const;
+
+/** Tidal volume for the default setting, mL per kg of predicted body weight:
+ *  the middle of the 6–8 recommended for intraoperative lung-protective
+ *  ventilation (Young et al., Br J Anaesth 2019;123:898). */
+export const DEFAULT_VT_ML_PER_KG = 7;
+
+/**
+ * What the machine reads for a ventilated patient of this size with healthy
+ * lungs — the starting point when a scenario shows the machine tiles without
+ * saying what they read.
+ *  - Tidal volume 7 mL/kg predicted body weight, PEEP 5 cmH2O: the initial
+ *    settings of the international consensus (Young et al. 2019).
+ *  - Peak 18 and plateau 16 cmH2O: the medians in 9,864 surgical patients
+ *    were 17.5 and 15.5 (LAS VEGAS investigators, Eur J Anaesthesiol
+ *    2017;34:492).
+ *  - FiO2 50%: the median in that study was 0.52, and 0.5 is standard UK
+ *    practice (Morkane et al., Perioper Med 2018;7:17). Guidance conflicts —
+ *    the WHO recommends 0.8, others 0.21–0.4 — so this is practice, not advice.
+ */
+export function defaultVentilation(patient: Pick<Patient, 'sex' | 'heightCm'>): Ventilation {
+  const vt = Math.round((DEFAULT_VT_ML_PER_KG * predictedBodyWeightKg(patient)) / 10) * 10;
+  return { fio2: 50, pip: 18, pplat: 16, peep: 5, vt };
+}
+
+/**
+ * Machine alarm limits: the factory defaults of a Dräger Fabius GS premium
+ * (Instructions for Use, SW 3.n, 9038906 ed. 7): airway pressure high 40 and
+ * low (apnea) threshold 8 cmH2O, minute volume 3.0–12.0 L/min, oxygen low
+ * 20%. Defaults differ by maker — a Mindray A7 ships with pressure 50/10,
+ * minute volume low 1 and oxygen low 18%. The real machine waits 15–30 s
+ * below the pressure threshold before alarming; here it is immediate.
+ */
+export const MACHINE_ALARM_LIMITS = {
+  pawHigh: 40,
+  pawLow: 8,
+  mvLow: 3,
+  mvHigh: 12,
+  fio2Low: 20,
+} as const;
+
+/**
+ * MAC at age 40 in oxygen, % end-tidal (Mapleson, Br J Anaesth 1996;76:179).
+ */
+export const MAC_AT_40: Record<AnestheticAgent, number> = {
+  sevoflurane: 1.8,
+  isoflurane: 1.17,
+  desflurane: 6.6,
+};
+
+/**
+ * MAC for a patient of this age, %: MAC40 × 10^(−0.00269 × (age − 40)), a
+ * fall of about 6% per decade, for ages over 1 year (Mapleson 1996; the
+ * basis of the Nickalls & Mapleson iso-MAC charts, Br J Anaesth 2003;91:170).
+ */
+export function ageAdjustedMac(agent: AnestheticAgent, ageYears: number): number {
+  return MAC_AT_40[agent] * Math.pow(10, -0.00269 * (ageYears - 40));
+}
+
+/** End-tidal concentration as a multiple of the patient's age-adjusted MAC. */
+export function macMultiple(agent: AnestheticAgent, endTidalPercent: number, ageYears: number): number {
+  return endTidalPercent / ageAdjustedMac(agent, ageYears);
+}
+
 /** Minimum systolic−diastolic gap the sim will display (mmHg). A narrower
  *  pulse pressure isn't a plausible monitor reading, so both the engine and
  *  scenario validation enforce it. */
@@ -151,6 +233,27 @@ export function evaluateAlarms(vitals: Vitals): AlarmState[] {
       level: 'critical',
       message: `RHYTHM: ${vitals.rhythm.toUpperCase().replace('_', ' ')}`,
     });
+  }
+
+  // Anesthesia machine, when its readings are on the monitor.
+  const vent = vitals.vent;
+  if (vent && vent.pip !== undefined && vent.vt !== undefined && vent.fio2 !== undefined) {
+    const lim = MACHINE_ALARM_LIMITS;
+    if (vent.pip > lim.pawHigh) {
+      alarms.push({ vital: 'paw', level: 'critical', message: `Paw HIGH ${vent.pip}` });
+    } else if (vent.pip < lim.pawLow) {
+      // No pressure being generated: a disconnection, or no ventilation.
+      alarms.push({ vital: 'paw', level: 'critical', message: 'APNEA PRESSURE' });
+    }
+    const mv = minuteVentilation(vent.vt, vitals.rr);
+    if (mv < lim.mvLow) {
+      alarms.push({ vital: 'vt', level: 'warning', message: `MV low ${mv.toFixed(1)}` });
+    } else if (mv > lim.mvHigh) {
+      alarms.push({ vital: 'vt', level: 'warning', message: `MV high ${mv.toFixed(1)}` });
+    }
+    if (vent.fio2 < lim.fio2Low) {
+      alarms.push({ vital: 'fio2', level: 'critical', message: `FiO₂ LOW ${vent.fio2}` });
+    }
   }
 
   // Rebreathing: the baseline no longer returns to zero.

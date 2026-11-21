@@ -215,5 +215,34 @@ describe('scenario schema', () => {
     unknown.baselineVitals.capnoShape = 'rebreathing';
     expect(validateScenario(unknown).ok).toBe(false);
   });
+
+  it('accepts machine readings and an agent on baseline and effects, within range', () => {
+    const doc = JSON.parse(JSON.stringify(inductionHypotension));
+    doc.baselineVitals.vent = {};
+    doc.baselineVitals.agent = 'desflurane';
+    doc.events[0].effects = [{ vent: { pip: 45, vt: 250 }, agent: 'isoflurane', overSec: 30 }];
+    expect(validateScenario(doc).ok).toBe(true);
+    doc.baselineVitals.vent = { fio2: 100, pip: 20, pplat: 16, peep: 5, vt: 480 };
+    expect(validateScenario(doc).ok).toBe(true);
+
+    for (const bad of [{ fio2: -1 }, { fio2: 101 }, { pip: 90 }, { peep: 30 }, { vt: 2000 }, { pressure: 20 }]) {
+      const d = JSON.parse(JSON.stringify(inductionHypotension));
+      d.baselineVitals.vent = bad;
+      expect(validateScenario(d).ok, JSON.stringify(bad)).toBe(false);
+    }
+    const badAgent = JSON.parse(JSON.stringify(inductionHypotension));
+    badAgent.baselineVitals.agent = 'halothane';
+    expect(validateScenario(badAgent).ok).toBe(false);
+  });
+
+  it('accepts a desflurane-range end-tidal concentration', () => {
+    const doc = JSON.parse(JSON.stringify(inductionHypotension));
+    doc.baselineVitals.agent = 'desflurane';
+    doc.baselineVitals.agentEt = 6.6;
+    doc.baselineVitals.agentFi = 7;
+    expect(validateScenario(doc).ok).toBe(true);
+    doc.baselineVitals.agentEt = 19;
+    expect(validateScenario(doc).ok).toBe(false);
+  });
 });
 

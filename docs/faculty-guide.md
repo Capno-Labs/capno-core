@@ -159,9 +159,9 @@ Orientation on the controller:
 ## 5. Driving vitals
 
 The **Vitals** panel has a slider per parameter (HR, SBP/DBP, SpO₂, EtCO₂, RR,
-Temp, and end-tidal sevoflurane — shown as SEV on the monitor; inspired
-sevoflurane follows it, and anesthetic depth is set by scenario events, not a
-slider). A slider commits when you release it, and
+Temp, and end-tidal agent — shown on the monitor under the agent's tag (SEV,
+ISO or DES); the inspired concentration follows it, and anesthetic depth is
+set by scenario events, not a slider). A slider commits when you release it, and
 the value changes over the selected **ramp** speed — **Instant / 3 s / 10 s**
 (default 3 s). A short ramp keeps the change readable on the monitor without
 stalling a timed session; Instant is for corrections.
@@ -206,6 +206,31 @@ that lead II misses, which is the usual case: lead II alone picks up only
 about a third of intraoperative ischemia, V5 about three-quarters, and the
 two together four-fifths (London et al., *Anesthesiology* 1988). T-wave, QRS
 and QT settings apply to both leads.
+
+**Machine readings.** Press **Show machine readings** to add three tiles to
+every display — airway pressure (peak, with plateau and PEEP beneath), tidal
+volume (with minute volume) and inspired oxygen — and steppers for each: tap
+− or +, or type a number. A scenario can also start with them. They start
+from values sized to the patient (tidal volume from predicted body weight,
+PEEP 5, peak 18, plateau 16, oxygen 50%) and follow the selected ramp. They
+read only what you set: raising peak pressure does not lower the saturation,
+so move the vitals that go with it. A guide to which numbers to move:
+
+- **Peak up, plateau unchanged** — airway resistance: bronchospasm, a kinked
+  or plugged tube.
+- **Peak and plateau both up** — a stiffer chest or lung: mainstem
+  intubation, pneumothorax, atelectasis, pulmonary edema, pneumoperitoneum.
+- **Peak near zero, tidal volume zero** — a disconnection (set EtCO₂ to 0 as
+  well: the capnogram is the best monitor of one).
+- **Inspired oxygen falling** — a failed or crossed oxygen supply; the
+  saturation follows later.
+
+The machine alarms on airway pressure above 40 or below 8 cmH₂O, minute
+volume under 3 or over 12 L/min, and inspired oxygen under 20%.
+
+**Agent** buttons (SEV, ISO, DES) say which volatile the end-tidal number
+refers to. The agent tile shows it as a multiple of the patient's MAC,
+adjusted for age: the same concentration is more MAC in an older patient.
 
 **CO₂ waveform** buttons change the capnogram's shape: Normal, Bronchospasm
 (shark fin), Curare cleft, Cardiogenic oscillations (ripples in time with the

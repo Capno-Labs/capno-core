@@ -1,6 +1,7 @@
 import type {
   ActionRecord,
   ActionStatus,
+  AnestheticAgent,
   CapnoShape,
   EcgLead,
   EcgMorphology,
@@ -8,17 +9,21 @@ import type {
   LogEntry,
   NibpReading,
   NumericVitals,
+  Patient,
   PvcFrequency,
   Rhythm,
   Scenario,
   ScenarioEvent,
   SimSnapshot,
   SimStatus,
+  VentKey,
+  Ventilation,
   VitalEffect,
   Vitals,
   VitalsHistorySample,
 } from './types';
 import {
+  AGENT_LABELS,
   CAPNO_SHAPE_LABELS,
   FICO2_MAX,
   formatStMm,
@@ -33,8 +38,31 @@ import {
   ST_MM_MAX,
   ST_MM_MIN,
   T_WAVE_LABELS,
+  VENT_KEYS,
+  VENT_META,
 } from './types';
-import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL_META } from './vitals';
+import {
+  clampVent,
+  clampVital,
+  defaultVentilation,
+  evaluateAlarms,
+  macMultiple,
+  maxDbpFor,
+  measuredEtco2,
+  roundVital,
+  VITAL_META,
+} from './vitals';
+
+/** A scenario's starting machine readings: the patient's defaults, with
+ *  whatever the baseline states laid over them. */
+function baselineVentilation(patient: Patient, stated: Partial<Ventilation> | undefined): Ventilation {
+  const vent = defaultVentilation(patient);
+  for (const key of VENT_KEYS) {
+    const value = stated?.[key];
+    if (value !== undefined) vent[key] = clampVent(key, value);
+  }
+  return vent;
+}
 
 function clampFico2(value: number): number {
   return Math.min(FICO2_MAX, Math.max(0, value));
@@ -105,6 +133,12 @@ export class SimulationEngine {
   private pvcFrequency: PvcFrequency;
   /** No pulse despite an organized rhythm (PEA, pulseless VT). */
   private pulseless = false;
+  /** Anesthesia-machine readings; each ramps like a numeric vital. */
+  private vent: Ventilation;
+  private ventRamps: Partial<Record<VentKey, { target: number; ratePerSec: number }>> = {};
+  /** The monitor shows the machine tiles. Faculty can toggle at runtime. */
+  private ventShown: boolean;
+  private agent: AnestheticAgent;
   /** ECG complex morphology. The ST level ramps like a numeric vital. */
   private ecg: Required<EcgMorphology>;
   private stRamps: Partial<Record<StField, { target: number; ratePerSec: number }>> = {};
@@ -169,11 +203,14 @@ export class SimulationEngine {
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.preBriefEnabled = options?.preBrief ?? false;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
-    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, ...numeric } =
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, vent, agent, ...numeric } =
       scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.fico2 = clampFico2(fico2 ?? 0);
+    this.vent = baselineVentilation(scenario.patient, vent);
+    this.ventShown = vent !== undefined;
+    this.agent = agent ?? 'sevoflurane';
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
     this.pulseless = pulseless ?? false;
@@ -301,13 +338,17 @@ export class SimulationEngine {
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
     this.phaseChangedAtSec = 0;
-    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, ...numeric } =
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, vent, agent, ...numeric } =
       this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.capnoShapeSetAtSec = 0;
     this.fico2 = clampFico2(fico2 ?? 0);
     this.fico2Ramp = null;
+    this.vent = baselineVentilation(this.scenario.patient, vent);
+    this.ventRamps = {};
+    this.ventShown = vent !== undefined;
+    this.agent = agent ?? 'sevoflurane';
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
     this.stRamps = {};
@@ -399,6 +440,15 @@ export class SimulationEngine {
     if (dbpRamp && this.current.dbp === dbpRamp.target) this.ramps.delete('dbp');
 
     // The ST level ramps the same way.
+    for (const key of VENT_KEYS) {
+      const ramp = this.ventRamps[key];
+      if (!ramp) continue;
+      const step = ramp.ratePerSec * dtSec;
+      const cur = this.vent[key];
+      const next = cur < ramp.target ? Math.min(ramp.target, cur + step) : Math.max(ramp.target, cur - step);
+      this.vent[key] = next;
+      if (next === ramp.target) delete this.ventRamps[key];
+    }
     if (this.fico2Ramp) {
       const { target, ratePerSec } = this.fico2Ramp;
       const step = ratePerSec * dtSec;
@@ -559,6 +609,55 @@ export class SimulationEngine {
       `FiCO₂ → ${clamped} mmHg`,
       overSec > 0 ? `over ${overSec}s` : undefined,
     );
+  }
+
+  /**
+   * Set anesthesia-machine readings. Only the fields in `patch` change; each
+   * ramps to its target over `overSec` seconds (0 = instant).
+   */
+  setVent(patch: Partial<Ventilation>, overSec = 0): void {
+    for (const key of VENT_KEYS) {
+      const asked = patch[key];
+      if (asked === undefined) continue;
+      const target = clampVent(key, asked);
+      if (target === this.getVentTarget(key)) continue;
+      const distance = Math.abs(target - this.vent[key]);
+      if (overSec <= 0 || distance === 0) {
+        delete this.ventRamps[key];
+        this.vent[key] = target;
+      } else {
+        this.ventRamps[key] = { target, ratePerSec: distance / overSec };
+      }
+      const meta = VENT_META[key];
+      this.addLog(
+        'vital_change',
+        `${meta.label} → ${target} ${meta.unit}`,
+        overSec > 0 ? `over ${overSec}s` : undefined,
+      );
+    }
+  }
+
+  /** Where a machine reading is headed: its ramp target if ramping, else its value now. */
+  getVentTarget(key: VentKey): number {
+    return this.ventRamps[key]?.target ?? this.vent[key];
+  }
+
+  /** Show or hide the anesthesia-machine tiles on the monitor (faculty toggle). */
+  setVentShown(on: boolean): void {
+    if (on === this.ventShown) return;
+    this.ventShown = on;
+    this.addLog('vital_change', on ? 'Machine readings shown' : 'Machine readings hidden');
+  }
+
+  getVentShown(): boolean {
+    return this.ventShown;
+  }
+
+  /** Switch the volatile agent. The concentrations stay as they are. */
+  setAgent(agent: AnestheticAgent): void {
+    if (agent === this.agent) return;
+    this.agent = agent;
+    this.addLog('vital_change', `Agent → ${AGENT_LABELS[agent]}`);
   }
 
   /** Where the inspired CO2 is headed: its ramp target if ramping, else its value now. */
@@ -781,12 +880,32 @@ export class SimulationEngine {
       capnoShape: this.capnoShape,
       fico2: Math.round(this.fico2 * 10) / 10,
       pvcFrequency: this.pvcFrequency,
+      ...(this.ventShown ? { vent: this.shownVent() } : {}),
+      agent: this.agent,
       ecg: {
         ...this.ecg,
         stMm: Math.round(this.ecg.stMm * 10) / 10,
         stV5Mm: Math.round(this.ecg.stV5Mm * 10) / 10,
       },
       pulseless: this.pulseless,
+    };
+  }
+
+  /**
+   * The machine readings as displayed: rounded, and kept in their physical
+   * order — plateau pressure cannot exceed peak, nor PEEP the plateau — even
+   * while independent ramps would briefly cross.
+   */
+  private shownVent(): Ventilation {
+    const pip = Math.round(this.vent.pip);
+    const pplat = Math.min(Math.round(this.vent.pplat), pip);
+    const peep = Math.min(Math.round(this.vent.peep), pplat);
+    return {
+      fio2: Math.round(this.vent.fio2),
+      pip,
+      pplat,
+      peep,
+      vt: Math.round(this.vent.vt),
     };
   }
 
@@ -831,6 +950,10 @@ export class SimulationEngine {
       vitals,
       nibp: this.lastNibp ? { ...this.lastNibp, atSec: Math.floor(this.lastNibp.atSec) } : null,
       v5Lead: this.v5Lead,
+      gas: {
+        agent: this.agent,
+        mac: Math.round(macMultiple(this.agent, vitals.agentEt, this.scenario.patient.age) * 100) / 100,
+      },
       alarms: evaluateAlarms(alarmVitals),
       alarmsSilenced: this.alarmsSilenced,
       actions: this.actions.map((a) => ({ ...a })),
@@ -855,6 +978,8 @@ export class SimulationEngine {
     if (effect.pvcFrequency) this.setPvcFrequency(effect.pvcFrequency);
     if (effect.ecg) this.setEcg(effect.ecg, effect.overSec ?? 0);
     if (effect.pulseless !== undefined) this.setPulseless(effect.pulseless);
+    if (effect.vent) this.setVent(effect.vent, effect.overSec ?? 0);
+    if (effect.agent) this.setAgent(effect.agent);
     if (effect.vitals) {
       for (const key of NUMERIC_VITAL_KEYS) {
         const target = effect.vitals[key];

@@ -113,6 +113,68 @@ export const CAPNO_SHAPE_LABELS: Record<CapnoShape, string> = {
   esophageal: 'Esophageal intubation',
 };
 
+// ── Anesthesia machine ───────────────────────────────────────────────────────
+
+/** The volatile agent in use. Absent on vitals = sevoflurane. */
+export type AnestheticAgent = 'sevoflurane' | 'isoflurane' | 'desflurane';
+
+export const AGENT_LABELS: Record<AnestheticAgent, string> = {
+  sevoflurane: 'Sevoflurane',
+  isoflurane: 'Isoflurane',
+  desflurane: 'Desflurane',
+};
+
+/** Three-letter tags, as an agent analyzer prints them. */
+export const AGENT_TAGS: Record<AnestheticAgent, string> = {
+  sevoflurane: 'SEV',
+  isoflurane: 'ISO',
+  desflurane: 'DES',
+};
+
+/**
+ * Ventilator and gas readings from the anesthesia machine. Like the vitals,
+ * these are authored or instructor-set targets, not a lung model: a scenario
+ * says what the machine reads (a peak pressure of 45 in bronchospasm, a tidal
+ * volume of 0 after a disconnection) and the monitor shows it.
+ */
+export interface Ventilation {
+  /** Inspired oxygen, %. */
+  fio2: number;
+  /** Peak inspiratory pressure, cmH2O. */
+  pip: number;
+  /** Plateau (end-inspiratory pause) pressure, cmH2O. */
+  pplat: number;
+  /** Positive end-expiratory pressure, cmH2O. */
+  peep: number;
+  /** Exhaled tidal volume, mL. */
+  vt: number;
+}
+
+export const VENT_KEYS = ['fio2', 'pip', 'pplat', 'peep', 'vt'] as const satisfies readonly (keyof Ventilation)[];
+export type VentKey = (typeof VENT_KEYS)[number];
+
+export interface VentMeta {
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export const VENT_META: Record<VentKey, VentMeta> = {
+  // Down to 0, not 21: a pipeline crossover delivers a hypoxic mixture.
+  fio2: { label: 'FiO₂', unit: '%', min: 0, max: 100, step: 5 },
+  pip: { label: 'PIP', unit: 'cmH₂O', min: 0, max: 80, step: 1 },
+  pplat: { label: 'Pplat', unit: 'cmH₂O', min: 0, max: 60, step: 1 },
+  peep: { label: 'PEEP', unit: 'cmH₂O', min: 0, max: 25, step: 1 },
+  vt: { label: 'VT', unit: 'mL', min: 0, max: 1500, step: 25 },
+};
+
+/** Minute ventilation, L/min, from exhaled tidal volume and respiratory rate. */
+export function minuteVentilation(vtMl: number, rr: number): number {
+  return (vtMl * rr) / 1000;
+}
+
 /** Highest inspired CO2 the sim will hold, mmHg. Reported cases of a stuck
  *  expiratory valve reach 30 (Lee et al., Korean J Anesthesiol 2013;65:337). */
 export const FICO2_MAX = 30;
@@ -288,6 +350,15 @@ export interface Vitals extends NumericVitals {
   /** ECG complex morphology (ST, T wave, QRS width, QT). Absent = normal. */
   ecg?: EcgMorphology;
   /**
+   * Anesthesia-machine readings. In a scenario's baseline, its presence (even
+   * as `{}`) puts the machine tiles on the monitor from the start; fields
+   * left out take the defaults for the patient. In a snapshot it is present,
+   * with every field, while the tiles are shown.
+   */
+  vent?: Partial<Ventilation>;
+  /** Volatile agent in use. Absent = sevoflurane. */
+  agent?: AnestheticAgent;
+  /**
    * No pulse despite an organized rhythm: pulseless electrical activity
    * (any organized rhythm) or pulseless VT. Absent = false. VF, torsades,
    * asystole and the legacy `pea` rhythm are pulseless regardless — see
@@ -388,6 +459,11 @@ export interface VitalEffect {
   /** Take the pulse away (true) or give it back (false), independent of the
    *  rhythm. Applied immediately. */
   pulseless?: boolean;
+  /** Anesthesia-machine reading targets: only the fields listed change, and
+   *  each ramps over `overSec`, like a numeric vital. */
+  vent?: Partial<Ventilation>;
+  /** Switch the volatile agent. Applied immediately. */
+  agent?: AnestheticAgent;
   /** Seconds over which numeric targets are reached. Default 0 (instant). */
   overSec?: number;
   /** Seconds to wait after the trigger before this effect begins. Default 0. */
@@ -533,7 +609,9 @@ export interface ActionRecord {
 }
 
 export interface AlarmState {
-  vital: keyof NumericVitals | 'rhythm';
+  /** What the alarm is about: a numeric vital, the rhythm, or a machine
+   *  reading (airway pressure, tidal volume, inspired oxygen). */
+  vital: keyof NumericVitals | 'rhythm' | 'paw' | 'vt' | 'fio2';
   level: 'warning' | 'critical';
   message: string;
 }
@@ -566,6 +644,13 @@ export interface SimSnapshot {
   vitals: Vitals;
   /** Last cuff reading; null when the scenario uses an arterial line. */
   nibp: NibpReading | null;
+  /**
+   * The agent analyzer's derived reading: which agent, and the end-tidal
+   * concentration as a multiple of the patient's age-adjusted MAC. Computed
+   * by the engine (the display does not know the patient's age). Optional:
+   * absent in snapshots archived before it existed.
+   */
+  gas?: { agent: AnestheticAgent; mac: number };
   /** True while the monitor shows a V5 lead under lead II. Optional: absent
    *  (= lead II only) in snapshots archived before the V5 lead existed. */
   v5Lead?: boolean;

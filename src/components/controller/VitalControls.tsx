@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type {
+  AnestheticAgent,
   CapnoShape,
   EcgLead,
   NumericVitals,
@@ -12,6 +13,8 @@ import type {
   TWave,
 } from '@/lib/engine/types';
 import {
+  AGENT_LABELS,
+  AGENT_TAGS,
   CAPNO_SHAPE_LABELS,
   ecgMorphologyApplies,
   FICO2_MAX,
@@ -26,6 +29,8 @@ import {
   ST_MM_MAX,
   ST_MM_MIN,
   T_WAVE_LABELS,
+  VENT_KEYS,
+  VENT_META,
 } from '@/lib/engine/types';
 import { VITAL_META, clampVital, roundVital } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
@@ -138,6 +143,81 @@ function VitalSlider({
   );
 }
 
+/**
+ * A number with −/+ steps and a box to type into. Commits on a step, on
+ * Enter, or on leaving the box; an empty or invalid entry restores the value.
+ */
+function NumberStepper({
+  label,
+  value,
+  unit,
+  min,
+  max,
+  step,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+  onCommit: (value: number) => void;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  const clamp = (n: number) => Math.min(max, Math.max(min, n));
+  const commitText = () => {
+    const n = Number(text);
+    if (text !== null && text.trim() !== '' && Number.isFinite(n)) onCommit(clamp(n));
+    setText(null);
+  };
+  return (
+    <span className="flex items-center gap-1">
+      <span className="w-12 text-xs font-semibold text-ink-2">{label}</span>
+      <button
+        className="btn-secondary btn-sm"
+        onClick={() => onCommit(clamp(value - step))}
+        disabled={value <= min}
+        aria-label={`Lower ${label} by ${step}`}
+      >
+        −
+      </button>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        inputMode="decimal"
+        value={text ?? String(value)}
+        onFocus={(e) => {
+          setText(String(value));
+          e.target.select();
+        }}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commitText}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          else if (e.key === 'Escape') {
+            setText(null);
+            e.currentTarget.blur();
+          }
+        }}
+        className="w-16 rounded-ctl bg-panel-2 px-1 py-0.5 text-right font-mono text-sm tabular-nums text-ink outline-none ring-focus focus:ring-1"
+        aria-label={`${label} target`}
+      />
+      <button
+        className="btn-secondary btn-sm"
+        onClick={() => onCommit(clamp(value + step))}
+        disabled={value >= max}
+        aria-label={`Raise ${label} by ${step}`}
+      >
+        +
+      </button>
+      <span className="w-10 text-[10px] text-faint">{unit}</span>
+    </span>
+  );
+}
+
 /** Manual vital sign control: sliders + rhythm selector + transition speed. */
 export function VitalControls() {
   const engine = useControllerStore((s) => s.engine);
@@ -148,6 +228,9 @@ export function VitalControls() {
   const setEcg = useControllerStore((s) => s.setEcg);
   const setPulseless = useControllerStore((s) => s.setPulseless);
   const setFico2 = useControllerStore((s) => s.setFico2);
+  const setVent = useControllerStore((s) => s.setVent);
+  const setVentShown = useControllerStore((s) => s.setVentShown);
+  const setAgent = useControllerStore((s) => s.setAgent);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
   const setV5Lead = useControllerStore((s) => s.setV5Lead);
@@ -197,6 +280,8 @@ export function VitalControls() {
     );
   };
   const fico2Target = engine.getFico2Target();
+  const machineShown = engine.getVentShown();
+  const agent = snapshot.gas?.agent ?? 'sevoflurane';
   const ecgChip = (active: boolean) =>
     `rounded-ctl px-2 py-1 text-xs font-semibold ${
       active ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg' : 'bg-panel-2 text-muted hover:bg-panel-3'
@@ -270,6 +355,65 @@ export function VitalControls() {
             </button>
           </div>
         )}
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
+            <span className="text-xs text-muted">
+              {machineShown ? (
+                <>
+                  <span className="font-semibold text-ink-2">Machine readings on the monitor</span> —
+                  airway pressure, tidal volume and inspired oxygen. They read what you set.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-ink-2">No machine readings</span> — add airway
+                  pressure, tidal volume and inspired oxygen tiles to the monitor.
+                </>
+              )}
+            </span>
+            <button
+              className="btn-secondary btn-sm shrink-0"
+              onClick={() => setVentShown(!machineShown)}
+              title="Show or hide the anesthesia-machine tiles on every display"
+            >
+              {machineShown ? 'Hide machine readings' : 'Show machine readings'}
+            </button>
+          </div>
+          {machineShown && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+              {VENT_KEYS.map((key) => (
+                <NumberStepper
+                  key={key}
+                  label={VENT_META[key].label}
+                  unit={VENT_META[key].unit}
+                  min={VENT_META[key].min}
+                  max={VENT_META[key].max}
+                  step={VENT_META[key].step}
+                  value={engine.getVentTarget(key)}
+                  onCommit={(value) => setVent({ [key]: value }, overSec)}
+                />
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Volatile agent">
+            <span className="w-12 text-xs font-semibold text-ink-2">Agent</span>
+            {(Object.keys(AGENT_LABELS) as AnestheticAgent[]).map((a) => (
+              <button
+                key={a}
+                onClick={() => setAgent(a)}
+                className={ecgChip(agent === a)}
+                title={AGENT_LABELS[a]}
+              >
+                {AGENT_TAGS[a]}
+              </button>
+            ))}
+            {snapshot.gas && (
+              <span className="ml-1 text-xs text-faint" title="End-tidal concentration as a multiple of this patient's age-adjusted MAC">
+                MAC {snapshot.gas.mac.toFixed(1)} at Et {snapshot.vitals.agentEt.toFixed(1)}%
+              </span>
+            )}
+          </div>
+        </div>
 
         <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
           <span className="text-xs text-muted">
