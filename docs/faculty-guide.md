@@ -93,6 +93,14 @@ Tips and pitfalls:
   link (or reloaded) shows **🔈 tap for sound** until someone taps or presses
   a key — browsers will not play audio before that. The speaker button cycles
   full → low → off, and the choice is remembered on that device.
+- **Optional patient pre-brief.** Tick **Show the patient pre-brief until
+  Start** in the *Before you start* panel and displays show the patient until
+  you start: name, age, weight, ASA class, allergies, history, medications,
+  airway exam and plan — never the scenario title, objectives or events. The
+  monitor takes over the moment you start. It is **off by default**, because
+  learners see the patient block exactly as the scenario author wrote it and
+  some scenarios keep faculty notes there: read the patient card first. The
+  choice carries over to your next session on that page.
 - Sound on your own **live monitor preview** is off by default, so the room
   does not hear two monitors. Its speaker button works the same way and is
   remembered separately.
@@ -137,15 +145,23 @@ Orientation on the controller:
 - **Live monitor (what students see)**: an exact preview of the student
   display, with a **🔔 silence alarms** toggle that silences the alarm state on
   every connected display.
-- **Current phase**: the sticky command bar shows the scenario's phase of
-  care next to the session status. Phases group the learner-action checklist
-  and give the debrief timeline structure.
+- **Phase of care**: the sticky command bar lists the scenario's phases with
+  the current one highlighted. Press **Next phase →** (or any phase, to jump
+  or step back) when the case moves on — phases never advance on their own.
+  The timer beside them is time in the current phase, shown against the
+  phase's target when the scenario sets one. Each change is logged, which is
+  what puts phase markers in the debrief timeline.
+- **Pace**: beside the session clock, a badge counts down the time left in
+  the lab slot (the scenario's time budget, or its estimated run time when no
+  budget is set) and turns to "+m:ss over" once you pass it. It is a display
+  only — nothing fires or stops because of it.
 
 ## 5. Driving vitals
 
 The **Vitals** panel has a slider per parameter (HR, SBP/DBP, SpO₂, EtCO₂, RR,
-Temp, anesthetic Depth, sevoflurane Fi/Et — shown as SEV on the monitor). A
-slider commits when you release it, and
+Temp, and end-tidal sevoflurane — shown as SEV on the monitor; inspired
+sevoflurane follows it, and anesthetic depth is set by scenario events, not a
+slider). A slider commits when you release it, and
 the value changes over the selected **ramp** speed — **Instant / 3 s / 10 s**
 (default 3 s). A short ramp keeps the change readable on the monitor without
 stalling a timed session; Instant is for corrections.

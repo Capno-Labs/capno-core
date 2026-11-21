@@ -110,11 +110,25 @@ export class SimulationEngine {
    */
   private autoEventsEnabled: boolean;
 
-  constructor(scenario: Scenario, sessionId: string, options?: { autoEvents?: boolean }) {
+  /**
+   * When true, snapshots taken before the scenario starts carry the patient's
+   * pre-operative details for the student display. Off unless the instructor
+   * turns it on: a scenario's patient block may hold notes written for
+   * faculty, and nothing should reach learners that nobody chose to show
+   * them. An instructor preference, like autoEventsEnabled.
+   */
+  private preBriefEnabled: boolean;
+
+  constructor(
+    scenario: Scenario,
+    sessionId: string,
+    options?: { autoEvents?: boolean; preBrief?: boolean },
+  ) {
     this.scenario = scenario;
     this.sessionId = sessionId;
     this.events = [...scenario.events];
     this.autoEventsEnabled = options?.autoEvents ?? true;
+    this.preBriefEnabled = options?.preBrief ?? false;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
     const { rhythm, capnoShape, pvcFrequency, ...numeric } = scenario.baselineVitals;
     this.rhythm = rhythm;
@@ -206,6 +220,17 @@ export class SimulationEngine {
     return this.autoEventsEnabled;
   }
 
+  /** Show or hide the patient pre-brief on student displays before the
+   *  scenario starts. Survives reset(), like setAutoEvents. Not logged: it
+   *  only matters while idle, before the log begins. */
+  setPreBrief(on: boolean): void {
+    this.preBriefEnabled = on;
+  }
+
+  getPreBriefEnabled(): boolean {
+    return this.preBriefEnabled;
+  }
+
   /** Queue effects for unfired autoAtSec events strictly after `afterSec`
    *  (default: all of them — used at start). */
   private queueAutoEvents(afterSec = Number.NEGATIVE_INFINITY): void {
@@ -225,7 +250,8 @@ export class SimulationEngine {
   }
 
   /** Reset to baseline (fresh log, fresh actions, elapsed 0). Deliberately
-   *  keeps autoEventsEnabled — an instructor preference, not scenario state. */
+   *  keeps autoEventsEnabled and preBriefEnabled — instructor preferences,
+   *  not scenario state. */
   reset(): void {
     this.status = 'idle';
     this.elapsedSec = 0;
@@ -622,6 +648,11 @@ export class SimulationEngine {
       log: this.log.slice(-SNAPSHOT_LOG_TAIL),
       notes: [...this.notes],
       firedEventIds: [...this.firedEventIds],
+      // Pre-brief only before the start: once the scenario runs, the display
+      // is the monitor and the broadcast carries nothing extra.
+      ...(this.status === 'idle' && this.preBriefEnabled
+        ? { preBrief: { patient: this.scenario.patient } }
+        : {}),
       autoEventsEnabled: this.autoEventsEnabled,
     };
   }

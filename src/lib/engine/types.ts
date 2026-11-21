@@ -371,9 +371,9 @@ export interface SimSnapshot {
   status: SimStatus;
   elapsedSec: number;
   phaseId: string;
-  /** Elapsed time at the last phase change (phases move via setPhase — today
-   *  only the co-pilot's set_phase command calls it). Kept in the snapshot
-   *  for archives and time-in-phase consumers.
+  /** Elapsed time at the last phase change (phases move via setPhase — the
+   *  run screen's phase stepper, or the co-pilot's set_phase command). Kept
+   *  in the snapshot for archives and time-in-phase consumers.
    *  Optional: absent in snapshots archived before phase timers existed. */
   phaseChangedAtSec?: number;
   vitals: Vitals;
@@ -390,9 +390,25 @@ export interface SimSnapshot {
   log: LogEntry[];
   notes: FacultyNote[];
   firedEventIds: string[];
+  /**
+   * What the student display shows before the scenario starts: the patient's
+   * pre-operative details. Present only while the session is idle and faculty
+   * have turned the pre-brief on — absent once the scenario runs, so it adds
+   * nothing to the twice-a-second broadcasts of a live session, and never
+   * archived (archives are taken at the end).
+   */
+  preBrief?: PreBrief;
   /** Whether autoAtSec events fire on their own timeline this session.
    *  Optional: absent in snapshots archived before the toggle existed. */
   autoEventsEnabled?: boolean;
+}
+
+/**
+ * The learner-facing pre-brief. Deliberately the patient only: the scenario's
+ * title, summary, objectives and events would give the case away.
+ */
+export interface PreBrief {
+  patient: Patient;
 }
 
 export interface FacultyNote {

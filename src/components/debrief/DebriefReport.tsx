@@ -151,6 +151,18 @@ export function DebriefReport({
         )}
       </header>
 
+      {/* What the case set out to teach — the frame for everything below. */}
+      {scenario.learningObjectives.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-bold">Learning objectives</h2>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {scenario.learningObjectives.map((o, i) => (
+              <li key={i}>{o}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Outcome summary */}
       <section>
         <h2 className="mb-3 text-lg font-bold">Outcome summary</h2>
@@ -496,9 +508,19 @@ export function DebriefReport({
         </div>
       </section>
 
-      {/* Reference: correct management & common errors */}
+      {/* Reference: expected progression, correct management & common errors */}
       <section>
         <h2 className="mb-2 text-lg font-bold">Reference</h2>
+        {scenario.expectedProgression.length > 0 && (
+          <div className="mb-4">
+            <h3 className="label">Expected progression</h3>
+            <ol className="list-decimal space-y-1 pl-5 text-sm">
+              {scenario.expectedProgression.map((m, i) => (
+                <li key={i}>{m}</li>
+              ))}
+            </ol>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <h3 className="label">Correct management</h3>

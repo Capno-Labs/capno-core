@@ -470,6 +470,61 @@ describe('SimulationEngine', () => {
     const roundTripped = JSON.parse(JSON.stringify(snap));
     expect(roundTripped).toEqual(snap);
   });
+
+  describe('pre-brief (what student displays show before the start)', () => {
+    const withBrief = (s: Scenario = scenario()) => new SimulationEngine(s, 'TEST', { preBrief: true });
+
+    it('is off unless the instructor turns it on', () => {
+      const e = newEngine();
+      expect(e.getPreBriefEnabled()).toBe(false);
+      expect('preBrief' in e.snapshot()).toBe(false);
+      e.setPreBrief(true);
+      expect(e.snapshot().preBrief).toEqual({ patient: scenario().patient });
+    });
+
+    it('carries the patient and nothing that gives the case away, for every built-in scenario', () => {
+      for (const s of BUILT_IN_SCENARIOS) {
+        const idle = withBrief(s).snapshot();
+        expect(Object.keys(idle.preBrief ?? {})).toEqual(['patient']);
+        // Nothing in an idle snapshot holds the case's title, summary,
+        // objectives or event labels — the snapshot is broadcast to learners.
+        const wire = JSON.stringify(idle);
+        for (const secret of [s.title, s.summary, ...s.learningObjectives, ...s.events.map((ev) => ev.label)]) {
+          expect(wire, `${s.id}: "${secret}"`).not.toContain(secret);
+        }
+      }
+    });
+
+    it('is gone once the scenario runs, pauses or ends', () => {
+      const e = withBrief();
+      expect(e.snapshot().preBrief).toBeDefined();
+      e.start();
+      expect('preBrief' in e.snapshot()).toBe(false);
+      e.tick(5);
+      e.pause();
+      expect('preBrief' in e.snapshot()).toBe(false);
+      e.end();
+      expect('preBrief' in e.snapshot()).toBe(false);
+    });
+
+    it('returns after a reset, and the choice survives it either way', () => {
+      const e = withBrief();
+      e.start();
+      e.tick(5);
+      e.reset();
+      expect(e.snapshot().preBrief).toEqual({ patient: scenario().patient });
+      e.setPreBrief(false);
+      e.start();
+      e.reset();
+      expect('preBrief' in e.snapshot()).toBe(false);
+    });
+
+    it('keeps the idle snapshot serializable', () => {
+      const snap = withBrief().snapshot();
+      expect(snap.preBrief).toBeDefined();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
+  });
 });
 
 describe('NIBP cycling', () => {

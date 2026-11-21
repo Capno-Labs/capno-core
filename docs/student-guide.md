@@ -15,13 +15,16 @@ toggle.
 3. If it says "Waiting for session", the controller isn't reachable yet. After
    about 8 seconds with no answer it changes to **"No controller responded"**
    with a **Retry** button — check the code with your instructor, then retry.
-   Once joined, the monitor starts in **standby** until the instructor presses
-   Start.
+   Once joined, you'll see the monitor in **standby**, or — if your
+   instructor has turned it on — the **patient pre-brief** (history,
+   allergies, airway exam and plan; read it while you wait). The live monitor
+   starts when the instructor presses Start.
 
 ## Reading the monitor
 
-- **Waveforms:** ECG lead II (with the current rhythm label), plethysmograph
-  (pulse oximetry), and capnograph (CO₂), sweeping like a real monitor.
+- **Waveforms:** ECG lead II, plethysmograph (pulse oximetry), and capnograph
+  (CO₂), sweeping like a real monitor, plus an arterial trace when the patient
+  has an arterial line. The rhythm is not labelled — read it from the trace.
 - **Numeric tiles:** HR, blood pressure, SpO₂, EtCO₂ (with respiratory rate),
   temperature, and end-tidal sevoflurane (SEV, with inspired fraction +
   depth). Small arrows
@@ -56,8 +59,9 @@ patient and the rhythm, not for a number.
 ## Display tips
 
 - The view is **read-only** — refreshing or tapping can't change the patient.
-- For a projector or wall display, use the browser's fullscreen mode (F11, or
-  ⌃⌘F on Mac), or install Capno as an app (PWA) for a chrome-free screen.
+- For a projector or wall display, tap the fullscreen button in the top-right
+  corner (or F11, ⌃⌘F on Mac), or install Capno as an app (PWA) for a
+  chrome-free screen.
 - A red **"Connection to controller lost — showing last received data"** banner
   means the instructor's window closed or lost connection; the numbers on
   screen are no longer live. It recovers by itself if the connection returns —

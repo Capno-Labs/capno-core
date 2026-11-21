@@ -134,6 +134,12 @@ instead of guessing in either direction.
   capped or absent in the snapshot, full copy archive-side. (Faculty
   `notes` are the accepted exception — human-rate-bounded and archived
   whole via the snapshot, so don't cap them.)
+- `snapshot.preBrief` is what students see before Start. It exists only while
+  the session is idle and faculty have turned the pre-brief on (off by
+  default — some patient blocks hold faculty notes), and it carries
+  the scenario's `patient` and nothing else. Never add the title, summary,
+  objectives or events to it (or to any other snapshot field) — the snapshot
+  is broadcast to learners, and those give the case away.
 - In NIBP cuff mode (the default), displayed BP and BP alarms come from
   `snapshot.nibp` (last measured), not live values. Only artLine scenarios
   show live pressure. Don't "fix" a stale NIBP tile — the staleness is the

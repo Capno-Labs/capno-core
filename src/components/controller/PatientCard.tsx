@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Patient } from '@/lib/engine/types';
+import { airwaySummary, hasAllergy, patientHeadline } from '@/lib/patient';
 
 /** Collapsible patient background summary for quick faculty reference. */
 export function PatientCard({ patient }: { patient: Patient }) {
@@ -15,10 +16,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
         aria-expanded={open}
       >
         <div>
-          <h2 className="text-sm font-bold text-ink">
-            {patient.name} · {patient.age}
-            {patient.sex === 'male' ? 'M' : 'F'} · {patient.weightKg} kg · ASA {patient.asa}
-          </h2>
+          <h2 className="text-sm font-bold text-ink">{patientHeadline(patient)}</h2>
           {!open && (
             <p className="text-xs text-faint">
               Allergies: {patient.allergies.length ? patient.allergies.join(', ') : 'NKDA'} · tap
@@ -40,20 +38,13 @@ export function PatientCard({ patient }: { patient: Patient }) {
           </div>
           <div>
             <dt className="label">Allergies</dt>
-            <dd className={patient.allergies.length ? 'text-red' : 'text-ink-2'}>
+            <dd className={hasAllergy(patient.allergies) ? 'text-red' : 'text-ink-2'}>
               {patient.allergies.join('; ') || 'NKDA'}
             </dd>
           </div>
           <div>
             <dt className="label">Airway exam</dt>
-            <dd className="text-ink-2">
-              MP {patient.airway.mallampati}
-              {patient.airway.mouthOpeningCm && ` · MO ${patient.airway.mouthOpeningCm} cm`}
-              {patient.airway.thyromentalCm && ` · TMD ${patient.airway.thyromentalCm} cm`}
-              {patient.airway.neckMobility && ` · neck ${patient.airway.neckMobility}`}
-              {patient.airway.dentition && ` · ${patient.airway.dentition}`}
-              {patient.airway.notes && ` · ${patient.airway.notes}`}
-            </dd>
+            <dd className="text-ink-2">{airwaySummary(patient.airway)}</dd>
           </div>
           {patient.plan && (
             <div className="sm:col-span-2">
