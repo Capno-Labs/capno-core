@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Scenario } from './types';
+import { ST_MM_MAX, ST_MM_MIN } from './types';
 import { MIN_PULSE_PRESSURE, maxDbpFor } from './vitals';
 
 /**
@@ -26,6 +27,16 @@ const rhythmSchema = z.enum([
 const capnoShapeSchema = z.enum(['normal', 'bronchospasm', 'curare_cleft']);
 
 const pvcFrequencySchema = z.enum(['rare', 'occasional', 'trigeminy', 'bigeminy']);
+
+const ecgSchema = z
+  .object({
+    stMm: z.number().min(ST_MM_MIN).max(ST_MM_MAX),
+    tWave: z.enum(['normal', 'peaked', 'flat', 'inverted']),
+    qrs: z.enum(['normal', 'wide']),
+    qt: z.enum(['normal', 'long']),
+  })
+  .partial()
+  .strict();
 
 const numericVitalsPartial = z
   .object({
@@ -55,6 +66,7 @@ const vitalsSchema = numericVitalsPartial
     rhythm: rhythmSchema,
     capnoShape: capnoShapeSchema.optional(),
     pvcFrequency: pvcFrequencySchema.optional(),
+    ecg: ecgSchema.optional(),
   })
   .refine(pulsePressureOk, { message: PULSE_PRESSURE_MSG, path: ['dbp'] });
 
@@ -69,6 +81,7 @@ export const vitalEffectSchema = z.object({
   rhythm: rhythmSchema.optional(),
   capnoShape: capnoShapeSchema.optional(),
   pvcFrequency: pvcFrequencySchema.optional(),
+  ecg: ecgSchema.optional(),
   overSec: z.number().min(0).optional(),
   afterSec: z.number().min(0).optional(),
 });

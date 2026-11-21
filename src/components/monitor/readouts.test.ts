@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AlarmState } from '@/lib/engine/types';
-import { cuffReadingFailed, displayAlarms, oximeterHasSignal } from './readouts';
+import { formatStMm } from '@/lib/engine/types';
+import { cuffReadingFailed, displayAlarms, oximeterHasSignal, stIsMeasurable } from './readouts';
 
 const alarm = (vital: AlarmState['vital'], message: string, level: AlarmState['level'] = 'critical'): AlarmState => ({
   vital,
@@ -53,4 +54,22 @@ describe('lost-signal readouts', () => {
     const alarms = [alarm('sbp', 'SBP LOW 0')];
     expect(displayAlarms(alarms, 'asystole', null)).toEqual(alarms);
   });
+
+  it('reads an ST level only where there are complexes to measure it on', () => {
+    for (const rhythm of ['sinus', 'sinus_brady', 'sinus_tach', 'pvc', 'pac', 'afib', 'svt'] as const) {
+      expect(stIsMeasurable(rhythm)).toBe(true);
+    }
+    for (const rhythm of ['vtach', 'vfib', 'pea', 'asystole'] as const) {
+      expect(stIsMeasurable(rhythm)).toBe(false);
+    }
+  });
+
+  it('prints the ST level signed, to one decimal', () => {
+    expect(formatStMm(0)).toBe('0.0');
+    expect(formatStMm(-2)).toBe('−2.0');
+    expect(formatStMm(1.5)).toBe('+1.5');
+    expect(formatStMm(-0.04)).toBe('0.0'); // no "−0.0" while ramping through zero
+    expect(formatStMm(0.26)).toBe('+0.3');
+  });
 });
+

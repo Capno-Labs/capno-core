@@ -58,6 +58,21 @@ beat while the rhythm is `pvc`: `rare` (1:8), `occasional` (1:4, default),
 `trigeminy` (1:3), or `bigeminy` (1:2). Display-only; ignored for other
 rhythms.
 
+Optional: `ecg` — how each complex is drawn in lead II, independent of the
+rhythm. Omit it (or any field) for a normal ECG.
+
+| Field | Values | Meaning |
+| --- | --- | --- |
+| `stMm` | −5 to 5 | ST-segment level in millimetres at standard gain (1 mm = 0.1 mV). Negative = depression, positive = elevation. Shown on the monitor as "ST II". |
+| `tWave` | `normal`, `peaked`, `flat`, `inverted` | T-wave shape. |
+| `qrs` | `normal`, `wide` | QRS width. |
+| `qt` | `normal`, `long` | QT interval. |
+
+Display-only — HR, pressures and alarms are unaffected. It reshapes beats
+with a normal conduction pattern (the sinus rhythms, AF, SVT, PACs and the
+normal beats between PVCs); PVCs themselves, VT, VF, PEA and asystole are
+drawn as before, and the monitor shows "ST II --" for the last four.
+
 ## `phases`
 
 Ordered list of `{ id, label, description?, targetDurationSec? }` — phases
@@ -84,13 +99,18 @@ Faculty-triggerable (or automatic) occurrences:
     { "vitals": { "sbp": 55, "dbp": 30 }, "overSec": 120 },  // ramp over 120 s
     { "rhythm": "sinus_tach" },                               // rhythm switches instantly
     { "capnoShape": "bronchospasm" },                         // CO2 trace morphology, instant
+    { "ecg": { "stMm": -2 }, "overSec": 60 },                 // ST depression developing over 60 s
+    { "ecg": { "tWave": "peaked", "qrs": "wide" } },          // other ECG changes switch instantly
     { "vitals": { "spo2": 88 }, "overSec": 90, "afterSec": 60 } // starts 60 s later
   ]
 }
 ```
 
 Effects ramp numeric vitals linearly to the target over `overSec` seconds
-(0/omitted = instant). `afterSec` delays the effect after the trigger.
+(0/omitted = instant); the ST level in `ecg.stMm` ramps the same way. An
+`ecg` effect changes only the fields it lists — to return to normal, set
+them explicitly (`"stMm": 0`, `"tWave": "normal"`). `afterSec` delays the
+effect after the trigger.
 Faculty can always override any vital manually afterward — manual changes and
 events use the same ramp mechanism, last write wins per vital.
 

@@ -131,4 +131,43 @@ describe('scenario schema', () => {
     expect(result.ok).toBe(false);
     expect(result.errors.join(' ')).toContain('duplicate');
   });
+
+  describe('ecg morphology', () => {
+    const withBaselineEcg = (ecg: unknown) => {
+      const doc = JSON.parse(JSON.stringify(inductionHypotension));
+      doc.baselineVitals.ecg = ecg;
+      return validateScenario(doc);
+    };
+    const withEffectEcg = (ecg: unknown) => {
+      const doc = JSON.parse(JSON.stringify(inductionHypotension));
+      doc.events[0].effects = [{ ecg, overSec: 60 }];
+      return validateScenario(doc);
+    };
+
+    it('is optional, and every field inside it is optional', () => {
+      expect(withBaselineEcg(undefined).ok).toBe(true);
+      expect(withBaselineEcg({}).ok).toBe(true);
+      expect(withBaselineEcg({ stMm: -1.5 }).ok).toBe(true);
+      expect(withBaselineEcg({ stMm: 2, tWave: 'inverted', qrs: 'wide', qt: 'long' }).ok).toBe(true);
+      expect(withEffectEcg({ stMm: -2 }).ok).toBe(true);
+      expect(withEffectEcg({ tWave: 'peaked', qrs: 'wide' }).ok).toBe(true);
+    });
+
+    it('keeps the ST level within ±5 mm', () => {
+      expect(withBaselineEcg({ stMm: 5 }).ok).toBe(true);
+      expect(withBaselineEcg({ stMm: -5 }).ok).toBe(true);
+      expect(withBaselineEcg({ stMm: 5.5 }).ok).toBe(false);
+      expect(withEffectEcg({ stMm: -6 }).ok).toBe(false);
+    });
+
+    it('rejects unknown values and unknown fields', () => {
+      expect(withBaselineEcg({ tWave: 'tall' }).ok).toBe(false);
+      expect(withBaselineEcg({ qrs: 'narrow' }).ok).toBe(false);
+      expect(withEffectEcg({ qt: 'short' }).ok).toBe(false);
+      // A misspelt field must not pass silently as "no change".
+      expect(withEffectEcg({ stmm: -2 }).ok).toBe(false);
+      expect(withBaselineEcg({ stV5Mm: -2 }).ok).toBe(false);
+    });
+  });
 });
+

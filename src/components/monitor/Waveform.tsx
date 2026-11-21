@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { CapnoShape, PvcFrequency, Rhythm } from '@/lib/engine/types';
+import type { CapnoShape, EcgMorphology, PvcFrequency, Rhythm } from '@/lib/engine/types';
 import { PVC_FREQUENCY_EVERY_N } from '@/lib/engine/types';
 import { BeatClock } from './beatClock';
 import { artValue, capnoSample, ecgValue, isPulseless, plethValue, SUBSTEP_SEC } from './waveforms';
@@ -27,6 +27,8 @@ interface WaveformProps {
   capnoShape?: CapnoShape;
   /** PVC coupling rate (ecg traces only). Absent = occasional (1 in 4). */
   pvcFrequency?: PvcFrequency;
+  /** Complex morphology — ST, T wave, QRS width, QT (ecg traces only). */
+  ecg?: EcgMorphology;
   /** Freeze the trace (scenario paused / not started). */
   frozen?: boolean;
   /**
@@ -63,13 +65,14 @@ export function Waveform({
   rhythm,
   capnoShape = 'normal',
   pvcFrequency = 'occasional',
+  ecg,
   frozen = false,
   clock,
   heightClass = 'h-20 md:h-24',
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen });
-  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen };
+  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, frozen });
+  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, frozen };
 
   // A trace without a shared clock keeps a private one fed from props.
   const ownClock = useRef<BeatClock | null>(null);
@@ -126,7 +129,7 @@ export function Waveform({
       const beats = beatClock.recent();
       switch (kind) {
         case 'ecg':
-          return ecgValue(beats, v.rhythm, t);
+          return ecgValue(beats, v.rhythm, t, v.ecg);
         case 'pleth':
           return plethValue(beats, v.rhythm, t, v.spo2);
         case 'capno':

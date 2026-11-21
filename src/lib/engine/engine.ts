@@ -2,6 +2,7 @@ import type {
   ActionRecord,
   ActionStatus,
   CapnoShape,
+  EcgMorphology,
   FacultyNote,
   LogEntry,
   NibpReading,
@@ -18,9 +19,16 @@ import type {
 } from './types';
 import {
   CAPNO_SHAPE_LABELS,
+  formatStMm,
+  NORMAL_ECG,
   NUMERIC_VITAL_KEYS,
   PVC_FREQUENCY_LABELS,
+  QRS_WIDTH_LABELS,
+  QT_INTERVAL_LABELS,
   RHYTHM_LABELS,
+  ST_MM_MAX,
+  ST_MM_MIN,
+  T_WAVE_LABELS,
 } from './types';
 import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL_META } from './vitals';
 
@@ -71,6 +79,9 @@ export class SimulationEngine {
   private rhythm: Rhythm;
   private capnoShape: CapnoShape;
   private pvcFrequency: PvcFrequency;
+  /** ECG complex morphology. The ST level ramps like a numeric vital. */
+  private ecg: Required<EcgMorphology>;
+  private stRamp: { target: number; ratePerSec: number } | null = null;
 
   /** Current interpolated values. */
   private current: NumericVitals;
@@ -130,10 +141,11 @@ export class SimulationEngine {
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.preBriefEnabled = options?.preBrief ?? false;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
-    const { rhythm, capnoShape, pvcFrequency, ...numeric } = scenario.baselineVitals;
+    const { rhythm, capnoShape, pvcFrequency, ecg, ...numeric } = scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.pvcFrequency = pvcFrequency ?? 'occasional';
+    this.ecg = { ...NORMAL_ECG, ...ecg };
     this.current = { ...numeric };
     // Baselines are authored content: guarantee the pulse-pressure floor here
     // too (this value seeds the first NIBP reading before any tick can pin it).
@@ -257,10 +269,12 @@ export class SimulationEngine {
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
     this.phaseChangedAtSec = 0;
-    const { rhythm, capnoShape, pvcFrequency, ...numeric } = this.scenario.baselineVitals;
+    const { rhythm, capnoShape, pvcFrequency, ecg, ...numeric } = this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.pvcFrequency = pvcFrequency ?? 'occasional';
+    this.ecg = { ...NORMAL_ECG, ...ecg };
+    this.stRamp = null;
     this.current = { ...numeric };
     this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
     this.ramps.clear();
@@ -345,6 +359,15 @@ export class SimulationEngine {
     if (this.current.dbp > dbpCeil) this.current.dbp = dbpCeil;
     const dbpRamp = this.ramps.get('dbp');
     if (dbpRamp && this.current.dbp === dbpRamp.target) this.ramps.delete('dbp');
+
+    // The ST level ramps the same way.
+    if (this.stRamp) {
+      const { target, ratePerSec } = this.stRamp;
+      const step = ratePerSec * dtSec;
+      const cur = this.ecg.stMm;
+      this.ecg.stMm = cur < target ? Math.min(target, cur + step) : Math.max(target, cur - step);
+      if (this.ecg.stMm === target) this.stRamp = null;
+    }
 
     // Automatic NIBP cuff cycle.
     if (this.lastNibp && this.elapsedSec - this.lastNibp.atSec >= this.nibpIntervalSec()) {
@@ -459,6 +482,49 @@ export class SimulationEngine {
     if (freq === this.pvcFrequency) return;
     this.pvcFrequency = freq;
     this.addLog('vital_change', `PVC frequency → ${PVC_FREQUENCY_LABELS[freq]}`);
+  }
+
+  /** Where the ST level is headed: its ramp target if ramping, else its value now. */
+  getStTarget(): number {
+    return this.stRamp?.target ?? this.ecg.stMm;
+  }
+
+  /**
+   * Change the ECG morphology. Only the fields present in `patch` change.
+   * The ST level ramps to its target over `overSec` seconds (0 = instant);
+   * T wave, QRS width and QT switch immediately, like a rhythm.
+   */
+  setEcg(patch: EcgMorphology, overSec = 0): void {
+    if (patch.stMm !== undefined) {
+      const target = Math.min(ST_MM_MAX, Math.max(ST_MM_MIN, patch.stMm));
+      const headed = this.stRamp?.target ?? this.ecg.stMm;
+      if (target !== headed) {
+        const distance = Math.abs(target - this.ecg.stMm);
+        if (overSec <= 0 || distance === 0) {
+          this.stRamp = null;
+          this.ecg.stMm = target;
+        } else {
+          this.stRamp = { target, ratePerSec: distance / overSec };
+        }
+        this.addLog(
+          'vital_change',
+          `ST II → ${formatStMm(target)} mm`,
+          overSec > 0 ? `over ${overSec}s` : undefined,
+        );
+      }
+    }
+    if (patch.tWave !== undefined && patch.tWave !== this.ecg.tWave) {
+      this.ecg.tWave = patch.tWave;
+      this.addLog('vital_change', `T wave → ${T_WAVE_LABELS[patch.tWave]}`);
+    }
+    if (patch.qrs !== undefined && patch.qrs !== this.ecg.qrs) {
+      this.ecg.qrs = patch.qrs;
+      this.addLog('vital_change', `QRS → ${QRS_WIDTH_LABELS[patch.qrs]}`);
+    }
+    if (patch.qt !== undefined && patch.qt !== this.ecg.qt) {
+      this.ecg.qt = patch.qt;
+      this.addLog('vital_change', `QT → ${QT_INTERVAL_LABELS[patch.qt]}`);
+    }
   }
 
   /** Fire a scenario-defined or live-added event by id (faculty trigger). */
@@ -605,6 +671,7 @@ export class SimulationEngine {
       rhythm: this.rhythm,
       capnoShape: this.capnoShape,
       pvcFrequency: this.pvcFrequency,
+      ecg: { ...this.ecg, stMm: Math.round(this.ecg.stMm * 10) / 10 },
     };
   }
 
@@ -663,6 +730,7 @@ export class SimulationEngine {
     if (effect.rhythm) this.setRhythm(effect.rhythm, effect.vitals?.hr === undefined);
     if (effect.capnoShape) this.setCapnoShape(effect.capnoShape);
     if (effect.pvcFrequency) this.setPvcFrequency(effect.pvcFrequency);
+    if (effect.ecg) this.setEcg(effect.ecg, effect.overSec ?? 0);
     if (effect.vitals) {
       for (const key of NUMERIC_VITAL_KEYS) {
         const target = effect.vitals[key];

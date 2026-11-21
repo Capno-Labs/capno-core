@@ -171,6 +171,17 @@ Tachycardia, Sinus with PVCs, Sinus with PACs, Atrial Fibrillation, SVT,
 Ventricular Tachycardia, Ventricular Fibrillation, PEA, Asystole. Pulseless
 rhythms flatten the pleth and zero the pulse display automatically.
 
+**ECG complex** controls change how each beat is drawn, whatever the rhythm:
+**ST II** steps the ST segment in half-millimetre steps (negative is
+depression, positive is elevation) and follows the selected ramp, so a 10 s
+ramp lets it develop gradually; **T** (normal, peaked, flattened, inverted),
+**QRS** (narrow, wide) and **QT** (normal, prolonged) switch at once. The
+monitor prints the level as "ST II −2.0" under the heart rate. These are
+display only — they change no numbers and raise no alarm, so learners have to
+see them. They apply to the sinus rhythms, AF, SVT and the normal beats
+around ectopics; in VT, VF, PEA and asystole they are not drawn and the
+readout shows dashes.
+
 **NIBP behaves like a real cuff.** In the default cuff mode, the sliders set
 the patient's *true* pressure, but the monitor shows the **last measured**
 reading, which updates only when the cuff cycles — the panel shows "Cuff last

@@ -138,6 +138,147 @@ describe('ecgBeat', () => {
   });
 });
 
+describe('ECG morphology (ST, T wave, QRS width, QT)', () => {
+  const b = beat(); // sinus, 72 bpm
+  const at = (ms: number, ecg = {}) => ecgBeat(b, ms, ecg);
+  /** Mid ST segment: after the QRS, before the T wave begins to rise. */
+  const ST_MS = R_OFFSET_MS + 90;
+  const tPeakOf = (ecg = {}, beatOver = b) => {
+    let peakAt = 0;
+    let top = 0;
+    for (let ms = R_OFFSET_MS + 80; ms < 1000; ms += 0.5) {
+      const v = ecgBeat(beatOver, ms, ecg);
+      if (Math.abs(v) > Math.abs(top)) {
+        top = v;
+        peakAt = ms;
+      }
+    }
+    return { ms: peakAt - R_OFFSET_MS, value: top };
+  };
+
+  it('draws exactly the normal complex when nothing is set', () => {
+    for (let ms = 0; ms < 900; ms += 3) {
+      expect(at(ms, {})).toBe(at(ms));
+      expect(at(ms, { stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' })).toBe(at(ms));
+    }
+  });
+
+  it('moves the ST segment by a tenth of the R wave per millimetre', () => {
+    for (const stMm of [-3, -2, -1, 1, 2, 4]) {
+      expect(at(ST_MS, { stMm }) - at(ST_MS)).toBeCloseTo(stMm * 0.1, 2);
+    }
+    // Depression goes down, elevation up.
+    expect(at(ST_MS, { stMm: -2 })).toBeLessThan(at(ST_MS));
+    expect(at(ST_MS, { stMm: 2 })).toBeGreaterThan(at(ST_MS));
+  });
+
+  it('leaves the P wave, the R wave and the baseline after the T wave alone', () => {
+    for (const stMm of [-4, 4]) {
+      expect(at(R_OFFSET_MS - 150, { stMm })).toBeCloseTo(at(R_OFFSET_MS - 150), 3); // P
+      expect(at(R_OFFSET_MS, { stMm })).toBeCloseTo(at(R_OFFSET_MS), 2); // R peak
+      expect(at(700, { stMm })).toBeCloseTo(0, 2); // back on the baseline
+    }
+  });
+
+  it('carries the T wave on the shifted segment', () => {
+    // At the moment the normal T wave peaks, the trace is 2 mm lower.
+    const normal = tPeakOf();
+    const tMs = R_OFFSET_MS + normal.ms;
+    expect(at(tMs, { stMm: -2 })).toBeCloseTo(normal.value - 0.2, 1);
+    expect(at(tMs, { stMm: 3 })).toBeCloseTo(normal.value + 0.3, 1);
+  });
+
+  it('draws a peaked T wave taller and narrower', () => {
+    const normal = tPeakOf();
+    const peaked = tPeakOf({ tWave: 'peaked' });
+    expect(peaked.value).toBeGreaterThan(normal.value * 1.8);
+    const half = (ecg: object, top: number) =>
+      widthAt((ms) => at(ms, ecg), top / 2, R_OFFSET_MS + 80, 900);
+    expect(half({ tWave: 'peaked' }, peaked.value)).toBeLessThan(half({}, normal.value) * 0.75);
+    expect(peaked.ms).toBeCloseTo(normal.ms, 0); // same place
+  });
+
+  it('draws a flattened T wave small and an inverted one below the baseline', () => {
+    const normal = tPeakOf();
+    expect(Math.abs(tPeakOf({ tWave: 'flat' }).value)).toBeLessThan(normal.value * 0.3);
+    expect(tPeakOf({ tWave: 'inverted' }).value).toBeLessThan(-normal.value * 0.6);
+  });
+
+  it('widens the QRS past 120 ms and delays what follows', () => {
+    const width = (ecg: object) => {
+      // Span over which the trace is away from baseline around the QRS.
+      let first = NaN;
+      let last = NaN;
+      for (let ms = R_OFFSET_MS - 100; ms < R_OFFSET_MS + 130; ms += 0.5) {
+        if (Math.abs(at(ms, { ...ecg, tWave: 'flat' })) > 0.08) {
+          if (Number.isNaN(first)) first = ms;
+          last = ms;
+        }
+      }
+      return last - first;
+    };
+    expect(width({})).toBeLessThan(110);
+    expect(width({ qrs: 'wide' })).toBeGreaterThan(120);
+    expect(width({ qrs: 'wide' })).toBeGreaterThan(width({}) * 1.5);
+    expect(tPeakOf({ qrs: 'wide' }).ms).toBeGreaterThan(tPeakOf().ms + 20);
+    // The R wave still peaks where the pulse tone fires.
+    expect(at(R_OFFSET_MS, { qrs: 'wide' })).toBeGreaterThan(0.9);
+  });
+
+  it('moves the T wave later for a prolonged QT, at every rate', () => {
+    for (const hr of [50, 72, 110]) {
+      const beatAt = beat({ baseSec: 60 / hr });
+      const normal = tPeakOf({}, beatAt).ms;
+      const long = tPeakOf({ qt: 'long' }, beatAt).ms;
+      expect(long).toBeGreaterThan(normal * 1.25);
+      expect(long).toBeLessThan(normal * 1.45);
+    }
+  });
+
+  it('reshapes AF, SVT and PAC beats too', () => {
+    for (const over of [{ rhythm: 'afib' }, { rhythm: 'svt' }, { rhythm: 'pac', kind: 'pac' }] as const) {
+      const other = beat(over);
+      expect(ecgBeat(other, ST_MS, { stMm: -2 }) - ecgBeat(other, ST_MS)).toBeCloseTo(-0.2, 2);
+    }
+  });
+
+  it('leaves PVCs, VT and PEA as they were', () => {
+    const everything = { stMm: -4, tWave: 'peaked', qrs: 'wide', qt: 'long' } as const;
+    const unaffected = [
+      beat({ rhythm: 'pvc', kind: 'pvc' }),
+      beat({ rhythm: 'vtach', baseSec: 0.35, rrSec: 0.35 }),
+      beat({ rhythm: 'pea' }),
+    ];
+    for (const other of unaffected) {
+      for (let ms = 0; ms < 900; ms += 5) {
+        expect(ecgBeat(other, ms, everything)).toBe(ecgBeat(other, ms));
+      }
+    }
+  });
+
+  it('stays inside the trace area at the extremes', () => {
+    // The renderer has room for about +1.5 above and −1.25 below the baseline.
+    const extremes = [
+      { stMm: 5, tWave: 'peaked', qrs: 'wide', qt: 'long' },
+      { stMm: -5, tWave: 'inverted', qrs: 'wide', qt: 'long' },
+      { stMm: 5, tWave: 'peaked' },
+      { stMm: -5, tWave: 'inverted' },
+    ] as const;
+    for (const ecg of extremes) {
+      for (const hr of [40, 72, 150]) {
+        const clock = new BeatClock(2);
+        clock.setInput({ hr, rr: 0, rhythm: 'sinus', pvcEveryN: 4, frozen: false });
+        for (let i = 0; i < 2000; i++) {
+          clock.advance(0.004);
+          const v = ecgValue(clock.recent(), 'sinus', clock.t, ecg);
+          expect(v).toBeLessThan(1.5);
+          expect(v).toBeGreaterThan(-1.25);
+        }
+      }
+    }
+  });
+});
+
 describe('ecgValue', () => {
   it('stays amplitude-bounded across every beating rhythm and rate', () => {
     const rhythms: Rhythm[] = ['sinus', 'sinus_brady', 'sinus_tach', 'pvc', 'pac', 'afib', 'svt', 'vtach', 'pea'];

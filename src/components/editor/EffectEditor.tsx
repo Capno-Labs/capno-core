@@ -1,8 +1,17 @@
 'use client';
 
 import type { CapnoShape, NumericVitals, Rhythm, VitalEffect } from '@/lib/engine/types';
-import { CAPNO_SHAPE_LABELS, NUMERIC_VITAL_KEYS, RHYTHM_LABELS } from '@/lib/engine/types';
+import {
+  CAPNO_SHAPE_LABELS,
+  formatStMm,
+  NUMERIC_VITAL_KEYS,
+  QRS_WIDTH_LABELS,
+  QT_INTERVAL_LABELS,
+  RHYTHM_LABELS,
+  T_WAVE_LABELS,
+} from '@/lib/engine/types';
 import { VITAL_META } from '@/lib/engine/vitals';
+import { EcgMorphologyFields } from './EcgMorphologyFields';
 
 /**
  * Form editor for a single vital effect, shared by the case editor's event
@@ -26,6 +35,10 @@ export function effectSummary(effect: VitalEffect): string {
   }
   if (effect.rhythm) parts.push(`rhythm→${RHYTHM_LABELS[effect.rhythm]}`);
   if (effect.capnoShape) parts.push(`CO₂→${CAPNO_SHAPE_LABELS[effect.capnoShape]}`);
+  if (effect.ecg?.stMm !== undefined) parts.push(`ST→${formatStMm(effect.ecg.stMm)} mm`);
+  if (effect.ecg?.tWave) parts.push(`T→${T_WAVE_LABELS[effect.ecg.tWave]}`);
+  if (effect.ecg?.qrs) parts.push(`QRS→${QRS_WIDTH_LABELS[effect.ecg.qrs]}`);
+  if (effect.ecg?.qt) parts.push(`QT→${QT_INTERVAL_LABELS[effect.ecg.qt]}`);
   if (parts.length === 0) return 'no changes yet';
   const timing: string[] = [];
   if (effect.afterSec) timing.push(`after ${effect.afterSec}s`);
@@ -133,6 +146,16 @@ export function EffectEditor({
             ))}
           </select>
         </div>
+        <EcgMorphologyFields
+          mode="effect"
+          value={effect.ecg}
+          onChange={(ecg) => {
+            const next = { ...effect };
+            if (ecg) next.ecg = ecg;
+            else delete next.ecg;
+            onChange(next);
+          }}
+        />
         <button
           className="btn-ghost ml-auto !px-2 !py-1 text-red"
           onClick={onRemove}

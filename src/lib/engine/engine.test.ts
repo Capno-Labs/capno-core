@@ -471,6 +471,132 @@ describe('SimulationEngine', () => {
     expect(roundTripped).toEqual(snap);
   });
 
+  describe('ECG morphology', () => {
+    const lastLog = (e: SimulationEngine) => e.snapshot().log.at(-1);
+
+    it('starts normal when the scenario sets none', () => {
+      const e = newEngine();
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      expect(e.getStTarget()).toBe(0);
+    });
+
+    it('starts from the scenario baseline, filling in what it leaves out', () => {
+      const s: Scenario = {
+        ...scenario(),
+        baselineVitals: { ...scenario().baselineVitals, ecg: { stMm: -1, tWave: 'inverted' } },
+      };
+      const e = new SimulationEngine(s, 'TEST');
+      expect(e.getVitals().ecg).toEqual({ stMm: -1, tWave: 'inverted', qrs: 'normal', qt: 'normal' });
+    });
+
+    it('sets the ST level instantly by default and logs it', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -2 });
+      expect(e.getVitals().ecg?.stMm).toBe(-2);
+      expect(lastLog(e)).toMatchObject({ kind: 'vital_change', label: 'ST II → −2.0 mm' });
+    });
+
+    it('ramps the ST level linearly, like a numeric vital', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -2 }, 60);
+      expect(e.getStTarget()).toBe(-2);
+      expect(e.getVitals().ecg?.stMm).toBe(0);
+      e.tick(15);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(-0.5, 5);
+      e.tick(30);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(-1.5, 5);
+      e.tick(60);
+      expect(e.getVitals().ecg?.stMm).toBe(-2);
+      expect(lastLog(e)).toMatchObject({ label: 'ST II → −2.0 mm', detail: 'over 60s' });
+    });
+
+    it('can be redirected mid-ramp, back towards baseline', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: 3 }, 30);
+      e.tick(10); // at +1
+      e.setEcg({ stMm: 0 }, 10);
+      e.tick(5);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(0.5, 5);
+      e.tick(10);
+      expect(e.getVitals().ecg?.stMm).toBe(0);
+    });
+
+    it('clamps the ST level to ±5 mm', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: 9 });
+      expect(e.getVitals().ecg?.stMm).toBe(5);
+      e.setEcg({ stMm: -9 });
+      expect(e.getVitals().ecg?.stMm).toBe(-5);
+    });
+
+    it('switches T wave, QRS width and QT at once, changing only what is listed', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ tWave: 'peaked', qrs: 'wide' }, 60); // the ramp does not apply to these
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'peaked', qrs: 'wide', qt: 'normal' });
+      e.setEcg({ qt: 'long' });
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'peaked', qrs: 'wide', qt: 'long' });
+      expect(lastLog(e)).toMatchObject({ label: 'QT → Prolonged' });
+    });
+
+    it('logs nothing when nothing changes', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.getFullLog().length;
+      e.setEcg({ stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      e.setEcg({});
+      expect(e.getFullLog().length).toBe(before);
+    });
+
+    it('is driven by authored effects, with the ST level following overSec', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('ST depression', { ecg: { stMm: -2, tWave: 'flat' }, overSec: 40 });
+      expect(e.getVitals().ecg?.tWave).toBe('flat');
+      e.tick(20);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(-1, 5);
+      e.tick(20);
+      expect(e.getVitals().ecg?.stMm).toBe(-2);
+    });
+
+    it('changes no number and raises no alarm', () => {
+      const e = newEngine();
+      e.start();
+      const { ecg: _before, ...numbers } = e.getVitals();
+      const alarms = e.snapshot().alarms;
+      e.setEcg({ stMm: -4, tWave: 'inverted', qrs: 'wide', qt: 'long' });
+      const { ecg: _after, ...after } = e.getVitals();
+      expect(after).toEqual(numbers);
+      expect(e.snapshot().alarms).toEqual(alarms);
+    });
+
+    it('returns to the baseline on reset, dropping any ramp', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -3, qrs: 'wide' }, 60);
+      e.tick(10);
+      e.reset();
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      e.start();
+      e.tick(30);
+      expect(e.getVitals().ecg?.stMm).toBe(0);
+    });
+
+    it('stays serializable in the snapshot', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -1.5, tWave: 'inverted' }, 20);
+      e.tick(7);
+      const snap = e.snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+      expect(snap.vitals.ecg?.tWave).toBe('inverted');
+    });
+  });
+
   describe('pre-brief (what student displays show before the start)', () => {
     const withBrief = (s: Scenario = scenario()) => new SimulationEngine(s, 'TEST', { preBrief: true });
 

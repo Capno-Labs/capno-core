@@ -1,4 +1,5 @@
 import type { AlarmState, NibpReading, Rhythm } from '@/lib/engine/types';
+import { ecgMorphologyApplies } from '@/lib/engine/types';
 import { isPulseless } from './waveforms';
 
 /**
@@ -15,6 +16,11 @@ export const NO_READING = '--';
 /** With no pulse there is nothing for the oximeter to read. */
 export function oximeterHasSignal(rhythm: Rhythm): boolean {
   return !isPulseless(rhythm);
+}
+
+/** Whether an ST level means anything in this rhythm (not in VT, VF, PEA or asystole). */
+export function stIsMeasurable(rhythm: Rhythm): boolean {
+  return ecgMorphologyApplies(rhythm);
 }
 
 /** A cuff cycle that found no pressure is a failed reading, not 0/0. */

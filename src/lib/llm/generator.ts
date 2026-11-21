@@ -69,7 +69,8 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "temp": 25-45 (Celsius), "depth": 0-100, "agentEt": %, "agentFi": %,
     "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole",
     "capnoShape"?: "normal|bronchospasm|curare_cleft",   // capnograph morphology; default normal
-    "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy"   // PVC coupling rate (pvc rhythm only); default occasional
+    "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",   // PVC coupling rate (pvc rhythm only); default occasional
+    "ecg"?: { "stMm"?: -5..5, "tWave"?: "normal|peaked|flat|inverted", "qrs"?: "normal|wide", "qt"?: "normal|long" }   // ECG complex morphology, lead II; omit entirely for a normal ECG. stMm: negative = ST depression, positive = elevation
   },
   "phases": [{ "id": "...", "label": "...", "description"?: "...", "targetDurationSec"?: n }],   // ordered phases of care, at least 1; target = optional pacing budget in seconds
   "events": [{
@@ -79,6 +80,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "actionIds"?: ["<existing expectedActions ids this event embodies or responds to>"],
     "effects": [{ "vitals"?: { partial numeric vitals }, "rhythm"?: "...",
                   "capnoShape"?: "normal|bronchospasm|curare_cleft", "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",
+                  "ecg"?: { "stMm"?: -5..5, "tWave"?: "...", "qrs"?: "...", "qt"?: "..." },   // only the fields listed change; stMm ramps over overSec. Set it only when the source states the ECG change.
                   "overSec"?: rampSeconds, "afterSec"?: delaySeconds }]
   }],
   "expectedActions": [{ "id": "...", "label": "...", "description"?: "...",

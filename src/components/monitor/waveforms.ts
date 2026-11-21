@@ -1,4 +1,4 @@
-import type { CapnoShape, Rhythm } from '@/lib/engine/types';
+import type { CapnoShape, EcgMorphology, Rhythm } from '@/lib/engine/types';
 import type { Beat } from './beatClock';
 
 /**
@@ -44,9 +44,30 @@ const P_BEFORE_R_MS = 150;
 const T_AFTER_R_PER_ROOT_SEC = 228;
 const T_WIDTH_PER_ROOT_SEC = 63.5;
 /** Past this, a beat's complex has fully decayed. */
-const BEAT_TAIL_MS = 950;
+const BEAT_TAIL_MS = 1100;
 
-function qrs(ms: number, r: number, s: number): number {
+/** 1 mm of ST deviation at standard gain is 0.1 mV; the R wave here stands
+ *  about 1 mV tall, so a millimetre is a tenth of the trace's unit height. */
+const UNITS_PER_MM = 0.1;
+
+// A wide QRS spreads the same deflections over more than 120 ms, and
+// everything after it (J point, ST segment, T wave) starts later.
+const WIDE_QRS_DELAY_MS = 35;
+/** A prolonged QT pushes the T wave later and makes it broader. */
+const LONG_QT_STRETCH = 1.35;
+
+function sigmoid(x: number): number {
+  return 1 / (1 + Math.exp(-x));
+}
+
+function qrs(ms: number, r: number, s: number, wide: boolean): number {
+  if (wide) {
+    return (
+      gaussian(ms, R_OFFSET_MS - 38, 16, -0.22) + // Q
+      gaussian(ms, R_OFFSET_MS, 22, r) + // broad R
+      gaussian(ms, R_OFFSET_MS + 58, 28, s * 1.4) // deep, slurred S
+    );
+  }
   return (
     gaussian(ms, R_OFFSET_MS - 33, 11, -0.22) + // Q
     gaussian(ms, R_OFFSET_MS, 10, r) + // R
@@ -54,17 +75,59 @@ function qrs(ms: number, r: number, s: number): number {
   );
 }
 
-function tWave(ms: number, baseSec: number, amplitude: number): number {
+/** T-wave peak time and width for a beat, given the morphology in force. */
+function tTiming(baseSec: number, ecg: EcgMorphology): { peakMs: number; widthMs: number } {
   const root = Math.sqrt(baseSec);
-  return gaussian(ms, R_OFFSET_MS + T_AFTER_R_PER_ROOT_SEC * root, T_WIDTH_PER_ROOT_SEC * root, amplitude);
+  const stretch = ecg.qt === 'long' ? LONG_QT_STRETCH : 1;
+  const delay = ecg.qrs === 'wide' ? WIDE_QRS_DELAY_MS : 0;
+  return {
+    peakMs: R_OFFSET_MS + delay + T_AFTER_R_PER_ROOT_SEC * root * stretch,
+    widthMs: T_WIDTH_PER_ROOT_SEC * root * (ecg.qt === 'long' ? 1.2 : 1),
+  };
+}
+
+function tWave(ms: number, baseSec: number, amplitude: number, ecg: EcgMorphology): number {
+  const { peakMs, widthMs } = tTiming(baseSec, ecg);
+  switch (ecg.tWave) {
+    case 'peaked':
+      // Tall, narrow and symmetrical ("tented").
+      return gaussian(ms, peakMs, widthMs * 0.6, amplitude * 2.2);
+    case 'flat':
+      return gaussian(ms, peakMs, widthMs, amplitude * 0.2);
+    case 'inverted':
+      return gaussian(ms, peakMs, widthMs, -amplitude * 0.8);
+    default:
+      return gaussian(ms, peakMs, widthMs, amplitude);
+  }
+}
+
+/**
+ * ST-segment offset: the trace sits `stMm` away from baseline from the J
+ * point (end of the QRS) through the T wave, which rides on it, and returns
+ * to baseline as the T wave ends. Negative = depression.
+ */
+function stSegment(ms: number, baseSec: number, ecg: EcgMorphology): number {
+  const stMm = ecg.stMm ?? 0;
+  if (stMm === 0) return 0;
+  const { peakMs, widthMs } = tTiming(baseSec, ecg);
+  const jPointMs = R_OFFSET_MS + 50 + (ecg.qrs === 'wide' ? WIDE_QRS_DELAY_MS + 15 : 0);
+  const on = sigmoid((ms - jPointMs) / 6);
+  const off = 1 - sigmoid((ms - (peakMs + widthMs * 0.9)) / (widthMs * 0.35));
+  return stMm * UNITS_PER_MM * on * off;
 }
 
 /**
  * One beat's contribution to the ECG, `ms` after the beat's start. `ms` may
  * run past the beat's own interval — at fast rates the T wave lands in the
- * next cycle, as it does on a real trace.
+ * next cycle, as it does on a real trace. `ecg` (ST level, T wave, QRS
+ * width, QT) reshapes beats with a normal conduction pattern; ectopic wide
+ * complexes, VT and PEA keep their own shape.
  */
-export function ecgBeat(beat: Pick<Beat, 'rhythm' | 'kind' | 'baseSec' | 'rrSec'>, ms: number): number {
+export function ecgBeat(
+  beat: Pick<Beat, 'rhythm' | 'kind' | 'baseSec' | 'rrSec'>,
+  ms: number,
+  ecg: EcgMorphology = {},
+): number {
   if (ms < 0) return 0;
 
   if (beat.rhythm === 'vtach') {
@@ -80,29 +143,45 @@ export function ecgBeat(beat: Pick<Beat, 'rhythm' | 'kind' | 'baseSec' | 'rrSec'
     // Wide bizarre complex, no P, discordant T.
     return gaussian(ms, R_OFFSET_MS, 42, 1.15) + gaussian(ms, R_OFFSET_MS + 84, 58, -0.5);
   }
+  if (beat.rhythm === 'pea') {
+    // Organized-looking wide complexes (no pulse — the pleth goes flat).
+    return gaussian(ms, R_OFFSET_MS, 25, 0.55) + gaussian(ms, R_OFFSET_MS + 100, 42, -0.2);
+  }
+
+  const wide = ecg.qrs === 'wide';
+  const st = stSegment(ms, beat.baseSec, ecg);
   if (beat.kind === 'pac') {
     // Narrow complex behind an ectopic P of different shape.
     return (
-      gaussian(ms, R_OFFSET_MS - 142, 25, 0.12) + qrs(ms, 1.0, -0.32) + tWave(ms, beat.baseSec, 0.3)
+      gaussian(ms, R_OFFSET_MS - 142, 25, 0.12) +
+      qrs(ms, 1.0, -0.32, wide) +
+      tWave(ms, beat.baseSec, 0.3, ecg) +
+      st
     );
   }
 
   switch (beat.rhythm) {
     case 'afib':
       // No P wave (the fibrillatory baseline is added by ecgValue).
-      return gaussian(ms, R_OFFSET_MS, 10, 1.0) + gaussian(ms, R_OFFSET_MS + 33, 13, -0.3) + tWave(ms, beat.baseSec, 0.25);
+      return qrsNoQ(ms, 1.0, -0.3, 13, wide) + tWave(ms, beat.baseSec, 0.25, ecg) + st;
     case 'svt':
       // Narrow complex, P buried.
-      return gaussian(ms, R_OFFSET_MS, 10, 0.9) + gaussian(ms, R_OFFSET_MS + 33, 12, -0.28) + tWave(ms, beat.baseSec, 0.22);
-    case 'pea':
-      // Organized-looking wide complexes (no pulse — the pleth goes flat).
-      return gaussian(ms, R_OFFSET_MS, 25, 0.55) + gaussian(ms, R_OFFSET_MS + 100, 42, -0.2);
+      return qrsNoQ(ms, 0.9, -0.28, 12, wide) + tWave(ms, beat.baseSec, 0.22, ecg) + st;
     default:
       // Sinus P-QRS-T (also the normal beats between ectopics).
       return (
-        gaussian(ms, R_OFFSET_MS - P_BEFORE_R_MS, 29, 0.18) + qrs(ms, 1.0, -0.32) + tWave(ms, beat.baseSec, 0.3)
+        gaussian(ms, R_OFFSET_MS - P_BEFORE_R_MS, 29, 0.18) +
+        qrs(ms, 1.0, -0.32, wide) +
+        tWave(ms, beat.baseSec, 0.3, ecg) +
+        st
       );
   }
+}
+
+/** R and S only — the AF and SVT complexes have no Q wave. */
+function qrsNoQ(ms: number, r: number, s: number, sWidthMs: number, wide: boolean): number {
+  if (wide) return gaussian(ms, R_OFFSET_MS, 22, r) + gaussian(ms, R_OFFSET_MS + 58, 28, s * 1.4);
+  return gaussian(ms, R_OFFSET_MS, 10, r) + gaussian(ms, R_OFFSET_MS + 33, sWidthMs, s);
 }
 
 /** Rhythm components that don't belong to any one beat; `t` in seconds. */
@@ -127,12 +206,17 @@ function ecgBaseline(rhythm: Rhythm, t: number): number {
 
 /**
  * ECG amplitude at clock time `t` (seconds): the current rhythm's baseline
- * plus every recent beat's complex.
+ * plus every recent beat's complex, drawn with the morphology now in force.
  */
-export function ecgValue(beats: readonly Beat[], rhythm: Rhythm, t: number): number {
+export function ecgValue(
+  beats: readonly Beat[],
+  rhythm: Rhythm,
+  t: number,
+  ecg: EcgMorphology = {},
+): number {
   let v = ecgBaseline(rhythm, t);
   if (rhythm === 'vfib' || rhythm === 'asystole') return v;
-  for (const b of beats) v += ecgBeat(b, (t - b.startSec) * 1000);
+  for (const b of beats) v += ecgBeat(b, (t - b.startSec) * 1000, ecg);
   return v;
 }
 
