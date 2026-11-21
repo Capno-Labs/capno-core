@@ -150,6 +150,11 @@ export function isQueued(kind: OutboxKind, id: string): boolean {
   return readOutbox().some((op) => op.kind === kind && op.id === id);
 }
 
+/** Number of local changes waiting to upload on the next faculty sign-in. */
+export function queuedCount(): number {
+  return readOutbox().length;
+}
+
 /** Cloud pushes apply only when configured AND signed in as faculty/admin. */
 export function cloudEligible(): boolean {
   return supabaseConfigured() && isCloudFaculty();

@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import type { Role } from '../engine/types';
 import { getSupabase, supabaseConfigured } from '../sync/supabase';
+import type { AuthLinkType } from './authLink';
 
 /**
  * Institution sign-in (optional Supabase auth).
@@ -30,6 +31,11 @@ interface AuthState {
   profile: AuthProfile | null;
   init: () => void;
   signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Exchange a single-use sign-in link token (see authLink.ts) for a session. */
+  signInWithTokenHash: (
+    tokenHash: string,
+    type: AuthLinkType,
+  ) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -52,6 +58,18 @@ async function fetchProfile(userId: string): Promise<AuthProfile | null> {
     .single();
   if (error || !data) return null;
   return { displayName: data.display_name ?? '', role: (data.role as Role) ?? null };
+}
+
+/** Shared tail of every explicit sign-in: adopt the user, load the profile,
+ *  run the sign-in listeners (outbox drain). */
+async function completeSignIn(
+  set: (partial: Partial<AuthState>) => void,
+  user: { id: string; email?: string },
+): Promise<void> {
+  set({ status: 'signed_in', user: { id: user.id, email: user.email ?? '' } });
+  const profile = await fetchProfile(user.id);
+  set({ profile: profile ?? { displayName: '', role: null } });
+  for (const l of signInListeners) l();
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -99,10 +117,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (error || !data.user) {
       return { ok: false, error: error?.message ?? 'Sign-in failed.' };
     }
-    set({ status: 'signed_in', user: { id: data.user.id, email: data.user.email ?? '' } });
-    const profile = await fetchProfile(data.user.id);
-    set({ profile: profile ?? { displayName: '', role: null } });
-    for (const l of signInListeners) l();
+    await completeSignIn(set, data.user);
+    return { ok: true };
+  },
+
+  signInWithTokenHash: async (tokenHash, type) => {
+    const supabase = getSupabase();
+    if (!supabase) return { ok: false, error: 'Supabase is not configured.' };
+    // A link never replaces an existing session: a signed-in device stays on
+    // its own account.
+    if (get().status === 'signed_in') return { ok: false, error: 'Already signed in.' };
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    if (error || !data.user) {
+      return { ok: false, error: error?.message ?? 'Sign-in failed.' };
+    }
+    await completeSignIn(set, data.user);
     return { ok: true };
   },
 
