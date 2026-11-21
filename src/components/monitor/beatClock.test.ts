@@ -36,10 +36,10 @@ describe('BeatClock', () => {
       for (const hr of [40, 72, 150]) {
         const beats = run({ hr, rhythm }, 60);
         const rrs = intervals(beats);
-        // Never more than 3% off the beat, and averaging out to the HR number…
+        // Never more than 3.5% off the beat, and averaging out to the HR number…
         for (const rr of rrs) {
-          expect(rr).toBeGreaterThan((60 / hr) * 0.97 - 1e-9);
-          expect(rr).toBeLessThan((60 / hr) * 1.03 + 1e-9);
+          expect(rr).toBeGreaterThan((60 / hr) * 0.965 - 1e-9);
+          expect(rr).toBeLessThan((60 / hr) * 1.035 + 1e-9);
         }
         expect(mean(rrs)).toBeGreaterThan((60 / hr) * 0.99);
         expect(mean(rrs)).toBeLessThan((60 / hr) * 1.01);
@@ -48,6 +48,15 @@ describe('BeatClock', () => {
         expect(beats.every((b) => b.kind === 'normal')).toBe(true);
       }
     }
+  });
+
+  it('varies successive sinus intervals by about the RMSSD seen under anesthesia', () => {
+    // Lan et al. 2022: RMSSD 24–31 ms under propofol; resting norms ~42 ms.
+    const rrs = intervals(run({ hr: 72 }, 600)).map((x) => x * 1000);
+    const diffs = rrs.slice(1).map((x, i) => x - rrs[i]);
+    const rmssd = Math.sqrt(mean(diffs.map((d) => d * d)));
+    expect(rmssd).toBeGreaterThan(20);
+    expect(rmssd).toBeLessThan(31);
   });
 
   it('keeps SVT, VT and PEA metronomic', () => {
@@ -192,7 +201,7 @@ describe('BeatClock', () => {
     const clock = new BeatClock();
     clock.setInput(input({ hr: 180 }));
     for (let i = 0; i < 6000; i++) clock.advance(0.01);
-    expect(clock.recent().length).toBeLessThanOrEqual(8);
+    expect(clock.recent().length).toBeLessThanOrEqual(12);
     expect(clock.count).toBeGreaterThan(150);
   });
 
@@ -206,7 +215,7 @@ describe('BeatClock', () => {
         clock.advance(0.01);
         if (clock.count !== seen) {
           seen = clock.count;
-          if (seen >= 8) out.push(clock.measuredRate());
+          if (seen >= 12) out.push(clock.measuredRate());
         }
       }
       return out;
@@ -232,8 +241,32 @@ describe('BeatClock', () => {
       expect(spread(rates({ rhythm: 'afib', hr: 110 }))).toBeGreaterThan(4 * spread(rates({ hr: 110 })));
     });
 
-    it('holds steady through bigeminy, where pairs of beats average out', () => {
-      for (const r of rates({ rhythm: 'pvc', pvcEveryN: 2, hr: 72 }, 30)) expect(r).toBeCloseTo(1, 9);
+    it('holds steady through bigeminy and trigeminy, where whole cycles average out', () => {
+      for (const n of [2, 3, 4]) {
+        for (const r of rates({ rhythm: 'pvc', pvcEveryN: n, hr: 72 }, 30)) expect(r).toBeCloseTo(1, 9);
+      }
+    });
+
+    it('counts from the 12 most recent intervals, as a bedside monitor does', () => {
+      const clock = new BeatClock(5);
+      clock.setInput(input({ rhythm: 'afib', hr: 110 }));
+      for (let i = 0; i < 3000; i++) clock.advance(0.01);
+      const recent = clock.recent();
+      expect(recent).toHaveLength(12);
+      expect(clock.measuredRate()).toBeCloseTo(12 / recent.reduce((a, b) => a + b.factor, 0), 9);
+    });
+
+    it('counts from only the last 4 once three intervals in a row exceed 1200 ms', () => {
+      const clock = new BeatClock(5);
+      clock.setInput(input({ hr: 40 })); // 1.5 s cycle
+      for (let i = 0; i < 4000; i++) clock.advance(0.01);
+      const last4 = clock.recent().slice(-4);
+      expect(clock.measuredRate()).toBeCloseTo(4 / last4.reduce((a, b) => a + b.factor, 0), 9);
+      // …but not at 60 bpm, where no interval is that long.
+      clock.setInput(input({ hr: 60 }));
+      for (let i = 0; i < 3000; i++) clock.advance(0.01);
+      const all = clock.recent();
+      expect(clock.measuredRate()).toBeCloseTo(all.length / all.reduce((a, b) => a + b.factor, 0), 9);
     });
 
     it('returns to nominal once the beats stop', () => {

@@ -17,8 +17,11 @@ describe('lost-signal readouts', () => {
     }
   });
 
-  it('treats a cuff cycle with no pressure as a failed reading', () => {
+  it('treats a cuff cycle below the measurable range as a failed reading', () => {
     expect(cuffReadingFailed({ sbp: 0, dbp: 0, atSec: 60 })).toBe(true);
+    // The oscillometric range starts at 30 mmHg systolic.
+    expect(cuffReadingFailed({ sbp: 29, dbp: 9, atSec: 60 })).toBe(true);
+    expect(cuffReadingFailed({ sbp: 30, dbp: 10, atSec: 60 })).toBe(false);
     expect(cuffReadingFailed({ sbp: 62, dbp: 34, atSec: 60 })).toBe(false);
     expect(cuffReadingFailed(null)).toBe(false); // arterial line: no cuff at all
   });

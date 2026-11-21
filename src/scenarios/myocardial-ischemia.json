@@ -1,6 +1,6 @@
 {
   "id": "myocardial-ischemia",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "title": "Intraoperative Myocardial Ischemia",
   "summary": "A 68-year-old man with coronary disease undergoing open lower-extremity revascularization develops demand ischemia when light anesthesia and blood loss drive tachycardia and hypertension. Learners must read the ST-segment change and new ectopy, restore the myocardial oxygen supply-demand balance with oxygen, analgesia/depth, rate control, and coronary perfusion pressure, use nitroglycerin without dropping the pressure too far, and be ready for the ventricular fibrillation that follows if ischemia is left to run.",
   "tags": {
@@ -21,7 +21,7 @@
   "setup": [
     "OR mid-case for an open femoral-popliteal bypass in a vasculopath: general endotracheal anesthesia established, moderate ongoing surgical blood loss, arterial line transducing.",
     "This is an arterial-line case: the monitor shows live beat-to-beat pressure and an arterial trace.",
-    "The simulated monitor does not draw ST segments — faculty must verbally report the ECG: 'lead II and V5 now show 2 mm of new horizontal ST depression', and later 'multiform PVCs appearing'.",
+    "The monitor draws the ST change in lead II and prints it as 'ST II' under the heart rate, with no alarm — learners have to notice it. It shows one lead and uniform PVCs, so report the rest verbally: 'V5 shows the same 2 mm of horizontal ST depression', and later 'the PVCs are multiform'.",
     "Labeled props: esmolol, metoprolol, phenylephrine 100 mcg/mL, norepinephrine infusion, nitroglycerin infusion, aspirin 325 mg, heparin, and a defibrillator with pads on the patient.",
     "Confederate circulator/surgeon who can quantify blood loss ('another 400 mL in the field') and pause when asked.",
     "Preop note: prior drug-eluting stent to the RCA two years ago, still on aspirin; exertional angina climbing stairs; last echo EF 45%."
@@ -96,7 +96,7 @@
       "category": "physiology",
       "actionIds": ["recognize-ischemia"],
       "effects": [
-        { "vitals": { "hr": 110, "sbp": 158, "dbp": 88, "spo2": 97 }, "rhythm": "sinus_tach", "overSec": 60 }
+        { "vitals": { "hr": 110, "sbp": 158, "dbp": 88, "spo2": 97 }, "rhythm": "sinus_tach", "ecg": { "stMm": -2 }, "overSec": 60 }
       ],
       "autoAtSec": 300,
       "phaseHint": "ischemia"
@@ -107,7 +107,7 @@
       "description": "Multiform PVCs appear and the pressure begins to sag as the ischemic ventricle contracts poorly (faculty: 'frequent multiform PVCs, ST depression now 3 mm'). This is the window before ventricular fibrillation.",
       "category": "physiology",
       "effects": [
-        { "vitals": { "hr": 118, "sbp": 96, "dbp": 58, "spo2": 95, "etco2": 31 }, "rhythm": "pvc", "overSec": 120 }
+        { "vitals": { "hr": 118, "sbp": 96, "dbp": 58, "spo2": 95, "etco2": 31 }, "rhythm": "pvc", "ecg": { "stMm": -3 }, "overSec": 120 }
       ],
       "autoAtSec": 480,
       "phaseHint": "ischemia"
@@ -129,7 +129,7 @@
       "category": "resolution",
       "actionIds": ["manage-vf-arrest"],
       "effects": [
-        { "vitals": { "hr": 96, "sbp": 104, "dbp": 62, "spo2": 96, "etco2": 34 }, "rhythm": "sinus", "overSec": 30 }
+        { "vitals": { "hr": 96, "sbp": 104, "dbp": 62, "spo2": 96, "etco2": 34 }, "rhythm": "sinus", "ecg": { "stMm": -1.5 }, "overSec": 30 }
       ],
       "phaseHint": "arrest"
     },
@@ -173,7 +173,7 @@
       "category": "drug",
       "actionIds": ["nitroglycerin-when-safe"],
       "effects": [
-        { "vitals": { "sbp": 126, "dbp": 74, "hr": 84, "etco2": 34 }, "overSec": 120 }
+        { "vitals": { "sbp": 126, "dbp": 74, "hr": 84, "etco2": 34 }, "ecg": { "stMm": -1 }, "overSec": 120 }
       ],
       "phaseHint": "treatment"
     },
@@ -184,7 +184,7 @@
       "category": "resolution",
       "actionIds": ["twelve-lead-troponin", "plan-disposition"],
       "effects": [
-        { "vitals": { "hr": 76, "sbp": 128, "dbp": 74, "spo2": 99, "etco2": 35, "rr": 10 }, "rhythm": "sinus", "overSec": 240 }
+        { "vitals": { "hr": 76, "sbp": 128, "dbp": 74, "spo2": 99, "etco2": 35, "rr": 10 }, "rhythm": "sinus", "ecg": { "stMm": 0 }, "overSec": 240 }
       ],
       "phaseHint": "resolution"
     }

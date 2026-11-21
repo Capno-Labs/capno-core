@@ -180,7 +180,10 @@ monitor prints the level as "ST II −2.0" under the heart rate. These are
 display only — they change no numbers and raise no alarm, so learners have to
 see them. They apply to the sinus rhythms, AF, SVT and the normal beats
 around ectopics; in VT, VF, PEA and asystole they are not drawn and the
-readout shows dashes.
+readout shows dashes. One caveat worth telling learners: the simulator draws
+ST change in lead II because that is the lead it has, but in practice lead II
+alone picks up only about a third of intraoperative ischemia, and V5 about
+three-quarters (London et al., *Anesthesiology* 1988).
 
 **NIBP behaves like a real cuff.** In the default cuff mode, the sliders set
 the patient's *true* pressure, but the monitor shows the **last measured**
@@ -200,9 +203,10 @@ pressure instead (the tile reads **ART**).
 - **No pulse, no saturation.** In VF, PEA and asystole the SpO₂ tile shows
   `--` and the banner reads **SpO₂ NO PULSE**, whatever saturation the
   scenario holds underneath. The number returns with a perfusing rhythm.
-- **A cuff cannot read a pressure of zero.** If the cuff cycles while systolic
-  is 0, the NIBP tile shows `--/--` and the banner reads **NIBP NO READING**
-  until a later cycle finds a pressure.
+- **A cuff cannot read a very low pressure.** If the cuff cycles while
+  systolic is under 30 mmHg — the bottom of an oscillometric cuff's range —
+  the NIBP tile shows `--/--` and the banner reads **NIBP NO READING** until a
+  later cycle finds a pressure.
 - **Pulses breathe.** The pleth and arterial traces rise and fall slightly
   with each breath, in step with the capnogram. The swing is fixed and small —
   it does not change with volume status.
@@ -363,7 +367,7 @@ descriptors) instead of a percentage.
 | Alarm tone on a mild abnormality | Warnings now sound (three low pulses). Use **🔔 silence alarms**, or correct the vital. |
 | BP "stuck" while sliders move | That's NIBP cuff mode working as intended — press **Cycle NIBP now** or wait for the next cuff cycle. |
 | HR tile is a beat off the slider, or bounces in AF | The monitor counts rate from the beats it draws (§5). Alarms and the debrief use the slider value. |
-| SpO₂ or NIBP shows dashes | No pulse to measure (VF, PEA, asystole), or the cuff cycled at a systolic of 0 (§5). |
+| SpO₂ or NIBP shows dashes | No pulse to measure (VF, PEA, asystole), or the cuff cycled at a systolic under 30 mmHg (§5). |
 | PIN screen on a machine that shouldn't have one | `NEXT_PUBLIC_FACULTY_PIN` is set for this installation; the PIN is advisory only. Signed-in faculty accounts bypass it. |
 | "Device storage is full" when saving or ending a session | The browser's storage quota is exhausted — export scenarios/sessions as JSON, delete old ones, and save again. A memory-only debrief must be exported before the tab closes. |
 | Past sessions missing | Archives are per-device browser storage — check the machine the session was run on, restore from a JSON export, or (with institution accounts) open the Institution archive. |

@@ -54,42 +54,69 @@ export interface BeatClockInput {
 const NON_BEATING: ReadonlySet<Rhythm> = new Set(['vfib', 'asystole']);
 
 /** A premature ventricular beat falls early, then a full compensatory pause:
- *  the two intervals around it add up to two normal cycles. */
+ *  the sinus node is not reset, so the interval spanning the PVC is twice the
+ *  sinus cycle (StatPearls, "Premature Ventricular Complex", NBK547713). The coupling
+ *  fraction matches a recorded example (coupling 0.52 s, pause 1.13 s — about
+ *  0.63 and 1.37 of the cycle): Voss et al., J Physiol 2002;538:271. */
 const PVC_COUPLING = 0.6;
 const PVC_PAUSE = 2 - PVC_COUPLING;
-/** A premature atrial beat resets the sinus node, so its pause is shorter
- *  than compensatory. */
+/** A premature atrial beat enters and resets the sinus node, so its pause is
+ *  incomplete — shorter than compensatory (StatPearls NBK559204, NBK547713). */
 const PAC_COUPLING = 0.75;
 const PAC_PAUSE = 1.1;
 const PAC_EVERY_N = 5;
-/** AF: each interval is drawn uniformly from this range (mean 1). */
+/** AF: irregular R-R intervals with no repeating pattern (January et al.,
+ *  2014 AHA/ACC/HRS AF guideline). Each interval is drawn uniformly from this
+ *  range (mean 1); the range itself is a drawing choice. */
 const AF_MIN = 0.6;
 const AF_MAX = 1.4;
 
 /** Sinus rhythm is never metronomic: each interval varies by up to this
- *  fraction either way. Too small to see on the trace; enough that a rate
- *  averaged over a few beats flickers by a beat or so, as a real one does. */
-const SINUS_JITTER = 0.03;
+ *  fraction either way. Sized so successive intervals differ by about 24 ms
+ *  RMS at 72 bpm — the RMSSD reported under propofol anesthesia (24–31 ms;
+ *  Lan et al., Sensors 2022;22:9258), below resting norms (42 ± 15 ms;
+ *  Shaffer & Ginsberg, Front Public Health 2017;5:258). Too small to see on
+ *  the trace; enough that a rate averaged over several beats flickers by a
+ *  beat or so. */
+const SINUS_JITTER = 0.035;
 const SINUS: ReadonlySet<Rhythm> = new Set(['sinus', 'sinus_brady', 'sinus_tach']);
 
-/** Weak, poorly filled ventricular ectopic. */
-const PVC_PULSE = 0.35;
-/** Respiratory swing: pulses are up to this fraction smaller at mid-expiration
- *  than at end-inspiration. A fixed, modest swing — it does not track volume
- *  status. */
+/** Weak, poorly filled ventricular ectopic: its systolic pressure falls about
+ *  20% below the reference beat (Voss et al., J Physiol 2002;538:271), which
+ *  at 120/80 leaves roughly 0.4 of the pulse amplitude. The same paper puts
+ *  the beat after the pause about 10% above normal in healthy subjects — the
+ *  upper clamp on stroke strength below. */
+const PVC_PULSE = 0.4;
+/** Respiratory swing: pulses are up to this fraction smaller in expiration
+ *  than at end-inspiration, where pulse pressure peaks under positive-pressure
+ *  ventilation (Michard & Teboul, Crit Care 2000;4:282). 8% is a pulse pressure
+ *  variation of about 8% — a volume-replete patient, below the 9–13% grey zone
+ *  and the 13% threshold for fluid responsiveness (same paper; Cannesson et
+ *  al., Br J Anaesth 2008;101:200, non-responders' pleth variation 8–9%). A
+ *  fixed swing: it does not track volume status. */
 const RESP_SWING = 0.08;
 
 /** No two breaths are identical: each breath's length varies by up to this
- *  fraction either way… */
+ *  fraction either way. No published breath-to-breath figure was found for
+ *  ventilated patients (a ventilator's timing is fixed), so this is kept
+ *  small by choice, not by citation… */
 const BREATH_JITTER = 0.04;
 /** …and its capnogram plateau peaks up to this fraction below the EtCO₂
- *  number (never above it, so the trace stays inside its scale). Kept small:
- *  enough to look alive, not enough to read as spontaneous breathing on a
- *  ventilated patient. */
+ *  number (never above it, so the trace stays inside its scale) — a spread
+ *  of about 1%, inside the 2.4% median variation of repeated EtCO₂ readings
+ *  in stable ventilated patients (Hess & Agarwal, J Clin Monit 1992;8:111).
+ *  Enough to look alive, not enough to read as spontaneous breathing. */
 const BREATH_HEIGHT_DIP = 0.04;
 
-/** Beats kept for tails that outlast their own cycle (T wave, pulse wave). */
-const KEEP_BEATS = 8;
+/** Beats kept: enough for tails that outlast their own cycle (T wave, pulse
+ *  wave) and for the heart-rate count, which a bedside monitor averages over
+ *  the 12 most recent R-R intervals (Philips IntelliVue MP20–MP90
+ *  Instructions for Use, Rel. G.0, Performance Specifications). */
+const KEEP_BEATS = 12;
+/** The same monitor counts from only the 4 most recent intervals once 3 in a
+ *  row exceed 1200 ms, so a slow rate is not averaged over a quarter minute. */
+const SLOW_RR_SEC = 1.2;
+const SLOW_RATE_BEATS = 4;
 /** Longest gap one tick() will catch up; longer gaps (hidden tab) are dropped. */
 const MAX_CATCH_UP_SEC = 2;
 const STEP_SEC = 0.05;
@@ -158,10 +185,13 @@ export class BeatClock {
    * instructor's HR by this for the displayed value.
    */
   measuredRate(): number {
-    if (this.beats.length === 0) return 1;
+    const n = this.beats.length;
+    if (n === 0) return 1;
+    const slow = n >= 3 && this.beats.slice(-3).every((b) => b.rrSec > SLOW_RR_SEC);
+    const counted = slow ? this.beats.slice(-SLOW_RATE_BEATS) : this.beats;
     let sum = 0;
-    for (const b of this.beats) sum += b.factor;
-    return this.beats.length / sum;
+    for (const b of counted) sum += b.factor;
+    return counted.length / sum;
   }
 
   /** Breath phase (0..1) at clock time `tSec`, at or shortly before now. */
@@ -264,7 +294,10 @@ export class BeatClock {
     }
 
     // Stroke strength follows filling time: a beat that comes early after the
-    // previous one ejects less, the beat after a pause ejects more.
+    // previous one ejects less, the beat after a pause ejects more, levelling
+    // off at long intervals — the relation of stroke volume to the preceding
+    // R-R interval in AF (Greenfield et al., J Clin Invest 1968;47:2411;
+    // Muntinga et al., Heart 1999;82:575).
     const filling = kind === 'pvc' ? PVC_PULSE : clamp(0.4 + 0.6 * this.prevFactor, 0.5, 1.1);
     this.prevFactor = factor;
     // …and swings a little with the breath (largest at end-inspiration,

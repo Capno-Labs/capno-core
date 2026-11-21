@@ -205,7 +205,16 @@ clinical content is authored against published guidance:
   162–325 mg); esmolol 0.5 mg/kg IV over 1 min then 50–300 mcg/kg/min
   (StatPearls; intraoperative bolus-esmolol studies); AHA 2020 ACLS for the
   ventricular-fibrillation arm (defibrillate 120–200 J biphasic,
-  epinephrine 1 mg q3–5 min, amiodarone 300 mg then 150 mg).
+  epinephrine 1 mg q3–5 min, amiodarone 300 mg then 150 mg). ST levels
+  drawn on the monitor: 2 mm then 3 mm of horizontal depression and a
+  return to baseline are the scenario's own authored values, above the
+  ≥1 mm horizontal-depression criterion of London et al. (*Anesthesiology*
+  1988;69:232–41). No published definition was found for *improvement* of
+  demand-ischemia ST depression, so the two "improving" events use chosen
+  values: 1.5 mm after return of circulation (half the peak — inside the
+  30–70% "partial resolution" band Schröder et al., *J Am Coll Cardiol*
+  1994;24:384–91, defined for ST elevation after thrombolysis) and 1 mm
+  after nitroglycerin (London's threshold: improved, not resolved).
 - **hypoxemia** — Stanford *Emergency Manual* (Hypoxemia event: 100% O2 at
   10–15 L/min, hand-ventilate, exclude gas analyzer/circuit/probe,
   auscultate and suction the ETT, differential of mainstem intubation /
@@ -217,6 +226,55 @@ clinical content is authored against published guidance:
   laryngospasm-lma, induction-hypotension** — see the original scenario
   PRs; management follows the corresponding society guidance (e.g. ASRA
   LAST checklist, MHAUS protocol).
+
+## Clinical sources for the monitor display
+
+The monitor's drawing and sound constants are held to published values. The
+tests in `src/components/monitor/` assert the ranges below, so a change that
+leaves a range fails the build. Where no source was found, that is said.
+
+**ECG**
+
+| What the monitor does | Source |
+| --- | --- |
+| 1 mm = 0.1 mV; the R wave is drawn 10 mm tall | Hegde & Ahmed, *Electrocardiogram*, StatPearls ([NBK549803](https://www.ncbi.nlm.nih.gov/books/NBK549803/)); Thygesen et al., Fourth Universal Definition of MI, *Eur Heart J* 2019;40:237–69 |
+| PR about 150 ms (normal 120–200); QRS about 95 ms (normal 60–100) | StatPearls NBK549803 |
+| "Wide" QRS about 150 ms (wide is ≥120 ms) | Surawicz et al., AHA/ACCF/HRS recommendations Part III, 2009, as tabulated in Blondeel et al., *Rev Cardiovasc Med* 2025 (PMC11759958) |
+| QT follows √RR (Bazett); normal QTc about 380 ms; "prolonged" about 515 ms (>500 ms is highly abnormal; 99th percentile 470 ms men, 480 ms women) | Drew et al., AHA/ACCF statement on torsade de pointes, *Circulation* 2010 ([PMC3056123](https://pmc.ncbi.nlm.nih.gov/articles/PMC3056123/)) |
+| ST level is a level (horizontal) offset from the J point; ischemic depression is ≥0.5 mm at the J point, ≥1 mm 60–80 ms after it for monitoring | Fourth Universal Definition of MI; London et al., *Anesthesiology* 1988;69:232–41 (PMID 3407971); Vaidya, *Indian Heart J* 2017 (PMC5560878) |
+| Peaked T: tall, narrow, symmetrical, 6.6 mm (normal limb-lead T is under 5 mm; the normal T here is 3 mm) | McMahon & Ahmed, *ECG T Wave*, StatPearls ([NBK538264](https://www.ncbi.nlm.nih.gov/books/NBK538264/)); Simon & Rout, *Hyperkalemia*, StatPearls ([NBK470284](https://www.ncbi.nlm.nih.gov/books/NBK470284/)) |
+| Flat T 0.6 mm; inverted T −2.4 mm | **No source.** The AHA/ACCF/HRS Part IV amplitude definitions could not be obtained; these two are drawing choices |
+| PVC: wide (>120 ms), no P wave, full compensatory pause (the interval spanning it is twice the sinus cycle); bigeminy and trigeminy | Sattar & Hashmi, *Premature Ventricular Complex*, StatPearls ([NBK547713](https://www.ncbi.nlm.nih.gov/books/NBK547713/)) |
+| PVC coupling at 0.6 of the cycle; PVC pulse about 0.4 of normal; the beat after the pause about 10% stronger | Voss et al., *J Physiol* 2002;538:271 ([PMC2290033](https://pmc.ncbi.nlm.nih.gov/articles/PMC2290033)): coupling 0.52 s and pause 1.13 s, ectopic systolic about −20%, post-ectopic pulse amplitude +9.8% |
+| PAC: early P of different shape, normal QRS, incomplete pause | Heaton & Yandrapalli, *Premature Atrial Contractions*, StatPearls ([NBK559204](https://www.ncbi.nlm.nih.gov/books/NBK559204/)) |
+| AF: irregular R-R, no P waves, fibrillatory waves at 365–487/min (published 350–500/min); pulse size follows the preceding interval | January et al., 2014 AHA/ACC/HRS AF guideline ([PMC4676081](https://pmc.ncbi.nlm.nih.gov/articles/PMC4676081/)); Kwon & Kim, *Korean J Anesthesiol* 2017 (PMC5370296); Greenfield et al., *J Clin Invest* 1968;47:2411; Muntinga et al., *Heart* 1999;82:575. The 0.6–1.4 range of AF intervals is a drawing choice |
+| Lead II only | London et al. 1988 found lead II alone detected 33% of intraoperative ischemia, V5 75%, II + V5 80% — the reason a V5 trace is planned, and a caveat for teaching |
+
+**Pulse, pressure and breathing**
+
+| What the monitor does | Source |
+| --- | --- |
+| Arterial upstroke 185 ms after the R wave (radial line: means 174–200 ms, range 140–232) | Escobar-Restrepo et al., *Front Physiol* 2018;9:1848 ([PMC6308183](https://pmc.ncbi.nlm.nih.gov/articles/PMC6308183)) |
+| Pleth upstroke 270 ms after the R wave (finger: means 267–284 ms, range 230–330) | Kortekaas et al., *PLoS One* 2018;13:e0204105 ([PMC6179208](https://pmc.ncbi.nlm.nih.gov/articles/PMC6179208)) |
+| Pulse wave shortens with rate by the ejection-time regression LVET = 244 − 0.926·HR + 1.08·SV ms (taken at SV 70 mL) | Charlton et al., *Am J Physiol Heart Circ Physiol* 2019 ([PMC6879924](https://pmc.ncbi.nlm.nih.gov/articles/PMC6879924)), fitted to Weissler's data |
+| Sinus intervals vary ±3.5% beat to beat: successive differences of about 24 ms RMS at 72 bpm | Lan et al., *Sensors* 2022;22:9258 ([PMC9740393](https://pmc.ncbi.nlm.nih.gov/articles/PMC9740393)): RMSSD 24–31 ms under propofol; Shaffer & Ginsberg, *Front Public Health* 2017;5:258: resting norm 42 ± 15 ms |
+| Heart rate counted from the 12 most recent R-R intervals, or the last 4 once three in a row exceed 1200 ms | Philips IntelliVue MP20–MP90 Instructions for Use, Rel. G.0 (M8000-9001K), Performance Specifications. One manufacturer |
+| Pulses 8% smaller in expiration than at end-inspiration (a pulse pressure variation of about 8%: below the 9–13% grey zone and the 13% threshold) | Michard & Teboul, *Crit Care* 2000;4:282–9 ([PMC137257](https://pmc.ncbi.nlm.nih.gov/articles/PMC137257)); Cannesson et al., *Br J Anaesth* 2008;101:200–6; Biais et al., *Crit Care* 2014;18:587 |
+| SpO₂ shows `--` with no pulse; the pulse tone's pitch falls with SpO₂ | Jubran, *Crit Care* 1999;3:R11; ASA Standards for Basic Anesthetic Monitoring (variable-pitch pulse tone audible); Philips manual above |
+| NIBP shows `--/--` below 30 mmHg systolic (the lower limit of the adult oscillometric range) | Philips manual above. One manufacturer |
+| Capnogram plateau up to 4% under the EtCO₂ number | Consistent with a 2.4% median variation of repeated EtCO₂ readings in stable ventilated patients: Hess & Agarwal, *J Clin Monit* 1992;8:111 |
+| Breath length varies ±4% | **No source.** No breath-to-breath figure was found for ventilated patients; kept small by choice |
+
+**Alarm sounds**
+
+| What the monitor does | Source |
+| --- | --- |
+| Critical: ten pulses of 120 ms as 3 + 2, 3 + 2 (spacing x = 80 ms, 2x + pulse before the fourth and ninth, 0.7 s between the fifth and sixth), repeating after 3 s. Warning: three pulses of 220 ms spaced 180 ms, repeating after 9 s. Fundamental under 1000 Hz with three further harmonics; rise 15% of the pulse | IEC 60601-1-8:2006 + Amd 1:2012, Tables 3–4, as reproduced in Texas Instruments application report [SLOA273](https://www.ti.com/lit/pdf/sloa273) (2019), with the x and y values from the IEC Amendment 1 text. The standard itself is paywalled; the table is a manufacturer's reproduction |
+| Critical is pitched higher than warning | A choice. The standard separates priorities by rhythm and speed, not pitch (Edworthy, Forum Acusticum 2023) |
+
+Only burst timing and spectrum follow the standard. Sound level, the rest of
+the standard, and Amendment 2's auditory icons are not addressed: this is a
+teaching simulator, not an alarm system.
 
 ## Adding scenarios to the curriculum
 
