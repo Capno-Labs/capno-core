@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
+import { AuthUrlGuard } from '@/components/AuthUrlGuard';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { THEME_COLORS, THEME_STORAGE_KEY } from '@/lib/theme';
 import { DialogHost } from '@/components/ui/Dialog';
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
+        <AuthUrlGuard />
         <ServiceWorkerRegistrar />
         <Toaster />
         <DialogHost />

@@ -16,7 +16,10 @@
  * rejected unless the resulting session belongs to that address.
  *
  * The key names deliberately avoid `access_token`, `code` and `error*`,
- * which supabase-js intercepts on its own when it sees them in a URL.
+ * the names Supabase's own redirect links use. This app never signs in from
+ * those (the client is created with `detectSessionInUrl: false`); a fragment
+ * that carries them is only cleaned out of the address bar — see
+ * `hasSessionFragment`.
  *
  * Pure and framework-free so it is testable in Node.
  */
@@ -58,6 +61,18 @@ export function parseAuthFragment(hash: string): AuthLink {
 export function hasAuthFragment(hash: string): boolean {
   const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
   return params.has('token_hash') || params.has('email');
+}
+
+/**
+ * True when the fragment carries a ready-made Supabase session — what a
+ * dashboard invite, magic link or email-confirmation redirect appends
+ * (`#access_token=…&refresh_token=…`). The app does not sign in from these;
+ * it removes them from the address bar so a live credential is not left in
+ * the URL, the history, or a screenshot of a projected lab screen.
+ */
+export function hasSessionFragment(hash: string): boolean {
+  const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+  return params.has('access_token') || params.has('refresh_token');
 }
 
 /**

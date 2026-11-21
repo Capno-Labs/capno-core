@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { cameFromPortal, hasAuthFragment, parseAuthFragment } from './authLink';
+import {
+  cameFromPortal,
+  hasAuthFragment,
+  hasSessionFragment,
+  parseAuthFragment,
+} from './authLink';
 
 const HASH = 'a'.repeat(56);
 
@@ -45,6 +50,23 @@ describe('hasAuthFragment', () => {
     expect(hasAuthFragment('#access_token=abc')).toBe(false);
     expect(hasAuthFragment('#section-2')).toBe(false);
     expect(hasAuthFragment('')).toBe(false);
+  });
+});
+
+describe('hasSessionFragment', () => {
+  it('spots a ready-made session in the fragment', () => {
+    expect(hasSessionFragment('#access_token=abc&refresh_token=def&type=invite')).toBe(true);
+    expect(hasSessionFragment('#refresh_token=def')).toBe(true);
+    expect(hasSessionFragment('access_token=abc')).toBe(true);
+  });
+
+  it('leaves this app\'s own links and ordinary anchors alone', () => {
+    expect(hasSessionFragment(`#token_hash=${HASH}&type=magiclink&email=ana%40example.org`)).toBe(
+      false,
+    );
+    expect(hasSessionFragment('#block-access_token')).toBe(false);
+    expect(hasSessionFragment('#section-2')).toBe(false);
+    expect(hasSessionFragment('')).toBe(false);
   });
 });
 
