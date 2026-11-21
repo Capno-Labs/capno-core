@@ -155,6 +155,25 @@ to cycle the cuff). A stale BP during a fast deterioration is a deliberate
 teaching point, not a bug. Scenarios with an arterial line show continuous
 pressure instead (the tile reads **ART**).
 
+**The monitor measures, as a real one does.** The sliders set the patient's
+*true* values; the display shows what a monitor would make of them.
+
+- **Heart rate is counted from the beats on screen**, so the HR tile can read
+  a beat or so either side of your slider in sinus rhythm, and wanders several
+  beats in atrial fibrillation. Alarms and the debrief still use your value.
+- **No pulse, no saturation.** In VF, PEA and asystole the SpO₂ tile shows
+  `--` and the banner reads **SpO₂ NO PULSE**, whatever saturation the
+  scenario holds underneath. The number returns with a perfusing rhythm.
+- **A cuff cannot read a pressure of zero.** If the cuff cycles while systolic
+  is 0, the NIBP tile shows `--/--` and the banner reads **NIBP NO READING**
+  until a later cycle finds a pressure.
+- **Pulses breathe.** The pleth and arterial traces rise and fall slightly
+  with each breath, in step with the capnogram. The swing is fixed and small —
+  it does not change with volume status.
+- **No two breaths are identical.** Each capnogram breath varies by a few
+  percent in length, and its plateau peaks at or just under the EtCO₂ number.
+  The RR and EtCO₂ tiles still show your values.
+
 ## 6. The Flow panel
 
 The **Flow** panel is the scenario's driving surface: every event —
@@ -306,6 +325,8 @@ descriptors) instead of a percentage.
 | Cloud sync dot is red or orange | Cross-device sync is degraded — remote displays may be stale until it recovers (it reconnects on its own). Same-device windows are unaffected. |
 | No monitor sound | Sound defaults off — tap the 🔇 icon on the student display. |
 | BP "stuck" while sliders move | That's NIBP cuff mode working as intended — press **Cycle NIBP now** or wait for the next cuff cycle. |
+| HR tile is a beat off the slider, or bounces in AF | The monitor counts rate from the beats it draws (§5). Alarms and the debrief use the slider value. |
+| SpO₂ or NIBP shows dashes | No pulse to measure (VF, PEA, asystole), or the cuff cycled at a systolic of 0 (§5). |
 | PIN screen on a machine that shouldn't have one | `NEXT_PUBLIC_FACULTY_PIN` is set for this installation; the PIN is advisory only. Signed-in faculty accounts bypass it. |
 | "Device storage is full" when saving or ending a session | The browser's storage quota is exhausted — export scenarios/sessions as JSON, delete old ones, and save again. A memory-only debrief must be exported before the tab closes. |
 | Past sessions missing | Archives are per-device browser storage — check the machine the session was run on, restore from a JSON export, or (with institution accounts) open the Institution archive. |

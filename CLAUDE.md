@@ -138,6 +138,14 @@ instead of guessing in either direction.
   `snapshot.nibp` (last measured), not live values. Only artLine scenarios
   show live pressure. Don't "fix" a stale NIBP tile — the staleness is the
   teaching point.
+- The monitor shows *measured* values, not always the snapshot's. The HR tile
+  is `vitals.hr × clock.measuredRate()` (counted from the beats the shared
+  `BeatClock` drew, so it can sit a beat off the slider and wanders in AF);
+  SpO₂ shows `--` in pulseless rhythms and NIBP `--/--` after a cuff cycle at
+  systolic 0 (`src/components/monitor/readouts.ts`); a capnogram breath can
+  peak up to 4% under the EtCO₂ number. All of it is display
+  only — alarm levels, the log, history and the debrief use engine values.
+  Don't "fix" these by pushing them into the engine or the snapshot.
 
 ## Extending
 

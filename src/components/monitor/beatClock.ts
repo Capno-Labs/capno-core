@@ -1,17 +1,19 @@
 import type { Rhythm } from '@/lib/engine/types';
 
 /**
- * Shared heartbeat scheduler for one monitor.
+ * Shared heartbeat and breath scheduler for one monitor.
  *
  * Every pulsatile thing on the monitor — the ECG trace, the pleth, the
  * arterial line and the pulse tone — reads beats from the same clock, so a
- * QRS, its beep and its pulse wave belong to the same heartbeat. Before this,
- * each trace advanced its own phase and the tone ran on its own timer.
+ * QRS, its beep and its pulse wave belong to the same heartbeat. The clock
+ * also carries the breath phase the capnogram draws from, so the small
+ * respiratory swing in the pulse traces keeps step with the breaths on screen.
  *
  * Display-only, like the waveform generators: it never feeds back into the
- * engine. The HR number stays the instructor's value; the clock only decides
- * *when* each beat falls. Ectopy and AF patterns are normalized to a mean
- * interval of 60/HR so the drawn rate agrees with the displayed number.
+ * engine, and alarms are still judged on the instructor's values. The clock
+ * only decides *when* each beat falls. Every pattern (ectopy, AF, the slight
+ * beat-to-beat variation of sinus rhythm) averages to an interval of 60/HR,
+ * so the drawn rate agrees with the instructor's number.
  *
  * Framework-free and deterministic for a given seed, so it tests in Node.
  */
@@ -28,15 +30,19 @@ export interface Beat {
   /** Mean cycle length (60/HR) when the beat was scheduled — what rate-adapted
    *  timings (T wave, pulse wave) follow, rather than this beat's own interval. */
   baseSec: number;
+  /** This beat's interval as a multiple of the mean cycle (1 = on the beat). */
+  factor: number;
   /** Rhythm in force when the beat was scheduled. */
   rhythm: Rhythm;
   kind: BeatKind;
-  /** Relative stroke strength for the pleth / arterial pulse, ~0.35–1.1. */
+  /** Relative stroke strength for the pleth / arterial pulse, ~0.3–1.1. */
   pulse: number;
 }
 
 export interface BeatClockInput {
   hr: number;
+  /** Respiratory rate, breaths/min. 0 = apnea: the breath phase holds. */
+  rr: number;
   rhythm: Rhythm;
   /** One PVC per N beats while the rhythm is `pvc`. */
   pvcEveryN: number;
@@ -60,8 +66,27 @@ const PAC_EVERY_N = 5;
 const AF_MIN = 0.6;
 const AF_MAX = 1.4;
 
+/** Sinus rhythm is never metronomic: each interval varies by up to this
+ *  fraction either way. Too small to see on the trace; enough that a rate
+ *  averaged over a few beats flickers by a beat or so, as a real one does. */
+const SINUS_JITTER = 0.03;
+const SINUS: ReadonlySet<Rhythm> = new Set(['sinus', 'sinus_brady', 'sinus_tach']);
+
 /** Weak, poorly filled ventricular ectopic. */
 const PVC_PULSE = 0.35;
+/** Respiratory swing: pulses are up to this fraction smaller at mid-expiration
+ *  than at end-inspiration. A fixed, modest swing — it does not track volume
+ *  status. */
+const RESP_SWING = 0.08;
+
+/** No two breaths are identical: each breath's length varies by up to this
+ *  fraction either way… */
+const BREATH_JITTER = 0.04;
+/** …and its capnogram plateau peaks up to this fraction below the EtCO₂
+ *  number (never above it, so the trace stays inside its scale). Kept small:
+ *  enough to look alive, not enough to read as spontaneous breathing on a
+ *  ventilated patient. */
+const BREATH_HEIGHT_DIP = 0.04;
 
 /** Beats kept for tails that outlast their own cycle (T wave, pulse wave). */
 const KEEP_BEATS = 8;
@@ -89,7 +114,14 @@ export class BeatClock {
   /** Clock time in seconds. Advances only while not frozen. */
   t = 0;
 
-  private input: BeatClockInput = { hr: 0, rhythm: 'sinus', pvcEveryN: 4, frozen: true };
+  private input: BeatClockInput = { hr: 0, rr: 0, rhythm: 'sinus', pvcEveryN: 4, frozen: true };
+  /** Position within the current breath, 0..1 (0 = start of expiration). */
+  private breath = 0;
+  /** The current breath's length as a multiple of 60/RR. */
+  private breathFactor = 1;
+  /** The current breath's capnogram peak as a fraction of EtCO₂ (≤ 1). */
+  breathHeight = 1;
+  private readonly breathRand: () => number;
   private readonly rand: () => number;
   private beats: Beat[] = [];
   private nextAt: number | null = null;
@@ -99,6 +131,8 @@ export class BeatClock {
 
   constructor(seed = 1) {
     this.rand = prng(seed);
+    // A separate stream, so breathing never changes which beats are drawn.
+    this.breathRand = prng(seed ^ 0x9e3779b9);
   }
 
   /** Latest vitals. Cheap — call on every render. */
@@ -114,6 +148,26 @@ export class BeatClock {
   /** The most recent beats, oldest first. */
   recent(): readonly Beat[] {
     return this.beats;
+  }
+
+  /**
+   * How the rate measured over the recent beats compares with the nominal
+   * one: >1 when they came faster than 60/HR, <1 when slower, 1 with no
+   * beats. A monitor counts rate from the beats it sees, so its number
+   * wanders by a beat or two in sinus rhythm and more in AF — multiply the
+   * instructor's HR by this for the displayed value.
+   */
+  measuredRate(): number {
+    if (this.beats.length === 0) return 1;
+    let sum = 0;
+    for (const b of this.beats) sum += b.factor;
+    return this.beats.length / sum;
+  }
+
+  /** Breath phase (0..1) at clock time `tSec`, at or shortly before now. */
+  breathPhaseAt(tSec: number): number {
+    const back = ((this.t - tSec) * (Math.max(0, this.input.rr) / 60)) / this.breathFactor;
+    return (((this.breath - back) % 1) + 1) % 1;
   }
 
   /**
@@ -140,6 +194,13 @@ export class BeatClock {
   advance(dtSec: number): void {
     if (this.input.frozen || dtSec <= 0) return;
     this.t += dtSec;
+    this.breath += ((Math.max(0, this.input.rr) / 60) * dtSec) / this.breathFactor;
+    if (this.breath >= 1) {
+      // A new breath: draw its length and plateau height.
+      this.breath %= 1;
+      this.breathFactor = 1 + BREATH_JITTER * (2 * this.breathRand() - 1);
+      this.breathHeight = 1 - BREATH_HEIGHT_DIP * this.breathRand();
+    }
 
     const { hr, rhythm } = this.input;
     if (NON_BEATING.has(rhythm)) {
@@ -198,15 +259,22 @@ export class BeatClock {
       }
     } else if (rhythm === 'afib') {
       factor = AF_MIN + (AF_MAX - AF_MIN) * this.rand();
+    } else if (SINUS.has(rhythm)) {
+      factor = 1 + SINUS_JITTER * (2 * this.rand() - 1);
     }
 
     // Stroke strength follows filling time: a beat that comes early after the
     // previous one ejects less, the beat after a pause ejects more.
-    const pulse = kind === 'pvc' ? PVC_PULSE : clamp(0.4 + 0.6 * this.prevFactor, 0.5, 1.1);
+    const filling = kind === 'pvc' ? PVC_PULSE : clamp(0.4 + 0.6 * this.prevFactor, 0.5, 1.1);
     this.prevFactor = factor;
+    // …and swings a little with the breath (largest at end-inspiration,
+    // phase 0), unless the patient is apneic.
+    const swing =
+      this.input.rr > 0 ? (RESP_SWING * (1 - Math.cos(2 * Math.PI * this.breathPhaseAt(at)))) / 2 : 0;
+    const pulse = filling * (1 - swing);
 
     const rrSec = factor * base;
-    this.beats.push({ index, startSec: at, rrSec, baseSec: base, rhythm, kind, pulse });
+    this.beats.push({ index, startSec: at, rrSec, baseSec: base, factor, rhythm, kind, pulse });
     if (this.beats.length > KEEP_BEATS) this.beats.shift();
     this.started += 1;
     return at + rrSec;

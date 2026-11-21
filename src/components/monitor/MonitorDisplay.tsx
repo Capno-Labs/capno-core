@@ -8,6 +8,7 @@ import { BeatClock } from './beatClock';
 import { MonitorAudio, useMonitorSoundPref } from './MonitorAudio';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
+import { cuffReadingFailed, displayAlarms, NO_READING, oximeterHasSignal } from './readouts';
 
 interface MonitorDisplayProps {
   snapshot: SimSnapshot;
@@ -40,6 +41,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
   const clock = clockRef.current;
   clock.setInput({
     hr: v.hr,
+    rr: v.rr,
     rhythm: v.rhythm,
     pvcEveryN: PVC_FREQUENCY_EVERY_N[v.pvcFrequency ?? 'occasional'],
     frozen,
@@ -48,16 +50,37 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
   const alarmFor = (vital: string) =>
     snapshot.alarms.find((a) => a.vital === vital)?.level;
 
+  // A monitor counts heart rate from the beats it detects, so the number
+  // wanders by a beat or so in sinus rhythm and more in AF. Display only:
+  // alarms and the trend arrow still follow the instructor's value.
+  const shownHr = Math.round(v.hr * clock.measuredRate());
+
+  // With no pulse there is nothing for the oximeter to read: the tile shows
+  // dashes rather than whatever saturation the scenario holds underneath.
+  const noPulse = !oximeterHasSignal(v.rhythm);
+
   // NIBP cuff mode: show the last measured reading and how stale it is.
   // nibp === null means an arterial line is in place (continuous BP + trace).
   const cuff = snapshot.nibp;
   const art = !cuff;
   const cuffAgeSec = cuff ? Math.max(0, snapshot.elapsedSec - cuff.atSec) : 0;
-  const bpValue = cuff ? `${cuff.sbp}/${cuff.dbp}` : `${Math.round(v.sbp)}/${Math.round(v.dbp)}`;
+  // A cuff cycle with no pressure to find is a failed reading, not 0/0.
+  const cuffFailed = cuffReadingFailed(cuff);
+  const bpValue = cuffFailed
+    ? `${NO_READING}/${NO_READING}`
+    : cuff
+      ? `${cuff.sbp}/${cuff.dbp}`
+      : `${Math.round(v.sbp)}/${Math.round(v.dbp)}`;
   const bpMap = cuff ? map(cuff) : map(v);
-  const bpSub = cuff
-    ? `MAP ${bpMap} · ${formatClock(cuffAgeSec)} ago`
-    : `MAP ${bpMap}`;
+  const bpSub = cuffFailed
+    ? `no reading · ${formatClock(cuffAgeSec)} ago`
+    : cuff
+      ? `MAP ${bpMap} · ${formatClock(cuffAgeSec)} ago`
+      : `MAP ${bpMap}`;
+
+  // The banner names the lost signal instead of quoting a number the tile
+  // no longer shows. Levels are untouched.
+  const shownAlarms = displayAlarms(snapshot.alarms, v.rhythm, cuff);
 
   // Slightly shorter traces when the ART row makes it four waveforms.
   const waveH = compact ? (art ? 'h-11' : 'h-14') : art ? 'h-16 md:h-24' : 'h-20 md:h-28';
@@ -72,7 +95,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
       <MonitorAudio snapshot={snapshot} enabled={soundOn} clock={clock} />
       {/* Header: alarms + sound + status + clock */}
       <div className="flex items-center justify-between gap-3">
-        <AlarmBanner alarms={snapshot.alarms} silenced={snapshot.alarmsSilenced} />
+        <AlarmBanner alarms={shownAlarms} silenced={snapshot.alarmsSilenced} />
         <div className="flex items-center gap-3 whitespace-nowrap font-mono text-[#dce3d9]">
           <button
             onClick={() => setSoundOn(!soundOn)}
@@ -113,7 +136,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
             </div>
             <Waveform kind="ecg" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="HR" value={String(Math.round(v.hr))} unit="bpm" color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
+          <VitalTile label="HR" value={String(shownHr)} unit="bpm" color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>
         {art && (
           <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
@@ -144,7 +167,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
             </span>
             <Waveform kind="pleth" clock={clock} color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="SpO₂" value={String(Math.round(v.spo2))} unit="%" color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={v.spo2} large={!compact} />
+          <VitalTile label="SpO₂" value={noPulse ? NO_READING : String(Math.round(v.spo2))} unit="%" color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={noPulse ? undefined : v.spo2} large={!compact} />
         </div>
         <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
           <div className="min-w-0">
@@ -174,7 +197,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
               sub={bpSub}
               color="text-vital-nibp"
               alarm={alarmFor('sbp') ?? alarmFor('dbp')}
-              trendValue={cuff.sbp}
+              trendValue={cuffFailed ? undefined : cuff.sbp}
             />
           )}
           <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" color="text-vital-temp" alarm={alarmFor('temp')} trendValue={v.temp} />

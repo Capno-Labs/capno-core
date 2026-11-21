@@ -36,6 +36,10 @@ may not reflect the patient *now*; if you want a fresh pressure, ask for the
 cuff to be cycled. Scenarios with an arterial line show a continuous **ART**
 pressure instead.
 
+**Dashes mean no signal, not zero.** If SpO₂ shows `--`, the oximeter has no
+pulse to read; if NIBP shows `--/--`, the cuff found no pressure. Look at the
+patient and the rhythm, not for a number.
+
 ## Alarms and sound
 
 - A yellow banner is a **warning** alarm; a flashing red banner is **critical**.
