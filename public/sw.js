@@ -62,7 +62,11 @@ self.addEventListener('fetch', (event) => {
         const cache = await caches.open(PAGE_CACHE);
         try {
           const response = await fetch(request);
-          if (response.ok) cache.put(request, response.clone());
+          // Key the cached page by its URL WITHOUT the fragment: a
+          // navigation can carry a single-use sign-in token there
+          // (/account#token_hash=…), and that must never be written into
+          // Cache Storage. (Matching already ignores fragments.)
+          if (response.ok) cache.put(url.origin + url.pathname + url.search, response.clone());
           return response;
         } catch {
           const cached = await cache.match(request);

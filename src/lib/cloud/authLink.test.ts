@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { hasAuthFragment, parseAuthFragment } from './authLink';
+import { cameFromPortal, hasAuthFragment, parseAuthFragment } from './authLink';
 
 const HASH = 'a'.repeat(56);
 
@@ -45,5 +45,28 @@ describe('hasAuthFragment', () => {
     expect(hasAuthFragment('#access_token=abc')).toBe(false);
     expect(hasAuthFragment('#section-2')).toBe(false);
     expect(hasAuthFragment('')).toBe(false);
+  });
+});
+
+describe('cameFromPortal', () => {
+  const portal = 'https://start.example.org';
+
+  it('is true only for a navigation from the configured portal origin', () => {
+    expect(cameFromPortal('https://start.example.org/', portal)).toBe(true);
+    expect(cameFromPortal('https://start.example.org/start?x=1', portal)).toBe(true);
+  });
+
+  it('is false for other origins, look-alikes, no referrer, or no portal', () => {
+    for (const referrer of [
+      '',
+      'https://evil.example/',
+      'https://start.example.org.evil.example/',
+      'http://start.example.org/',
+      'https://mail.example.org/',
+      'not a url',
+    ]) {
+      expect(cameFromPortal(referrer, portal)).toBe(false);
+    }
+    expect(cameFromPortal('https://start.example.org/', null)).toBe(false);
   });
 });

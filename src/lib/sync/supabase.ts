@@ -26,6 +26,20 @@ export function getSupabase(): SupabaseClient | null {
   return client;
 }
 
+/**
+ * A throwaway client that keeps nothing: no stored session, no refresh
+ * timer, no URL detection. For exchanging a credential and inspecting the
+ * result BEFORE deciding whether the real client should adopt it.
+ */
+export function createEphemeralSupabase(): SupabaseClient | null {
+  if (!supabaseConfigured()) return null;
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+  );
+}
+
 /** Consecutive send failures before the transport reports `error`. */
 const SEND_FAILURE_THRESHOLD = 3;
 

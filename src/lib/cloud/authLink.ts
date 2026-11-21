@@ -11,7 +11,9 @@
  * The values travel in the URL FRAGMENT on purpose — a fragment is never
  * sent to a server, so the token stays out of access logs and Referer
  * headers — and the page strips it from the address bar before using it.
- * `email` alone (no token) just prefills the sign-in form.
+ * `email` alone (no token) just prefills the sign-in form. A token is only
+ * honoured together with the email it claims to be for: the exchange is
+ * rejected unless the resulting session belongs to that address.
  *
  * The key names deliberately avoid `access_token`, `code` and `error*`,
  * which supabase-js intercepts on its own when it sees them in a URL.
@@ -57,3 +59,21 @@ export function hasAuthFragment(hash: string): boolean {
   const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
   return params.has('token_hash') || params.has('email');
 }
+
+/**
+ * True when this page was reached by a navigation from the configured
+ * account portal. Only then may a sign-in link be used without asking: a
+ * link opened from an email, a chat or another site always gets an explicit
+ * "Sign in as …?" first, because a stranger can mint a link to THEIR
+ * account and send it to someone who is signed out here (login CSRF).
+ * `document.referrer` cannot be set by the linking page to another origin.
+ */
+export function cameFromPortal(referrer: string, portalOrigin: string | null): boolean {
+  if (!referrer || !portalOrigin) return false;
+  try {
+    return new URL(referrer).origin === portalOrigin;
+  } catch {
+    return false;
+  }
+}
+
