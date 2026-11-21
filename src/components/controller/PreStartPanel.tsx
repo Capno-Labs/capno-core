@@ -5,6 +5,7 @@ import { SyncHealthBadge } from '@/components/SyncHealthBadge';
 import { CopyJoinLinkButton, joinUrl } from '@/components/controller/JoinLink';
 import { cloudEligible } from '@/lib/cloud/outbox';
 import { ALARM_PROFILE_LABELS } from '@/lib/engine/types';
+import { VITAL_META } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
@@ -114,6 +115,9 @@ export function PreStartPanel() {
                 ? ` ${ALARM_PROFILE_LABELS[snapshot.alarmProfile]} alarm limits.`
                 : ''}
               {scenario.monitoring?.alarmLimits ? ' This case sets some limits of its own.' : ''}
+              {snapshot.alarmsOff && snapshot.alarmsOff.length > 0
+                ? ` Switched off: ${snapshot.alarmsOff.map((v) => VITAL_META[v].label).join(', ')}.`
+                : ''}
             </li>
             <li>
               {actionCount} expected learner actions ({criticalCount} critical) — mark them in the

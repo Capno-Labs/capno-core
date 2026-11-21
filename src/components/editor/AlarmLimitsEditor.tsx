@@ -66,7 +66,7 @@ export function AlarmLimitsEditor({
   onChange,
 }: {
   monitoring: MonitoringConfig | undefined;
-  onChange: (patch: Pick<MonitoringConfig, 'alarmProfile' | 'alarmLimits'>) => void;
+  onChange: (patch: Pick<MonitoringConfig, 'alarmProfile' | 'alarmLimits' | 'alarmsOff'>) => void;
 }) {
   const profile = monitoring?.alarmProfile ?? 'adult';
   const overrides = monitoring?.alarmLimits;
@@ -85,6 +85,17 @@ export function AlarmLimitsEditor({
     onChange({
       alarmProfile: monitoring?.alarmProfile,
       alarmLimits: Object.keys(next).length > 0 ? next : undefined,
+      alarmsOff: monitoring?.alarmsOff,
+    });
+  };
+
+  const alarmsOff = monitoring?.alarmsOff ?? [];
+  const setOff = (vital: AlarmVital, off: boolean) => {
+    const next = ALARM_VITALS.filter((v) => (v === vital ? off : alarmsOff.includes(v)));
+    onChange({
+      alarmProfile: monitoring?.alarmProfile,
+      alarmLimits: overrides,
+      alarmsOff: next.length > 0 ? next : undefined,
     });
   };
 
@@ -103,7 +114,11 @@ export function AlarmLimitsEditor({
           onChange={(e) => {
             const next = e.target.value as AlarmProfile;
             // Adult, the default, is never stored.
-            onChange({ alarmProfile: next === 'adult' ? undefined : next, alarmLimits: overrides });
+            onChange({
+              alarmProfile: next === 'adult' ? undefined : next,
+              alarmLimits: overrides,
+              alarmsOff: monitoring?.alarmsOff,
+            });
           }}
         >
           {(Object.keys(ALARM_PROFILE_LABELS) as AlarmProfile[]).map((p) => (
@@ -124,6 +139,7 @@ export function AlarmLimitsEditor({
                   {BAND_LABELS[key]}
                 </th>
               ))}
+              <th className="pr-2 font-normal">Alarm</th>
             </tr>
           </thead>
           <tbody>
@@ -145,6 +161,17 @@ export function AlarmLimitsEditor({
                     />
                   </td>
                 ))}
+                <td className="py-0.5 pr-2">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-2">
+                    <input
+                      type="checkbox"
+                      checked={!alarmsOff.includes(vital)}
+                      onChange={(e) => setOff(vital, !e.target.checked)}
+                      aria-label={`${VITAL_META[vital].label} alarms on`}
+                    />
+                    {alarmsOff.includes(vital) ? 'off' : 'on'}
+                  </label>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -160,7 +187,9 @@ export function AlarmLimitsEditor({
       <p className="text-xs text-faint">
         Grey numbers are the category’s limits. Type a number to change one for this case, or
         “off” to switch it off; clear the box to go back. Below Low or above High is a warning;
-        beyond a critical limit the alarm is critical. Blood-pressure limits are systolic.
+        beyond a critical limit the alarm is critical. Blood-pressure limits are systolic. Untick
+        Alarm to start the case with that alarm switched off, the way a monitor is sometimes
+        found. During a session, faculty change all of this by selecting a number on the monitor.
       </p>
     </div>
   );

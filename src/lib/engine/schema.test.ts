@@ -99,6 +99,10 @@ describe('scenario schema', () => {
     }
     doc.monitoring = { alarmLimits: { sbp: { critLow: 95 } } };
     expect(validateScenario(doc).errors.join(' ')).toContain('monitoring.alarmLimits.sbp');
+    doc.monitoring = { alarmsOff: ['spo2', 'temp'] };
+    expect(validateScenario(doc).ok).toBe(true);
+    doc.monitoring = { alarmsOff: ['paw'] }; // not a vital with limit alarms
+    expect(validateScenario(doc).ok).toBe(false);
   });
 
   it('accepts event actionIds that exist and rejects unknown ones', () => {

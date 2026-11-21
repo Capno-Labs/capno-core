@@ -35,8 +35,18 @@ import { useControllerStore } from '@/lib/store/controllerStore';
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
-  const { engine, snapshot, loadScenario, teardown, setAlarmsSilenced, start, pause, triggerEvent } =
-    useControllerStore();
+  const {
+    engine,
+    snapshot,
+    loadScenario,
+    teardown,
+    setAlarmsSilenced,
+    setAlarmLimit,
+    setAlarmOff,
+    start,
+    pause,
+    triggerEvent,
+  } = useControllerStore();
   const [notFound, setNotFound] = useState(false);
   // ?code=XXXX from the "Run next student" turnover, read exactly once per
   // page instance (null = read, none present). The ref keeps the load effect
@@ -222,7 +232,11 @@ export default function FacultyRunPage() {
                     {snapshot.alarmsSilenced ? 'alarms silenced' : 'silence alarms'}
                   </button>
                 </div>
-                <MonitorDisplay snapshot={snapshot} compact />
+                <MonitorDisplay
+                  snapshot={snapshot}
+                  compact
+                  alarmSetup={{ setLimit: setAlarmLimit, setOff: setAlarmOff }}
+                />
               </div>
             </div>
             <div className="min-w-0 space-y-3 desk:col-start-3 desk:row-start-1 desk:row-span-2 desk:self-start">

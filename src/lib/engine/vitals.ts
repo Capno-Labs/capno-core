@@ -2,6 +2,7 @@ import type {
   AlarmBand,
   AlarmLimits,
   AlarmProfile,
+  AlarmSide,
   AlarmState,
   AlarmVital,
   AnestheticAgent,
@@ -367,6 +368,59 @@ export function resolveAlarmLimits(
 }
 
 /**
+ * How far one press moves a limit on the monitor's alarm setup. A choice: a
+ * real monitor offers a list of values for each limit.
+ */
+export const ALARM_LIMIT_STEP: Record<AlarmVital, number> = {
+  hr: 5,
+  sbp: 5,
+  spo2: 1,
+  etco2: 1,
+  rr: 1,
+  temp: 0.5,
+};
+
+/**
+ * Set one warning limit the way a monitor's alarm-limits window does
+ * (Philips IntelliVue MX750/MX850 Instructions for Use, "Alarm Limits"):
+ *  - the clinician sets the low and the high (yellow) limit; the critical
+ *    (red) limits are view-only, but "if you set the yellow alarm limit
+ *    outside the red alarm limit, the monitor will automatically adapt the
+ *    red alarm limit";
+ *  - a limit at the end of the vital's range is off ("setting the high alarm
+ *    limit to 100 switches the high alarm off, or setting the low alarm
+ *    limit to 0 switches it off"); `null` does the same.
+ * The low limit is kept below the high one by at least a step.
+ */
+export function withAlarmLimit(
+  limits: AlarmLimits,
+  vital: AlarmVital,
+  side: AlarmSide,
+  value: number | null,
+): AlarmLimits {
+  const meta = VITAL_META[vital];
+  const step = ALARM_LIMIT_STEP[vital];
+  const band: AlarmBand = { ...limits[vital] };
+  const warnKey = side === 'low' ? 'warnLow' : 'warnHigh';
+  const critKey = side === 'low' ? 'critLow' : 'critHigh';
+  const end = side === 'low' ? meta.min : meta.max;
+
+  let next = value === null ? end : roundVital(vital, Math.min(meta.max, Math.max(meta.min, value)));
+  // Keep low below high.
+  if (side === 'low' && band.warnHigh !== undefined) next = Math.min(next, band.warnHigh - step);
+  if (side === 'high' && band.warnLow !== undefined) next = Math.max(next, band.warnLow + step);
+
+  if (next === end) {
+    delete band[warnKey];
+  } else {
+    band[warnKey] = next;
+    const crit = band[critKey];
+    if (crit !== undefined && (side === 'low' ? crit > next : crit < next)) band[critKey] = next;
+  }
+  return { ...limits, [vital]: band };
+}
+
+/**
  * What is wrong with a set of limits, if anything: a critical limit must lie
  * at or beyond its warning limit, and low below high. Empty = consistent.
  */
@@ -394,7 +448,11 @@ export function alarmLimitProblems(limits: AlarmLimits): { vital: AlarmVital; me
 const LETHAL_RHYTHMS = new Set(['vtach', 'vfib', 'torsades', 'pea', 'asystole']);
 
 /** Evaluate the current vitals against alarm limits. */
-export function evaluateAlarms(vitals: Vitals, limits: AlarmLimits = ALARM_PROFILES.adult): AlarmState[] {
+export function evaluateAlarms(
+  vitals: Vitals,
+  limits: AlarmLimits = ALARM_PROFILES.adult,
+  alarmsOff: readonly AlarmVital[] = [],
+): AlarmState[] {
   const alarms: AlarmState[] = [];
 
   if (LETHAL_RHYTHMS.has(vitals.rhythm)) {
@@ -446,6 +504,9 @@ export function evaluateAlarms(vitals: Vitals, limits: AlarmLimits = ALARM_PROFI
       alarms.push({ vital: 'spo2', level: critical ? 'critical' : 'warning', message: 'SpO₂ NO PULSE' });
       continue;
     }
+    // Limit alarms switched off for this vital. The lost-signal alarm above
+    // is a technical alarm, not a limit, and stays.
+    if (alarmsOff.includes(vital)) continue;
     if (lim.critLow !== undefined && v < lim.critLow) {
       alarms.push({ vital: lim.vital, level: 'critical', message: `${meta.label} LOW ${v.toFixed(meta.decimals)}` });
     } else if (lim.critHigh !== undefined && v > lim.critHigh) {
