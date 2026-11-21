@@ -101,7 +101,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "rubric": [{ "id": "...", "label": "...", "actionIds": ["<existing expectedAction ids>"] }],
   "estimatedMinutes": n,
   "targetDurationSec"?: n,           // optional hard time budget for a scheduled lab slot (pacing display)
-  "monitoring"?: { "artLine"?: bool, "nibpIntervalSec"?: 15-1800, "v5"?: bool }   // absent = NIBP cuff every 180 s, lead II only; v5 adds a second ECG trace
+  "monitoring"?: { "artLine"?: bool, "nibpIntervalSec"?: 15-1800, "v5"?: bool, "alarmProfile"?: "adult|pediatric|neonatal", "alarmLimits"?: { "hr|sbp|spo2|etco2|rr|temp"?: { "critLow"?: n|null, "warnLow"?: n|null, "warnHigh"?: n|null, "critHigh"?: n|null } } }   // absent = NIBP cuff every 180 s, lead II only; v5 adds a second ECG trace alarmProfile = the monitor's patient category (default adult; set pediatric or neonatal for a child so normal vitals do not alarm). alarmLimits changes single limits of that profile (null = off); set them only when the source states limits
 }`;
 
 const GENERATOR_RULES = `You author training scenarios for Capno, an anesthesia patient-simulator (manikin) teaching tool. This is simulation authoring for education — no real patient exists. Output ONLY one JSON document matching the structure below. No prose, no markdown fences.

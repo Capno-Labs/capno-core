@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { SyncHealthBadge } from '@/components/SyncHealthBadge';
 import { CopyJoinLinkButton, joinUrl } from '@/components/controller/JoinLink';
 import { cloudEligible } from '@/lib/cloud/outbox';
+import { ALARM_PROFILE_LABELS } from '@/lib/engine/types';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
@@ -109,6 +110,10 @@ export function PreStartPanel() {
             </li>
             <li>
               Alarms {snapshot.alarmsSilenced ? 'silenced' : 'on'} — toggle on the monitor preview.
+              {snapshot.alarmProfile && snapshot.alarmProfile !== 'adult'
+                ? ` ${ALARM_PROFILE_LABELS[snapshot.alarmProfile]} alarm limits.`
+                : ''}
+              {scenario.monitoring?.alarmLimits ? ' This case sets some limits of its own.' : ''}
             </li>
             <li>
               {actionCount} expected learner actions ({criticalCount} critical) — mark them in the

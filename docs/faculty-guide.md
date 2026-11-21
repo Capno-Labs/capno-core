@@ -259,6 +259,17 @@ either drug: fire or set the reading the reversal produces. The bars are drawn
 relative to the first twitch, so a depolarising block — four equal, smaller
 twitches — cannot be shown. There are no alarms on the twitch monitor.
 
+**Alarms** buttons (Adult, Pediatric, Neonatal) choose the monitor's patient
+category, and with it the alarm limits for heart rate, blood pressure,
+breathing rate and (neonates) saturation — so a child's heart rate of 130
+does not alarm. The limits in force are printed small beside each number on
+every display (for example `50–110` on the HR tile). A scenario can start in
+a category and change single limits for its case (a parturient's heart rate);
+switching category during a session uses that category's own limits, and
+switching back to the scenario's category restores the scenario's changes.
+The category is yours to choose, as on a real monitor: it does not follow the
+patient's age.
+
 **Agent** buttons (SEV, ISO, DES) say which volatile the end-tidal number
 refers to. The agent tile shows it as a multiple of the patient's MAC,
 adjusted for age: the same concentration is more MAC in an older patient.

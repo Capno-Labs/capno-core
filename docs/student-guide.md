@@ -65,6 +65,9 @@ patient and the rhythm, not for a number.
 
 ## Alarms and sound
 
+- The small numbers beside a reading (for example `50–110` next to the heart
+  rate) are its alarm limits. They depend on the patient: a monitor set for a
+  child has different limits from one set for an adult.
 - A yellow banner is a **warning** alarm; a flashing red banner is **critical**.
   🔕 means the instructor has silenced alarms.
 - Sound is **on by default**. If the top bar shows **🔈 tap for sound**, tap

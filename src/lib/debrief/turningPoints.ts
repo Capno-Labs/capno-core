@@ -5,7 +5,7 @@ import type {
   VitalsHistorySample,
 } from '../engine/types';
 import { RHYTHM_LABELS } from '../engine/types';
-import { DEFAULT_VITALS, evaluateAlarms, VITAL_META } from '../engine/vitals';
+import { ALARM_PROFILES, DEFAULT_VITALS, evaluateAlarms, VITAL_META } from '../engine/vitals';
 
 /**
  * Key clinical turning points, derived for the debrief report from data the
@@ -30,7 +30,7 @@ export interface TurningPoint {
 
 /** Structural subset of ArchivedSession so tests stay light. */
 export interface TurningPointInput {
-  snapshot: Pick<SimSnapshot, 'log'>;
+  snapshot: Pick<SimSnapshot, 'log' | 'alarmLimits'>;
   scenario: {
     events: readonly Pick<ScenarioEvent, 'label' | 'category'>[];
     monitoring?: { artLine?: boolean };
@@ -126,6 +126,9 @@ export function deriveTurningPoints(session: TurningPointInput): TurningPoint[] 
   const points: TurningPoint[] = [];
   const { log } = session.snapshot;
   const artLine = session.scenario.monitoring?.artLine ?? false;
+  // The limits the session ended with (adult in archives from before limits
+  // could vary).
+  const limits = session.snapshot.alarmLimits ?? ALARM_PROFILES.adult;
   const eventCategoryByLabel = new Map(
     session.scenario.events.map((e) => [e.label, e.category]),
   );
@@ -169,7 +172,7 @@ export function deriveTurningPoints(session: TurningPointInput): TurningPoint[] 
 
   for (const sample of session.history ?? []) {
     const { t, ...vitals } = sample;
-    const alarms = evaluateAlarms({ ...DEFAULT_VITALS, ...vitals });
+    const alarms = evaluateAlarms({ ...DEFAULT_VITALS, ...vitals }, limits);
     for (const key of HISTORY_ALARM_KEYS) {
       const { level, message } = alarmLevelFor(alarms, key);
       trackerFor(key, VITAL_META[key].label).observe(t, level, message);
@@ -186,11 +189,14 @@ export function deriveTurningPoints(session: TurningPointInput): TurningPoint[] 
       if (entry.kind !== 'vital_change') continue;
       const m = NIBP_LOG_RE.exec(entry.label);
       if (!m) continue;
-      const alarms = evaluateAlarms({
-        ...DEFAULT_VITALS,
-        sbp: Number(m[1]),
-        dbp: Number(m[2]),
-      });
+      const alarms = evaluateAlarms(
+        {
+          ...DEFAULT_VITALS,
+          sbp: Number(m[1]),
+          dbp: Number(m[2]),
+        },
+        limits,
+      );
       const { level, message } = alarmLevelFor(alarms, 'sbp');
       trackerFor('sbp', VITAL_META.sbp.label).observe(entry.t, level, message);
     }

@@ -367,6 +367,26 @@ fall together. The post-tetanic count is taken at every measurement; a real
 monitor leaves at least 2 minutes between them (Fuchs-Buder 2023). The block
 is a reading, not a drug model.
 
+**Alarm limits**
+
+| What the monitor does | Source |
+| --- | --- |
+| Pediatric and neonatal warning limits — HR 75–160 and 100–200; systolic pressure (cuff) 70–120 and 40–90; breathing rate 8–30 and 30–100; neonatal saturation low 85 | Philips IntelliVue MX750/MX850 Instructions for Use (453564861711), "Alarm and Measurement Default Settings", pp. 525–540: factory defaults by patient category |
+| Critical heart rate 20 bpm beyond each limit (55/180 pediatric, 80/220 neonatal) | Same manual: extreme bradycardia and extreme tachycardia default to 20 bpm beyond the limits (clamped at 40/220 pediatric, 50/240 neonatal) |
+| Critical neonatal saturation 80 | Same manual: desaturation limit 80, a red alarm |
+| Critical systolic pressure 10 (pediatric) or 5 mmHg (neonatal) beyond each limit | Same manual: the extreme-pressure differences for invasive pressure. The monitor ships with extreme pressure alarms switched off; the sim uses the differences so blood pressure keeps a critical tier |
+| EtCO₂ and temperature limits the same for every category | Same manual: EtCO₂ 25–60 and temperature 36–39 for adult, pediatric and neonatal alike |
+| The category is chosen, not derived from age | Same manual: patient category is a setting of the monitor's profile |
+
+The adult limits are the sim's long-standing set and are not from that
+manual: they are a little tighter than its adult defaults (HR 50–120, SpO₂
+low 90 with desaturation at 80, systolic 90–160, breathing rate 8–30, EtCO₂
+25–60, temperature 36–39), and the sim adds a critical tier for pressure,
+EtCO₂, breathing rate and temperature that the monitor does not have. The
+pediatric and neonatal critical breathing-rate limit (under 4) is carried
+over from the adult set, not sourced. The monitor also alarms on a neonatal
+saturation above 95; the sim has no high-saturation alarm.
+
 **Alarm sounds**
 
 | What the monitor does | Source |

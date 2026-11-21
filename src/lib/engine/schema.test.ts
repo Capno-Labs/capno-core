@@ -78,6 +78,29 @@ describe('scenario schema', () => {
     expect(validateScenario(withMonitoring).ok).toBe(false);
   });
 
+  it('accepts an alarm profile and per-case limits, and rejects limits that contradict each other', () => {
+    const doc = JSON.parse(JSON.stringify(inductionHypotension));
+    doc.monitoring = { alarmProfile: 'pediatric' };
+    expect(validateScenario(doc).ok).toBe(true);
+    doc.monitoring = { alarmLimits: { hr: { warnHigh: 125 }, temp: { warnLow: null } } };
+    expect(validateScenario(doc).ok).toBe(true);
+    const bad = [
+      { alarmProfile: 'geriatric' },
+      { alarmLimits: { hr: { warnHigh: 400 } } }, // outside the vital's range
+      { alarmLimits: { map: { warnLow: 60 } } }, // not a vital with limits
+      { alarmLimits: { hr: { low: 60 } } }, // not a limit
+      { alarmLimits: { hr: { warnLow: 120 } } }, // above the profile's high limit of 110
+      { alarmLimits: { sbp: { critLow: 95 } } }, // critical low above the low warning of 90
+      { alarmProfile: 'neonatal', alarmLimits: { hr: { critHigh: 150 } } }, // below the neonatal high of 200
+    ];
+    for (const monitoring of bad) {
+      doc.monitoring = monitoring;
+      expect(validateScenario(doc).ok, JSON.stringify(monitoring)).toBe(false);
+    }
+    doc.monitoring = { alarmLimits: { sbp: { critLow: 95 } } };
+    expect(validateScenario(doc).errors.join(' ')).toContain('monitoring.alarmLimits.sbp');
+  });
+
   it('accepts event actionIds that exist and rejects unknown ones', () => {
     const s = JSON.parse(JSON.stringify(inductionHypotension));
     s.events[0].actionIds = [s.expectedActions[0].id];

@@ -590,6 +590,39 @@ export interface DebriefGuide {
   questions: string[];
 }
 
+// ── Alarm limits ─────────────────────────────────────────────────────────────
+
+/** The monitor's patient category: which set of alarm limits it starts from. */
+export type AlarmProfile = 'adult' | 'pediatric' | 'neonatal';
+
+export const ALARM_PROFILE_LABELS: Record<AlarmProfile, string> = {
+  adult: 'Adult',
+  pediatric: 'Pediatric',
+  neonatal: 'Neonatal',
+};
+
+/** The vitals that have alarm limits, in the order alarms are listed. */
+export const ALARM_VITALS = ['hr', 'sbp', 'spo2', 'etco2', 'rr', 'temp'] as const satisfies readonly (keyof NumericVitals)[];
+export type AlarmVital = (typeof ALARM_VITALS)[number];
+
+export const ALARM_BAND_KEYS = ['critLow', 'warnLow', 'warnHigh', 'critHigh'] as const;
+export type AlarmBandKey = (typeof ALARM_BAND_KEYS)[number];
+
+/**
+ * One vital's limits. Below `warnLow` or above `warnHigh` is a warning; below
+ * `critLow` or above `critHigh` is critical. A limit left out does not alarm.
+ */
+export type AlarmBand = Partial<Record<AlarmBandKey, number>>;
+
+/** The limits in force: one band per vital. */
+export type AlarmLimits = Record<AlarmVital, AlarmBand>;
+
+/**
+ * A scenario's changes to its profile's limits. Only the limits listed
+ * change; `null` switches a limit off.
+ */
+export type AlarmLimitOverrides = Partial<Record<AlarmVital, Partial<Record<AlarmBandKey, number | null>>>>;
+
 export interface MonitoringConfig {
   /**
    * True = arterial line: BP displays continuously.
@@ -604,6 +637,17 @@ export interface MonitoringConfig {
    * remove it during a session.
    */
   v5?: boolean;
+  /**
+   * Which set of alarm limits the monitor starts from — its patient category.
+   * Absent = adult. Faculty can switch it during a session.
+   */
+  alarmProfile?: AlarmProfile;
+  /**
+   * Changes to that profile's limits for this case (a parturient's heart
+   * rate, a deliberately hypotensive technique). Only the limits listed
+   * change; `null` switches one off.
+   */
+  alarmLimits?: AlarmLimitOverrides;
 }
 
 export interface Scenario {
@@ -723,6 +767,14 @@ export interface SimSnapshot {
   alarms: AlarmState[];
   /** True while faculty has silenced audible/visual alarm emphasis. */
   alarmsSilenced: boolean;
+  /**
+   * The alarm limits in force and the profile they came from, so a display
+   * can print them beside the numbers and the debrief can re-read the vitals
+   * history against them. Optional: absent (= the adult profile) in
+   * snapshots archived before limits could vary.
+   */
+  alarmLimits?: AlarmLimits;
+  alarmProfile?: AlarmProfile;
   actions: ActionRecord[];
   /** In live broadcast snapshots this is a capped tail of the newest entries
    *  (snapshots go out twice a second — an uncapped log would grow every

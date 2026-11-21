@@ -6,6 +6,8 @@ interface VitalTileProps {
   label: string;
   value: string;
   unit?: string;
+  /** The alarm limits for this number, printed small beside the unit. */
+  limits?: string;
   sub?: string;
   color: string; // tailwind text color class
   alarm?: 'warning' | 'critical';
@@ -22,6 +24,7 @@ export function VitalTile({
   label,
   value,
   unit,
+  limits,
   sub,
   color,
   alarm,
@@ -62,7 +65,14 @@ export function VitalTile({
         <span className={`text-[11px] font-semibold uppercase tracking-wider ${color} opacity-80`}>
           {label}
         </span>
-        {unit && <span className="text-[10px] text-[#8d9688]">{unit}</span>}
+        <span className="flex items-baseline gap-1.5 whitespace-nowrap text-[10px] text-[#8d9688]">
+          {limits && (
+            <span className="font-mono" title="Alarm limits">
+              {limits}
+            </span>
+          )}
+          {unit && <span>{unit}</span>}
+        </span>
       </div>
       <div className="flex items-baseline gap-1">
         <span

@@ -1,6 +1,11 @@
 import type {
+  AlarmBand,
+  AlarmLimits,
+  AlarmProfile,
   AlarmState,
+  AlarmVital,
   AnestheticAgent,
+  MonitoringConfig,
   NeuromuscularBlock,
   NmbKey,
   NumericVitals,
@@ -10,7 +15,15 @@ import type {
   VentKey,
   Vitals,
 } from './types';
-import { hasPulse, minuteVentilation, NMB_META, NUMERIC_VITAL_KEYS, VENT_META } from './types';
+import {
+  ALARM_BAND_KEYS,
+  ALARM_VITALS,
+  hasPulse,
+  minuteVentilation,
+  NMB_META,
+  NUMERIC_VITAL_KEYS,
+  VENT_META,
+} from './types';
 
 /** Display metadata for each numeric vital (units, formatting, slider range). */
 export interface VitalMeta {
@@ -278,28 +291,110 @@ export function roundVital(key: keyof NumericVitals, value: number): number {
   return Math.round(value * f) / f;
 }
 
-interface AlarmLimit {
-  vital: keyof NumericVitals;
-  warnLow?: number;
-  warnHigh?: number;
-  critLow?: number;
-  critHigh?: number;
+/**
+ * Alarm limits by patient category.
+ *
+ * Adult: the sim's long-standing set — conventional intraoperative limits,
+ * a little tighter than a monitor's factory defaults (a Philips IntelliVue
+ * ships adult limits of HR 50–120, SpO2 90, systolic 90–160, RR 8–30, EtCO2
+ * 25–60, temperature 36–39).
+ *
+ * Pediatric and neonatal change what a monitor changes with the category —
+ * heart rate, breathing rate, blood pressure and, for neonates, saturation —
+ * using the factory defaults of a Philips IntelliVue MX750/MX850
+ * (Instructions for Use 453564861711, "Alarm and Measurement Default
+ * Settings", pp. 525–540):
+ *  - HR: pediatric 75–160, neonatal 100–200. Critical is the monitor's
+ *    extreme bradycardia/tachycardia, 20 bpm beyond each limit.
+ *  - NBP systolic: pediatric 70–120, neonatal 40–90. Critical is 10
+ *    (pediatric) or 5 mmHg (neonatal) beyond — the monitor's extreme
+ *    pressure difference, which it ships switched off.
+ *  - RR: pediatric 8–30, neonatal 30–100. The sim's own critical tier (under
+ *    4, over 35) is kept where it still lies outside those limits.
+ *  - SpO2, neonatal: low 85, critical at the desaturation limit of 80. The
+ *    monitor also alarms above 95 in a neonate; the sim has no high
+ *    saturation alarm.
+ * EtCO2 and temperature are the same for every category on that monitor, so
+ * they stay as the adult set.
+ */
+export const ALARM_PROFILES: Record<AlarmProfile, AlarmLimits> = {
+  adult: {
+    hr: { warnLow: 50, warnHigh: 110, critLow: 40, critHigh: 140 },
+    sbp: { warnLow: 90, warnHigh: 160, critLow: 70, critHigh: 200 },
+    spo2: { warnLow: 92, critLow: 85 },
+    etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
+    rr: { warnLow: 8, warnHigh: 24, critLow: 4, critHigh: 35 },
+    temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+  },
+  pediatric: {
+    hr: { warnLow: 75, warnHigh: 160, critLow: 55, critHigh: 180 },
+    sbp: { warnLow: 70, warnHigh: 120, critLow: 60, critHigh: 130 },
+    spo2: { warnLow: 92, critLow: 85 },
+    etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
+    rr: { warnLow: 8, warnHigh: 30, critLow: 4, critHigh: 35 },
+    temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+  },
+  neonatal: {
+    hr: { warnLow: 100, warnHigh: 200, critLow: 80, critHigh: 220 },
+    sbp: { warnLow: 40, warnHigh: 90, critLow: 35, critHigh: 95 },
+    spo2: { warnLow: 85, critLow: 80 },
+    etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
+    rr: { warnLow: 30, warnHigh: 100, critLow: 4 },
+    temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+  },
+};
+
+/**
+ * The limits a scenario's monitor uses: its profile (adult if unstated) with
+ * the scenario's own changes laid over it. `null` switches a limit off.
+ */
+export function resolveAlarmLimits(
+  monitoring?: Pick<MonitoringConfig, 'alarmProfile' | 'alarmLimits'>,
+): AlarmLimits {
+  const profile = ALARM_PROFILES[monitoring?.alarmProfile ?? 'adult'];
+  const limits = {} as AlarmLimits;
+  for (const vital of ALARM_VITALS) {
+    const band: AlarmBand = { ...profile[vital] };
+    const changes = monitoring?.alarmLimits?.[vital];
+    for (const key of ALARM_BAND_KEYS) {
+      const value = changes?.[key];
+      if (value === null) delete band[key];
+      else if (value !== undefined) band[key] = value;
+    }
+    limits[vital] = band;
+  }
+  return limits;
 }
 
-/** Adult intraoperative default alarm limits (deliberately conventional). */
-const ALARM_LIMITS: AlarmLimit[] = [
-  { vital: 'hr', warnLow: 50, warnHigh: 110, critLow: 40, critHigh: 140 },
-  { vital: 'sbp', warnLow: 90, warnHigh: 160, critLow: 70, critHigh: 200 },
-  { vital: 'spo2', warnLow: 92, critLow: 85 },
-  { vital: 'etco2', warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
-  { vital: 'rr', warnLow: 8, warnHigh: 24, critLow: 4, critHigh: 35 },
-  { vital: 'temp', warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
-];
+/**
+ * What is wrong with a set of limits, if anything: a critical limit must lie
+ * at or beyond its warning limit, and low below high. Empty = consistent.
+ */
+export function alarmLimitProblems(limits: AlarmLimits): { vital: AlarmVital; message: string }[] {
+  const problems: { vital: AlarmVital; message: string }[] = [];
+  for (const vital of ALARM_VITALS) {
+    const { critLow, warnLow, warnHigh, critHigh } = limits[vital];
+    const label = VITAL_META[vital].label;
+    const bad = (message: string) => problems.push({ vital, message: `${label}: ${message}` });
+    if (critLow !== undefined && warnLow !== undefined && critLow > warnLow) {
+      bad(`critical low (${critLow}) must not be above the low warning (${warnLow})`);
+    }
+    if (critHigh !== undefined && warnHigh !== undefined && critHigh < warnHigh) {
+      bad(`critical high (${critHigh}) must not be below the high warning (${warnHigh})`);
+    }
+    const lows = [critLow, warnLow].filter((n): n is number => n !== undefined);
+    const highs = [warnHigh, critHigh].filter((n): n is number => n !== undefined);
+    if (lows.length > 0 && highs.length > 0 && Math.max(...lows) >= Math.min(...highs)) {
+      bad(`low limits must be below high limits`);
+    }
+  }
+  return problems;
+}
 
 const LETHAL_RHYTHMS = new Set(['vtach', 'vfib', 'torsades', 'pea', 'asystole']);
 
 /** Evaluate the current vitals against alarm limits. */
-export function evaluateAlarms(vitals: Vitals): AlarmState[] {
+export function evaluateAlarms(vitals: Vitals, limits: AlarmLimits = ALARM_PROFILES.adult): AlarmState[] {
   const alarms: AlarmState[] = [];
 
   if (LETHAL_RHYTHMS.has(vitals.rhythm)) {
@@ -342,7 +437,8 @@ export function evaluateAlarms(vitals: Vitals): AlarmState[] {
   // heart rate looks fine. That is PEA, and the monitor will not name it.
   const noPulse = !hasPulse(vitals);
 
-  for (const lim of ALARM_LIMITS) {
+  for (const vital of ALARM_VITALS) {
+    const lim = { vital, ...limits[vital] };
     const v = vitals[lim.vital];
     const meta = VITAL_META[lim.vital];
     if (lim.vital === 'spo2' && noPulse) {

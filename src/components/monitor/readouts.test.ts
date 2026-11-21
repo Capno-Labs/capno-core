@@ -6,6 +6,7 @@ import {
   displayAlarms,
   oximeterHasSignal,
   stIsMeasurable,
+  limitsText,
   TOF_PULSE_INTERVAL_MS,
   twitchHeights,
 } from './readouts';
@@ -118,5 +119,19 @@ describe('twitch bars', () => {
     const three = twitchHeights({ count: 3, ratio: null });
     const four = twitchHeights({ count: 4, ratio: 0 });
     three.forEach((h, i) => expect(four[i]).toBeCloseTo(h));
+  });
+});
+
+describe('alarm limits beside the numbers', () => {
+  it('prints the warning limits, or the one that exists', () => {
+    expect(limitsText({ warnLow: 50, warnHigh: 110, critLow: 40, critHigh: 140 })).toBe('50–110');
+    expect(limitsText({ warnLow: 92, critLow: 85 })).toBe('min 92');
+    expect(limitsText({ warnHigh: 38, critHigh: 39.5 })).toBe('max 38');
+  });
+
+  it('prints nothing when there are no warning limits or no limits were sent', () => {
+    expect(limitsText({ critHigh: 39.5 })).toBeUndefined();
+    expect(limitsText({})).toBeUndefined();
+    expect(limitsText(undefined)).toBeUndefined();
   });
 });

@@ -3,6 +3,8 @@ import { generateSessionId, isValidSessionCode, SimulationEngine } from './engin
 import { parseScenario } from './schema';
 import {
   ageAdjustedMac,
+  ALARM_PROFILES,
+  alarmLimitProblems,
   blockDepth,
   clampVital,
   defaultVentilation,
@@ -682,6 +684,111 @@ describe('SimulationEngine', () => {
       e.setVent({ vt: 380 }, 10);
       e.tick(3);
       const snap = e.snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
+  });
+
+  describe('alarm limits: patient category and per-case changes', () => {
+    const withMonitoring = (monitoring: Scenario['monitoring']): Scenario => ({ ...scenario(), monitoring });
+    const running = (monitoring?: Scenario['monitoring']) => {
+      const e = new SimulationEngine(withMonitoring(monitoring), 'TEST');
+      e.start();
+      return e;
+    };
+    const alarmOn = (e: SimulationEngine, vital: string) => e.snapshot().alarms.find((a) => a.vital === vital);
+
+    it('uses the adult limits unless the scenario says otherwise, and reports them', () => {
+      const snap = running().snapshot();
+      expect(snap.alarmProfile).toBe('adult');
+      expect(snap.alarmLimits).toEqual(ALARM_PROFILES.adult);
+    });
+
+    it('keeps the adult set as it has always been', () => {
+      expect(ALARM_PROFILES.adult).toEqual({
+        hr: { warnLow: 50, warnHigh: 110, critLow: 40, critHigh: 140 },
+        sbp: { warnLow: 90, warnHigh: 160, critLow: 70, critHigh: 200 },
+        spo2: { warnLow: 92, critLow: 85 },
+        etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
+        rr: { warnLow: 8, warnHigh: 24, critLow: 4, critHigh: 35 },
+        temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+      });
+    });
+
+    it('takes pediatric and neonatal limits from the monitor\'s factory defaults', () => {
+      // Philips IntelliVue MX750/MX850 IFU, default settings by patient category.
+      const { pediatric, neonatal } = ALARM_PROFILES;
+      expect([pediatric.hr.warnLow, pediatric.hr.warnHigh]).toEqual([75, 160]);
+      expect([neonatal.hr.warnLow, neonatal.hr.warnHigh]).toEqual([100, 200]);
+      // Extreme bradycardia and tachycardia: 20 bpm beyond each limit.
+      expect([pediatric.hr.critLow, pediatric.hr.critHigh]).toEqual([55, 180]);
+      expect([neonatal.hr.critLow, neonatal.hr.critHigh]).toEqual([80, 220]);
+      expect([pediatric.sbp.warnLow, pediatric.sbp.warnHigh]).toEqual([70, 120]);
+      expect([neonatal.sbp.warnLow, neonatal.sbp.warnHigh]).toEqual([40, 90]);
+      expect([pediatric.rr.warnLow, pediatric.rr.warnHigh]).toEqual([8, 30]);
+      expect([neonatal.rr.warnLow, neonatal.rr.warnHigh]).toEqual([30, 100]);
+      expect([neonatal.spo2.warnLow, neonatal.spo2.critLow]).toEqual([85, 80]);
+      // The same on every category on that monitor: left as the adult set.
+      for (const profile of [pediatric, neonatal]) {
+        expect(profile.etco2).toEqual(ALARM_PROFILES.adult.etco2);
+        expect(profile.temp).toEqual(ALARM_PROFILES.adult.temp);
+      }
+    });
+
+    it('has no profile whose limits contradict each other', () => {
+      for (const profile of Object.values(ALARM_PROFILES)) {
+        expect(alarmLimitProblems(profile)).toEqual([]);
+      }
+    });
+
+    it('does not alarm on a child\'s normal vitals under the pediatric profile', () => {
+      const adult = running();
+      adult.setVital('hr', 130);
+      adult.setVital('sbp', 85);
+      adult.cycleNibp();
+      expect(alarmOn(adult, 'hr')).toMatchObject({ level: 'warning' });
+      expect(alarmOn(adult, 'sbp')).toMatchObject({ level: 'warning' });
+
+      const child = running({ alarmProfile: 'pediatric' });
+      child.setVital('hr', 130);
+      child.setVital('sbp', 85);
+      child.cycleNibp();
+      expect(child.snapshot().alarms).toEqual([]);
+      child.setVital('hr', 70);
+      expect(alarmOn(child, 'hr')).toEqual({ vital: 'hr', level: 'warning', message: 'HR low 70' });
+      child.setVital('hr', 50);
+      expect(alarmOn(child, 'hr')).toEqual({ vital: 'hr', level: 'critical', message: 'HR LOW 50' });
+    });
+
+    it('lays a scenario\'s own limits over its profile, and null switches one off', () => {
+      const e = running({ alarmLimits: { hr: { warnHigh: 125 }, temp: { warnLow: null } } });
+      const limits = e.snapshot().alarmLimits!;
+      expect(limits.hr).toEqual({ warnLow: 50, warnHigh: 125, critLow: 40, critHigh: 140 });
+      expect(limits.temp).toEqual({ warnHigh: 38.0, critHigh: 39.5 });
+      expect(limits.sbp).toEqual(ALARM_PROFILES.adult.sbp);
+      e.setVital('hr', 120);
+      e.setVital('temp', 34);
+      expect(e.snapshot().alarms).toEqual([]);
+      e.setVital('hr', 126);
+      expect(alarmOn(e, 'hr')).toMatchObject({ level: 'warning' });
+    });
+
+    it('lets faculty switch category during a session and brings the scenario\'s changes back with its own', () => {
+      const e = running({ alarmProfile: 'pediatric', alarmLimits: { hr: { warnHigh: 170 } } });
+      expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(170);
+      e.setAlarmProfile('neonatal');
+      expect(e.getAlarmProfile()).toBe('neonatal');
+      expect(e.snapshot().alarmLimits).toEqual(ALARM_PROFILES.neonatal);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Alarm limits → Neonatal' });
+      e.setAlarmProfile('pediatric');
+      expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(170);
+      e.setAlarmProfile('adult');
+      e.reset();
+      expect(e.snapshot().alarmProfile).toBe('pediatric');
+      expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(170);
+    });
+
+    it('keeps the snapshot serializable with its limits', () => {
+      const snap = running({ alarmProfile: 'neonatal', alarmLimits: { spo2: { warnLow: 88 } } }).snapshot();
       expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
     });
   });

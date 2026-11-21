@@ -1,6 +1,8 @@
 import type {
   ActionRecord,
   ActionStatus,
+  AlarmLimits,
+  AlarmProfile,
   AnestheticAgent,
   CapnoShape,
   EcgLead,
@@ -27,6 +29,7 @@ import type {
 } from './types';
 import {
   AGENT_LABELS,
+  ALARM_PROFILE_LABELS,
   CAPNO_SHAPE_LABELS,
   FICO2_MAX,
   formatStMm,
@@ -56,6 +59,7 @@ import {
   macMultiple,
   maxDbpFor,
   measuredEtco2,
+  resolveAlarmLimits,
   roundVital,
   TOF_INTERVAL_SEC,
   tofReading,
@@ -204,6 +208,9 @@ export class SimulationEngine {
   private actions: ActionRecord[];
   private firedEventIds = new Set<string>();
   private alarmsSilenced = false;
+  /** The monitor's patient category and the alarm limits in force. */
+  private alarmProfile: AlarmProfile;
+  private alarmLimits: AlarmLimits;
 
   /** Arterial line in place: continuous BP, no cuff. Faculty can toggle at runtime. */
   private artLine: boolean;
@@ -260,6 +267,8 @@ export class SimulationEngine {
     this.actions = scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = scenario.monitoring?.artLine ?? false;
     this.v5Lead = scenario.monitoring?.v5 ?? false;
+    this.alarmProfile = scenario.monitoring?.alarmProfile ?? 'adult';
+    this.alarmLimits = resolveAlarmLimits(scenario.monitoring);
     if (this.usesCuff()) {
       this.lastNibp = { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 };
     }
@@ -409,6 +418,8 @@ export class SimulationEngine {
     this.actions = this.scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = this.scenario.monitoring?.artLine ?? false;
     this.v5Lead = this.scenario.monitoring?.v5 ?? false;
+    this.alarmProfile = this.scenario.monitoring?.alarmProfile ?? 'adult';
+    this.alarmLimits = resolveAlarmLimits(this.scenario.monitoring);
     this.lastNibp = this.usesCuff()
       ? { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 }
       : null;
@@ -815,6 +826,26 @@ export class SimulationEngine {
     return this.stRamps[field]?.target ?? this.ecg[field];
   }
 
+  /**
+   * Switch the monitor's patient category (faculty). The scenario's own
+   * profile comes back with the scenario's changes to it; any other profile
+   * is taken as it stands, since changes written for one category need not
+   * make sense on another.
+   */
+  setAlarmProfile(profile: AlarmProfile): void {
+    if (profile === this.alarmProfile) return;
+    const authored = this.scenario.monitoring?.alarmProfile ?? 'adult';
+    this.alarmProfile = profile;
+    this.alarmLimits = resolveAlarmLimits(
+      profile === authored ? this.scenario.monitoring : { alarmProfile: profile },
+    );
+    this.addLog('vital_change', `Alarm limits → ${ALARM_PROFILE_LABELS[profile]}`);
+  }
+
+  getAlarmProfile(): AlarmProfile {
+    return this.alarmProfile;
+  }
+
   /** Add or remove the V5 lead on the monitor at runtime (faculty toggle). */
   setV5Lead(on: boolean): void {
     if (on === this.v5Lead) return;
@@ -1090,8 +1121,10 @@ export class SimulationEngine {
         agent: this.agent,
         mac: Math.round(macMultiple(this.agent, vitals.agentEt, this.scenario.patient.age) * 100) / 100,
       },
-      alarms: evaluateAlarms(alarmVitals),
+      alarms: evaluateAlarms(alarmVitals, this.alarmLimits),
       alarmsSilenced: this.alarmsSilenced,
+      alarmLimits: this.alarmLimits,
+      alarmProfile: this.alarmProfile,
       actions: this.actions.map((a) => ({ ...a })),
       log: this.log.slice(-SNAPSHOT_LOG_TAIL),
       notes: [...this.notes],

@@ -18,7 +18,8 @@ import { nextSoundLevel, type SoundLevel, type SoundRole } from './soundPref';
 import { TofTile } from './TofTile';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
-import { cuffReadingFailed, displayAlarms, NO_READING, oximeterHasSignal, stIsMeasurable } from './readouts';
+import { cuffReadingFailed, displayAlarms,
+  limitsText, NO_READING, oximeterHasSignal, stIsMeasurable } from './readouts';
 import { capnoScaleMax } from './waveforms';
 
 interface MonitorDisplayProps {
@@ -91,6 +92,9 @@ export function MonitorDisplay({
 
   const alarmFor = (vital: string) =>
     snapshot.alarms.find((a) => a.vital === vital)?.level;
+  // The limits in force, printed beside each number as a monitor does.
+  // Absent in snapshots from before limits could vary: print nothing.
+  const lim = snapshot.alarmLimits;
 
   // A monitor counts heart rate from the beats it detects, so the number
   // wanders by a beat or so in sinus rhythm and more in AF. Display only:
@@ -208,7 +212,7 @@ export function MonitorDisplay({
             </div>
             <Waveform kind="ecg" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} ecg={v.ecg} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="HR" value={String(shownHr)} unit="bpm" sub={stSub} color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
+          <VitalTile label="HR" value={String(shownHr)} unit="bpm" limits={limitsText(lim?.hr)} sub={stSub} color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>
         {v5 && (
           <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
@@ -236,6 +240,7 @@ export function MonitorDisplay({
               label="ART"
               value={bpValue}
               unit="mmHg"
+              limits={limitsText(lim?.sbp)}
               sub={bpSub}
               color="text-vital-nibp"
               alarm={alarmFor('sbp') ?? alarmFor('dbp')}
@@ -250,7 +255,7 @@ export function MonitorDisplay({
             </span>
             <Waveform kind="pleth" clock={clock} pulseless={noPulse} color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="SpO₂" value={noPulse ? NO_READING : String(Math.round(v.spo2))} unit="%" color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={noPulse ? undefined : v.spo2} large={!compact} />
+          <VitalTile label="SpO₂" value={noPulse ? NO_READING : String(Math.round(v.spo2))} unit="%" limits={limitsText(lim?.spo2)} color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={noPulse ? undefined : v.spo2} large={!compact} />
         </div>
         <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
           <div className="min-w-0">
@@ -266,6 +271,7 @@ export function MonitorDisplay({
             label="EtCO₂"
             value={String(Math.round(v.etco2))}
             unit="mmHg"
+            limits={limitsText(lim?.etco2)}
             sub={`RR ${Math.round(v.rr)}/min · Fi\u00a0${Math.round(v.fico2 ?? 0)}`}
             color="text-vital-etco2"
             alarm={alarmFor('etco2') ?? alarmFor('rr')}
@@ -283,13 +289,14 @@ export function MonitorDisplay({
               label="NIBP"
               value={bpValue}
               unit="mmHg"
+              limits={limitsText(lim?.sbp)}
               sub={bpSub}
               color="text-vital-nibp"
               alarm={alarmFor('sbp') ?? alarmFor('dbp')}
               trendValue={cuffFailed ? undefined : cuff.sbp}
             />
           )}
-          <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" color="text-vital-temp" alarm={alarmFor('temp')} trendValue={v.temp} />
+          <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" limits={limitsText(lim?.temp)} color="text-vital-temp" alarm={alarmFor('temp')} trendValue={v.temp} />
           <VitalTile
             label={AGENT_TAGS[agent]}
             value={v.agentEt.toFixed(1)}
