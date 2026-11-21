@@ -1,8 +1,26 @@
 'use client';
 
-import { PageHead } from '@/components/ui/PageHead';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Callout } from '@/components/ui/Callout';
+import { Field } from '@/components/ui/Field';
+import { Pill } from '@/components/ui/Pill';
+import { Poster } from '@/components/ui/Poster';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { accountPortalUrl, passwordResetUrl } from '@/lib/accountPortal';
 import { useAuthStore } from '@/lib/cloud/authStore';
+import { DISPLAY_COPY } from '@/lib/displayCopy';
+
+const BENEFITS = [
+  'A shared case library for your program',
+  'An institution-wide archive of debriefs',
+  'The same cases on every lab device',
+];
+
+// Build-time constants (NEXT_PUBLIC_*): identical on server and client.
+const signUpUrl = accountPortalUrl('/start');
+const teamUrl = accountPortalUrl('/invites');
+const resetUrl = passwordResetUrl();
 
 /** Institution account: sign in/out and see your role. Optional — Capno runs fully without it. */
 export default function AccountPage() {
@@ -11,6 +29,8 @@ export default function AccountPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Messages from flows that land on this page (reserved for sign-in links).
+  const [notice] = useState<ReactNode>(null);
 
   useEffect(() => init(), [init]);
 
@@ -24,98 +44,146 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-4 py-10">
-      <PageHead eyebrow="Workspace" title="Institution account" />
+    <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start">
+      <Poster
+        compact
+        label="Institution account"
+        titleLines={[...DISPLAY_COPY.account]}
+        promise="Signing in is optional. Everything works offline on this device without an account."
+      >
+        <ul className="space-y-2 border-t border-poster-line/40 pt-4 text-sm text-white">
+          {BENEFITS.map((b, i) => (
+            <li key={b} className="flex gap-3">
+              <span aria-hidden className="font-mono text-xs text-poster-muted">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </Poster>
 
-      {status === 'unconfigured' && (
-        <div className="card space-y-2 text-sm text-muted">
-          <p>
-            Institution sign-in is not configured on this installation. Capno runs fully on this
-            device — scenarios and debriefs are stored in this browser.
-          </p>
-          <p>
-            To enable shared scenario storage and an institution-wide session archive, deploy with
-            a Supabase backend (see <span className="font-mono text-ink-2">docs/DEPLOYMENT.md</span>).
-          </p>
-        </div>
-      )}
+      <div className="space-y-4">
+        {notice}
 
-      {status === 'loading' && <div className="card text-sm text-muted">Checking session…</div>}
-
-      {status === 'signed_out' && (
-        <form onSubmit={submit} className="card space-y-4">
-          <p className="text-sm text-muted">
-            Sign in with your institution account. Accounts are created by your program
-            administrator.
-          </p>
-          <div>
-            <span className="label">Email</span>
-            <input
-              className="input"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        {status === 'unconfigured' && (
+          <div className="card space-y-2 text-sm text-muted">
+            <h2 className="text-base font-bold text-ink">Not set up on this installation</h2>
+            <p>
+              Institution sign-in is not configured here. Capno runs fully on this device —
+              scenarios and debriefs are stored in this browser.
+            </p>
+            <p>
+              To enable shared scenario storage and an institution-wide session archive, deploy
+              with a Supabase backend (see{' '}
+              <span className="font-mono text-ink-2">docs/DEPLOYMENT.md</span>).
+            </p>
           </div>
-          <div>
-            <span className="label">Password</span>
-            <input
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          {error && <p className="text-sm text-red">{error}</p>}
-          <button type="submit" className="btn-primary w-full" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-      )}
+        )}
 
-      {status === 'signed_in' && user && (
-        <div className="card space-y-3">
-          <div>
-            <span className="label">Signed in as</span>
-            <p className="font-mono text-sm">{user.email}</p>
+        {status === 'loading' && (
+          <div className="card space-y-4" role="status">
+            <span className="sr-only">Checking session…</span>
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full !rounded-full" />
           </div>
-          <div>
-            <span className="label">Role</span>
-            <p className="text-sm">
-              {profile?.role ? (
-                <span
-                  className={`rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${
-                    profile.role === 'student'
-                      ? 'bg-panel-3 text-ink-2'
-                      : 'bg-green-soft text-green'
-                  }`}
-                >
-                  {profile.role}
-                </span>
+        )}
+
+        {status === 'signed_out' && (
+          <form onSubmit={submit} className="card space-y-4" noValidate={false}>
+            <h2 className="text-base font-bold">Sign in with your institution account</h2>
+            {error && <Callout tone="danger">{error}</Callout>}
+            <Field label="Email">
+              <input
+                className="input"
+                type="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+            <Field label="Password">
+              <input
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </Field>
+            {resetUrl && (
+              <p className="-mt-2 text-right text-xs">
+                <a className="link" href={resetUrl}>
+                  Forgot password?
+                </a>
+              </p>
+            )}
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              loading={busy}
+              loadingLabel="Signing in…"
+            >
+              Sign in
+            </Button>
+            <p className="text-center text-sm text-muted">
+              {signUpUrl ? (
+                <>
+                  New to CAPNO Studio?{' '}
+                  <a className="link" href={signUpUrl}>
+                    Get started →
+                  </a>
+                </>
               ) : (
-                <span className="text-faint">unknown (profile unavailable — offline?)</span>
+                'Accounts are created by your program administrator.'
               )}
             </p>
-          </div>
-          {profile?.role === 'student' && (
-            <p className="text-sm text-warn-strong">
-              This account has no faculty permissions — saved scenarios and sessions stay on this
-              device only. Ask your program administrator to promote your account to faculty.
-            </p>
-          )}
-          <button className="btn-secondary w-full" onClick={() => void signOut()}>
-            Sign out
-          </button>
-        </div>
-      )}
+          </form>
+        )}
 
-      <p className="text-center text-xs text-faint">
-        Signing in is optional. Everything works offline on this device without an account.
-      </p>
+        {status === 'signed_in' && user && (
+          <div className="card space-y-4">
+            <div>
+              <span className="label">Signed in as</span>
+              <p className="break-all font-mono text-sm">{user.email}</p>
+            </div>
+            <div>
+              <span className="label">Role</span>
+              {profile?.role ? (
+                <Pill tone={profile.role === 'student' ? 'neutral' : 'green'} className="uppercase tracking-wider">
+                  {profile.role}
+                </Pill>
+              ) : (
+                <p className="text-sm text-faint">Unknown (profile unavailable — offline?)</p>
+              )}
+            </div>
+            {profile?.role === 'student' && (
+              <Callout tone="warn">
+                This account has no faculty permissions — saved scenarios and sessions stay on
+                this device only. Ask your program administrator to promote your account to
+                faculty.
+              </Callout>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {teamUrl && (profile?.role === 'faculty' || profile?.role === 'admin') && (
+                <Button variant="secondary" href={teamUrl} external icon="external">
+                  Manage team
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => void signOut()}>
+                Sign out
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
