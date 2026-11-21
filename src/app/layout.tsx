@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import './globals.css';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { THEME_COLORS, THEME_STORAGE_KEY } from '@/lib/theme';
+import { DialogHost } from '@/components/ui/Dialog';
 import { Toaster } from '@/components/ui/Toaster';
 
 // Display face: Inter Tight 900 (OFL), self-hosted and subset to capitals,
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ServiceWorkerRegistrar />
         <Toaster />
+        <DialogHost />
         {children}
       </body>
     </html>

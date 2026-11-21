@@ -14,7 +14,7 @@ export default function NotFound() {
             Home
           </Link>
           <Link href="/scenarios" className="btn-ghost">
-            Scenario library
+            Case library
           </Link>
           <Link href="/student" className="btn-ghost">
             Student display
