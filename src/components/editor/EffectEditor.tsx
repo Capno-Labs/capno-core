@@ -39,6 +39,7 @@ export function effectSummary(effect: VitalEffect): string {
   if (effect.ecg?.tWave) parts.push(`T→${T_WAVE_LABELS[effect.ecg.tWave]}`);
   if (effect.ecg?.qrs) parts.push(`QRS→${QRS_WIDTH_LABELS[effect.ecg.qrs]}`);
   if (effect.ecg?.qt) parts.push(`QT→${QT_INTERVAL_LABELS[effect.ecg.qt]}`);
+  if (effect.pulseless !== undefined) parts.push(effect.pulseless ? 'pulse→absent' : 'pulse→present');
   if (parts.length === 0) return 'no changes yet';
   const timing: string[] = [];
   if (effect.afterSec) timing.push(`after ${effect.afterSec}s`);
@@ -144,6 +145,23 @@ export function EffectEditor({
                 {CAPNO_SHAPE_LABELS[s]}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <span className="label">Pulse</span>
+          <select
+            className="input w-auto"
+            value={effect.pulseless === undefined ? '' : effect.pulseless ? 'absent' : 'present'}
+            onChange={(e) => {
+              const next = { ...effect };
+              if (e.target.value === '') delete next.pulseless;
+              else next.pulseless = e.target.value === 'absent';
+              onChange(next);
+            }}
+          >
+            <option value="">— unchanged —</option>
+            <option value="absent">Absent (PEA / pulseless VT)</option>
+            <option value="present">Present</option>
           </select>
         </div>
         <EcgMorphologyFields

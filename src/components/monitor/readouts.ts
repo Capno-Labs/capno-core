@@ -1,6 +1,5 @@
-import type { AlarmState, NibpReading, Rhythm } from '@/lib/engine/types';
-import { ecgMorphologyApplies } from '@/lib/engine/types';
-import { isPulseless } from './waveforms';
+import type { AlarmState, NibpReading, Rhythm, Vitals } from '@/lib/engine/types';
+import { ecgMorphologyApplies, hasPulse } from '@/lib/engine/types';
 
 /**
  * What the monitor shows when it has no signal to measure.
@@ -15,9 +14,10 @@ export const NO_READING = '--';
 
 /** Pulse oximetry depends on a pulsatile arterial signal (Jubran, Crit Care
  *  1999;3:R11); with no pulse a monitor replaces the number with a
- *  no-reading mark and a technical alarm, not a value. */
-export function oximeterHasSignal(rhythm: Rhythm): boolean {
-  return !isPulseless(rhythm);
+ *  no-reading mark and a technical alarm, not a value. That is so whether the
+ *  rhythm cannot perfuse (VF) or an organized one simply has no pulse (PEA). */
+export function oximeterHasSignal(vitals: Pick<Vitals, 'rhythm' | 'pulseless'>): boolean {
+  return hasPulse(vitals);
 }
 
 /** Whether an ST level means anything in this rhythm (not in VT, VF, PEA or asystole). */
@@ -43,10 +43,10 @@ export function cuffReadingFailed(nibp: NibpReading | null): boolean {
  */
 export function displayAlarms(
   alarms: readonly AlarmState[],
-  rhythm: Rhythm,
+  vitals: Pick<Vitals, 'rhythm' | 'pulseless'>,
   nibp: NibpReading | null,
 ): AlarmState[] {
-  const noPulse = !oximeterHasSignal(rhythm);
+  const noPulse = !oximeterHasSignal(vitals);
   const cuffFailed = cuffReadingFailed(nibp);
   return alarms.map((a) => {
     if (a.vital === 'spo2' && noPulse) return { ...a, message: 'SpO₂ NO PULSE' };

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import type { CapnoShape, EcgMorphology, PvcFrequency, Rhythm } from '@/lib/engine/types';
-import { PVC_FREQUENCY_EVERY_N } from '@/lib/engine/types';
+import { PVC_FREQUENCY_EVERY_N, rhythmPerfuses } from '@/lib/engine/types';
 import { BeatClock } from './beatClock';
-import { artValue, capnoSample, ecgValue, isPulseless, plethValue, SUBSTEP_SEC } from './waveforms';
+import { artValue, capnoSample, ecgValue, plethValue, SUBSTEP_SEC } from './waveforms';
 
 export type TraceKind = 'ecg' | 'pleth' | 'capno' | 'art';
 
@@ -29,6 +29,9 @@ interface WaveformProps {
   pvcFrequency?: PvcFrequency;
   /** Complex morphology — ST, T wave, QRS width, QT (ecg traces only). */
   ecg?: EcgMorphology;
+  /** No pulse (pleth and art traces go flat). Defaults to what the rhythm
+   *  alone implies; pass `!hasPulse(vitals)` to honour PEA and pulseless VT. */
+  pulseless?: boolean;
   /** Freeze the trace (scenario paused / not started). */
   frozen?: boolean;
   /**
@@ -66,13 +69,14 @@ export function Waveform({
   capnoShape = 'normal',
   pvcFrequency = 'occasional',
   ecg,
+  pulseless = !rhythmPerfuses(rhythm),
   frozen = false,
   clock,
   heightClass = 'h-20 md:h-24',
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, frozen });
-  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, frozen };
+  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, pulseless, frozen });
+  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, pulseless, frozen };
 
   // A trace without a shared clock keeps a private one fed from props.
   const ownClock = useRef<BeatClock | null>(null);
@@ -131,14 +135,14 @@ export function Waveform({
         case 'ecg':
           return ecgValue(beats, v.rhythm, t, v.ecg);
         case 'pleth':
-          return plethValue(beats, v.rhythm, t, v.spo2);
+          return plethValue(beats, v.pulseless, t, v.spo2);
         case 'capno':
           // Each breath's plateau peaks at or just under the EtCO2 number.
           return (
             capnoSample(beatClock.breathPhaseAt(t), v.rr, v.etco2, v.capnoShape) * beatClock.breathHeight
           );
         case 'art':
-          return Math.min(ART_SCALE_MAX * 1.05, artValue(beats, v.rhythm, t, v.sbp, v.dbp));
+          return Math.min(ART_SCALE_MAX * 1.05, artValue(beats, v.pulseless, t, v.sbp, v.dbp));
       }
     };
 
@@ -226,7 +230,7 @@ export function Waveform({
   }, [kind, color]);
 
   const flat =
-    (kind === 'pleth' && isPulseless(rhythm)) || (kind === 'capno' && (rr <= 0 || etco2 <= 0));
+    (kind === 'pleth' && pulseless) || (kind === 'capno' && (rr <= 0 || etco2 <= 0));
 
   return (
     <div className={`wave-graticule relative w-full ${heightClass}`}>

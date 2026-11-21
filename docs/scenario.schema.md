@@ -39,7 +39,19 @@ objectives, events — is ever sent to a student display.
 All fields required: `hr`, `sbp`, `dbp`, `spo2`, `etco2`, `rr`, `temp` (°C),
 `depth` (0–100 processed-EEG-style index), `agentEt`, `agentFi` (volatile %),
 and `rhythm` (one of `sinus`, `sinus_brady`, `sinus_tach`, `pvc`, `pac`,
-`afib`, `svt`, `vtach`, `vfib`, `pea`, `asystole`).
+`afib`, `svt`, `vtach`, `vfib`, `pea`, `asystole`, `av_block_1`,
+`av_block_mobitz1`, `av_block_mobitz2`, `av_block_3`, `junctional`,
+`aflutter`, `torsades`, `paced`, `idioventricular`).
+
+Optional: `pulseless` (boolean) — no pulse despite an organized rhythm.
+Pulseless electrical activity is any organized rhythm with
+`"pulseless": true` (a sinus tachycardia with no pulse, for example); pulseless
+VT is `vtach` with it. The pleth and arterial trace go flat, SpO₂ loses its
+reading, the pulse tone stops and the cuff fails; the ECG and the heart-rate
+number carry on, and the only alarm is the oximeter's "no pulse". `vfib`,
+`torsades`, `asystole` and the older wide-complex `pea` rhythm never have a
+pulse, whatever this says. It does not change the pressures: set those in the
+same effect.
 
 Keep a pulse pressure of at least 20 mmHg (`dbp` ≤ `sbp` − 20) here and in
 every event effect: validation rejects a `baselineVitals` block or an effect
@@ -101,6 +113,7 @@ Faculty-triggerable (or automatic) occurrences:
     { "capnoShape": "bronchospasm" },                         // CO2 trace morphology, instant
     { "ecg": { "stMm": -2 }, "overSec": 60 },                 // ST depression developing over 60 s
     { "ecg": { "tWave": "peaked", "qrs": "wide" } },          // other ECG changes switch instantly
+    { "rhythm": "sinus_tach", "pulseless": true },            // PEA: the rhythm stays, the pulse goes
     { "vitals": { "spo2": 88 }, "overSec": 90, "afterSec": 60 } // starts 60 s later
   ]
 }

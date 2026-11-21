@@ -36,14 +36,22 @@ the zod partial (`src/lib/engine/schema.ts`), every scenario's
 ## Add a rhythm
 
 Extend together: the `Rhythm` union + `RHYTHM_LABELS`
-(`src/lib/engine/types.ts`), the zod enum (`src/lib/engine/schema.ts`),
-and a complex in `ecgBeat` (`src/components/monitor/waveforms.ts`), timed in
-milliseconds from the beat's start. If the rhythm is pulseless, add it to
-`PULSELESS` there — that set is what flattens the pleth and zeroes the pulse
-display. Beat *timing* (irregular intervals, ectopy patterns, per-beat pulse
+(`src/lib/engine/types.ts`), the zod enum (`src/lib/engine/schema.ts`), the
+hard-coded lists (`RHYTHMS` in `src/components/import/fieldRegistry.ts`, the
+`set_rhythm` line of the co-pilot prompt in `src/lib/llm/copilot.ts`, the
+generator's `SCHEMA_REFERENCE`, `docs/scenario.schema.md`), and a complex in
+`ecgBeat` (`src/components/monitor/waveforms.ts`), timed in milliseconds from
+the beat's R wave (`beat.rMs`). If the rhythm can never perfuse, add it to
+`NON_PERFUSING_RHYTHMS` in `types.ts` — `hasPulse()` is what flattens the
+pleth, blanks SpO₂, stops the pulse tone and fails the cuff; an organized
+rhythm without a pulse is the `pulseless` flag, not a new rhythm. Cite the
+ECG criteria you drew it from, in the code and in `docs/curriculum.md`. Beat
+*timing* (irregular intervals, ectopy patterns, per-beat pulse
 strength) lives in `src/components/monitor/beatClock.ts`, which the ECG,
-pleth, arterial trace and pulse tone all share; a rhythm with no discrete
-beats goes in its `NON_BEATING` set and draws from `ecgBaseline`. If the new
+pleth, arterial trace and pulse tone all share; a beat starts with its P
+wave, carries its own R-wave time, and may be non-conducted (a P wave with no
+QRS, pulse or tone). A rhythm with no discrete beats goes in its
+`NON_BEATING` set and draws from `ecgBaseline`. If the new
 rhythm has normal-pattern complexes that ST/T/QRS/QT settings should reshape,
 add it to `MORPHOLOGY_RHYTHMS` in `types.ts` (that set also decides whether
 the monitor prints an ST level) and draw its complex through the

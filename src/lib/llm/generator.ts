@@ -67,7 +67,8 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "baselineVitals": {
     "hr": 0-300, "sbp": n, "dbp": n (dbp must be at least 20 below sbp; 0/0 only for cardiac arrest), "spo2": 0-100, "etco2": n, "rr": n,
     "temp": 25-45 (Celsius), "depth": 0-100, "agentEt": %, "agentFi": %,
-    "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole",
+    "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole|av_block_1|av_block_mobitz1|av_block_mobitz2|av_block_3|junctional|aflutter|torsades|paced|idioventricular",
+    "pulseless"?: true,   // no pulse despite an organized rhythm (PEA, pulseless VT); omit when the patient has a pulse
     "capnoShape"?: "normal|bronchospasm|curare_cleft",   // capnograph morphology; default normal
     "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",   // PVC coupling rate (pvc rhythm only); default occasional
     "ecg"?: { "stMm"?: -5..5, "tWave"?: "normal|peaked|flat|inverted", "qrs"?: "normal|wide", "qt"?: "normal|long" }   // ECG complex morphology, lead II; omit entirely for a normal ECG. stMm: negative = ST depression, positive = elevation
@@ -81,6 +82,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "effects": [{ "vitals"?: { partial numeric vitals }, "rhythm"?: "...",
                   "capnoShape"?: "normal|bronchospasm|curare_cleft", "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",
                   "ecg"?: { "stMm"?: -5..5, "tWave"?: "...", "qrs"?: "...", "qt"?: "..." },   // only the fields listed change; stMm ramps over overSec. Set it only when the source states the ECG change.
+                  "pulseless"?: true|false,   // take the pulse away or give it back, whatever the rhythm (PEA = organized rhythm + pulseless true; pulseless VT = vtach + pulseless true). vfib, torsades, asystole and "pea" never have a pulse.
                   "overSec"?: rampSeconds, "afterSec"?: delaySeconds }]
   }],
   "expectedActions": [{ "id": "...", "label": "...", "description"?: "...",

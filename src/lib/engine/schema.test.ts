@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateScenario } from './schema';
+import { RHYTHM_LABELS } from './types';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 import { QUICK_START_ID, QUICK_START_SCENARIO } from '../scenarios/quickStart';
 
@@ -168,6 +169,22 @@ describe('scenario schema', () => {
       expect(withEffectEcg({ stmm: -2 }).ok).toBe(false);
       expect(withBaselineEcg({ stV5Mm: -2 }).ok).toBe(false);
     });
+  });
+
+  it('accepts every rhythm the engine names, and a pulseless flag on baseline and effects', () => {
+    for (const rhythm of Object.keys(RHYTHM_LABELS)) {
+      const doc = JSON.parse(JSON.stringify(inductionHypotension));
+      doc.baselineVitals.rhythm = rhythm;
+      doc.baselineVitals.pulseless = true;
+      doc.events[0].effects = [{ rhythm, pulseless: false }];
+      expect(validateScenario(doc).ok, rhythm).toBe(true);
+    }
+    const bad = JSON.parse(JSON.stringify(inductionHypotension));
+    bad.baselineVitals.pulseless = 'yes';
+    expect(validateScenario(bad).ok).toBe(false);
+    const unknown = JSON.parse(JSON.stringify(inductionHypotension));
+    unknown.baselineVitals.rhythm = 'wenckebach';
+    expect(validateScenario(unknown).ok).toBe(false);
   });
 });
 

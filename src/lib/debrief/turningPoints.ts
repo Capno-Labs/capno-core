@@ -38,7 +38,13 @@ export interface TurningPointInput {
   history?: VitalsHistorySample[];
 }
 
-const LETHAL_RHYTHMS: ReadonlySet<Rhythm> = new Set(['vtach', 'vfib', 'pea', 'asystole']);
+const LETHAL_RHYTHMS: ReadonlySet<Rhythm> = new Set([
+  'vtach',
+  'vfib',
+  'torsades',
+  'pea',
+  'asystole',
+]);
 
 const RHYTHM_LOG_PREFIX = 'Rhythm → ';
 const NIBP_LOG_RE = /^NIBP (\d+)\/(\d+)$/;

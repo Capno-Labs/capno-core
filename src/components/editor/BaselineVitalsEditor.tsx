@@ -167,6 +167,22 @@ export function BaselineVitalsEditor({
               ))}
           </select>
         </div>
+        <div>
+          <span className="label">Pulse</span>
+          <select
+            className="input w-auto"
+            value={vitals.pulseless ? 'absent' : ''}
+            onChange={(e) => {
+              const next = { ...vitals };
+              if (e.target.value === 'absent') next.pulseless = true;
+              else delete next.pulseless;
+              onChange(next);
+            }}
+          >
+            <option value="">Present — default</option>
+            <option value="absent">Absent (PEA / pulseless VT)</option>
+          </select>
+        </div>
         <EcgMorphologyFields
           mode="baseline"
           value={vitals.ecg}

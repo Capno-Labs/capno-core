@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { Rhythm } from '@/lib/engine/types';
-import { BeatClock, type Beat, type BeatClockInput } from './beatClock';
+import {
+  BeatClock,
+  FIRST_DEGREE_PR_MS,
+  MOBITZ2_GROUP,
+  P_MS,
+  R_MS,
+  WENCKEBACH_PR_MS,
+  type Beat,
+  type BeatClockInput,
+} from './beatClock';
 
 const input = (over: Partial<BeatClockInput> = {}): BeatClockInput => ({
   hr: 60,
@@ -63,7 +72,7 @@ describe('BeatClock', () => {
     for (const rhythm of ['svt', 'vtach', 'pea'] as const) {
       const beats = run({ hr: 150, rhythm }, 20);
       for (const rr of intervals(beats)) expect(rr).toBeCloseTo(0.4, 6);
-      expect(beats.every((b) => b.factor === 1 && b.pulse === 1)).toBe(true);
+      expect(beats.every((b) => b.factor === 1 && Math.abs(b.pulse - 1) < 1e-9)).toBe(true);
     }
   });
 
@@ -205,6 +214,97 @@ describe('BeatClock', () => {
     expect(clock.count).toBeGreaterThan(150);
   });
 
+  describe('AV block', () => {
+    /** Clock time of each conducted R wave. */
+    const rTimes = (beats: Beat[]) => beats.filter((b) => b.conducted).map((b) => b.startSec + b.rMs / 1000);
+    const diffs = (xs: number[]) => xs.slice(1).map((x, i) => x - xs[i]);
+
+    it('first degree: conducts every P wave, with the same long PR', () => {
+      const beats = run({ rhythm: 'av_block_1', hr: 70 }, 30);
+      expect(beats.every((b) => b.conducted)).toBe(true);
+      expect(beats.every((b) => b.rMs === P_MS + FIRST_DEGREE_PR_MS)).toBe(true);
+      // P peak to R peak tracks the PR interval: over 200 ms, under the 300 ms of "marked" block.
+      expect(FIRST_DEGREE_PR_MS).toBeGreaterThan(200);
+      expect(FIRST_DEGREE_PR_MS).toBeLessThan(300);
+    });
+
+    it('Mobitz I: PR lengthens by less each beat, then a P wave is dropped (4:3)', () => {
+      const beats = run({ rhythm: 'av_block_mobitz1', hr: 60 }, 60);
+      const group = WENCKEBACH_PR_MS.length + 1;
+      expect(group).toBe(4);
+      // P waves march regularly, faster than the ventricular rate.
+      for (const pp of intervals(beats)) expect(pp).toBeCloseTo(0.75, 9);
+      for (const b of beats) {
+        const pos = b.index % group;
+        expect(b.conducted).toBe(pos !== group - 1);
+        if (b.conducted) expect(b.rMs).toBe(P_MS + WENCKEBACH_PR_MS[pos]);
+      }
+      // The PR is shortest just after the dropped beat and the increments shrink.
+      const [pr1, pr2, pr3] = WENCKEBACH_PR_MS;
+      expect(pr1).toBeLessThan(pr2);
+      expect(pr2).toBeLessThan(pr3);
+      expect(pr3 - pr2).toBeLessThan(pr2 - pr1);
+    });
+
+    it('Mobitz I: R-R shortens through the group and the pause is under two P-P intervals', () => {
+      const beats = run({ rhythm: 'av_block_mobitz1', hr: 60 }, 60);
+      // Start from the first complete group.
+      const firstGroupStart = beats.findIndex((b) => b.index % 4 === 0);
+      const rr = diffs(rTimes(beats.slice(firstGroupStart)));
+      for (let g = 0; g + 2 < rr.length; g += 3) {
+        const [first, second, pause] = rr.slice(g, g + 3);
+        expect(second).toBeLessThan(first); // shortening R-R
+        expect(pause).toBeGreaterThan(first); // then the pause…
+        expect(pause).toBeLessThan(2 * 0.75); // …shorter than two P-P intervals
+      }
+    });
+
+    it('Mobitz II: a fixed PR, then a single dropped beat (3:2)', () => {
+      const beats = run({ rhythm: 'av_block_mobitz2', hr: 60 }, 60);
+      expect(MOBITZ2_GROUP).toBe(3); // two conducted beats in a row, as the diagnosis needs
+      for (const b of beats) {
+        expect(b.conducted).toBe(b.index % MOBITZ2_GROUP !== MOBITZ2_GROUP - 1);
+        expect(b.rMs).toBe(R_MS);
+      }
+      for (const pp of intervals(beats)) expect(pp).toBeCloseTo(2 / 3, 9);
+    });
+
+    it('keeps the ventricular rate at the HR number in both second-degree blocks', () => {
+      for (const rhythm of ['av_block_mobitz1', 'av_block_mobitz2'] as const) {
+        const beats = run({ rhythm, hr: 60 }, 120);
+        const rs = rTimes(beats);
+        const perMin = ((rs.length - 1) / (rs[rs.length - 1] - rs[0])) * 60;
+        expect(perMin).toBeGreaterThan(58.5);
+        expect(perMin).toBeLessThan(61.5);
+      }
+    });
+
+    it('gives a dropped beat no pulse, and the beat after the pause the strongest one', () => {
+      const beats = run({ rhythm: 'av_block_mobitz1', hr: 60 }, 60).slice(8);
+      for (const b of beats) {
+        if (!b.conducted) expect(b.pulse).toBe(0);
+      }
+      const afterDrop = beats.filter((b) => b.index % 4 === 0).map((b) => b.pulse);
+      const others = beats.filter((b) => b.conducted && b.index % 4 !== 0).map((b) => b.pulse);
+      expect(Math.min(...afterDrop)).toBeGreaterThan(Math.max(...others));
+    });
+  });
+
+  describe('the other added rhythms', () => {
+    it('are regular at the HR number, every beat conducted', () => {
+      for (const rhythm of ['junctional', 'aflutter', 'paced', 'idioventricular', 'av_block_3'] as const) {
+        const beats = run({ rhythm, hr: 50 }, 30);
+        expect(beats.length).toBeGreaterThan(20);
+        for (const rr of intervals(beats)) expect(rr).toBeCloseTo(1.2, 9);
+        expect(beats.every((b) => b.conducted && b.rMs === R_MS)).toBe(true);
+      }
+    });
+
+    it('starts no beats in torsades', () => {
+      expect(run({ rhythm: 'torsades', hr: 220 }, 10)).toEqual([]);
+    });
+  });
+
   describe('measuredRate (what the HR number is counted from)', () => {
     const rates = (over: Partial<BeatClockInput>, seconds = 120) => {
       const clock = new BeatClock(9);
@@ -267,6 +367,12 @@ describe('BeatClock', () => {
       for (let i = 0; i < 3000; i++) clock.advance(0.01);
       const all = clock.recent();
       expect(clock.measuredRate()).toBeCloseTo(all.length / all.reduce((a, b) => a + b.factor, 0), 9);
+    });
+
+    it('counts only conducted beats, so a block reads the ventricular rate', () => {
+      for (const rhythm of ['av_block_mobitz1', 'av_block_mobitz2'] as const) {
+        for (const r of rates({ rhythm, hr: 60 }, 40)) expect(r).toBeCloseTo(1, 9);
+      }
     });
 
     it('returns to nominal once the beats stop', () => {
@@ -388,7 +494,7 @@ describe('BeatClock', () => {
 
     it('is absent at apnea', () => {
       const pulses = run({ rhythm: 'svt', hr: 120, rr: 0 }, 30).map((b) => b.pulse);
-      expect(pulses.every((p) => p === 1)).toBe(true);
+      expect(pulses.every((p) => Math.abs(p - 1) < 1e-9)).toBe(true);
     });
   });
 

@@ -20,6 +20,7 @@ import type {
 import {
   CAPNO_SHAPE_LABELS,
   formatStMm,
+  hasPulse,
   NORMAL_ECG,
   NUMERIC_VITAL_KEYS,
   PVC_FREQUENCY_LABELS,
@@ -31,6 +32,13 @@ import {
   T_WAVE_LABELS,
 } from './types';
 import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL_META } from './vitals';
+
+/** Rate an escape rhythm is brought to when selected above its range. */
+const ESCAPE_RATES: Partial<Record<Rhythm, { above: number; hr: number }>> = {
+  junctional: { above: 60, hr: 50 },
+  av_block_3: { above: 60, hr: 45 },
+  idioventricular: { above: 40, hr: 35 },
+};
 
 /**
  * SimulationEngine — a deterministic, tick-driven state machine for one
@@ -79,6 +87,8 @@ export class SimulationEngine {
   private rhythm: Rhythm;
   private capnoShape: CapnoShape;
   private pvcFrequency: PvcFrequency;
+  /** No pulse despite an organized rhythm (PEA, pulseless VT). */
+  private pulseless = false;
   /** ECG complex morphology. The ST level ramps like a numeric vital. */
   private ecg: Required<EcgMorphology>;
   private stRamp: { target: number; ratePerSec: number } | null = null;
@@ -141,11 +151,12 @@ export class SimulationEngine {
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.preBriefEnabled = options?.preBrief ?? false;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
-    const { rhythm, capnoShape, pvcFrequency, ecg, ...numeric } = scenario.baselineVitals;
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, ...numeric } = scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
+    this.pulseless = pulseless ?? false;
     this.current = { ...numeric };
     // Baselines are authored content: guarantee the pulse-pressure floor here
     // too (this value seeds the first NIBP reading before any tick can pin it).
@@ -269,12 +280,14 @@ export class SimulationEngine {
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
     this.phaseChangedAtSec = 0;
-    const { rhythm, capnoShape, pvcFrequency, ecg, ...numeric } = this.scenario.baselineVitals;
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, ...numeric } =
+      this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
     this.stRamp = null;
+    this.pulseless = pulseless ?? false;
     this.current = { ...numeric };
     this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
     this.ramps.clear();
@@ -383,6 +396,14 @@ export class SimulationEngine {
   /** Take an NIBP reading now (automatic interval or faculty "cycle cuff"). */
   cycleNibp(): void {
     if (!this.usesCuff()) return;
+    // An oscillometric cuff measures the pulse it feels: with none, the cycle
+    // fails whatever pressure the scenario holds. Recorded as 0/0, which the
+    // monitor shows as a failed reading.
+    if (!hasPulse({ rhythm: this.rhythm, pulseless: this.pulseless })) {
+      this.lastNibp = { sbp: 0, dbp: 0, atSec: this.elapsedSec };
+      this.addLog('vital_change', 'NIBP — no reading', 'cuff cycle, no pulse');
+      return;
+    }
     this.lastNibp = {
       sbp: Math.round(this.current.sbp),
       dbp: Math.round(this.current.dbp),
@@ -469,6 +490,16 @@ export class SimulationEngine {
     } else if (rhythm === 'sinus_tach' && this.effectiveTarget('hr') <= 100) {
       this.startRamp('hr', 110, 5);
       this.addLog('vital_change', 'HR → 110 bpm', 'sinus tachycardia');
+    } else {
+      // Escape rhythms are slow by definition: bring a faster rate into the
+      // published range once, on selection (junctional escape 40–60/min,
+      // complete block with a junctional escape likewise, idioventricular
+      // under 40/min — StatPearls NBK507715, NBK545199, NBK554520).
+      const escape = ESCAPE_RATES[rhythm];
+      if (escape && this.effectiveTarget('hr') > escape.above) {
+        this.startRamp('hr', escape.hr, 5);
+        this.addLog('vital_change', `HR → ${escape.hr} bpm`, RHYTHM_LABELS[rhythm].toLowerCase());
+      }
     }
   }
 
@@ -482,6 +513,18 @@ export class SimulationEngine {
     if (freq === this.pvcFrequency) return;
     this.pvcFrequency = freq;
     this.addLog('vital_change', `PVC frequency → ${PVC_FREQUENCY_LABELS[freq]}`);
+  }
+
+  /**
+   * Take the pulse away or give it back, whatever the rhythm: PEA is an
+   * organized rhythm with no pulse, and VT may or may not have one. Not tied
+   * to the rhythm buttons — changing rhythm leaves it as set. (VF, torsades,
+   * asystole and the legacy `pea` rhythm never have a pulse regardless.)
+   */
+  setPulseless(on: boolean): void {
+    if (on === this.pulseless) return;
+    this.pulseless = on;
+    this.addLog('vital_change', `Pulse → ${on ? 'absent' : 'present'}`);
   }
 
   /** Where the ST level is headed: its ramp target if ramping, else its value now. */
@@ -672,6 +715,7 @@ export class SimulationEngine {
       capnoShape: this.capnoShape,
       pvcFrequency: this.pvcFrequency,
       ecg: { ...this.ecg, stMm: Math.round(this.ecg.stMm * 10) / 10 },
+      pulseless: this.pulseless,
     };
   }
 
@@ -731,6 +775,7 @@ export class SimulationEngine {
     if (effect.capnoShape) this.setCapnoShape(effect.capnoShape);
     if (effect.pvcFrequency) this.setPvcFrequency(effect.pvcFrequency);
     if (effect.ecg) this.setEcg(effect.ecg, effect.overSec ?? 0);
+    if (effect.pulseless !== undefined) this.setPulseless(effect.pulseless);
     if (effect.vitals) {
       for (const key of NUMERIC_VITAL_KEYS) {
         const target = effect.vitals[key];

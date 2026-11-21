@@ -20,6 +20,11 @@ import type { Rhythm } from '@/lib/engine/types';
 
 export type BeatKind = 'normal' | 'pvc' | 'pac';
 
+/** A beat's cycle begins a little before its P wave, which peaks here (ms). */
+export const P_MS = 60;
+/** Where the R wave falls in a normally conducted beat, ms from its start. */
+export const R_MS = 210;
+
 export interface Beat {
   /** Running count of beats since the clock was created. */
   index: number;
@@ -35,7 +40,13 @@ export interface Beat {
   /** Rhythm in force when the beat was scheduled. */
   rhythm: Rhythm;
   kind: BeatKind;
-  /** Relative stroke strength for the pleth / arterial pulse, ~0.3–1.1. */
+  /** When the R wave falls, ms from the beat's start. Later than R_MS when AV
+   *  conduction is slowed (the beat starts with its P wave). */
+  rMs: number;
+  /** False for a P wave that was not conducted: no QRS, no pulse, no tone. */
+  conducted: boolean;
+  /** Relative stroke strength for the pleth / arterial pulse, ~0.3–1.1
+   *  (0 for a non-conducted beat). */
   pulse: number;
 }
 
@@ -51,7 +62,7 @@ export interface BeatClockInput {
 }
 
 /** Rhythms with no discrete beats — drawn from absolute time instead. */
-const NON_BEATING: ReadonlySet<Rhythm> = new Set(['vfib', 'asystole']);
+const NON_BEATING: ReadonlySet<Rhythm> = new Set(['vfib', 'asystole', 'torsades']);
 
 /** A premature ventricular beat falls early, then a full compensatory pause:
  *  the sinus node is not reset, so the interval spanning the PVC is twice the
@@ -79,7 +90,24 @@ const AF_MAX = 1.4;
  *  the trace; enough that a rate averaged over several beats flickers by a
  *  beat or so. */
 const SINUS_JITTER = 0.035;
-const SINUS: ReadonlySet<Rhythm> = new Set(['sinus', 'sinus_brady', 'sinus_tach']);
+const SINUS: ReadonlySet<Rhythm> = new Set(['sinus', 'sinus_brady', 'sinus_tach', 'av_block_1']);
+
+// ── AV block (the beat's cycle is the P-P interval; the P wave leads) ────────
+/** First-degree block: every P wave conducted, with a constant PR over
+ *  200 ms (StatPearls, "First-Degree Heart Block", NBK448164). P peak → R
+ *  peak, ms — a PR interval of about 260 ms. */
+export const FIRST_DEGREE_PR_MS = 260;
+/** Mobitz I (Wenckebach), 4:3 conduction: the PR lengthens beat by beat, by
+ *  less each time, until a P wave is not conducted; it is shortest just after
+ *  the dropped beat and the R-R interval shortens through the group (Hansom
+ *  et al., Curr Cardiol Rev 2021;17:10; Barold, Clin Cardiol 2018;41:282 —
+ *  4:3 is the ratio that most often shows the typical pattern). P peak → R
+ *  peak for each conducted beat, ms. */
+export const WENCKEBACH_PR_MS: readonly number[] = [180, 260, 300];
+/** Mobitz II, 3:2 conduction: a constant PR, then a single P wave not
+ *  conducted. At least two conducted beats in a row are needed to call it
+ *  type II (Barold & Herweg, Front Cardiovasc Med 2024;11:1450705). */
+export const MOBITZ2_GROUP = 3;
 
 /** Weak, poorly filled ventricular ectopic: its systolic pressure falls about
  *  20% below the reference beat (Voss et al., J Physiol 2002;538:271), which
@@ -153,7 +181,8 @@ export class BeatClock {
   private beats: Beat[] = [];
   private nextAt: number | null = null;
   private started = 0;
-  private prevFactor = 1;
+  /** Clock time of the last conducted R wave (null before the first). */
+  private lastRAt: number | null = null;
   private lastMs: number | null = null;
 
   constructor(seed = 1) {
@@ -189,9 +218,15 @@ export class BeatClock {
     if (n === 0) return 1;
     const slow = n >= 3 && this.beats.slice(-3).every((b) => b.rrSec > SLOW_RR_SEC);
     const counted = slow ? this.beats.slice(-SLOW_RATE_BEATS) : this.beats;
+    // Only conducted beats are counted, over the time all of them took — so a
+    // dropped beat lowers the rate, as it should.
     let sum = 0;
-    for (const b of counted) sum += b.factor;
-    return counted.length / sum;
+    let qrs = 0;
+    for (const b of counted) {
+      sum += b.factor;
+      if (b.conducted) qrs += 1;
+    }
+    return qrs / sum;
   }
 
   /** Breath phase (0..1) at clock time `tSec`, at or shortly before now. */
@@ -238,6 +273,7 @@ export class BeatClock {
       // the organized rhythm that preceded it.
       this.beats = [];
       this.nextAt = null;
+      this.lastRAt = null;
       return;
     }
     if (hr <= 0) {
@@ -266,6 +302,8 @@ export class BeatClock {
     const index = this.started;
     let kind: BeatKind = 'normal';
     let factor = 1;
+    let rMs = R_MS;
+    let conducted = true;
 
     if (rhythm === 'pvc') {
       const n = Math.max(2, Math.round(pvcEveryN));
@@ -289,25 +327,53 @@ export class BeatClock {
       }
     } else if (rhythm === 'afib') {
       factor = AF_MIN + (AF_MAX - AF_MIN) * this.rand();
+    } else if (rhythm === 'av_block_mobitz1') {
+      // The cycle is the P-P interval: with one P in every group not
+      // conducted, P waves come faster than the ventricular (HR) rate.
+      const group = WENCKEBACH_PR_MS.length + 1;
+      const pos = index % group;
+      factor = (group - 1) / group;
+      if (pos === group - 1) conducted = false;
+      else rMs = P_MS + WENCKEBACH_PR_MS[pos];
+    } else if (rhythm === 'av_block_mobitz2') {
+      factor = (MOBITZ2_GROUP - 1) / MOBITZ2_GROUP;
+      if (index % MOBITZ2_GROUP === MOBITZ2_GROUP - 1) conducted = false;
     } else if (SINUS.has(rhythm)) {
       factor = 1 + SINUS_JITTER * (2 * this.rand() - 1);
+      if (rhythm === 'av_block_1') rMs = P_MS + FIRST_DEGREE_PR_MS;
     }
 
-    // Stroke strength follows filling time: a beat that comes early after the
-    // previous one ejects less, the beat after a pause ejects more, levelling
-    // off at long intervals — the relation of stroke volume to the preceding
-    // R-R interval in AF (Greenfield et al., J Clin Invest 1968;47:2411;
-    // Muntinga et al., Heart 1999;82:575).
-    const filling = kind === 'pvc' ? PVC_PULSE : clamp(0.4 + 0.6 * this.prevFactor, 0.5, 1.1);
-    this.prevFactor = factor;
-    // …and swings a little with the breath (largest at end-inspiration,
-    // phase 0), unless the patient is apneic.
-    const swing =
-      this.input.rr > 0 ? (RESP_SWING * (1 - Math.cos(2 * Math.PI * this.breathPhaseAt(at)))) / 2 : 0;
-    const pulse = filling * (1 - swing);
+    let pulse = 0;
+    if (conducted) {
+      // Stroke strength follows filling time: a beat that comes early after the
+      // previous one ejects less, the beat after a pause ejects more, levelling
+      // off at long intervals — the relation of stroke volume to the preceding
+      // R-R interval in AF (Greenfield et al., J Clin Invest 1968;47:2411;
+      // Muntinga et al., Heart 1999;82:575).
+      const rAt = at + rMs / 1000;
+      const filled = this.lastRAt === null ? 1 : (rAt - this.lastRAt) / base;
+      this.lastRAt = rAt;
+      const filling = kind === 'pvc' ? PVC_PULSE : clamp(0.4 + 0.6 * filled, 0.5, 1.1);
+      // …and swings a little with the breath (largest at end-inspiration,
+      // phase 0), unless the patient is apneic.
+      const swing =
+        this.input.rr > 0 ? (RESP_SWING * (1 - Math.cos(2 * Math.PI * this.breathPhaseAt(at)))) / 2 : 0;
+      pulse = filling * (1 - swing);
+    }
 
     const rrSec = factor * base;
-    this.beats.push({ index, startSec: at, rrSec, baseSec: base, factor, rhythm, kind, pulse });
+    this.beats.push({
+      index,
+      startSec: at,
+      rrSec,
+      baseSec: base,
+      factor,
+      rhythm,
+      kind,
+      rMs,
+      conducted,
+      pulse,
+    });
     if (this.beats.length > KEEP_BEATS) this.beats.shift();
     this.started += 1;
     return at + rrSec;

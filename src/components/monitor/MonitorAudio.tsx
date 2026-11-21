@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { SimSnapshot } from '@/lib/engine/types';
+import { hasPulse } from '@/lib/engine/types';
 import { migrateLegacyKey } from '@/lib/legacyStorage';
 import {
   ALARM_EDGE_FRACTION,
@@ -22,7 +23,6 @@ import {
   type SoundLevel,
   type SoundRole,
 } from './soundPref';
-import { isPulseless, R_OFFSET_MS } from './waveforms';
 
 /**
  * Monitor audio via Web Audio (no dependencies):
@@ -67,7 +67,7 @@ function pulseFrequency(spo2: number): number {
 }
 
 /** How often the pulse-tone scheduler looks for new beats. A beat is seen at
- *  its start and its R wave falls R_OFFSET_MS later, so this only has to be
+ *  its start and its R wave falls at least R_OFFSET_MS later, so this only has to be
  *  comfortably shorter than that lead. */
 const BEAT_POLL_MS = 25;
 /** A beat noticed this long after its R wave (timers throttled in a hidden
@@ -142,9 +142,10 @@ export function MonitorAudio({
       heard = beats.count;
       if (fresh <= 0 || ctx.state !== 'running') return;
       const v = s.vitals;
-      if (s.status !== 'running' || isPulseless(v.rhythm) || v.hr <= 0) return;
+      if (s.status !== 'running' || !hasPulse(v) || v.hr <= 0) return;
       for (const beat of beats.recent().slice(-fresh)) {
-        const untilR = beat.startSec + R_OFFSET_MS / 1000 - beats.t;
+        if (!beat.conducted) continue; // a dropped beat makes no sound
+        const untilR = beat.startSec + beat.rMs / 1000 - beats.t;
         if (untilR < -LATE_BEEP_SEC) continue;
         tone('sine', pulseFrequency(v.spo2), 0.06, 0.12, ctx.currentTime + Math.max(0, untilR));
       }

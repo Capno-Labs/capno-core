@@ -23,6 +23,8 @@ export interface FieldSpec {
 
 export const RHYTHMS = [
   'sinus', 'sinus_brady', 'sinus_tach', 'pvc', 'pac', 'afib', 'svt', 'vtach', 'vfib', 'pea', 'asystole',
+  'av_block_1', 'av_block_mobitz1', 'av_block_mobitz2', 'av_block_3', 'junctional', 'aflutter', 'torsades',
+  'paced', 'idioventricular',
 ] as const;
 export const TRAINING_LEVELS = [
   'medical_student', 'srna', 'saa', 'resident_junior', 'resident_senior', 'crna', 'caa', 'attending',
