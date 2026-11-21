@@ -788,6 +788,12 @@ export interface SimSnapshot {
    *  alarms-off mark beside the number in place of its limits. Optional:
    *  absent (= none) in older snapshots. */
   alarmsOff?: AlarmVital[];
+  /**
+   * True while learners may operate the monitor's alarm setup from their
+   * display (the display then offers it and sends requests; the session
+   * applies them). Optional: absent (= no) in older snapshots.
+   */
+  learnerAlarmSetup?: boolean;
   actions: ActionRecord[];
   /** In live broadcast snapshots this is a capped tail of the newest entries
    *  (snapshots go out twice a second — an uncapped log would grow every

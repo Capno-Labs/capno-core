@@ -237,6 +237,7 @@ export function VitalControls() {
   const setAgent = useControllerStore((s) => s.setAgent);
   const setNmb = useControllerStore((s) => s.setNmb);
   const setAlarmProfile = useControllerStore((s) => s.setAlarmProfile);
+  const setLearnerAlarmSetup = useControllerStore((s) => s.setLearnerAlarmSetup);
   const setTofAttached = useControllerStore((s) => s.setTofAttached);
   const measureTof = useControllerStore((s) => s.measureTof);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
@@ -449,6 +450,15 @@ export function VitalControls() {
             Select a number on the monitor preview to set its high and low limit or switch its alarm
             off.
           </span>
+          <label className="flex basis-full cursor-pointer items-center gap-2 text-xs text-ink-2">
+            <input
+              type="checkbox"
+              className="accent-brand"
+              checked={snapshot.learnerAlarmSetup ?? false}
+              onChange={(e) => setLearnerAlarmSetup(e.target.checked)}
+            />
+            Learners can do the same on their display — each change is logged as theirs
+          </label>
         </div>
 
         <div className="space-y-1.5">

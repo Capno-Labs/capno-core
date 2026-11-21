@@ -288,8 +288,16 @@ debrief shows when an alarm was switched off). Switching category returns to
 that category's limits; Reset returns to the scenario's. A scenario can also
 start with an alarm switched off — the monitor someone left that way.
 **🔔 silence alarms** above the preview is separate: it quiets whatever is
-alarming now, on every number. Only this screen can operate the monitor;
-student displays show the limits and the 🔕 marks but cannot change them.
+alarming now, on every number.
+
+**Learners can operate the alarm setup too.** On a student display the same
+numbers are selectable and open the same setup, so learners set limits and
+switch alarms off themselves, as they would on a real monitor. Their changes
+apply to every display, and the log marks each one "on a student display" —
+the debrief shows who silenced what, and when. That is all a display can
+change: not vitals, not events, not the session. Untick **Learners can do
+the same on their display** under the Alarms buttons to keep the alarm setup
+to yourself; the choice carries over to the next case.
 
 **Agent** buttons (SEV, ISO, DES) say which volatile the end-tidal number
 refers to. The agent tile shows it as a multiple of the patient's MAC,

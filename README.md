@@ -102,7 +102,7 @@ src/
       supabase.ts    #   Supabase Realtime broadcast (cross-device, optional)
     store/           # zustand stores
       controllerStore.ts  # faculty side: owns the engine, ticks, broadcasts snapshots
-      studentStore.ts     # student side: read-only snapshot mirror + liveness watchdog
+      studentStore.ts     # student side: snapshot mirror + liveness watchdog + alarm-setup requests
       sessionArchive.ts   # completed sessions in localStorage (debrief input)
       sessionExport.ts    # JSON export/import of session archives
     cloud/           # optional Supabase layer (auth, offline-first outbox,
@@ -122,7 +122,7 @@ public/sw.js         # offline service worker
 
 ### Key design decisions
 
-- **The faculty controller is authoritative.** The engine runs only on the faculty device; student displays are dumb mirrors of broadcast snapshots. Full-state replication (a few KB, twice a second) makes late joins, refreshes, and dropped messages self-healing — a display is always correct within one tick.
+- **The faculty controller is authoritative.** The engine runs only on the faculty device; student displays are mirrors of broadcast snapshots, and the only thing one can send back is a request to operate the monitor's alarm setup, which the controller validates and applies. Full-state replication (a few KB, twice a second) makes late joins, refreshes, and dropped messages self-healing — a display is always correct within one tick.
 - **Realtime is an adapter, not a dependency.** `SyncChannel` has two implementations: BroadcastChannel (free, offline, same device) and Supabase Realtime broadcast (cross-device). A WebSocket server adapter can be added without touching UI code.
 - **Scenarios are data.** Plain JSON validated by one zod schema shared by the registry, the editor, and file import. Built-ins are statically bundled — which is what makes them available offline with zero fetches.
 - **PDF export is the browser's print engine.** The debrief report has dedicated print CSS; "Export PDF" opens the native dialog. Zero heavy dependencies, works offline, and produces clean, paginated documents.

@@ -26,6 +26,7 @@ import { cloudEligible, drain, enqueue, pinnedVersionId } from '../cloud/outbox'
 import '../cloud/sessionCloud'; // registers the session push handler
 import { getVersionHistory } from '../scenarios/customStore';
 import { createSyncChannels, type SyncChannel, type TransportHealth } from '../sync';
+import { applyMonitorRequest, createRequestGate } from '../sync/monitorRequest';
 import { archiveSession } from './sessionArchive';
 
 /**
@@ -71,10 +72,12 @@ interface ControllerState {
   setNmb: (patch: Partial<NeuromuscularBlock>, overSec?: number) => void;
   /** Switch the monitor's patient category and its alarm limits. */
   setAlarmProfile: (profile: AlarmProfile) => void;
-  /** Set one vital's low or high alarm limit (`null` = off). */
-  setAlarmLimit: (vital: AlarmVital, side: AlarmSide, value: number | null) => void;
+  /** One press of − or + on a vital's low or high alarm limit. */
+  stepAlarmLimit: (vital: AlarmVital, side: AlarmSide, direction: -1 | 1) => void;
   /** Switch one vital's limit alarms off or back on. */
   setAlarmOff: (vital: AlarmVital, off: boolean) => void;
+  /** Let learners operate the alarm setup from their display, or not. */
+  setLearnerAlarmSetup: (on: boolean) => void;
   /** Attach or remove the twitch monitor. */
   setTofAttached: (on: boolean) => void;
   /** Have the twitch monitor stimulate now. */
@@ -153,11 +156,18 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       const autoEvents = get().engine?.getAutoEventsEnabled() ?? false;
       // The pre-brief choice carries over the same way (default: not shown).
       const preBrief = get().engine?.getPreBriefEnabled() ?? false;
-      const engine = new SimulationEngine(scenario, sessionId, { autoEvents, preBrief });
+      // So does whether learners may operate the alarm setup (default: yes).
+      const learnerAlarmSetup = get().engine?.getLearnerAlarmSetup() ?? true;
+      const engine = new SimulationEngine(scenario, sessionId, { autoEvents, preBrief, learnerAlarmSetup });
       channel = createSyncChannels(sessionCode);
+      const freshRequest = createRequestGate();
       // Late-joining student displays send 'hello' to get an immediate snapshot.
       channel.onMessage((m) => {
         if (m.type === 'hello') publish();
+        // A learner operating the monitor's alarm setup on a display: the
+        // only thing a display can change, checked and applied here so this
+        // engine stays the single authority.
+        if (m.type === 'monitor' && freshRequest(m.id) && applyMonitorRequest(engine, m.request)) publish();
       });
       channel.onStatus(() => set({ syncHealth: channel ? channel.getHealth() : [] }));
       set({ engine, sessionId, sessionCode, syncHealth: channel.getHealth() });
@@ -224,7 +234,8 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setAgent: (agent) => withEngine((e) => e.setAgent(agent)),
     setNmb: (patch, overSec = 0) => withEngine((e) => e.setNmb(patch, overSec)),
     setAlarmProfile: (profile) => withEngine((e) => e.setAlarmProfile(profile)),
-    setAlarmLimit: (vital, side, value) => withEngine((e) => e.setAlarmLimit(vital, side, value)),
+    stepAlarmLimit: (vital, side, direction) => withEngine((e) => e.stepAlarmLimit(vital, side, direction)),
+    setLearnerAlarmSetup: (on) => withEngine((e) => e.setLearnerAlarmSetup(on)),
     setAlarmOff: (vital, off) => withEngine((e) => e.setAlarmOff(vital, off)),
     setTofAttached: (on) => withEngine((e) => e.setTofAttached(on)),
     measureTof: () => withEngine((e) => e.measureTof()),

@@ -41,7 +41,7 @@ export default function FacultyRunPage() {
     loadScenario,
     teardown,
     setAlarmsSilenced,
-    setAlarmLimit,
+    stepAlarmLimit,
     setAlarmOff,
     start,
     pause,
@@ -235,7 +235,7 @@ export default function FacultyRunPage() {
                 <MonitorDisplay
                   snapshot={snapshot}
                   compact
-                  alarmSetup={{ setLimit: setAlarmLimit, setOff: setAlarmOff }}
+                  alarmSetup={{ stepLimit: stepAlarmLimit, setOff: setAlarmOff }}
                 />
               </div>
             </div>

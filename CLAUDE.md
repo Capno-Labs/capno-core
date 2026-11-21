@@ -45,8 +45,15 @@ maintainer instead of working around it.
    `SCHEMA_REFERENCE` prompt constant in `src/lib/llm/generator.ts`.
 3. **One authority per session.** Exactly one authoritative engine instance
    drives a session (today: the browser `controllerStore`) — never a second
-   tick loop. Student displays render broadcast snapshots and send nothing
-   except `hello` — no student→faculty mutations of simulation state.
+   tick loop. Student displays render broadcast snapshots and never change
+   simulation state themselves. They send two things: `hello`, and `monitor`
+   requests to operate the monitor's alarm setup (step an alarm limit,
+   switch one vital's alarms on or off). A request is untrusted input: the
+   controller parses it (`src/lib/sync/monitorRequest.ts`), drops anything
+   else, and applies it to its own engine, so there is still one authority.
+   Requests stay relative and narrow — no vitals, events, session control or
+   absolute values. Widening what a display can ask for is a maintainer
+   decision, not an incremental change.
 4. **Snapshots stay JSON-serializable.** No Dates, Maps, functions, or class
    instances in `SimSnapshot` — a test enforces round-tripping, and both the
    sync channel and localStorage archive depend on it.

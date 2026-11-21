@@ -40,6 +40,9 @@ The canonical smoke flow:
    { name: 'HR alarm setup' })`); the dialog (`Alarm setup`) has
    `Raise/Lower HR high alarm limit` buttons and an `HR alarms on — switch
    off` toggle. The tile's limits text, or 🔕, follows.
+   The same works on a joined student display (same browser context) while
+   `Learners can do the same on their display` is ticked on the controller;
+   the log line then ends `on a student display`.
 5. Twitch monitor: click `Attach twitch monitor`; the steppers are
    `getByLabel('Count target')`, `Ratio target` (only at count 4) and
    `PTC target` (only at count 0). The TOF tile changes at the next

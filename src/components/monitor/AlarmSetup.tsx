@@ -1,12 +1,17 @@
 'use client';
 
 import type { AlarmSide, AlarmVital, SimSnapshot } from '@/lib/engine/types';
-import { ALARM_LIMIT_STEP, ALARM_PROFILES, VITAL_META } from '@/lib/engine/vitals';
+import { ALARM_PROFILES, VITAL_META } from '@/lib/engine/vitals';
 
-/** What the alarm setup can change. Passed only where the monitor may be
- *  operated — today the faculty preview. */
+/**
+ * What the alarm setup can do. Passed only where the monitor may be
+ * operated: the faculty preview acts on the session directly; a student
+ * display sends each press as a request and the session applies it. Limits
+ * move one press at a time so that presses made before the next snapshot
+ * arrives are neither lost nor doubled.
+ */
 export interface AlarmSetupActions {
-  setLimit: (vital: AlarmVital, side: AlarmSide, value: number | null) => void;
+  stepLimit: (vital: AlarmVital, side: AlarmSide, direction: -1 | 1) => void;
   setOff: (vital: AlarmVital, off: boolean) => void;
 }
 
@@ -18,17 +23,16 @@ function LimitRow({
   value,
   critical,
   disabled,
-  onSet,
+  onStep,
 }: {
   vital: AlarmVital;
   side: AlarmSide;
   value: number | undefined;
   critical: number | undefined;
   disabled: boolean;
-  onSet: (value: number | null) => void;
+  onStep: (direction: -1 | 1) => void;
 }) {
   const meta = VITAL_META[vital];
-  const step = ALARM_LIMIT_STEP[vital];
   // An off limit sits at the end of the range: stepping inward switches it on.
   const end = side === 'low' ? meta.min : meta.max;
   const current = value ?? end;
@@ -42,7 +46,7 @@ function LimitRow({
       <button
         className={btn}
         disabled={disabled || current <= meta.min}
-        onClick={() => onSet(current - step)}
+        onClick={() => onStep(-1)}
         aria-label={`Lower ${name}`}
       >
         −
@@ -56,7 +60,7 @@ function LimitRow({
       <button
         className={btn}
         disabled={disabled || current >= meta.max}
-        onClick={() => onSet(current + step)}
+        onClick={() => onStep(1)}
         aria-label={`Raise ${name}`}
       >
         +
@@ -138,7 +142,7 @@ export function AlarmSetup({
                 value={band.warnHigh}
                 critical={band.critHigh}
                 disabled={isOff}
-                onSet={(value) => actions.setLimit(vital, 'high', value)}
+                onStep={(direction) => actions.stepLimit(vital, 'high', direction)}
               />
               <LimitRow
                 vital={vital}
@@ -146,7 +150,7 @@ export function AlarmSetup({
                 value={band.warnLow}
                 critical={band.critLow}
                 disabled={isOff}
-                onSet={(value) => actions.setLimit(vital, 'low', value)}
+                onStep={(direction) => actions.stepLimit(vital, 'low', direction)}
               />
             </div>
           );

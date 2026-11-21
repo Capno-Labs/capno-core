@@ -63,6 +63,7 @@ import {
   maxDbpFor,
   measuredEtco2,
   resolveAlarmLimits,
+  steppedAlarmLimit,
   withAlarmLimit,
   roundVital,
   TOF_INTERVAL_SEC,
@@ -106,6 +107,11 @@ function baselineNmb(stated: Partial<NeuromuscularBlock> | undefined): Neuromusc
 
 /** Presses on the same alarm limit this close together are one adjustment in the log. */
 const ALARM_LIMIT_LOG_MERGE_SEC = 5;
+
+/** Who operated the alarm setup: the faculty controller (the default) or a
+ *  learner's display. A learner's change says so in the log. */
+export type AlarmSetupSource = 'faculty' | 'display';
+const LEARNER_DETAIL = 'on a student display';
 
 function clampFico2(value: number): number {
   return Math.min(FICO2_MAX, Math.max(0, value));
@@ -244,17 +250,20 @@ export class SimulationEngine {
    * them. An instructor preference, like autoEventsEnabled.
    */
   private preBriefEnabled: boolean;
+  /** Learners may operate the monitor's alarm setup from their display. */
+  private learnerAlarmSetup: boolean;
 
   constructor(
     scenario: Scenario,
     sessionId: string,
-    options?: { autoEvents?: boolean; preBrief?: boolean },
+    options?: { autoEvents?: boolean; preBrief?: boolean; learnerAlarmSetup?: boolean },
   ) {
     this.scenario = scenario;
     this.sessionId = sessionId;
     this.events = [...scenario.events];
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.preBriefEnabled = options?.preBrief ?? false;
+    this.learnerAlarmSetup = options?.learnerAlarmSetup ?? true;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
     const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, vent, agent, nmb, ...numeric } =
       scenario.baselineVitals;
@@ -389,7 +398,7 @@ export class SimulationEngine {
   }
 
   /** Reset to baseline (fresh log, fresh actions, elapsed 0). Deliberately
-   *  keeps autoEventsEnabled and preBriefEnabled — instructor preferences,
+   *  keeps autoEventsEnabled, preBriefEnabled and learnerAlarmSetup — instructor preferences,
    *  not scenario state. */
   reset(): void {
     this.status = 'idle';
@@ -862,7 +871,7 @@ export class SimulationEngine {
    * setup: `null`, or the end of the vital's range, switches that limit off;
    * a critical limit the new limit passes moves with it.
    */
-  setAlarmLimit(vital: AlarmVital, side: AlarmSide, value: number | null): void {
+  setAlarmLimit(vital: AlarmVital, side: AlarmSide, value: number | null, by?: AlarmSetupSource): void {
     const key = side === 'low' ? 'warnLow' : 'warnHigh';
     const before = this.alarmLimits[vital][key];
     this.alarmLimits = withAlarmLimit(this.alarmLimits, vital, side, value);
@@ -873,19 +882,48 @@ export class SimulationEngine {
     const prefix = `${VITAL_META[vital].label} ${side} alarm limit → `;
     const last = this.log.at(-1);
     const t = Math.floor(this.elapsedSec);
-    if (last && last.kind === 'vital_change' && last.label.startsWith(prefix) && t - last.t <= ALARM_LIMIT_LOG_MERGE_SEC) {
+    const detail = by === 'display' ? LEARNER_DETAIL : undefined;
+    if (
+      last &&
+      last.kind === 'vital_change' &&
+      last.label.startsWith(prefix) &&
+      last.detail === detail &&
+      t - last.t <= ALARM_LIMIT_LOG_MERGE_SEC
+    ) {
       this.log[this.log.length - 1] = { ...last, t, label: `${prefix}${after ?? 'off'}` };
       return;
     }
-    this.addLog('vital_change', `${prefix}${after ?? 'off'}`);
+    this.addLog('vital_change', `${prefix}${after ?? 'off'}`, detail);
+  }
+
+  /** One press of − or + on a limit in the alarm setup. */
+  stepAlarmLimit(vital: AlarmVital, side: AlarmSide, direction: -1 | 1, by?: AlarmSetupSource): void {
+    this.setAlarmLimit(vital, side, steppedAlarmLimit(this.alarmLimits, vital, side, direction), by);
   }
 
   /** Switch one vital's limit alarms off or back on. */
-  setAlarmOff(vital: AlarmVital, off: boolean): void {
+  setAlarmOff(vital: AlarmVital, off: boolean, by?: AlarmSetupSource): void {
     if (off === this.alarmsOff.has(vital)) return;
     if (off) this.alarmsOff.add(vital);
     else this.alarmsOff.delete(vital);
-    this.addLog('vital_change', `${VITAL_META[vital].label} alarms ${off ? 'off' : 'on'}`);
+    this.addLog(
+      'vital_change',
+      `${VITAL_META[vital].label} alarms ${off ? 'off' : 'on'}`,
+      by === 'display' ? LEARNER_DETAIL : undefined,
+    );
+  }
+
+  /** Let learners operate the alarm setup from their display, or not. */
+  setLearnerAlarmSetup(on: boolean): void {
+    if (on === this.learnerAlarmSetup) return;
+    this.learnerAlarmSetup = on;
+    if (this.status !== 'idle') {
+      this.addLog('session', `Learner alarm setup ${on ? 'on' : 'off'}`);
+    }
+  }
+
+  getLearnerAlarmSetup(): boolean {
+    return this.learnerAlarmSetup;
   }
 
   /** Add or remove the V5 lead on the monitor at runtime (faculty toggle). */
@@ -1168,6 +1206,7 @@ export class SimulationEngine {
       alarmLimits: this.alarmLimits,
       alarmProfile: this.alarmProfile,
       alarmsOff: ALARM_VITALS.filter((v) => this.alarmsOff.has(v)),
+      learnerAlarmSetup: this.learnerAlarmSetup,
       actions: this.actions.map((a) => ({ ...a })),
       log: this.log.slice(-SNAPSHOT_LOG_TAIL),
       notes: [...this.notes],
