@@ -1,6 +1,6 @@
 {
   "id": "intraop-bronchospasm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Severe Intraoperative Bronchospasm in an Asthmatic Patient",
   "summary": "A 28-year-old man with poorly controlled asthma develops severe bronchospasm shortly after intubation, when incision begins under a still-light anesthetic. Learners must read the shark-fin capnograph, exclude mechanical causes, deepen the anesthetic, escalate bronchodilators to epinephrine, and recognize breath-stacking hypotension that only a circuit disconnect will fix.",
   "tags": {
@@ -22,7 +22,7 @@
     "Labeled props: albuterol MDI with in-line circuit adapter, ipratropium MDI, syringes of propofol, ketamine, epinephrine 10 mcg/mL and 100 mcg/mL dilutions, magnesium sulfate bag, hydrocortisone vial.",
     "A suction catheter at the head of the bed so learners can concretely pass it down the ETT to exclude obstruction.",
     "Confederate circulator who can report 'audible wheeze, almost no breath sounds now' when asked to auscultate late in the crisis.",
-    "Ventilator alarm cues: faculty should verbally report rising peak inspiratory pressures (e.g. '38... 44... 50 cmH2O') since the simulated monitor does not display airway pressure.",
+    "The monitor shows airway pressure and tidal volume, and they change with the events: peak pressure climbs through 38 and 44 to 50 cmH2O while the plateau stays near normal — the pattern of airway resistance — and the delivered tidal volume falls as the spasm becomes severe. Expect the high-pressure and low-minute-volume alarms. If the team stacks breaths, the plateau rises too.",
     "Preop note: poorly controlled asthma with an emergency visit for an exacerbation 3 months ago; used his albuterol inhaler in the preop bay this morning."
   ],
   "patient": {
@@ -65,7 +65,8 @@
     "depth": 50,
     "agentEt": 0.8,
     "agentFi": 2.5,
-    "rhythm": "sinus"
+    "rhythm": "sinus",
+    "vent": {}
   },
   "phases": [
     { "id": "post_intubation", "label": "Post-Intubation", "description": "ETT just placed; anesthetic still light while sevoflurane washes in." },
@@ -89,11 +90,11 @@
     {
       "id": "bronchospasm-onset",
       "label": "Bronchospasm onset",
-      "description": "The capnograph develops a prolonged upsloping (shark-fin) expiratory phase and EtCO2 climbs as emptying slows. Peak pressures rise (report '38... 44 cmH2O'), wheeze is audible, and SpO2 drifts down.",
+      "description": "The capnograph develops a prolonged upsloping (shark-fin) expiratory phase and EtCO2 climbs as emptying slows. Peak pressure climbs through 38 to 44 cmH2O on the monitor with the plateau unchanged, wheeze is audible, and SpO2 drifts down.",
       "category": "airway",
       "actionIds": ["recognize-bronchospasm"],
       "effects": [
-        { "vitals": { "etco2": 43, "spo2": 94, "hr": 104 }, "capnoShape": "bronchospasm", "overSec": 90 }
+        { "vitals": { "etco2": 43, "spo2": 94, "hr": 104 }, "capnoShape": "bronchospasm", "vent": { "pip": 44 }, "overSec": 90 }
       ],
       "autoAtSec": 210,
       "phaseHint": "onset"
@@ -104,7 +105,7 @@
       "description": "Airflow nearly ceases: the capnograph trace shrinks (EtCO2 toward 18 — little gas is moving), SpO2 falls to the low 80s, and the blood pressure starts to sag as intrathoracic pressure climbs. Peak pressures 50+ cmH2O.",
       "category": "airway",
       "effects": [
-        { "vitals": { "etco2": 18, "spo2": 82, "hr": 118, "sbp": 108, "dbp": 64 }, "rhythm": "sinus_tach", "overSec": 120 }
+        { "vitals": { "etco2": 18, "spo2": 82, "hr": 118, "sbp": 108, "dbp": 64 }, "rhythm": "sinus_tach", "vent": { "pip": 50, "vt": 200 }, "overSec": 120 }
       ],
       "autoAtSec": 390,
       "phaseHint": "severe_bronchospasm"
@@ -115,7 +116,7 @@
       "description": "Aggressive bagging without expiratory time stacks breaths: dynamic hyperinflation raises intrathoracic pressure, venous return collapses, and the pressure falls to 68/40. Fire if learners bag fast. The fix is counterintuitive — stop ventilating and open the circuit.",
       "category": "physiology",
       "effects": [
-        { "vitals": { "sbp": 68, "dbp": 40, "hr": 128, "spo2": 78 }, "overSec": 60 }
+        { "vitals": { "sbp": 68, "dbp": 40, "hr": 128, "spo2": 78 }, "vent": { "pplat": 28 }, "overSec": 60 }
       ],
       "phaseHint": "severe_bronchospasm"
     },
@@ -126,7 +127,7 @@
       "category": "equipment",
       "actionIds": ["disconnect-circuit"],
       "effects": [
-        { "vitals": { "sbp": 100, "dbp": 60, "hr": 112 }, "overSec": 40 }
+        { "vitals": { "sbp": 100, "dbp": 60, "hr": 112 }, "vent": { "pplat": 16 }, "overSec": 40 }
       ],
       "phaseHint": "treatment"
     },
@@ -137,7 +138,7 @@
       "category": "drug",
       "actionIds": ["deepen-anesthesia"],
       "effects": [
-        { "vitals": { "etco2": 26, "spo2": 88, "agentEt": 2.4, "agentFi": 4.0, "depth": 40 }, "overSec": 90 }
+        { "vitals": { "etco2": 26, "spo2": 88, "agentEt": 2.4, "agentFi": 4.0, "depth": 40 }, "vent": { "pip": 44, "vt": 300 }, "overSec": 90 }
       ],
       "phaseHint": "treatment"
     },
@@ -148,7 +149,7 @@
       "category": "drug",
       "actionIds": ["give-albuterol"],
       "effects": [
-        { "vitals": { "etco2": 30, "spo2": 92 }, "overSec": 120 }
+        { "vitals": { "etco2": 30, "spo2": 92 }, "vent": { "pip": 38, "vt": 400 }, "overSec": 120 }
       ],
       "phaseHint": "treatment"
     },
@@ -159,7 +160,7 @@
       "category": "drug",
       "actionIds": ["give-epinephrine-severe"],
       "effects": [
-        { "vitals": { "spo2": 94, "etco2": 33, "hr": 124, "sbp": 122, "dbp": 74 }, "overSec": 90 }
+        { "vitals": { "spo2": 94, "etco2": 33, "hr": 124, "sbp": 122, "dbp": 74 }, "vent": { "pip": 30, "vt": 510 }, "overSec": 90 }
       ],
       "phaseHint": "treatment"
     },
@@ -181,7 +182,7 @@
       "category": "drug",
       "actionIds": ["second-line-agents"],
       "effects": [
-        { "vitals": { "spo2": 95, "etco2": 36 }, "overSec": 180 }
+        { "vitals": { "spo2": 95, "etco2": 36 }, "vent": { "pip": 24 }, "overSec": 180 }
       ],
       "phaseHint": "treatment"
     },
@@ -192,7 +193,7 @@
       "category": "resolution",
       "actionIds": ["plan-disposition"],
       "effects": [
-        { "vitals": { "etco2": 38, "spo2": 98, "hr": 94, "sbp": 124, "dbp": 74, "rr": 10 }, "rhythm": "sinus", "capnoShape": "normal", "overSec": 240 }
+        { "vitals": { "etco2": 38, "spo2": 98, "hr": 94, "sbp": 124, "dbp": 74, "rr": 10 }, "rhythm": "sinus", "capnoShape": "normal", "vent": { "pip": 18, "pplat": 16, "vt": 510 }, "overSec": 240 }
       ],
       "phaseHint": "resolution"
     }
@@ -280,7 +281,7 @@
   ],
   "expectedProgression": [
     "Scenario opens two minutes after intubation with the anesthetic still light; incision starts around 2 minutes in.",
-    "By 3-4 minutes the capnograph develops a shark-fin upslope with climbing EtCO2 and reported peak pressures in the 40s — bronchospasm.",
+    "By 3-4 minutes the capnograph develops a shark-fin upslope with climbing EtCO2 and peak pressures in the 40s — bronchospasm.",
     "Learners should go to 100% oxygen, hand-ventilate to feel the compliance, exclude tube and circuit causes, deepen the anesthetic, and start albuterol.",
     "By 6-7 minutes untreated spasm becomes severe: near-silent chest with EtCO2 in the teens and SpO2 in the low 80s — IV epinephrine territory.",
     "If learners bag hard and fast, faculty fires breath-stacking hypotension; the circuit disconnect that fixes it is the scenario's signature counterintuitive move.",
