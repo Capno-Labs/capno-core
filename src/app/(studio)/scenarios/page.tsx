@@ -1,16 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { CollectionSection } from '@/components/library/CollectionSection';
 import { SyllabusImportPanel } from '@/components/library/SyllabusImportPanel';
-import { ConfirmButton } from '@/components/ui/ConfirmButton';
+import { Button } from '@/components/ui/Button';
+import { Dialog } from '@/components/ui/Dialog';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Field } from '@/components/ui/Field';
+import { Icon } from '@/components/ui/Icon';
+import { Menu, MenuItem } from '@/components/ui/Menu';
 import { PageHead } from '@/components/ui/PageHead';
 import { Pill, type PillTone } from '@/components/ui/Pill';
+import { Poster } from '@/components/ui/Poster';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible, drain, enqueue, getPushedAt, isQueued } from '@/lib/cloud/outbox';
 import { mergeCloudScenarios, pullScenarios } from '@/lib/cloud/scenarioCloud';
+import { DISPLAY_COPY } from '@/lib/displayCopy';
 import { downloadJson } from '@/lib/download';
 import { DOMAINS, domainOf } from '@/lib/engine/lint';
 import { parseScenario, validateScenario } from '@/lib/engine/schema';
@@ -40,6 +48,7 @@ import {
   serializeCollectionBundle,
   swapInCollection,
 } from '@/lib/scenarios';
+import { confirmDialog } from '@/lib/store/dialogStore';
 import { toast } from '@/lib/store/toastStore';
 
 const DIFFICULTY_TONE: Record<Difficulty, PillTone> = {
@@ -54,8 +63,9 @@ const CUSTOM_SECTION = 'Custom & drafts';
 const SOURCE_OPTIONS = ['built-in', 'custom', 'cloud', 'ai draft'] as const;
 type SourceFilter = (typeof SOURCE_OPTIONS)[number];
 
-/** Scenario library: collections, browse, filter by tags, run, edit, export. */
+/** Case library: collections, browse, filter by tags, run, edit, export. */
 export default function ScenarioLibraryPage() {
+  const router = useRouter();
   // Custom scenarios and collections come from localStorage, so resolve
   // after mount.
   const [scenarios, setScenarios] = useState<Scenario[]>(BUILT_IN_SCENARIOS);
@@ -261,6 +271,13 @@ export default function ScenarioLibraryPage() {
 
   const filtersActive =
     selectedDomains.size > 0 || difficulty !== 'all' || trainingLevel !== 'all' || source !== 'all';
+  const clearFilters = () => {
+    setSelectedDomains(new Set());
+    setDifficulty('all');
+    setTrainingLevel('all');
+    setSource('all');
+    setQuery('');
+  };
 
   // Collections resolve by id against everything visible on this device
   // (imported bundles may also reference the pinned quick-start scenario).
@@ -315,104 +332,111 @@ export default function ScenarioLibraryPage() {
           title="What are you teaching?"
           lede="Reviewed cases, your drafts, and collections in one place."
           actions={
-            <div className="flex flex-wrap gap-2">
-            <Link href="/editor" className="btn-secondary">
-              ✏️ New scenario
-            </Link>
-            <Link href="/scenarios/import" className="btn-secondary">
-              📄 Import run sheet
-            </Link>
-            <button
-              className="btn-ghost"
-              onClick={() => {
-                // Toggling from the header abandons any card-initiated
-                // pending add — otherwise it leaks into the next creation.
-                setPendingAddId(null);
-                setCreateOpen((v) => !v);
-              }}
-            >
-              📚 New collection
-            </button>
-            <button className="btn-ghost" onClick={() => fileInput.current?.click()}>
-              ⬆ Import JSON
-            </button>
-            <input
-              ref={fileInput}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) importFile(f);
-                e.target.value = '';
-              }}
-            />
-            <Link href="/debrief" className="btn-ghost">
-              Past sessions
-            </Link>
-            </div>
+            <>
+              <Button variant="primary" href="/editor" icon="plus">
+                New case
+              </Button>
+              <Menu label="Import" icon="upload" showLabel triggerClassName="btn-secondary">
+                <MenuItem icon="file" onSelect={() => router.push('/scenarios/import')}>
+                  Run sheet (document)
+                </MenuItem>
+                <MenuItem icon="code" onSelect={() => fileInput.current?.click()}>
+                  Case or collection (JSON)
+                </MenuItem>
+              </Menu>
+              <Menu label="More library actions">
+                <MenuItem
+                  icon="folder"
+                  onSelect={() => {
+                    // Opening from the header abandons any card-initiated
+                    // pending add — otherwise it leaks into the next creation.
+                    setPendingAddId(null);
+                    setCreateOpen(true);
+                  }}
+                >
+                  New collection
+                </MenuItem>
+              </Menu>
+              <input
+                ref={fileInput}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importFile(f);
+                  e.target.value = '';
+                }}
+              />
+            </>
           }
         />
 
         {/* Renders nothing unless AI settings are configured. */}
         <SyllabusImportPanel onChanged={refresh} />
 
-        {createOpen && (
+        <Dialog
+          open={createOpen}
+          onClose={() => {
+            setCreateOpen(false);
+            setPendingAddId(null);
+          }}
+          title="New collection"
+        >
           <form
-            className="card flex flex-wrap items-center gap-2"
+            className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
               handleCreateCollection();
             }}
           >
-            <input
-              className="input w-64"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Collection title (e.g. CA-1 fall block)"
-              aria-label="New collection title"
-              autoFocus
-            />
-            <button className="btn-primary" type="submit" disabled={!newTitle.trim()}>
-              Create
-            </button>
-            <button
-              className="btn-ghost"
-              type="button"
-              onClick={() => {
-                setCreateOpen(false);
-                setPendingAddId(null);
-              }}
-            >
-              Cancel
-            </button>
-            {pendingAddId && (
-              <span className="text-xs text-faint">
-                “{scenarioById.get(pendingAddId)?.title ?? pendingAddId}” will be added to it.
-              </span>
-            )}
-          </form>
-        )}
-
-        <div className="card-hero surface-blue !p-6">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10"
-          />
-          <div className="relative flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="card-hero-ink text-lg font-bold">Quick start — freeform session</h2>
-              <p className="card-hero-muted mt-1 text-sm">
-                Standardized patient, normal baseline vitals, no scripted events — you drive
-                everything live.
-              </p>
-              <div className="card-hero-muted mt-2 font-mono text-[11px]">~15 min</div>
+            <p>
+              Group cases the way your syllabus does — a block, a rotation, a sim day.
+              {pendingAddId && (
+                <>
+                  {' '}
+                  “{scenarioById.get(pendingAddId)?.title ?? pendingAddId}” will be added to it.
+                </>
+              )}
+            </p>
+            <Field label="Collection title">
+              <input
+                className="input"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="e.g. CA-1 fall block"
+                data-autofocus
+              />
+            </Field>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setCreateOpen(false);
+                  setPendingAddId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" disabled={!newTitle.trim()}>
+                Create collection
+              </Button>
             </div>
-            <Link href={`/faculty/run/${QUICK_START_ID}`} className="btn-on-blue shrink-0">
-              ▶ Quick start
-            </Link>
-          </div>
-        </div>
+          </form>
+        </Dialog>
+
+        <Poster
+          compact
+          as="h2"
+          label="Freeform session / ~15 min"
+          titleLines={[...DISPLAY_COPY.quickStart]}
+          promise="Standardized patient, normal baseline vitals, no scripted events — you drive everything live."
+          actions={
+            <Button variant="onBlue" href={`/faculty/run/${QUICK_START_ID}`} icon="play">
+              Quick start
+            </Button>
+          }
+        />
 
         <div className="sticky top-[var(--topbar-h)] z-10 -mx-4 space-y-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur md:-mx-7 md:px-7">
           <div className="flex flex-wrap gap-2">
@@ -420,8 +444,8 @@ export default function ScenarioLibraryPage() {
               className="input w-56"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search scenarios…"
-              aria-label="Search scenarios"
+              placeholder="Search cases…"
+              aria-label="Search cases"
             />
             <select
               className="input w-auto"
@@ -465,25 +489,26 @@ export default function ScenarioLibraryPage() {
             {DOMAINS.map((d) => (
               <button
                 key={d}
+                type="button"
                 aria-pressed={selectedDomains.has(d)}
                 onClick={() => toggleDomain(d)}
-                className={`rounded px-2 py-1 text-xs font-semibold transition ${
-                  selectedDomains.has(d)
-                    ? 'bg-brand text-on-brand'
-                    : 'bg-panel-2 text-muted hover:bg-panel-3'
-                }`}
+                className="chip"
               >
                 {d}
               </button>
             ))}
-            {selectedDomains.size > 0 && (
+            {(filtersActive || q !== '') && (
               <button
-                className="px-1.5 py-1 text-xs text-faint hover:text-ink-2"
-                onClick={() => setSelectedDomains(new Set())}
+                type="button"
+                className="link px-1.5 py-1 text-xs"
+                onClick={clearFilters}
               >
-                ✕ clear
+                Clear filters
               </button>
             )}
+            <span className="ml-auto font-mono text-[11px] text-faint" aria-live="polite">
+              {filtered.length} {filtered.length === 1 ? 'case' : 'cases'}
+            </span>
           </div>
         </div>
 
@@ -502,7 +527,7 @@ export default function ScenarioLibraryPage() {
             onDelete={() => {
               deleteCollection(c.id);
               refresh();
-              toast(`Collection deleted — its scenarios are untouched`, 'success');
+              toast('Collection deleted — its cases are untouched', 'success');
             }}
             onExport={() => exportCollection(c)}
             onSwap={(idA, idB) => {
@@ -538,7 +563,21 @@ export default function ScenarioLibraryPage() {
           </ul>
         )}
         {filtered.length === 0 && !anyCollectionItemVisible && (
-          <p className="card text-sm text-muted">No scenarios match those filters.</p>
+          <EmptyState
+            icon="search"
+            title="No cases match."
+            body="Nothing fits those filters. Clear them to see the whole library, or build a new case."
+            action={
+              <Button variant="primary" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            }
+            secondaryAction={
+              <Button variant="ghost" href="/editor" icon="plus">
+                New case
+              </Button>
+            }
+          />
         )}
       </div>
     </FacultyGate>
@@ -549,125 +588,127 @@ export default function ScenarioLibraryPage() {
   // not expand the other.
   function scenarioCard(s: Scenario, sectionKey: string) {
     const expandKey = `${sectionKey}:${s.id}`;
+    const inCollection = (c: ScenarioCollection) => c.scenarioIds.includes(s.id);
+    const open = expanded === expandKey;
     return (
-            <div className="card">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-bold">{s.title}</h2>
-                  <p className="mt-1 text-sm text-muted">{s.summary}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                    <Pill tone={DIFFICULTY_TONE[s.tags.difficulty]}>{s.tags.difficulty}</Pill>
-                    {customIds.has(s.id) && <Pill tone="brand">custom</Pill>}
-                    {s.tags.topics.map((t) => (
-                      <span
-                        key={t}
-                        className={`rounded px-1.5 py-0.5 ${
-                          t === domainOf(s)
-                            ? 'bg-panel-3 font-semibold text-ink'
-                            : 'bg-panel-2 text-muted'
-                        }`}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                    <span className="text-faint">~{s.estimatedMinutes} min</span>
-                    {(() => {
-                      const badge = cloudBadge(s);
-                      return badge ? <Pill tone={badge.tone}>{badge.label}</Pill> : null;
-                    })()}
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <Link href={`/faculty/run/${s.id}`} className="btn-primary">
-                    ▶ Run
-                  </Link>
-                  <Link href={`/editor?id=${s.id}`} className="btn-ghost">
-                    Edit
-                  </Link>
-                  <button
-                    className="btn-ghost"
-                    onClick={() => downloadJson(`${s.id}.json`, JSON.stringify(s, null, 2))}
-                    title="Export JSON"
-                  >
-                    ⬇
-                  </button>
-                  {customIds.has(s.id) && (
-                    <ConfirmButton
-                      label="🗑"
-                      confirmLabel="Delete custom"
-                      title="Delete custom scenario"
-                      onConfirm={() => {
-                        deleteCustomScenario(s.id);
-                        refresh();
-                        toast('Custom scenario deleted', 'success');
-                      }}
-                    />
-                  )}
-                  <select
-                    className="input w-auto !py-1 text-xs"
-                    value=""
-                    aria-label={`Add ${s.title} to a collection`}
-                    onChange={(e) => {
-                      // Option values are namespaced ('add:<id>' vs '__new')
-                      // so a stored id can never collide with the sentinel.
-                      const value = e.target.value;
-                      if (value === '__new') {
-                        setPendingAddId(s.id);
-                        setCreateOpen(true);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      } else if (value.startsWith('add:')) {
-                        const collectionId = value.slice('add:'.length);
-                        const added = addToCollection(collectionId, s.id);
-                        refresh();
-                        const c = collections.find((x) => x.id === collectionId);
-                        if (added.ok) toast(`Added to “${c?.title ?? collectionId}”`, 'success');
-                        else toast(added.error, 'error');
-                      }
-                    }}
-                  >
-                    <option value="">＋ Collection…</option>
-                    {collections.map((c) => (
-                      <option
-                        key={c.id}
-                        value={`add:${c.id}`}
-                        disabled={c.scenarioIds.includes(s.id)}
-                      >
-                        {c.title}
-                        {c.scenarioIds.includes(s.id) ? ' ✓' : ''}
-                      </option>
-                    ))}
-                    <option value="__new">New collection…</option>
-                  </select>
-                </div>
-              </div>
-
-              <button
-                className="mt-2 text-xs text-brand-strong hover:underline"
-                onClick={() => setExpanded(expanded === expandKey ? null : expandKey)}
-              >
-                {expanded === expandKey ? 'Hide details ▲' : 'Objectives & setup ▼'}
-              </button>
-              {expanded === expandKey && (
-                <div className="mt-3 grid gap-4 border-t border-line pt-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <h3 className="label">Learning objectives</h3>
-                    <ul className="list-disc space-y-1 pl-4 text-ink-2">
-                      {s.learningObjectives.map((o, i) => (
-                        <li key={i}>{o}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="label">Setup</h3>
-                    <ul className="list-disc space-y-1 pl-4 text-ink-2">
-                      {s.setup.map((o, i) => (
-                        <li key={i}>{o}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
+      <div className="card">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold">{s.title}</h3>
+            <p className="mt-1 text-sm text-muted">{s.summary}</p>
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+              <Pill tone={DIFFICULTY_TONE[s.tags.difficulty]}>{s.tags.difficulty}</Pill>
+              {customIds.has(s.id) && <Pill tone="brand">custom</Pill>}
+              {s.tags.topics.map((t) => (
+                <span
+                  key={t}
+                  className={`rounded-full px-2 py-0.5 ${
+                    t === domainOf(s) ? 'bg-panel-3 font-semibold text-ink' : 'bg-panel-2 text-muted'
+                  }`}
+                >
+                  {t}
+                </span>
+              ))}
+              <span className="font-mono text-faint">~{s.estimatedMinutes} min</span>
+              {(() => {
+                const badge = cloudBadge(s);
+                return badge ? <Pill tone={badge.tone}>{badge.label}</Pill> : null;
+              })()}
             </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button variant="primary" href={`/faculty/run/${s.id}`} icon="play">
+              Run
+            </Button>
+            <Button variant="ghost" href={`/editor?id=${s.id}`} icon="edit">
+              Edit
+            </Button>
+            <Menu label={`More actions for ${s.title}`}>
+              <MenuItem
+                icon="download"
+                onSelect={() => downloadJson(`${s.id}.json`, JSON.stringify(s, null, 2))}
+              >
+                Export JSON
+              </MenuItem>
+              {collections.map((c) => (
+                <MenuItem
+                  key={c.id}
+                  icon={inCollection(c) ? 'check' : 'folder'}
+                  disabled={inCollection(c)}
+                  onSelect={() => {
+                    const added = addToCollection(c.id, s.id);
+                    refresh();
+                    if (added.ok) toast(`Added to “${c.title}”`, 'success');
+                    else toast(added.error, 'error');
+                  }}
+                >
+                  {inCollection(c) ? `In “${c.title}”` : `Add to “${c.title}”`}
+                </MenuItem>
+              ))}
+              <MenuItem
+                icon="plus"
+                onSelect={() => {
+                  setPendingAddId(s.id);
+                  setCreateOpen(true);
+                }}
+              >
+                Add to a new collection…
+              </MenuItem>
+              {customIds.has(s.id) && (
+                <MenuItem
+                  icon="trash"
+                  tone="danger"
+                  onSelect={() => {
+                    void confirmDialog({
+                      title: 'Delete this case?',
+                      body: `“${s.title}” will be removed from this device. Debriefs from past sessions are kept.`,
+                      confirmLabel: 'Delete case',
+                      tone: 'danger',
+                    }).then((ok) => {
+                      if (!ok) return;
+                      deleteCustomScenario(s.id);
+                      refresh();
+                      toast('Case deleted', 'success');
+                    });
+                  }}
+                >
+                  Delete case
+                </MenuItem>
+              )}
+            </Menu>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="link mt-3 inline-flex items-center gap-1 text-xs"
+          aria-expanded={open}
+          onClick={() => setExpanded(open ? null : expandKey)}
+        >
+          {open ? 'Hide details' : 'Objectives & setup'}
+          <Icon name="chevron-down" size={13} className={open ? 'rotate-180' : ''} />
+        </button>
+        {open && (
+          <div className="mt-3 grid gap-4 border-t border-line pt-3 text-sm sm:grid-cols-2">
+            <div>
+              <h4 className="label">Learning objectives</h4>
+              <ul className="list-disc space-y-1 pl-4 text-ink-2">
+                {s.learningObjectives.map((o, i) => (
+                  <li key={i}>{o}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="label">Setup</h4>
+              <ul className="list-disc space-y-1 pl-4 text-ink-2">
+                {s.setup.map((o, i) => (
+                  <li key={i}>{o}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 }
