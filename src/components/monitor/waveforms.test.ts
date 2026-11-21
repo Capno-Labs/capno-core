@@ -17,13 +17,13 @@ import {
 /** A single isolated beat starting at t = 0. */
 function beat(over: Partial<Beat> = {}): Beat {
   const baseSec = over.baseSec ?? 60 / 72;
-  return { index: 0, startSec: 0, rrSec: baseSec, baseSec, rhythm: 'sinus', kind: 'normal', pulse: 1, ...over };
+  return { index: 0, startSec: 0, rrSec: baseSec, baseSec, factor: 1, rhythm: 'sinus', kind: 'normal', pulse: 1, ...over };
 }
 
 /** Beats a clock produces over `seconds` (the recent tail it would hand the renderer). */
 function clockAfter(rhythm: Rhythm, hr: number, seconds: number, pvcEveryN = 4): BeatClock {
   const clock = new BeatClock(3);
-  clock.setInput({ hr, rhythm, pvcEveryN, frozen: false });
+  clock.setInput({ hr, rr: 0, rhythm, pvcEveryN, frozen: false });
   for (let i = 0; i < seconds * 250; i++) clock.advance(0.004);
   return clock;
 }
@@ -144,7 +144,7 @@ describe('ecgValue', () => {
     for (const rhythm of rhythms) {
       for (const hr of [30, 72, 150, 220]) {
         const clock = new BeatClock(5);
-        clock.setInput({ hr, rhythm, pvcEveryN: 2, frozen: false });
+        clock.setInput({ hr, rr: 0, rhythm, pvcEveryN: 2, frozen: false });
         for (let i = 0; i < 2500; i++) {
           clock.advance(0.004);
           expect(Math.abs(ecgValue(clock.recent(), rhythm, clock.t))).toBeLessThanOrEqual(1.3);
@@ -158,7 +158,7 @@ describe('ecgValue', () => {
     // at 110 bpm and 60 fps about half the beats drew under 70% height.
     for (const hr of [60, 72, 110, 150, 180]) {
       const clock = new BeatClock();
-      clock.setInput({ hr, rhythm: 'sinus', pvcEveryN: 4, frozen: false });
+      clock.setInput({ hr, rr: 0, rhythm: 'sinus', pvcEveryN: 4, frozen: false });
       const peaks = new Map<number, number>();
       // Sample on the renderer's grid, deliberately off-phase with the beats.
       for (let t = 0.0013; t < 30; t += SUBSTEP_SEC) {
@@ -218,7 +218,7 @@ describe('pulse traces (pleth and arterial line)', () => {
   });
 
   it('reaches systolic and settles to diastolic on the arterial trace', () => {
-    const clock = clockAfter('sinus', 72, 6);
+    const clock = clockAfter('svt', 72, 6); // metronomic: every pulse is full strength
     const samples = Array.from({ length: 1000 }, (_, i) =>
       artValue(clock.recent(), 'sinus', clock.t - 1 + i * 0.001, 120, 80),
     );
@@ -240,7 +240,7 @@ describe('pulse traces (pleth and arterial line)', () => {
 
   it('varies beat to beat in AF but never exceeds the systolic number', () => {
     const clock = new BeatClock(11);
-    clock.setInput({ hr: 100, rhythm: 'afib', pvcEveryN: 4, frozen: false });
+    clock.setInput({ hr: 100, rr: 0, rhythm: 'afib', pvcEveryN: 4, frozen: false });
     const tops: number[] = [];
     let top = -Infinity;
     let lastIndex = -1;

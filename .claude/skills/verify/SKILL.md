@@ -59,3 +59,8 @@ The canonical smoke flow:
   screenshot `page.locator('canvas').first()`.
 - Displayed BP is the last NIBP cuff reading by design — don't expect the BP
   tile to follow SBP/DBP sliders live (see CLAUDE.md).
+- The HR tile is counted from drawn beats: in sinus rhythm it can read one
+  either side of the slider value, and in AF several — assert a range, not an
+  exact number. SVT, VT and PEA are metronomic and read exactly.
+- In VF/PEA/asystole the SpO₂ tile reads `--`; after a cuff cycle at
+  systolic 0 the NIBP tile reads `--/--`.

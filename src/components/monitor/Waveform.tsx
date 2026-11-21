@@ -30,9 +30,9 @@ interface WaveformProps {
   /** Freeze the trace (scenario paused / not started). */
   frozen?: boolean;
   /**
-   * Shared heartbeat clock for the cardiac traces (ecg/pleth/art). The owner
-   * keeps its input current. Omit it and the trace runs a private clock —
-   * correct on its own, but not locked to any other trace.
+   * The monitor's shared beat/breath clock. The owner keeps its input
+   * current. Omit it and the trace runs a private clock — correct on its
+   * own, but not locked to any other trace.
    */
   clock?: BeatClock;
   heightClass?: string;
@@ -47,9 +47,9 @@ const ERASE_AHEAD_PX = 18;
 /**
  * Sweep-style waveform, like a real OR monitor: a write bar moves left to
  * right redrawing the trace in place, with a small erase gap ahead of it.
- * Cardiac traces plot the beats of a shared BeatClock; the capnogram advances
- * its own breath phase from the live RR. Each frame is plotted in several
- * short sub-steps so narrow features (the R wave) keep their full height.
+ * Cardiac traces plot the beats of a shared BeatClock and the capnogram its
+ * breath phase. Each frame is plotted in several short sub-steps so narrow
+ * features (the R wave) keep their full height.
  */
 export function Waveform({
   kind,
@@ -71,12 +71,13 @@ export function Waveform({
   const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen });
   live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen };
 
-  // Cardiac traces without a shared clock keep a private one fed from props.
+  // A trace without a shared clock keeps a private one fed from props.
   const ownClock = useRef<BeatClock | null>(null);
-  if (!clock && kind !== 'capno') {
+  if (!clock) {
     ownClock.current ??= new BeatClock(Date.now());
     ownClock.current.setInput({
       hr,
+      rr,
       rhythm,
       pvcEveryN: PVC_FREQUENCY_EVERY_N[pvcFrequency],
       frozen,
@@ -92,9 +93,7 @@ export function Waveform({
     if (!ctx) return;
 
     let raf = 0;
-    let lastTime = performance.now();
-    let lastClockT: number | null = null; // clock time already drawn (cardiac traces)
-    let breathPhase = 0; // 0..1 within the current breath (capnogram)
+    let lastClockT: number | null = null; // clock time already drawn
     let x = 0; // sweep position in CSS px
     let prevY: number | null = null;
 
@@ -121,17 +120,20 @@ export function Waveform({
     // the capnogram morphology legible.
     const SWEEP_SPEED = kind === 'capno' ? 45 : 90;
 
-    /** Trace value at clock time `t` (cardiac) or the current breath phase. */
-    const sample = (t: number): number => {
+    /** Trace value at clock time `t`. */
+    const sample = (beatClock: BeatClock, t: number): number => {
       const v = live.current;
-      const beats = clockRef.current?.recent() ?? [];
+      const beats = beatClock.recent();
       switch (kind) {
         case 'ecg':
           return ecgValue(beats, v.rhythm, t);
         case 'pleth':
           return plethValue(beats, v.rhythm, t, v.spo2);
         case 'capno':
-          return capnoSample(breathPhase, v.rr, v.etco2, v.capnoShape);
+          // Each breath's plateau peaks at or just under the EtCO2 number.
+          return (
+            capnoSample(beatClock.breathPhaseAt(t), v.rr, v.etco2, v.capnoShape) * beatClock.breathHeight
+          );
         case 'art':
           return Math.min(ART_SCALE_MAX * 1.05, artValue(beats, v.rhythm, t, v.sbp, v.dbp));
       }
@@ -165,21 +167,14 @@ export function Waveform({
       raf = requestAnimationFrame(draw);
       const v = live.current;
 
-      // How much trace time to draw this frame, and where it ends.
-      let dt: number;
-      let endT = 0;
-      const beatClock = kind === 'capno' ? null : clockRef.current;
-      if (beatClock) {
-        beatClock.tick(now);
-        endT = beatClock.t;
-        // The clock stands still while frozen, so dt is 0 and nothing draws.
-        dt = lastClockT === null ? 0 : Math.min(MAX_FRAME_SEC, endT - lastClockT);
-        lastClockT = endT;
-      } else {
-        dt = Math.min(MAX_FRAME_SEC, (now - lastTime) / 1000);
-        lastTime = now;
-        if (v.frozen) return;
-      }
+      // How much trace time to draw this frame, and where it ends. The clock
+      // stands still while frozen, so dt is 0 and nothing draws.
+      const beatClock = clockRef.current;
+      if (!beatClock) return;
+      beatClock.tick(now);
+      const endT = beatClock.t;
+      const dt = lastClockT === null ? 0 : Math.min(MAX_FRAME_SEC, endT - lastClockT);
+      lastClockT = endT;
       if (dt <= 0) return;
 
       const rect = canvas.getBoundingClientRect();
@@ -203,11 +198,9 @@ export function Waveform({
       // Plot the frame as a run of short sub-steps.
       const steps = Math.max(1, Math.ceil(dt / SUBSTEP_SEC));
       const stepSec = dt / steps;
-      const breathsPerSec = Math.max(0, v.rr) / 60;
       let points: number[] = prevY === null ? [] : [x, prevY];
       for (let i = 1; i <= steps; i++) {
-        if (kind === 'capno') breathPhase = (breathPhase + breathsPerSec * stepSec) % 1;
-        const y = mid - sample(endT - dt + i * stepSec) * scale;
+        const y = mid - sample(beatClock, endT - dt + i * stepSec) * scale;
         x += SWEEP_SPEED * stepSec;
         if (x >= w) {
           // Sweep wrapped: finish the stroke at the right edge, restart at the left.

@@ -32,7 +32,12 @@ export function VitalTile({
   const history = useRef<{ t: number; v: number }[]>([]);
 
   useEffect(() => {
-    if (trendValue === undefined || Number.isNaN(trendValue)) return;
+    if (trendValue === undefined || Number.isNaN(trendValue)) {
+      // No reading (lost signal): drop the arrow and start afresh when one returns.
+      history.current = [];
+      setTrend(null);
+      return;
+    }
     const now = Date.now();
     history.current.push({ t: now, v: trendValue });
     history.current = history.current.filter((h) => now - h.t <= 15000);
