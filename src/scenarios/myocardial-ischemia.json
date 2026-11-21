@@ -1,6 +1,6 @@
 {
   "id": "myocardial-ischemia",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Intraoperative Myocardial Ischemia",
   "summary": "A 68-year-old man with coronary disease undergoing open lower-extremity revascularization develops demand ischemia when light anesthesia and blood loss drive tachycardia and hypertension. Learners must read the ST-segment change and new ectopy, restore the myocardial oxygen supply-demand balance with oxygen, analgesia/depth, rate control, and coronary perfusion pressure, use nitroglycerin without dropping the pressure too far, and be ready for the ventricular fibrillation that follows if ischemia is left to run.",
   "tags": {
@@ -9,7 +9,7 @@
     "trainingLevels": ["resident_junior", "resident_senior", "crna", "caa", "attending"]
   },
   "estimatedMinutes": 25,
-  "monitoring": { "nibpIntervalSec": 120 },
+  "monitoring": { "artLine": true },
   "learningObjectives": [
     "Recognize intraoperative myocardial ischemia from new ST-segment depression, T-wave change, or ischemic ectopy against the clinical backdrop of tachycardia, hypertension, hypotension, or anemia.",
     "Reason explicitly in supply-versus-demand terms: reduce demand (heart rate, contractility, wall tension) while protecting supply (oxygenation, hemoglobin, coronary perfusion pressure, diastolic time).",
@@ -20,7 +20,7 @@
   ],
   "setup": [
     "OR mid-case for an open femoral-popliteal bypass in a vasculopath: general endotracheal anesthesia established, moderate ongoing surgical blood loss, arterial line transducing.",
-    "This is an arterial-line case: the monitor shows live beat-to-beat pressure (set monitoring.artLine if you prefer, or narrate cuff readings).",
+    "This is an arterial-line case: the monitor shows live beat-to-beat pressure and an arterial trace.",
     "The simulated monitor does not draw ST segments — faculty must verbally report the ECG: 'lead II and V5 now show 2 mm of new horizontal ST depression', and later 'multiform PVCs appearing'.",
     "Labeled props: esmolol, metoprolol, phenylephrine 100 mcg/mL, norepinephrine infusion, nitroglycerin infusion, aspirin 325 mg, heparin, and a defibrillator with pads on the patient.",
     "Confederate circulator/surgeon who can quantify blood loss ('another 400 mL in the field') and pause when asked.",

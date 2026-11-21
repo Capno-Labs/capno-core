@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { LogoTile } from '@/components/brand/LogoTile';
 import { BootOverlay } from '@/components/monitor/BootOverlay';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
+import { PreBrief } from '@/components/monitor/PreBrief';
 import { unlockMonitorAudio } from '@/components/monitor/monitorAudioContext';
 import { SyncHealthBadge } from '@/components/SyncHealthBadge';
 import { CodeInput } from '@/components/ui/CodeInput';
@@ -201,8 +202,16 @@ function StudentContent() {
           <Icon name="fullscreen" size={16} />
         </button>
       )}
-      {!booted && <BootOverlay onDone={() => setBooted(true)} />}
-      <MonitorDisplay snapshot={snapshot} showRhythmLabel={false} soundRole="display" />
+      {snapshot.status === 'idle' && snapshot.preBrief ? (
+        // Before the start: the patient's pre-op details, if faculty left
+        // them on. The monitor powers on (boot overlay) when the scenario runs.
+        <PreBrief brief={snapshot.preBrief} />
+      ) : (
+        <>
+          {!booted && <BootOverlay onDone={() => setBooted(true)} />}
+          <MonitorDisplay snapshot={snapshot} showRhythmLabel={false} soundRole="display" />
+        </>
+      )}
     </main>
   );
 }

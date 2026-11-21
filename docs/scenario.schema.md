@@ -27,6 +27,13 @@ Demographics (`name`, `age`, `sex`, `weightKg`, `heightCm`, `asa` 1–6), plus
 (`mallampati` 1–4 and optional `mouthOpeningCm`, `thyromentalCm`,
 `neckMobility`, `dentition`, `notes`) and an optional free-text `plan`.
 
+**Learners may see this block.** Faculty can turn on a pre-brief that shows
+the whole `patient` object on student displays until the scenario starts (off
+by default). Write it as the pre-operative record a learner would be handed:
+facilitator notes and anything that gives the case away belong in `setup` or
+the events, not here. Nothing else in the scenario — title, summary,
+objectives, events — is ever sent to a student display.
+
 ## `baselineVitals`
 
 All fields required: `hr`, `sbp`, `dbp`, `spo2`, `etco2`, `rr`, `temp` (°C),

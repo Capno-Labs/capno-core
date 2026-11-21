@@ -15,12 +15,15 @@ import { useControllerStore } from '@/lib/store/controllerStore';
  * scenario.
  */
 export function PreStartPanel() {
-  const { engine, snapshot, sessionCode, syncHealth } = useControllerStore();
+  const { engine, snapshot, sessionCode, syncHealth, setPreBrief } = useControllerStore();
   const [dismissed, setDismissed] = useState(false);
 
   if (!engine || !snapshot || dismissed || snapshot.status !== 'idle') return null;
 
   const scenario = engine.scenario;
+  // The pre-brief rides in the snapshot only while idle, which is the only
+  // time this panel shows — so its presence is the toggle's state.
+  const preBriefOn = Boolean(snapshot.preBrief);
   const crossDevice = syncHealth.some((h) => h.kind === 'supabase');
   const nibpMin = Math.round((scenario.monitoring?.nibpIntervalSec ?? 180) / 60);
   const actionCount = scenario.expectedActions.length;
@@ -78,6 +81,22 @@ export function PreStartPanel() {
               ? 'Cross-device sync is on — displays can join from any device with the link or code.'
               : 'Displays join from this device or another tab of this browser. Joining from a different device needs the cloud realtime backend on both sides.'}
           </p>
+          <label className="flex cursor-pointer items-start gap-2 rounded-ctl bg-panel-2 p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-brand"
+              checked={preBriefOn}
+              onChange={(e) => setPreBrief(e.target.checked)}
+            />
+            <span>
+              <span className="font-semibold text-ink">Show the patient pre-brief until Start</span>
+              <span className="block text-xs text-faint">
+                {preBriefOn
+                  ? 'Displays now show the patient’s history, allergies, medications, airway exam and plan, exactly as written in the scenario — never its title or events. The monitor takes over when you start.'
+                  : 'Off: displays show the monitor on standby. Turn on to put the patient’s history, allergies, medications, airway exam and plan on the displays — check the patient card below first, since learners see it exactly as written.'}
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="space-y-2">

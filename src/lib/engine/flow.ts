@@ -1,4 +1,4 @@
-import type { Scenario, ScenarioEvent } from './types';
+import type { Phase, Scenario, ScenarioEvent, SimSnapshot } from './types';
 
 /**
  * The session's pacing budget in seconds: the authored hard slot budget when
@@ -8,6 +8,60 @@ import type { Scenario, ScenarioEvent } from './types';
  */
 export function sessionBudgetSec(scenario: Scenario): number {
   return scenario.targetDurationSec ?? scenario.estimatedMinutes * 60;
+}
+
+/** Where a clock stands against its time budget. */
+export interface Pace {
+  budgetSec: number;
+  /** Time left; 0 once over. */
+  remainingSec: number;
+  /** Time past the budget; 0 until over. */
+  overBySec: number;
+  /** `low` = inside the last tenth of the budget; `over` = past it. */
+  state: 'ok' | 'low' | 'over';
+}
+
+/** Pace of `elapsedSec` against `budgetSec`. Display only — never drives the engine. */
+export function paceAgainst(elapsedSec: number, budgetSec: number): Pace {
+  const remaining = budgetSec - elapsedSec;
+  return {
+    budgetSec,
+    remainingSec: Math.max(0, remaining),
+    overBySec: Math.max(0, -remaining),
+    state: remaining < 0 ? 'over' : remaining <= budgetSec * 0.1 ? 'low' : 'ok',
+  };
+}
+
+/** The whole session against its budget (see sessionBudgetSec). */
+export function sessionPace(scenario: Scenario, elapsedSec: number): Pace {
+  return paceAgainst(elapsedSec, sessionBudgetSec(scenario));
+}
+
+/**
+ * Time spent in the current phase, and its pace when the phase has an
+ * authored `targetDurationSec`. `phase` is undefined if the snapshot names a
+ * phase the scenario does not have.
+ */
+export function phasePace(
+  scenario: Scenario,
+  snapshot: Pick<SimSnapshot, 'phaseId' | 'phaseChangedAtSec' | 'elapsedSec'>,
+): { phase: Phase | undefined; elapsedInPhaseSec: number; pace: Pace | undefined } {
+  const phase = scenario.phases.find((p) => p.id === snapshot.phaseId);
+  const elapsedInPhaseSec = Math.max(0, snapshot.elapsedSec - (snapshot.phaseChangedAtSec ?? 0));
+  return {
+    phase,
+    elapsedInPhaseSec,
+    pace:
+      phase?.targetDurationSec !== undefined
+        ? paceAgainst(elapsedInPhaseSec, phase.targetDurationSec)
+        : undefined,
+  };
+}
+
+/** The phase after `currentId` in author order, if there is one. */
+export function nextPhase(phases: readonly Phase[], currentId: string): Phase | undefined {
+  const i = phases.findIndex((p) => p.id === currentId);
+  return i >= 0 ? phases[i + 1] : undefined;
 }
 
 /**

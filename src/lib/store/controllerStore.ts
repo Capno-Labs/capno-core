@@ -70,6 +70,8 @@ interface ControllerState {
   addNote: (text: string) => void;
   setAlarmsSilenced: (silenced: boolean) => void;
   setAutoEvents: (on: boolean) => void;
+  /** Show or hide the patient pre-brief on student displays before the start. */
+  setPreBrief: (on: boolean) => void;
   skipAhead: (sec: number) => void;
   cycleNibp: () => void;
   setArtLine: (on: boolean) => void;
@@ -117,7 +119,9 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       // so it carries over from the previous engine (scenario switches and
       // "Run next student" turnovers keep the instructor's choice).
       const autoEvents = get().engine?.getAutoEventsEnabled() ?? false;
-      const engine = new SimulationEngine(scenario, sessionId, { autoEvents });
+      // The pre-brief choice carries over the same way (default: not shown).
+      const preBrief = get().engine?.getPreBriefEnabled() ?? false;
+      const engine = new SimulationEngine(scenario, sessionId, { autoEvents, preBrief });
       channel = createSyncChannels(sessionCode);
       // Late-joining student displays send 'hello' to get an immediate snapshot.
       channel.onMessage((m) => {
@@ -215,6 +219,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     addNote: (text) => withEngine((e) => e.addNote(text)),
     setAlarmsSilenced: (silenced) => withEngine((e) => e.setAlarmsSilenced(silenced)),
     setAutoEvents: (on) => withEngine((e) => e.setAutoEvents(on)),
+    setPreBrief: (on) => withEngine((e) => e.setPreBrief(on)),
     skipAhead: (sec) => withEngine((e) => e.skipAhead(sec)),
     cycleNibp: () => withEngine((e) => e.cycleNibp()),
     setArtLine: (on) => withEngine((e) => e.setArtLine(on)),

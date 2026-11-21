@@ -10,13 +10,14 @@ import { FlowPanel } from '@/components/controller/FlowPanel';
 import { LogPanel } from '@/components/controller/LogPanel';
 import { NotesPanel } from '@/components/controller/NotesPanel';
 import { PatientCard } from '@/components/controller/PatientCard';
+import { PhaseStepper } from '@/components/controller/PhaseStepper';
 import { PreStartPanel } from '@/components/controller/PreStartPanel';
 import { SessionControls } from '@/components/controller/SessionControls';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
 import { DemoTour } from '@/components/tour/DemoTour';
 import { hasSeenDemo } from '@/lib/demoTour';
-import { nextUnfiredEvent } from '@/lib/engine/flow';
+import { nextUnfiredEvent, sessionPace } from '@/lib/engine/flow';
 import { formatClock } from '@/lib/format';
 import { useBeforeUnload } from '@/lib/hooks/useBeforeUnload';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
@@ -126,6 +127,11 @@ export default function FacultyRunPage() {
           .sort((a, b) => a.remaining - b.remaining)[0]
       : undefined;
 
+  // Pace against the lab slot (authored budget, else the library estimate).
+  const pace = sessionPace(engine.scenario, snapshot.elapsedSec);
+  const hardBudget = engine.scenario.targetDurationSec !== undefined;
+  const paceLive = snapshot.status === 'running' || snapshot.status === 'paused';
+
   return (
     <FacultyGate>
       <div className="mx-auto max-w-[1600px] space-y-3">
@@ -147,6 +153,22 @@ export default function FacultyRunPage() {
               <span className="shrink-0 font-mono text-3xl font-bold tabular-nums text-ink">
                 {formatClock(snapshot.elapsedSec)}
               </span>
+              {paceLive && (
+                <span
+                  className={`shrink-0 self-center rounded-ctl px-2 py-1 font-mono text-xs font-semibold tabular-nums ring-1 ${
+                    pace.state === 'over'
+                      ? 'bg-warn-soft text-warn-strong ring-warn/40'
+                      : pace.state === 'low'
+                        ? 'bg-panel-2 text-warn-strong ring-warn/40'
+                        : 'bg-panel-2 text-muted ring-line'
+                  }`}
+                  title={`${hardBudget ? 'Lab slot budget' : 'Estimated run time'}: ${formatClock(pace.budgetSec)}`}
+                >
+                  {pace.state === 'over'
+                    ? `+${formatClock(pace.overBySec)} over`
+                    : `${formatClock(pace.remainingSec)} left`}
+                </span>
+              )}
               {imminentAuto && (
                 <span
                   className="shrink-0 self-center rounded-ctl bg-warn-soft px-2 py-1 text-xs font-semibold text-warn-strong ring-1 ring-warn/40 motion-safe:animate-pulse"
@@ -169,6 +191,7 @@ export default function FacultyRunPage() {
               <SessionControls />
             </span>
           </header>
+          <PhaseStepper />
         </div>
 
         {tourOpen && <DemoTour onClose={() => setTourOpen(false)} />}
