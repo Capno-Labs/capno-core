@@ -57,6 +57,19 @@ ASA table and are faculty-only. A new field moves with: those three, the zod
 schema, `tofReading`, the tile, the controller block, `NmbFields`, the
 generator's `SCHEMA_REFERENCE` and `docs/scenario.schema.md`.
 
+## Touch alarm limits
+
+Limits live in `ALARM_PROFILES` (`src/lib/engine/vitals.ts`), one set per
+patient category, with the manual each value came from. A scenario picks a
+category (`monitoring.alarmProfile`) and may change single limits
+(`monitoring.alarmLimits`); `resolveAlarmLimits` combines them and
+`alarmLimitProblems` is what the schema rejects on. The engine sends the
+limits in force in `snapshot.alarmLimits` — the tiles print them and the
+debrief's turning points re-read history against them. A new vital with
+limits joins `ALARM_VITALS` (types), every profile, `alarmLimitsSchema`, the
+generator's `SCHEMA_REFERENCE` and the table in `docs/scenario.schema.md`.
+Change a profile's numbers only with a source.
+
 ## Add a rhythm
 
 Extend together: the `Rhythm` union + `RHYTHM_LABELS`

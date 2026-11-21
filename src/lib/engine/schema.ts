@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import type { Scenario } from './types';
-import type { NmbKey, VentKey } from './types';
+import type { AlarmVital, NmbKey, VentKey } from './types';
 import { FICO2_MAX, NMB_META, ST_MM_MAX, ST_MM_MIN, VENT_META } from './types';
-import { MIN_PULSE_PRESSURE, maxDbpFor } from './vitals';
+import { alarmLimitProblems, MIN_PULSE_PRESSURE, maxDbpFor, resolveAlarmLimits, VITAL_META } from './vitals';
 
 /**
  * Zod schema mirroring the Scenario type. This is the single source of truth
@@ -63,6 +63,25 @@ const nmbSchema = z
     tofCount: nmbRange('tofCount').int(),
     tofRatio: nmbRange('tofRatio'),
     ptc: nmbRange('ptc').int(),
+  })
+  .partial()
+  .strict();
+
+/** One vital's alarm-limit changes: each limit a number in the vital's range,
+ *  or null to switch it off. */
+const alarmBandSchema = (vital: AlarmVital) => {
+  const limit = z.number().min(VITAL_META[vital].min).max(VITAL_META[vital].max).nullable().optional();
+  return z.object({ critLow: limit, warnLow: limit, warnHigh: limit, critHigh: limit }).strict();
+};
+
+const alarmLimitsSchema = z
+  .object({
+    hr: alarmBandSchema('hr'),
+    sbp: alarmBandSchema('sbp'),
+    spo2: alarmBandSchema('spo2'),
+    etco2: alarmBandSchema('etco2'),
+    rr: alarmBandSchema('rr'),
+    temp: alarmBandSchema('temp'),
   })
   .partial()
   .strict();
@@ -264,10 +283,22 @@ export const scenarioSchema = z
         artLine: z.boolean().optional(),
         nibpIntervalSec: z.number().min(15).max(1800).optional(),
         v5: z.boolean().optional(),
+        alarmProfile: z.enum(['adult', 'pediatric', 'neonatal']).optional(),
+        alarmLimits: alarmLimitsSchema.optional(),
       })
       .optional(),
   })
   .superRefine((s, ctx) => {
+    // Alarm limits must still make sense once laid over their profile.
+    if (s.monitoring?.alarmLimits) {
+      for (const problem of alarmLimitProblems(resolveAlarmLimits(s.monitoring))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['monitoring', 'alarmLimits', problem.vital],
+          message: problem.message,
+        });
+      }
+    }
     // Referential integrity: rubric action ids and action phases must exist.
     const actionIds = new Set(s.expectedActions.map((a) => a.id));
     const phaseIds = new Set(s.phases.map((p) => p.id));

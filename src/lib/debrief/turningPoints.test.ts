@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { LogEntry, LogKind, VitalsHistorySample } from '../engine/types';
 import type { TurningPointInput } from './turningPoints';
+import { ALARM_PROFILES } from '../engine/vitals';
 import { deriveTurningPoints } from './turningPoints';
 
 const entry = (t: number, kind: LogKind, label: string, detail?: string): LogEntry => ({
@@ -35,6 +36,24 @@ const input = (over: {
     monitoring: over.artLine ? { artLine: true } : undefined,
   },
   history: over.history,
+});
+
+describe('deriveTurningPoints with the session\'s alarm limits', () => {
+  const history = [sample(0, { hr: 130 }), sample(10, { hr: 130 }), sample(20, { hr: 130 })];
+
+  it('reads the history against the adult limits when the archive carries none', () => {
+    const points = deriveTurningPoints(input({ history }));
+    expect(points.some((p) => p.kind === 'alarm' && /HR/.test(p.label))).toBe(true);
+  });
+
+  it('reads it against the limits the session used', () => {
+    const session = input({ history });
+    const points = deriveTurningPoints({
+      ...session,
+      snapshot: { ...session.snapshot, alarmLimits: ALARM_PROFILES.pediatric },
+    });
+    expect(points).toEqual([]);
+  });
 });
 
 describe('deriveTurningPoints', () => {

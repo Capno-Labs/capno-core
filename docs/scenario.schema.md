@@ -18,7 +18,7 @@ scenario from the library for a complete working example.
 | `setup` | string[] | Room/equipment/confederate instructions for faculty. |
 | `estimatedMinutes` | number | Library display only. |
 | `targetDurationSec` | number? | Optional hard time budget for a scheduled lab slot. The run screen counts down against it and flags overruns; pacing display only, never drives engine behavior. |
-| `monitoring` | object? | What the monitor is connected to. Absent = NIBP cuff cycling every 180 s, ECG lead II only. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). `{ "v5": true }` adds a V5 ECG trace under lead II, with its own ST level. In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff, place a line, or add the V5 lead during a session. |
+| `monitoring` | object? | What the monitor is connected to. Absent = NIBP cuff cycling every 180 s, ECG lead II only. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). `{ "v5": true }` adds a V5 ECG trace under lead II, with its own ST level. In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff, place a line, or add the V5 lead during a session. `alarmProfile` and `alarmLimits` set the alarm limits — see [Alarm limits](#alarm-limits). |
 
 ## `patient`
 
@@ -156,6 +156,47 @@ controller steps through them; expected actions group by phase. The
 optional `targetDurationSec` is a pacing budget for that phase: the phase
 stepper shows elapsed-in-phase against it and flags overruns (display
 only, no engine behavior).
+
+## Alarm limits
+
+The monitor alarms when a vital crosses a limit: a **warning** below `warnLow`
+or above `warnHigh`, **critical** below `critLow` or above `critHigh`. The
+limits come from the monitor's patient category, `monitoring.alarmProfile`:
+
+| Vital | `adult` (default) | `pediatric` | `neonatal` |
+|---|---|---|---|
+| `hr` warning / critical | 50–110 / 40, 140 | 75–160 / 55, 180 | 100–200 / 80, 220 |
+| `sbp` warning / critical | 90–160 / 70, 200 | 70–120 / 60, 130 | 40–90 / 35, 95 |
+| `spo2` low warning / critical | 92 / 85 | 92 / 85 | 85 / 80 |
+| `rr` warning / critical | 8–24 / 4, 35 | 8–30 / 4, 35 | 30–100 / 4, none |
+| `etco2` warning / critical | 25–50 / 15, 60 | same | same |
+| `temp` warning / critical high | 35–38 / 39.5 | same | same |
+
+Blood-pressure limits are systolic, and in cuff mode they are read against
+the last cuff measurement. The category is the author's choice, as it is the
+user's on a real monitor: it does not follow `patient.age` (the editor notes
+a patient under 18 left on the adult limits). Faculty can switch category
+during a session.
+
+`monitoring.alarmLimits` changes single limits for one case. Only the limits
+listed change; `null` switches one off:
+
+```jsonc
+"monitoring": {
+  "alarmProfile": "pediatric",
+  "alarmLimits": {
+    "hr": { "warnHigh": 170 },      // this child runs fast: warn above 170, not 160
+    "temp": { "warnLow": null }     // no low-temperature warning in this case
+  }
+}
+```
+
+Each limit must lie in the vital's range, and the result must stay
+consistent — a critical limit at or beyond its warning limit, low limits
+below high ones — or validation rejects the scenario. The monitor prints the
+warning limits beside each number. The machine alarms (airway pressure,
+minute volume, inspired oxygen), the inspired-CO₂ alarm and the rhythm alarms
+are fixed.
 
 ## `events`
 

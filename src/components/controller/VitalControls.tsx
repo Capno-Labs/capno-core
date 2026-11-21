@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type {
+  AlarmProfile,
   AnestheticAgent,
   CapnoShape,
   EcgLead,
@@ -15,6 +16,7 @@ import type {
 import {
   AGENT_LABELS,
   AGENT_TAGS,
+  ALARM_PROFILE_LABELS,
   CAPNO_SHAPE_LABELS,
   ecgMorphologyApplies,
   FICO2_MAX,
@@ -35,6 +37,7 @@ import {
 } from '@/lib/engine/types';
 import { VITAL_META, blockDepth, BLOCK_DEPTH_LABELS, clampVital, roundVital } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
+import { limitsText } from '@/components/monitor/readouts';
 
 // 'depth' is intentionally omitted: it drives no alarms, waveforms, or
 // scoring, so a faculty slider for it is clutter. It stays a numeric vital
@@ -233,6 +236,7 @@ export function VitalControls() {
   const setVentShown = useControllerStore((s) => s.setVentShown);
   const setAgent = useControllerStore((s) => s.setAgent);
   const setNmb = useControllerStore((s) => s.setNmb);
+  const setAlarmProfile = useControllerStore((s) => s.setAlarmProfile);
   const setTofAttached = useControllerStore((s) => s.setTofAttached);
   const measureTof = useControllerStore((s) => s.measureTof);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
@@ -287,6 +291,9 @@ export function VitalControls() {
   const machineShown = engine.getVentShown();
   const agent = snapshot.gas?.agent ?? 'sevoflurane';
   const tof = snapshot.tof;
+  const alarmProfile = snapshot.alarmProfile ?? 'adult';
+  const hrLimits = snapshot.alarmLimits?.hr;
+  const sbpLimits = snapshot.alarmLimits?.sbp;
   const tofCountTarget = engine.getNmbTarget('tofCount');
   const ecgChip = (active: boolean) =>
     `rounded-ctl px-2 py-1 text-xs font-semibold ${
@@ -419,6 +426,25 @@ export function VitalControls() {
               </span>
             )}
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Alarm limits">
+          <span className="w-12 text-xs font-semibold text-ink-2">Alarms</span>
+          {(Object.keys(ALARM_PROFILE_LABELS) as AlarmProfile[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setAlarmProfile(p)}
+              className={ecgChip(alarmProfile === p)}
+              title={`Use the ${ALARM_PROFILE_LABELS[p].toLowerCase()} alarm limits on every display`}
+            >
+              {ALARM_PROFILE_LABELS[p]}
+            </button>
+          ))}
+          {hrLimits && sbpLimits && (
+            <span className="ml-1 text-xs text-faint" title="The warning limits now in force">
+              HR {limitsText(hrLimits)} · SBP {limitsText(sbpLimits)}
+            </span>
+          )}
         </div>
 
         <div className="space-y-1.5">

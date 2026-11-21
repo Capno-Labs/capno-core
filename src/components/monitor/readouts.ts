@@ -1,4 +1,4 @@
-import type { AlarmState, NibpReading, Rhythm, TofReading, Vitals } from '@/lib/engine/types';
+import type { AlarmBand, AlarmState, NibpReading, Rhythm, TofReading, Vitals } from '@/lib/engine/types';
 import { ecgMorphologyApplies, hasPulse } from '@/lib/engine/types';
 
 /**
@@ -84,4 +84,19 @@ export function twitchHeights(reading: Pick<TofReading, 'count' | 'ratio'>): [nu
   const span = count === 4 ? 3 : count;
   for (let i = 0; i < count; i++) heights[i] = 1 - ((1 - last) * i) / span;
   return heights;
+}
+
+/**
+ * A vital's alarm limits as a monitor prints them beside the number: the low
+ * and high warning limits ("50–110"), or the one that exists ("min 92").
+ * Empty when the vital has neither. The critical tier is not printed — a
+ * monitor shows the limits the clinician sets, not its extreme alarms.
+ */
+export function limitsText(band: AlarmBand | undefined): string | undefined {
+  if (!band) return undefined;
+  const { warnLow: low, warnHigh: high } = band;
+  if (low !== undefined && high !== undefined) return `${low}–${high}`;
+  if (low !== undefined) return `min ${low}`;
+  if (high !== undefined) return `max ${high}`;
+  return undefined;
 }

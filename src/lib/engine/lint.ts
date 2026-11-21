@@ -70,6 +70,21 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
     });
   }
 
+  // A child on adult limits alarms on normal vitals. Info only: the author
+  // may want exactly that, and limits set by hand count as a decision.
+  if (
+    scenario.patient.age < 18 &&
+    scenario.monitoring?.alarmProfile === undefined &&
+    scenario.monitoring?.alarmLimits === undefined
+  ) {
+    warnings.push({
+      severity: 'info',
+      path: 'monitoring.alarmProfile',
+      message:
+        'the patient is under 18 but the monitor uses the adult alarm limits — choose the pediatric or neonatal profile (Vitals → Alarm limits) if normal vitals for this patient would alarm',
+    });
+  }
+
   let prevAutoAt: number | undefined;
   let flaggedOutOfOrder = false;
 

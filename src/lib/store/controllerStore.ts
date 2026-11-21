@@ -7,6 +7,7 @@ import { eventSchema } from '../engine/schema';
 import { scoreSession } from '../engine/scoring';
 import type {
   ActionStatus,
+  AlarmProfile,
   AnestheticAgent,
   CapnoShape,
   NumericVitals,
@@ -66,6 +67,8 @@ interface ControllerState {
   setAgent: (agent: AnestheticAgent) => void;
   /** Set the neuromuscular block; each field ramps over `overSec`. */
   setNmb: (patch: Partial<NeuromuscularBlock>, overSec?: number) => void;
+  /** Switch the monitor's patient category and its alarm limits. */
+  setAlarmProfile: (profile: AlarmProfile) => void;
   /** Attach or remove the twitch monitor. */
   setTofAttached: (on: boolean) => void;
   /** Have the twitch monitor stimulate now. */
@@ -214,6 +217,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setVentShown: (on) => withEngine((e) => e.setVentShown(on)),
     setAgent: (agent) => withEngine((e) => e.setAgent(agent)),
     setNmb: (patch, overSec = 0) => withEngine((e) => e.setNmb(patch, overSec)),
+    setAlarmProfile: (profile) => withEngine((e) => e.setAlarmProfile(profile)),
     setTofAttached: (on) => withEngine((e) => e.setTofAttached(on)),
     measureTof: () => withEngine((e) => e.measureTof()),
     // Firing an event or marking an action is live-session work: if the

@@ -1,6 +1,7 @@
 'use client';
 
 import type { MonitoringConfig, Scenario } from '@/lib/engine/types';
+import { AlarmLimitsEditor } from '../AlarmLimitsEditor';
 import { BaselineVitalsEditor } from '../BaselineVitalsEditor';
 
 export function VitalsSection({
@@ -80,6 +81,10 @@ export function VitalsSection({
           Without an arterial line, the monitor shows the last cuff reading — it only updates when
           the cuff cycles. The staleness between readings is often the teaching point.
         </p>
+      </section>
+      <section className="card space-y-3">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Alarm limits</h2>
+        <AlarmLimitsEditor monitoring={scenario.monitoring} onChange={updateMonitoring} />
       </section>
     </div>
   );
