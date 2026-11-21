@@ -56,6 +56,8 @@ interface ControllerState {
   setRhythm: (rhythm: Rhythm) => void;
   setCapnoShape: (shape: CapnoShape) => void;
   setPvcFrequency: (freq: PvcFrequency) => void;
+  /** Set the inspired CO2 (rebreathing), ramping over `overSec`. */
+  setFico2: (target: number, overSec?: number) => void;
   /** Take the pulse away (PEA, pulseless VT) or give it back. */
   setPulseless: (on: boolean) => void;
   /** Change ECG morphology; the ST level ramps over `overSec`. */
@@ -193,6 +195,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setPvcFrequency: (freq) => withEngine((e) => e.setPvcFrequency(freq)),
     setEcg: (patch, overSec = 0) => withEngine((e) => e.setEcg(patch, overSec)),
     setPulseless: (on) => withEngine((e) => e.setPulseless(on)),
+    setFico2: (target, overSec = 0) => withEngine((e) => e.setFico2(target, overSec)),
     // Firing an event or marking an action is live-session work: if the
     // session hasn't started (or is paused), the tap also starts/resumes it —
     // faculty shouldn't need a separate Start press to react to the room.

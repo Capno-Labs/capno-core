@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { CapnoShape, PvcFrequency, Rhythm, Vitals } from '@/lib/engine/types';
 import {
   CAPNO_SHAPE_LABELS,
+  FICO2_MAX,
   NUMERIC_VITAL_KEYS,
   PVC_FREQUENCY_LABELS,
   RHYTHM_LABELS,
@@ -166,6 +167,26 @@ export function BaselineVitalsEditor({
                 </option>
               ))}
           </select>
+        </div>
+        <div>
+          <span className="label">Inspired CO₂ (mmHg)</span>
+          <input
+            className="input w-28"
+            type="number"
+            min={0}
+            max={FICO2_MAX}
+            step={1}
+            placeholder="0 = none"
+            title="The capnogram's baseline. Above zero is rebreathing."
+            value={vitals.fico2 ?? ''}
+            onChange={(e) => {
+              const next = { ...vitals };
+              const n = Number(e.target.value);
+              if (e.target.value === '' || !Number.isFinite(n) || n <= 0) delete next.fico2;
+              else next.fico2 = Math.min(FICO2_MAX, n);
+              onChange(next);
+            }}
+          />
         </div>
         <div>
           <span className="label">Pulse</span>

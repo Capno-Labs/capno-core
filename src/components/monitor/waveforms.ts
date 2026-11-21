@@ -461,20 +461,52 @@ export function artValue(
 }
 
 /**
+ * Top of the capnogram's vertical scale, mmHg: 0–50, the usual default, and
+ * 0–75 once the reading goes above 50 (the two ranges a Dräger Vamos offers;
+ * Philips IntelliVue defaults to a 50 mmHg scale). Above 75 the trace clips,
+ * as it would on the monitor.
+ */
+export function capnoScaleMax(etco2: number): 50 | 75 {
+  return etco2 > 50 ? 75 : 50;
+}
+
+export interface CapnoExtras {
+  /** Inspired CO2, mmHg: the level the trace returns to between breaths. */
+  fico2?: number;
+  /** Heartbeats elapsed (a running count, fractional) — the phase of the
+   *  cardiogenic ripples. */
+  heartbeats?: number;
+}
+
+/**
  * Capnograph: square-ish expiratory plateau. p is 0..1 within one breath.
- * Returns 0..1 (scaled by EtCO2 by the renderer).
+ * Returns the fraction of EtCO2 to draw (0..1; the renderer scales it by the
+ * EtCO2 number). Inspired gas is normally free of CO2, so the trace returns
+ * to zero between breaths; with an inspired CO2 above zero it never falls
+ * below that level — rebreathing shows as a baseline that fails to return to
+ * zero (StatPearls, "Capnography", NBK482169; Kodali & Urman, J Emerg Trauma
+ * Shock 2014;7:332).
  */
 export function capnoSample(
   p: number,
   rr: number,
   etco2: number,
   shape: CapnoShape = 'normal',
+  extras: CapnoExtras = {},
 ): number {
   if (rr <= 0 || etco2 <= 0) return 0;
+  const floor = Math.min(0.95, Math.max(0, (extras.fico2 ?? 0) / etco2));
+  return floor + (1 - floor) * breathShape(p, rr, shape, extras.heartbeats ?? 0);
+}
+
+/** One breath's shape, 0..1, peaking at exactly 1. */
+function breathShape(p: number, rr: number, shape: CapnoShape, heartbeats: number): number {
   // Expiration occupies ~55% of the cycle, ending at the end-tidal peak
   // (exactly 1 so the renderer's EtCO2 scaling is exact and the trace never
   // clips the canvas top), then a sharp inspiratory downstroke to baseline.
-  const plateauEnd = 0.55;
+  // With cardiogenic oscillations the plateau ends earlier and the trace
+  // drifts down through the rest of a long expiration instead.
+  const plateauEnd = shape === 'cardiogenic' ? 0.45 : 0.55;
   // The up/downstrokes take a fixed fraction of a second on a real
   // capnograph, independent of rate. Sizing them as a fraction of the breath
   // made slow rates draw gradual ramps instead of near-vertical edges, so
@@ -482,6 +514,34 @@ export function capnoSample(
   const breathSec = 60 / rr;
   const riseFrac = Math.min(0.15 / breathSec, 0.08);
   const fallFrac = Math.min(0.1 / breathSec, 0.05);
+
+  if (shape === 'cardiogenic' && p >= plateauEnd) {
+    // Cardiogenic oscillations: ripples at the heart rate, from the pulse of
+    // the pulmonary vessels and heart against the lungs, seen with slow rates
+    // and long expirations (Suarez-Sipmann et al., J Clin Monit Comput
+    // 2013;27:47; Indian J Anaesth 2023;67:760). Drawn as the trace stepping
+    // down towards baseline once expiratory flow has stopped — where on the
+    // breath they sit is a drawing choice.
+    const tailEnd = 0.92;
+    if (p >= tailEnd) return 0;
+    const level = 1 - (p - plateauEnd) / (tailEnd - plateauEnd);
+    const depth = 0.25 * Math.min(1, (p - plateauEnd) / 0.08);
+    return level * (1 - (depth * (1 - Math.sin(heartbeats * 2 * Math.PI))) / 2);
+  }
+
+  if (shape === 'leak') {
+    // A leak around the tube or in the sampling line dilutes the sample,
+    // giving low readings and a distorted trace (StatPearls, "Capnography",
+    // NBK482169). No source describes one shape; this one — an early peak
+    // that sags instead of holding a plateau — is a drawing choice.
+    const sagTo = 0.55;
+    const fallEnd = plateauEnd + fallFrac;
+    if (p >= fallEnd) return 0;
+    if (p >= plateauEnd) return Math.max(0, sagTo * (1 - (p - plateauEnd) / fallFrac));
+    if (p < riseFrac) return p / riseFrac;
+    return 1 - (1 - sagTo) * ((p - riseFrac) / (plateauEnd - riseFrac));
+  }
+
   const fallEnd = plateauEnd + fallFrac;
   if (p >= fallEnd) return 0;
   if (p >= plateauEnd) return Math.max(0, 1 - (p - plateauEnd) / fallFrac);
@@ -494,7 +554,8 @@ export function capnoSample(
     return (1 - Math.exp(-k * x)) / (1 - Math.exp(-k));
   }
 
-  // Normal: rapid rise, then an alveolar plateau sloping up to the peak.
+  // Normal (and esophageal, whose shrinking height comes from the falling
+  // EtCO2 number): rapid rise, then an alveolar plateau sloping up to the peak.
   const plateauStart = 0.94;
   const base =
     p < riseFrac

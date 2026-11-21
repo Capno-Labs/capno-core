@@ -20,6 +20,7 @@ import type {
 } from './types';
 import {
   CAPNO_SHAPE_LABELS,
+  FICO2_MAX,
   formatStMm,
   hasPulse,
   NORMAL_ECG,
@@ -34,6 +35,10 @@ import {
   T_WAVE_LABELS,
 } from './types';
 import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL_META } from './vitals';
+
+function clampFico2(value: number): number {
+  return Math.min(FICO2_MAX, Math.max(0, value));
+}
 
 const ECG_LEADS: readonly EcgLead[] = ['II', 'V5'];
 type StField = (typeof ST_FIELD)[EcgLead];
@@ -92,6 +97,11 @@ export class SimulationEngine {
   private phaseChangedAtSec = 0;
   private rhythm: Rhythm;
   private capnoShape: CapnoShape;
+  /** Elapsed time when the capnogram shape last changed (esophageal decay). */
+  private capnoShapeSetAtSec = 0;
+  /** Inspired CO2, mmHg; ramps like a numeric vital. */
+  private fico2 = 0;
+  private fico2Ramp: { target: number; ratePerSec: number } | null = null;
   private pvcFrequency: PvcFrequency;
   /** No pulse despite an organized rhythm (PEA, pulseless VT). */
   private pulseless = false;
@@ -159,9 +169,11 @@ export class SimulationEngine {
     this.autoEventsEnabled = options?.autoEvents ?? true;
     this.preBriefEnabled = options?.preBrief ?? false;
     this.phaseId = scenario.phases[0]?.id ?? 'main';
-    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, ...numeric } = scenario.baselineVitals;
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, ...numeric } =
+      scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
+    this.fico2 = clampFico2(fico2 ?? 0);
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
     this.pulseless = pulseless ?? false;
@@ -289,10 +301,13 @@ export class SimulationEngine {
     this.elapsedSec = 0;
     this.phaseId = this.scenario.phases[0]?.id ?? 'main';
     this.phaseChangedAtSec = 0;
-    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, ...numeric } =
+    const { rhythm, capnoShape, pvcFrequency, ecg, pulseless, fico2, ...numeric } =
       this.scenario.baselineVitals;
     this.rhythm = rhythm;
     this.capnoShape = capnoShape ?? 'normal';
+    this.capnoShapeSetAtSec = 0;
+    this.fico2 = clampFico2(fico2 ?? 0);
+    this.fico2Ramp = null;
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
     this.stRamps = {};
@@ -384,6 +399,12 @@ export class SimulationEngine {
     if (dbpRamp && this.current.dbp === dbpRamp.target) this.ramps.delete('dbp');
 
     // The ST level ramps the same way.
+    if (this.fico2Ramp) {
+      const { target, ratePerSec } = this.fico2Ramp;
+      const step = ratePerSec * dtSec;
+      this.fico2 = this.fico2 < target ? Math.min(target, this.fico2 + step) : Math.max(target, this.fico2 - step);
+      if (this.fico2 === target) this.fico2Ramp = null;
+    }
     for (const field of ST_FIELDS) {
       const ramp = this.stRamps[field];
       if (!ramp) continue;
@@ -518,7 +539,31 @@ export class SimulationEngine {
   setCapnoShape(shape: CapnoShape): void {
     if (shape === this.capnoShape) return;
     this.capnoShape = shape;
+    this.capnoShapeSetAtSec = this.elapsedSec;
     this.addLog('vital_change', `CO₂ waveform → ${CAPNO_SHAPE_LABELS[shape]}`);
+  }
+
+  /** Set the inspired CO2 (rebreathing), ramping over `overSec` seconds. */
+  setFico2(target: number, overSec = 0): void {
+    const clamped = clampFico2(target);
+    if (clamped === this.getFico2Target()) return;
+    const distance = Math.abs(clamped - this.fico2);
+    if (overSec <= 0 || distance === 0) {
+      this.fico2Ramp = null;
+      this.fico2 = clamped;
+    } else {
+      this.fico2Ramp = { target: clamped, ratePerSec: distance / overSec };
+    }
+    this.addLog(
+      'vital_change',
+      `FiCO₂ → ${clamped} mmHg`,
+      overSec > 0 ? `over ${overSec}s` : undefined,
+    );
+  }
+
+  /** Where the inspired CO2 is headed: its ramp target if ramping, else its value now. */
+  getFico2Target(): number {
+    return this.fico2Ramp?.target ?? this.fico2;
   }
 
   setPvcFrequency(freq: PvcFrequency): void {
@@ -734,6 +779,7 @@ export class SimulationEngine {
       ...rounded,
       rhythm: this.rhythm,
       capnoShape: this.capnoShape,
+      fico2: Math.round(this.fico2 * 10) / 10,
       pvcFrequency: this.pvcFrequency,
       ecg: {
         ...this.ecg,
@@ -763,7 +809,13 @@ export class SimulationEngine {
     // Only the broadcast/alarm value is transformed here — this.current is
     // untouched, so the set value restores the instant the rate recovers, the
     // same measured-vs-true split the NIBP cuff uses for BP below.
-    vitals.etco2 = roundVital('etco2', measuredEtco2(vitals.etco2, vitals.rr));
+    // Likewise a tube in the esophagus: what little CO2 it carries dies away
+    // breath by breath from the moment that shape is set.
+    const esophagealBreaths =
+      this.capnoShape === 'esophageal'
+        ? ((this.elapsedSec - this.capnoShapeSetAtSec) * vitals.rr) / 60
+        : undefined;
+    vitals.etco2 = roundVital('etco2', measuredEtco2(vitals.etco2, vitals.rr, esophagealBreaths));
     // In cuff mode, BP alarms judge the last *measured* reading — an alarm
     // must not reveal a pressure the monitor has not yet measured.
     const alarmVitals = this.lastNibp
@@ -799,6 +851,7 @@ export class SimulationEngine {
   private applyEffectNow(effect: VitalEffect): void {
     if (effect.rhythm) this.setRhythm(effect.rhythm, effect.vitals?.hr === undefined);
     if (effect.capnoShape) this.setCapnoShape(effect.capnoShape);
+    if (effect.fico2 !== undefined) this.setFico2(effect.fico2, effect.overSec ?? 0);
     if (effect.pvcFrequency) this.setPvcFrequency(effect.pvcFrequency);
     if (effect.ecg) this.setEcg(effect.ecg, effect.overSec ?? 0);
     if (effect.pulseless !== undefined) this.setPulseless(effect.pulseless);

@@ -3,6 +3,7 @@
 import type { CapnoShape, NumericVitals, Rhythm, VitalEffect } from '@/lib/engine/types';
 import {
   CAPNO_SHAPE_LABELS,
+  FICO2_MAX,
   formatStMm,
   NUMERIC_VITAL_KEYS,
   QRS_WIDTH_LABELS,
@@ -35,6 +36,7 @@ export function effectSummary(effect: VitalEffect): string {
   }
   if (effect.rhythm) parts.push(`rhythm→${RHYTHM_LABELS[effect.rhythm]}`);
   if (effect.capnoShape) parts.push(`CO₂→${CAPNO_SHAPE_LABELS[effect.capnoShape]}`);
+  if (effect.fico2 !== undefined) parts.push(`FiCO₂→${effect.fico2}`);
   if (effect.ecg?.stMm !== undefined) parts.push(`ST II→${formatStMm(effect.ecg.stMm)} mm`);
   if (effect.ecg?.stV5Mm !== undefined) parts.push(`ST V5→${formatStMm(effect.ecg.stV5Mm)} mm`);
   if (effect.ecg?.tWave) parts.push(`T→${T_WAVE_LABELS[effect.ecg.tWave]}`);
@@ -147,6 +149,26 @@ export function EffectEditor({
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <span className="label">Inspired CO₂ (mmHg)</span>
+          <input
+            className="input w-28"
+            type="number"
+            min={0}
+            max={FICO2_MAX}
+            step={1}
+            placeholder="unchanged"
+            title="The capnogram's baseline. Above zero is rebreathing. Follows the ramp duration."
+            value={effect.fico2 ?? ''}
+            onChange={(e) => {
+              const next = { ...effect };
+              const n = Number(e.target.value);
+              if (e.target.value === '' || !Number.isFinite(n)) delete next.fico2;
+              else next.fico2 = Math.min(FICO2_MAX, Math.max(0, n));
+              onChange(next);
+            }}
+          />
         </div>
         <div>
           <span className="label">Pulse</span>

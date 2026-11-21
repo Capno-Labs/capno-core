@@ -4,6 +4,7 @@ import { BeatClock, FIRST_DEGREE_PR_MS, P_MS, WENCKEBACH_PR_MS, type Beat } from
 import {
   AF_FIB_PER_MIN,
   ART_DELAY_MS,
+  capnoScaleMax,
   dissociatedAtrialPeriodSec,
   FLUTTER_ATRIAL_PER_MIN,
   flutterRatio,
@@ -943,3 +944,79 @@ describe('capnoSample', () => {
     });
   });
 });
+
+describe('capnogram: rebreathing, cardiogenic oscillations and leak', () => {
+  const phases = Array.from({ length: 2000 }, (_, i) => i / 2000);
+
+  it('raises the baseline to the inspired CO2 and keeps the peak at EtCO2', () => {
+    const etco2 = 40;
+    const fico2 = 8;
+    const mmHg = phases.map((p) => capnoSample(p, 12, etco2, 'normal', { fico2 }) * etco2);
+    expect(Math.min(...mmHg)).toBeCloseTo(fico2, 6); // never below the inspired level
+    expect(Math.max(...mmHg)).toBeCloseTo(etco2, 2); // the peak is still the EtCO2 number
+    // During inspiration the trace sits at the inspired level, not zero.
+    expect(capnoSample(0.8, 12, etco2, 'normal', { fico2 }) * etco2).toBeCloseTo(fico2, 6);
+    expect(capnoSample(0.8, 12, etco2, 'normal') * etco2).toBe(0);
+  });
+
+  it('draws exactly the old trace when inspired CO2 is zero or absent', () => {
+    for (const shape of ['normal', 'bronchospasm', 'curare_cleft'] as const) {
+      for (const p of phases) {
+        expect(capnoSample(p, 12, 40, shape, { fico2: 0 })).toBe(capnoSample(p, 12, 40, shape));
+      }
+    }
+  });
+
+  it('stays flat at apnea whatever the inspired CO2', () => {
+    expect(capnoSample(0.3, 0, 40, 'normal', { fico2: 8 })).toBe(0);
+  });
+
+  it('cardiogenic: no sharp downstroke — the trace drifts down in ripples that keep time with the heart', () => {
+    const hr = 80;
+    const rr = 8; // a long expiration: 7.5 s per breath
+    const breathSec = 60 / rr;
+    const at = (p: number) => capnoSample(p, rr, 40, 'cardiogenic', { heartbeats: (p * breathSec * hr) / 60 });
+    const v = phases.map(at);
+    expect(Math.max(...v)).toBeCloseTo(1, 2); // the peak is still the EtCO2 number
+    for (const x of v) expect(x).toBeLessThanOrEqual(1 + 1e-9);
+    // Where a normal breath has already fallen to zero, this one is still coming down…
+    expect(capnoSample(0.62, rr, 40, 'normal')).toBe(0);
+    expect(at(0.62)).toBeGreaterThan(0.3);
+    // …and it is back on the baseline before the next breath.
+    expect(at(0.95)).toBe(0);
+    // Ripples: one per heartbeat over the tail.
+    const tail = phases.filter((p) => p > 0.47 && p < 0.9);
+    let ripples = 0;
+    for (let i = 1; i < tail.length - 1; i++) {
+      if (at(tail[i]) > at(tail[i - 1]) && at(tail[i]) >= at(tail[i + 1])) ripples++;
+    }
+    const heartbeatsInTail = ((0.9 - 0.47) * breathSec * hr) / 60;
+    expect(ripples).toBeGreaterThanOrEqual(Math.floor(heartbeatsInTail) - 1);
+    expect(ripples).toBeLessThanOrEqual(Math.ceil(heartbeatsInTail) + 1);
+  });
+
+  it('leak: peaks early, then sags instead of holding a plateau', () => {
+    const v = phases.map((p) => capnoSample(p, 12, 40, 'leak'));
+    const peakAt = phases[v.indexOf(Math.max(...v))];
+    expect(Math.max(...v)).toBeCloseTo(1, 6);
+    expect(peakAt).toBeLessThan(0.12);
+    const endOfExpiration = capnoSample(0.54, 12, 40, 'leak');
+    expect(endOfExpiration).toBeLessThan(0.65);
+    expect(endOfExpiration).toBeGreaterThan(0.4);
+    // Falling all the way through expiration.
+    for (let p = 0.12; p < 0.54; p += 0.01) {
+      expect(capnoSample(p + 0.01, 12, 40, 'leak')).toBeLessThan(capnoSample(p, 12, 40, 'leak'));
+    }
+    expect(capnoSample(0.8, 12, 40, 'leak')).toBe(0);
+  });
+
+  it('esophageal: the breath has the normal shape — its height comes from the falling EtCO2', () => {
+    for (const p of phases) expect(capnoSample(p, 12, 10, 'esophageal')).toBe(capnoSample(p, 12, 10, 'normal'));
+  });
+
+  it('uses a 0–50 mmHg scale, stepping to 0–75 once the reading passes 50', () => {
+    for (const etco2 of [0, 20, 36, 50]) expect(capnoScaleMax(etco2)).toBe(50);
+    for (const etco2 of [51, 60, 92]) expect(capnoScaleMax(etco2)).toBe(75);
+  });
+});
+

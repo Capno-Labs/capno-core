@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Scenario } from './types';
-import { ST_MM_MAX, ST_MM_MIN } from './types';
+import { FICO2_MAX, ST_MM_MAX, ST_MM_MIN } from './types';
 import { MIN_PULSE_PRESSURE, maxDbpFor } from './vitals';
 
 /**
@@ -33,7 +33,16 @@ const rhythmSchema = z.enum([
   'idioventricular',
 ]);
 
-const capnoShapeSchema = z.enum(['normal', 'bronchospasm', 'curare_cleft']);
+const capnoShapeSchema = z.enum([
+  'normal',
+  'bronchospasm',
+  'curare_cleft',
+  'cardiogenic',
+  'leak',
+  'esophageal',
+]);
+
+const fico2Schema = z.number().min(0).max(FICO2_MAX);
 
 const pvcFrequencySchema = z.enum(['rare', 'occasional', 'trigeminy', 'bigeminy']);
 
@@ -75,6 +84,7 @@ const vitalsSchema = numericVitalsPartial
   .extend({
     rhythm: rhythmSchema,
     capnoShape: capnoShapeSchema.optional(),
+    fico2: fico2Schema.optional(),
     pvcFrequency: pvcFrequencySchema.optional(),
     ecg: ecgSchema.optional(),
     pulseless: z.boolean().optional(),
@@ -91,6 +101,7 @@ export const vitalEffectSchema = z.object({
     .optional(),
   rhythm: rhythmSchema.optional(),
   capnoShape: capnoShapeSchema.optional(),
+  fico2: fico2Schema.optional(),
   pvcFrequency: pvcFrequencySchema.optional(),
   ecg: ecgSchema.optional(),
   pulseless: z.boolean().optional(),

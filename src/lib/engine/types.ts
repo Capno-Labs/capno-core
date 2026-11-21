@@ -85,15 +85,37 @@ export function hasPulse(vitals: Pick<Vitals, 'rhythm' | 'pulseless'>): boolean 
  * `bronchospasm` is the slurred, upsloping "shark fin" of obstructed
  * expiration; `curare_cleft` is a normal plateau interrupted by a transient
  * notch — spontaneous respiratory effort during partial neuromuscular
- * blockade. Display-only: the EtCO2 number is unaffected.
+ * blockade; `cardiogenic` adds heartbeat-synchronous ripples to the end of
+ * expiration; `leak` is a plateau that sags early (cuff or circuit leak).
+ * Those are display-only: the EtCO2 number is unaffected.
+ *
+ * `esophageal` is different: the tube is in the esophagus, so the measured
+ * CO2 itself dies away over the first few breaths — the engine lowers the
+ * EtCO2 number the monitor reports (see measuredEtco2), and the trace with it.
+ *
+ * Rebreathing is not a shape: it is an inspired CO2 above zero (`fico2`),
+ * which raises the trace's baseline.
  */
-export type CapnoShape = 'normal' | 'bronchospasm' | 'curare_cleft';
+export type CapnoShape =
+  | 'normal'
+  | 'bronchospasm'
+  | 'curare_cleft'
+  | 'cardiogenic'
+  | 'leak'
+  | 'esophageal';
 
 export const CAPNO_SHAPE_LABELS: Record<CapnoShape, string> = {
   normal: 'Normal',
   bronchospasm: 'Bronchospasm (shark fin)',
   curare_cleft: 'Curare cleft',
+  cardiogenic: 'Cardiogenic oscillations',
+  leak: 'Cuff / circuit leak',
+  esophageal: 'Esophageal intubation',
 };
+
+/** Highest inspired CO2 the sim will hold, mmHg. Reported cases of a stuck
+ *  expiratory valve reach 30 (Lee et al., Korean J Anesthesiol 2013;65:337). */
+export const FICO2_MAX = 30;
 
 /**
  * How often an ectopic complex replaces a sinus beat when the rhythm is
@@ -256,6 +278,11 @@ export interface Vitals extends NumericVitals {
   rhythm: Rhythm;
   /** Capnograph morphology. Absent = 'normal'. */
   capnoShape?: CapnoShape;
+  /**
+   * Inspired CO2, mmHg — the capnogram's baseline. Normally 0; above zero is
+   * rebreathing (exhausted absorbent, a stuck valve). Absent = 0. 0–30.
+   */
+  fico2?: number;
   /** PVC coupling rate; only meaningful while rhythm is 'pvc'. Absent = 'occasional'. */
   pvcFrequency?: PvcFrequency;
   /** ECG complex morphology (ST, T wave, QRS width, QT). Absent = normal. */
@@ -351,6 +378,8 @@ export interface VitalEffect {
   rhythm?: Rhythm;
   /** Capnograph morphology change. Like rhythm, applied immediately. */
   capnoShape?: CapnoShape;
+  /** Inspired CO2 target, mmHg. Ramps over `overSec`, like a numeric vital. */
+  fico2?: number;
   /** PVC coupling-rate change. Like rhythm, applied immediately. */
   pvcFrequency?: PvcFrequency;
   /** ECG morphology change: only the fields listed change. `stMm` ramps over

@@ -14,6 +14,7 @@ import type {
 import {
   CAPNO_SHAPE_LABELS,
   ecgMorphologyApplies,
+  FICO2_MAX,
   rhythmPerfuses,
   formatStMm,
   NORMAL_ECG,
@@ -146,6 +147,7 @@ export function VitalControls() {
   const setPvcFrequency = useControllerStore((s) => s.setPvcFrequency);
   const setEcg = useControllerStore((s) => s.setEcg);
   const setPulseless = useControllerStore((s) => s.setPulseless);
+  const setFico2 = useControllerStore((s) => s.setFico2);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
   const setV5Lead = useControllerStore((s) => s.setV5Lead);
@@ -194,6 +196,7 @@ export function VitalControls() {
       </span>
     );
   };
+  const fico2Target = engine.getFico2Target();
   const ecgChip = (active: boolean) =>
     `rounded-ctl px-2 py-1 text-xs font-semibold ${
       active ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg' : 'bg-panel-2 text-muted hover:bg-panel-3'
@@ -423,6 +426,41 @@ export function VitalControls() {
                 {CAPNO_SHAPE_LABELS[s]}
               </button>
             ))}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            <span className="text-xs font-semibold text-ink-2">Inspired CO₂</span>
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() => setFico2(Math.max(0, fico2Target - 1), overSec)}
+              disabled={fico2Target <= 0}
+              aria-label="Lower the inspired CO2 by 1 mmHg"
+            >
+              −
+            </button>
+            <span
+              className={`w-20 text-center font-mono text-sm tabular-nums ${fico2Target > 0 ? 'text-vital-etco2' : 'text-ink'}`}
+              title="Inspired CO₂ — the capnogram's baseline. Above zero is rebreathing: exhausted absorbent or a stuck valve. Changes over the selected ramp."
+            >
+              {fico2Target} mmHg
+            </span>
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() => setFico2(Math.min(FICO2_MAX, fico2Target + 1), overSec)}
+              disabled={fico2Target >= FICO2_MAX}
+              aria-label="Raise the inspired CO2 by 1 mmHg"
+            >
+              +
+            </button>
+            {fico2Target > 0 && (
+              <button className="btn-ghost btn-sm" onClick={() => setFico2(0, overSec)}>
+                zero
+              </button>
+            )}
+            {(snapshot.vitals.capnoShape ?? 'normal') === 'esophageal' && (
+              <span className="text-xs text-faint">
+                esophageal: the EtCO₂ reading starts under 10 and is gone by the seventh breath, whatever the slider says
+              </span>
+            )}
           </div>
         </div>
       </div>

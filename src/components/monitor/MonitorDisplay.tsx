@@ -11,6 +11,7 @@ import { nextSoundLevel, type SoundLevel, type SoundRole } from './soundPref';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
 import { cuffReadingFailed, displayAlarms, NO_READING, oximeterHasSignal, stIsMeasurable } from './readouts';
+import { capnoScaleMax } from './waveforms';
 
 interface MonitorDisplayProps {
   snapshot: SimSnapshot;
@@ -238,16 +239,19 @@ export function MonitorDisplay({
         </div>
         <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
           <div className="min-w-0">
-            <span className="px-1 text-xs font-bold uppercase tracking-wider text-vital-etco2">
-              CO₂
-            </span>
-            <Waveform kind="capno" color="#facc15" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} capnoShape={v.capnoShape} frozen={frozen} heightClass={waveH} />
+            <div className="flex items-baseline justify-between px-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-vital-etco2">
+                CO₂
+              </span>
+              <span className="text-xs font-mono text-vital-etco2/80">0–{capnoScaleMax(v.etco2)}</span>
+            </div>
+            <Waveform kind="capno" color="#facc15" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} capnoShape={v.capnoShape} fico2={v.fico2} frozen={frozen} heightClass={waveH} />
           </div>
           <VitalTile
             label="EtCO₂"
             value={String(Math.round(v.etco2))}
             unit="mmHg"
-            sub={`RR ${Math.round(v.rr)}/min`}
+            sub={`RR ${Math.round(v.rr)}/min · Fi ${Math.round(v.fico2 ?? 0)}`}
             color="text-vital-etco2"
             alarm={alarmFor('etco2') ?? alarmFor('rr')}
             trendValue={v.etco2}
