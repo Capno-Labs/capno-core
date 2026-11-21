@@ -186,6 +186,29 @@ clinical content is authored against published guidance:
   general anaesthesia* (Anaesthesia Tutorial of the Week/e-SAFE, 2011);
   PMC3057257; BJA Education perioperative asthma reviews; GINA report
   (control criteria).
+  *Machine readings (1.0.1).* Peak pressures 38, 44 and 50 cmH₂O are the
+  scenario's own numbers, now drawn instead of reported. The plateau stays at
+  16 through the spasm: a high peak with a normal plateau is the sign of
+  airway resistance (StatPearls
+  [NBK448186](https://www.ncbi.nlm.nih.gov/sites/books/NBK448186/)). Delivered
+  tidal volume falls when the spasm is severe (Hodder et al., *CMAJ*
+  2010;182:265, [PMC2826468](https://pmc.ncbi.nlm.nih.gov/articles/PMC2826468/);
+  Garcia et al., *Cureus* 2022;14:e21521,
+  [PMC8863117](https://pmc.ncbi.nlm.nih.gov/articles/PMC8863117/), where 400 mL
+  set delivered 18 mL). Breath stacking raises the plateau to 28 — the value
+  at the worst point in Leatherman & Ravenscraft, *Crit Care Med*
+  1996;24:541 (PMID 8625647; 28 ± 2 with a peak of 76 ± 7) and under the limit
+  of 30 in Gayen et al., *J Clin Med* 2024;13:859
+  ([PMC10856115](https://pmc.ncbi.nlm.nih.gov/articles/PMC10856115/)), which
+  also gives the disconnection (a 30–60 s apnoea trial) for the hypotension.
+  Chosen, not sourced: the size of the tidal-volume fall (510 → 200 mL, enough
+  to trip the low-minute-volume alarm) and the steps back down with treatment
+  (peak 44, 38, 30, 24, then 18; volume 300, 400, then 510). No source gave
+  peak pressures for intraoperative bronchospasm; Leatherman's intensive-care
+  series (53 ± 6 after improvement, from 76) shows only that the peak falls
+  while staying raised. The disconnection itself (pressure and volume at
+  zero) is not scripted — an effect cannot restore "whatever the readings
+  were" — so faculty zero the readings by hand if they want it shown.
 - **difficult-airway-cico** — Difficult Airway Society 2025 guidelines for
   management of unanticipated difficult tracheal intubation in adults
   (*Br J Anaesth* 2026;136:283–307); 2022 ASA Practice Guidelines for
@@ -223,6 +246,24 @@ clinical content is authored against published guidance:
   intraoperative hypoxemia; literature on endotracheal tube migration in
   Trendelenburg with pneumoperitoneum (cephalad carinal shift of ~1–2 cm,
   tube tip should sit 2.5–4 cm above the carina).
+  *Machine readings (1.0.1).* Insufflation raises peak pressure by 6 and
+  plateau by 7 cmH₂O (to 24 and 23): Suh et al., *Korean J Anesthesiol*
+  2010;59:329 ([PMC2998653](https://pmc.ncbi.nlm.nih.gov/articles/PMC2998653/)),
+  12 mmHg, where head-down tilt added nothing further. The scenario says
+  pressures "rise a little"; at 15 mmHg with 30° tilt Park et al., *J Clin
+  Med* 2019;8:2032
+  ([PMC6947332](https://pmc.ncbi.nlm.nih.gov/articles/PMC6947332/)) measured
+  far more (peak 13.6 → 32.8), returning to 18.4 and 15.8 after desufflation —
+  the basis for the readings going back to 18 and 16 when the surgeon
+  desufflates. Peak 34 with the tube in the right main bronchus is the
+  scenario's own number. The plateau rises with it because ventilating one
+  lung lowers compliance: Szegedi et al., *Anesth Analg* 1997;84:1034 (PMID
+  9141927) found peak up 55% and plateau up 42% on going from two lungs to
+  one. Peak 24 → 34 is a 42% rise, so the plateau is set to rise in the same
+  proportion to Szegedi's (about three quarters as much): 23 → 30. No source
+  measured a mainstem intubation directly. Inspired oxygen reads 100% once
+  the team turns it up (the scenario's own step) and returns to the starting
+  50% at the end ("a reduced FiO₂").
 - **anaphylaxis, malignant-hyperthermia, last-nerve-block,
   laryngospasm-lma, induction-hypotension** — see the original scenario
   PRs; management follows the corresponding society guidance (e.g. ASRA
