@@ -192,7 +192,7 @@ export default function DebriefListPage() {
           {sessions.length === 0 && (
             <li className="card text-sm text-muted">
               No completed sessions yet. Run a scenario from the{' '}
-              <Link href="/scenarios" className="text-amber-strong underline">
+              <Link href="/scenarios" className="text-brand-strong underline">
                 library
               </Link>{' '}
               and end it to generate a debrief.

@@ -19,7 +19,7 @@ export function SyncPill() {
       : cloud
         ? 'Cloud available'
         : 'Local device';
-  const dot = !online ? 'bg-amber' : cloud && status === 'signed_in' ? 'bg-green' : 'bg-faint';
+  const dot = !online ? 'bg-warn' : cloud && status === 'signed_in' ? 'bg-green' : 'bg-faint';
 
   return (
     <span className="hidden items-center gap-1.5 rounded-full bg-panel-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted sm:inline-flex">

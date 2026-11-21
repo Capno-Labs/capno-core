@@ -84,7 +84,7 @@ export default function DebriefSessionPage() {
     <FacultyGate>
       <div className="mx-auto max-w-4xl space-y-4">
         {isMemoryOnly(session.sessionId) && (
-          <div className="no-print rounded-md bg-amber-soft p-3 text-sm text-amber-strong ring-1 ring-amber/40">
+          <div className="no-print rounded-md bg-warn-soft p-3 text-sm text-warn-strong ring-1 ring-warn/40">
             Device storage is full — this debrief is held in memory only and will be lost when the
             tab closes. Export it now (PDF, or JSON once available) and free up space.
           </div>

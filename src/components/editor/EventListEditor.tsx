@@ -381,7 +381,7 @@ export function EventListEditor({
         <div className="space-y-1 rounded bg-panel-2 p-3 text-xs text-muted">
           <p className="font-semibold text-ink-2">No events yet — events are the script of the case.</p>
           <p>
-            <span className="text-amber-strong">Automatic</span> events fire on a timer and drive the
+            <span className="text-warn-strong">Automatic</span> events fire on a timer and drive the
             scripted deterioration. <span className="text-ink-2">Faculty-fired</span> events are
             responses the instructor triggers when learners act (drug given, airway secured).{' '}
             <span className="text-ink-2">Marker</span> events change nothing — they just write a
@@ -419,7 +419,7 @@ export function EventListEditor({
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
             {event.autoAtSec !== undefined ? (
-              <span className="rounded bg-blue-soft px-1 py-px font-semibold tracking-wider text-blue ring-1 ring-blue/30">
+              <span className="rounded bg-brand-soft px-1 py-px font-semibold tracking-wider text-brand-strong ring-1 ring-brand/30">
                 AUTO {fmtTime(event.autoAtSec)}
               </span>
             ) : (
@@ -431,7 +431,7 @@ export function EventListEditor({
               {event.effects.length} effect{event.effects.length === 1 ? '' : 's'}
             </span>
             {warningCount > 0 && (
-              <span className="rounded bg-amber-soft px-1 py-px font-semibold text-amber-strong ring-1 ring-amber/40">
+              <span className="rounded bg-warn-soft px-1 py-px font-semibold text-warn-strong ring-1 ring-warn/40">
                 ⚠ {warningCount}
               </span>
             )}

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { PageHead } from '@/components/ui/PageHead';
 
 /**
- * Workflow-oriented home. The dark hero card is the faculty fast path (run a
+ * Workflow-oriented home. The blue poster card is the faculty fast path (run a
  * case); the student-display card mirrors the second role in the room;
  * review and authoring are secondary. Plain-language actions throughout —
  * CAPNO Studio is the only branded name.
@@ -36,17 +36,17 @@ export default function HomePage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
-        {/* Dark hero: the faculty fast path. */}
+        {/* Poster card: the faculty fast path. */}
         <Link
           href="/scenarios"
-          className="card-hero card-interactive flex min-h-[240px] flex-col justify-between !p-7"
+          className="card-hero surface-blue card-interactive flex min-h-[240px] flex-col justify-between !p-7"
         >
           <span
             aria-hidden
-            className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-amber/10"
+            className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-white/10"
           />
-          <div>
-            <span className="inline-flex items-center rounded-full bg-[#3a3314] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ffe164]">
+          <div className="relative">
+            <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white">
               Faculty
             </span>
             <h2 className="card-hero-ink mt-4 max-w-md text-3xl font-bold leading-none tracking-[-0.04em] md:text-4xl">
@@ -57,7 +57,7 @@ export default function HomePage() {
               assessment from the faculty controller.
             </p>
           </div>
-          <span className="relative mt-5 inline-flex items-center gap-2 self-start rounded-ctl bg-amber px-3.5 py-2 text-sm font-bold text-on-amber">
+          <span className="relative mt-5 inline-flex items-center gap-2 self-start rounded-full bg-white px-4 py-2 text-sm font-semibold text-poster-ink">
             Open the case library <span className="link-arrow">→</span>
           </span>
         </Link>
@@ -79,7 +79,7 @@ export default function HomePage() {
               </span>
             ))}
           </div>
-          <span className="mt-auto text-sm font-semibold text-amber-strong">
+          <span className="mt-auto text-sm font-semibold text-brand-strong">
             Join with a code <span className="link-arrow">→</span>
           </span>
         </Link>
@@ -98,7 +98,7 @@ export default function HomePage() {
         New here?{' '}
         <Link
           href="/faculty/run/laryngospasm-lma?demo=1"
-          className="font-semibold text-amber-strong underline-offset-2 hover:underline"
+          className="font-semibold text-brand-strong underline-offset-2 hover:underline"
         >
           Try the guided demo →
         </Link>{' '}

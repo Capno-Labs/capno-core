@@ -69,7 +69,7 @@ function VitalSlider({
         onKeyUp={(e) => {
           if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') commit();
         }}
-        className="h-2 flex-1 cursor-pointer accent-amber"
+        className="h-2 flex-1 cursor-pointer accent-brand"
         aria-label={`${meta.label} target`}
       />
       <span className="flex w-24 shrink-0 items-center justify-end">
@@ -103,8 +103,8 @@ function VitalSlider({
               e.currentTarget.blur();
             }
           }}
-          className={`w-16 rounded bg-panel-2 px-1 py-0.5 text-right font-mono text-sm tabular-nums outline-none ring-amber focus:ring-1 ${
-            draft !== null || text !== null ? 'text-amber-strong' : 'text-ink'
+          className={`w-16 rounded bg-panel-2 px-1 py-0.5 text-right font-mono text-sm tabular-nums outline-none ring-focus focus:ring-1 ${
+            draft !== null || text !== null ? 'text-brand-strong' : 'text-ink'
           }`}
           aria-label={`${meta.label} typed target`}
         />
@@ -138,7 +138,7 @@ export function VitalControls() {
               onClick={() => setOverSec(t.sec)}
               className={`rounded px-2 py-1 text-xs font-semibold ${
                 overSec === t.sec
-                  ? 'bg-amber text-on-amber'
+                  ? 'bg-brand text-on-brand'
                   : 'bg-panel-2 text-muted hover:bg-panel-3'
               }`}
             >

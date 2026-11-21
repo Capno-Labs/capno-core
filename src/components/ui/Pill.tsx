@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 
-export type PillTone = 'neutral' | 'green' | 'amber' | 'blue' | 'red';
+export type PillTone = 'neutral' | 'green' | 'warn' | 'brand' | 'red' | 'violet';
 
 const TONES: Record<PillTone, string> = {
   neutral: 'bg-panel-2 text-muted',
   green: 'bg-green-soft text-green',
-  amber: 'bg-amber-soft text-amber-strong',
-  blue: 'bg-blue-soft text-blue',
+  warn: 'bg-warn-soft text-warn-strong',
+  brand: 'bg-brand-soft text-brand-strong',
   red: 'bg-red-soft text-red',
+  violet: 'bg-violet-soft text-violet',
 };
 
 /** Soft status pill — the shared badge vocabulary across library and debrief. */

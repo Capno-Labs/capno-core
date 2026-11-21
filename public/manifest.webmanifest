@@ -7,8 +7,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "landscape",
-  "background_color": "#0d0f0c",
-  "theme_color": "#0d0f0c",
+  "background_color": "#0d1725",
+  "theme_color": "#0d1725",
   "categories": ["education", "medical"],
   "icons": [
     {

@@ -44,7 +44,7 @@ import { toast } from '@/lib/store/toastStore';
 
 const DIFFICULTY_TONE: Record<Difficulty, PillTone> = {
   beginner: 'green',
-  intermediate: 'amber',
+  intermediate: 'warn',
   advanced: 'red',
 };
 
@@ -219,8 +219,8 @@ export default function ScenarioLibraryPage() {
   const cloudBadge = (s: Scenario): { label: string; tone: PillTone } | null => {
     if (builtInIds.has(s.id)) return null; // bundled — always available, never synced
     if (authStatus !== 'signed_in') return null;
-    if (isQueued('scenario', s.id)) return { label: 'sync pending', tone: 'amber' };
-    if (getPushedAt('scenario', s.id)) return { label: 'cloud', tone: 'blue' };
+    if (isQueued('scenario', s.id)) return { label: 'sync pending', tone: 'warn' };
+    if (getPushedAt('scenario', s.id)) return { label: 'cloud', tone: 'brand' };
     return { label: 'local only', tone: 'neutral' };
   };
 
@@ -394,10 +394,10 @@ export default function ScenarioLibraryPage() {
           </form>
         )}
 
-        <div className="card-hero !p-6">
+        <div className="card-hero surface-blue !p-6">
           <span
             aria-hidden
-            className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-amber/10"
+            className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-white/10"
           />
           <div className="relative flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -406,9 +406,9 @@ export default function ScenarioLibraryPage() {
                 Standardized patient, normal baseline vitals, no scripted events — you drive
                 everything live.
               </p>
-              <div className="mt-2 text-[11px] text-[#878b7e]">~15 min</div>
+              <div className="card-hero-muted mt-2 font-mono text-[11px]">~15 min</div>
             </div>
-            <Link href={`/faculty/run/${QUICK_START_ID}`} className="btn-primary shrink-0">
+            <Link href={`/faculty/run/${QUICK_START_ID}`} className="btn-on-blue shrink-0">
               ▶ Quick start
             </Link>
           </div>
@@ -469,7 +469,7 @@ export default function ScenarioLibraryPage() {
                 onClick={() => toggleDomain(d)}
                 className={`rounded px-2 py-1 text-xs font-semibold transition ${
                   selectedDomains.has(d)
-                    ? 'bg-amber text-on-amber'
+                    ? 'bg-brand text-on-brand'
                     : 'bg-panel-2 text-muted hover:bg-panel-3'
                 }`}
               >
@@ -557,7 +557,7 @@ export default function ScenarioLibraryPage() {
                   <p className="mt-1 text-sm text-muted">{s.summary}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                     <Pill tone={DIFFICULTY_TONE[s.tags.difficulty]}>{s.tags.difficulty}</Pill>
-                    {customIds.has(s.id) && <Pill tone="blue">custom</Pill>}
+                    {customIds.has(s.id) && <Pill tone="brand">custom</Pill>}
                     {s.tags.topics.map((t) => (
                       <span
                         key={t}
@@ -642,7 +642,7 @@ export default function ScenarioLibraryPage() {
               </div>
 
               <button
-                className="mt-2 text-xs text-amber-strong hover:underline"
+                className="mt-2 text-xs text-brand-strong hover:underline"
                 onClick={() => setExpanded(expanded === expandKey ? null : expandKey)}
               >
                 {expanded === expandKey ? 'Hide details ▲' : 'Objectives & setup ▼'}

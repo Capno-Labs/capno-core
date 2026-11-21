@@ -88,7 +88,7 @@ export function PhaseListEditor({
             <div className="w-28 shrink-0">
               <span
                 className="label"
-                title="Pacing budget for this phase — the run screen's phase stepper turns amber once the team is over it."
+                title="Pacing budget for this phase — the run screen's phase stepper turns orange once the team is over it."
               >
                 Target (min)
               </span>

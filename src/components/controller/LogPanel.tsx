@@ -5,9 +5,9 @@ import { useControllerStore } from '@/lib/store/controllerStore';
 
 const KIND_COLORS: Record<LogEntry['kind'], string> = {
   session: 'text-muted',
-  phase: 'text-amber-strong',
+  phase: 'text-warn-strong',
   event: 'text-red',
-  vital_change: 'text-amber-strong',
+  vital_change: 'text-warn-strong',
   action: 'text-green',
   note: 'text-violet-300',
   alarm: 'text-red',

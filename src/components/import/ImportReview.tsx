@@ -124,7 +124,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
       <section className="card space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Review queue</h2>
-          <Pill tone={unresolved.length === 0 ? 'green' : 'amber'}>
+          <Pill tone={unresolved.length === 0 ? 'green' : 'warn'}>
             {unresolved.length === 0 ? 'ready to save' : `${unresolved.length} to resolve`}
           </Pill>
           <span className="text-xs text-faint">
@@ -151,7 +151,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
             {unresolved.length > 40 && <li className="text-xs text-faint">+{unresolved.length - 40} more</li>}
           </ul>
         )}
-        <p className="text-xs text-amber-strong">
+        <p className="text-xs text-warn-strong">
           Nothing is filled in for you. Values the run sheet does not state — vital signs, doses, patient
           details, timings — stay “not in source” until you enter them.
         </p>

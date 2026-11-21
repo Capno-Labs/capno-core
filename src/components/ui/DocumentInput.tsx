@@ -77,7 +77,7 @@ export function DocumentInput({
           </span>
         )}
         {truncated && (
-          <span className="text-amber-strong">Document was truncated to fit the limit.</span>
+          <span className="text-warn-strong">Document was truncated to fit the limit.</span>
         )}
       </div>
     </div>

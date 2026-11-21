@@ -102,7 +102,7 @@ export default function AccountPage() {
             </p>
           </div>
           {profile?.role === 'student' && (
-            <p className="text-sm text-amber-strong">
+            <p className="text-sm text-warn-strong">
               This account has no faculty permissions — saved scenarios and sessions stay on this
               device only. Ask your program administrator to promote your account to faculty.
             </p>

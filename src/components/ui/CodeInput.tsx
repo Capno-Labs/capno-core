@@ -58,7 +58,7 @@ export function CodeInput({
                 char && full
                   ? 'ring-2 ring-vital-ecg/60'
                   : active
-                    ? 'ring-2 ring-amber'
+                    ? 'ring-2 ring-brand'
                     : 'ring-1 ring-line'
               }`}
             >
@@ -67,7 +67,7 @@ export function CodeInput({
                   {char}
                 </span>
               ) : (
-                active && <span className="h-8 w-0.5 animate-pulse rounded bg-blue" />
+                active && <span className="h-8 w-0.5 animate-pulse rounded bg-brand" />
               )}
             </div>
           );
