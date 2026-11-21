@@ -727,6 +727,13 @@ export interface AlarmState {
   vital: keyof NumericVitals | 'rhythm' | 'paw' | 'vt' | 'fio2';
   level: 'warning' | 'critical';
   message: string;
+  /**
+   * Someone pressed Silence while this alarm was active: it no longer sounds
+   * or flashes, but stays listed while its cause persists. It clears when
+   * the cause does, so the same alarm coming back is a new one. Absent =
+   * not acknowledged.
+   */
+  acknowledged?: boolean;
 }
 
 /** Last measured NIBP reading (cuff mode). */

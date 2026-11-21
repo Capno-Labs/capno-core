@@ -380,6 +380,9 @@ is a reading, not a drug model.
 | Selecting a number opens its alarm setup: high and low limit, alarms on/off; the critical limit is shown, not set, and moves only if a limit passes it | Same manual, "Alarm Limits": the measurement alarm-limits window has the high and low yellow limit fields, an Alarms On/Off key and view-only red limits; "if you set the yellow alarm limit outside the red alarm limit, the monitor will automatically adapt the red alarm limit" |
 | A limit at the end of its range is off | Same manual: "setting the high alarm limit to 100 switches the high alarm off, or setting the low alarm limit to 0 switches it off" |
 | Limits print beside the number; an alarms-off mark replaces them when that measurement's alarms are off | Same manual: the limits are shown "next to the measurement numeric", and "the alarms off symbol is shown beside the measurement numeric" |
+| Silence acknowledges the alarms active now: they stop sounding and flashing, and stay listed with a tick while the cause persists | Same manual, "Acknowledging Alarms": the Acknowledge key (labelled Silence on older devices) "switches off the audible alarm indicators and alarm lamps"; "the alarm message stays on the screen with a check mark symbol beside it" |
+| When the cause clears the alarm is reset, so its return sounds again | Same manual: "If the alarm condition is no longer present, all alarm indicators stop and the alarm is reset" |
+| A silenced cuff-pressure alarm disappears until the next reading | Same manual: "except for NBP alarms and alarms from other intermittent measurements. When such an alarm is acknowledged the alarm message disappears" |
 
 The adult limits are the sim's long-standing set and are not from that
 manual: they are a little tighter than its adult defaults (HR 50–120, SpO₂
@@ -393,7 +396,11 @@ press moves a limit (5 for heart rate and pressure, 1 for saturation, EtCO₂
 and breathing rate, 0.5 °C) is a choice — the monitor offers a list of
 values. With a number's alarms off, the oximeter's lost-signal alarm and the
 rhythm alarms still sound; the manual treats technical alarms separately
-from limit alarms, and keeping the rhythm alarms is the sim's choice.
+from limit alarms, and keeping the rhythm alarms is the sim's choice. What
+counts as a new alarm after Silence — another number, a higher priority, a
+different rhythm — is the sim's reading of "a new alarm"; the manual's
+optional alarm reminder (the tone repeating after 1–3 minutes) is not
+modelled.
 
 **Alarm sounds**
 

@@ -105,14 +105,17 @@ export function burstPeriodSec(pattern: AlarmPattern): number {
 
 /**
  * Which alarm sound, if any, the monitor should be making: the highest
- * priority among the active alarms — none while the scenario is not running
- * or faculty has silenced alarms.
+ * priority among the active alarms nobody has silenced — none while the
+ * scenario is not running or faculty has paused alarms. Acknowledging "switches
+ * off the audible alarm indicators" (Philips IntelliVue MX750/MX850
+ * Instructions for Use, "Acknowledging Alarms").
  */
 export function alarmTier(
   snapshot: Pick<SimSnapshot, 'alarms' | 'alarmsSilenced' | 'status'>,
 ): AlarmTier | null {
   if (snapshot.status !== 'running' || snapshot.alarmsSilenced) return null;
-  if (snapshot.alarms.some((a) => a.level === 'critical')) return 'critical';
-  if (snapshot.alarms.some((a) => a.level === 'warning')) return 'warning';
+  const sounding = snapshot.alarms.filter((a) => !a.acknowledged);
+  if (sounding.some((a) => a.level === 'critical')) return 'critical';
+  if (sounding.some((a) => a.level === 'warning')) return 'warning';
   return null;
 }

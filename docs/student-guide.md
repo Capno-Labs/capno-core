@@ -75,9 +75,15 @@ patient and the rhythm, not for a number.
   its alarm setup: − and + move the **High** and **Low** limit, and
   **Alarms on/off** switches that number's alarms. The change applies to
   every display and is recorded for the debrief, as it would be charted in
-  an OR. Limits and alarms are all you can change from here.
+  an OR. Alarms — these settings and the Silence key — are all you can
+  operate from here.
 - A yellow banner is a **warning** alarm; a flashing red banner is **critical**.
-  🔕 means the instructor has silenced alarms.
+  "⏸ alarms paused" means the instructor has paused all alarms.
+- **🔕 Silence**, at the top of the monitor, quiets the alarms sounding right
+  now (unless your instructor has locked the alarms). They stay in the bar
+  with a ✓ while the number is still out of range, and a new alarm — a
+  different number, or the same one getting worse — will still sound.
+  Silencing an alarm does not fix what caused it.
 - Sound is **on by default**. If the top bar shows **🔈 tap for sound**, tap
   anywhere once — the browser needs that before it will play. The speaker
   button cycles full → low → off.

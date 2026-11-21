@@ -41,6 +41,7 @@ export default function FacultyRunPage() {
     loadScenario,
     teardown,
     setAlarmsSilenced,
+    acknowledgeAlarms,
     stepAlarmLimit,
     setAlarmOff,
     start,
@@ -229,13 +230,13 @@ export default function FacultyRunPage() {
                     onClick={() => setAlarmsSilenced(!snapshot.alarmsSilenced)}
                   >
                     <Icon name={snapshot.alarmsSilenced ? 'bell-off' : 'bell'} size={13} />
-                    {snapshot.alarmsSilenced ? 'alarms silenced' : 'silence alarms'}
+                    {snapshot.alarmsSilenced ? 'alarms paused' : 'pause all alarms'}
                   </button>
                 </div>
                 <MonitorDisplay
                   snapshot={snapshot}
                   compact
-                  alarmSetup={{ stepLimit: stepAlarmLimit, setOff: setAlarmOff }}
+                  alarmSetup={{ stepLimit: stepAlarmLimit, setOff: setAlarmOff, silence: acknowledgeAlarms }}
                 />
               </div>
             </div>

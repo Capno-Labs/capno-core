@@ -4,6 +4,7 @@ import type {
   AlarmLimits,
   AlarmProfile,
   AlarmSide,
+  AlarmState,
   AlarmVital,
   AnestheticAgent,
   CapnoShape,
@@ -221,6 +222,8 @@ export class SimulationEngine {
   private actions: ActionRecord[];
   private firedEventIds = new Set<string>();
   private alarmsSilenced = false;
+  /** Alarms silenced with the monitor's Silence key (see alarmKey). */
+  private acknowledged = new Set<string>();
   /** The monitor's patient category and the alarm limits in force. */
   private alarmProfile: AlarmProfile;
   private alarmLimits: AlarmLimits;
@@ -434,6 +437,7 @@ export class SimulationEngine {
     // they are part of this session's working set until the next load.
     this.pinnedNextEventId = null;
     this.alarmsSilenced = false;
+    this.acknowledged.clear();
     this.actions = this.scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = this.scenario.monitoring?.artLine ?? false;
     this.v5Lead = this.scenario.monitoring?.v5 ?? false;
@@ -1167,7 +1171,11 @@ export class SimulationEngine {
     return [...this.log];
   }
 
-  snapshot(): SimSnapshot {
+  /**
+   * The vitals as the monitor measures them, and the ones alarms are judged
+   * on (in cuff mode, the last cuff reading rather than the true pressure).
+   */
+  private measured(): { vitals: Vitals; alarmVitals: Vitals } {
     const vitals = this.getVitals();
     // The capnometer needs exhaled breath to sample: at apnea (RR 0) it reads
     // 0, so the numeric EtCO2 tile agrees with the already-flat capnograph.
@@ -1186,6 +1194,54 @@ export class SimulationEngine {
     const alarmVitals = this.lastNibp
       ? { ...vitals, sbp: this.lastNibp.sbp, dbp: this.lastNibp.dbp }
       : vitals;
+    return { vitals, alarmVitals };
+  }
+
+  /**
+   * What makes two alarms "the same alarm" for Silence: the vital, the
+   * priority and the kind of alarm, not the number in its message — so a
+   * heart rate drifting from 128 to 131 stays silenced, while a warning that
+   * becomes critical, or a different rhythm, is a new alarm. A cuff pressure
+   * is an intermittent measurement: each reading alarms afresh.
+   */
+  private alarmKey(alarm: AlarmState): string {
+    const key = `${alarm.vital}:${alarm.level}:${alarm.message.replace(/[\d.]+/g, '')}`;
+    return alarm.vital === 'sbp' && this.lastNibp ? `${key}@${this.lastNibp.atSec}` : key;
+  }
+
+  /**
+   * The alarms active now, each marked if it has been silenced. An
+   * acknowledgement lasts only while its alarm does: once the cause clears
+   * the alarm is reset, and its return sounds again.
+   */
+  private alarmsNow(alarmVitals: Vitals): AlarmState[] {
+    const alarms = evaluateAlarms(alarmVitals, this.alarmLimits, [...this.alarmsOff]);
+    const active = new Set(alarms.map((a) => this.alarmKey(a)));
+    for (const key of this.acknowledged) {
+      if (!active.has(key)) this.acknowledged.delete(key);
+    }
+    return alarms.map((a) => (this.acknowledged.has(this.alarmKey(a)) ? { ...a, acknowledged: true } : a));
+  }
+
+  /**
+   * The monitor's Silence key: acknowledge every alarm active now. They stop
+   * sounding and flashing but stay listed; a new alarm — another vital, a
+   * higher priority, or the same one returning after it cleared — sounds as
+   * usual. Nothing to silence is a no-op.
+   */
+  acknowledgeAlarms(by?: AlarmSetupSource): void {
+    const pending = this.alarmsNow(this.measured().alarmVitals).filter((a) => !a.acknowledged);
+    if (pending.length === 0) return;
+    for (const alarm of pending) this.acknowledged.add(this.alarmKey(alarm));
+    this.addLog(
+      'vital_change',
+      `Alarms silenced: ${pending.map((a) => a.message).join(', ')}`,
+      by === 'display' ? LEARNER_DETAIL : undefined,
+    );
+  }
+
+  snapshot(): SimSnapshot {
+    const { vitals, alarmVitals } = this.measured();
     return {
       scenarioId: this.scenario.id,
       sessionId: this.sessionId,
@@ -1201,7 +1257,7 @@ export class SimulationEngine {
         agent: this.agent,
         mac: Math.round(macMultiple(this.agent, vitals.agentEt, this.scenario.patient.age) * 100) / 100,
       },
-      alarms: evaluateAlarms(alarmVitals, this.alarmLimits, [...this.alarmsOff]),
+      alarms: this.alarmsNow(alarmVitals),
       alarmsSilenced: this.alarmsSilenced,
       alarmLimits: this.alarmLimits,
       alarmProfile: this.alarmProfile,

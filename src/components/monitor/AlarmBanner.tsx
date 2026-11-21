@@ -19,19 +19,27 @@ export function AlarmBanner({ alarms, silenced }: AlarmBannerProps) {
   const critical = alarms.filter((a) => a.level === 'critical');
   const shown = critical.length > 0 ? critical : alarms;
   const isCritical = critical.length > 0;
+  // Flash only for an alarm nobody has silenced: acknowledging switches the
+  // alarm lamps off, and the message stays with a tick beside it.
+  const flashing = !silenced && shown.some((a) => !a.acknowledged);
 
   return (
     <div
       role="alert"
       className={`flex h-9 items-center gap-4 overflow-x-auto rounded-md px-3 text-sm font-mono font-bold uppercase tracking-wide ${
         isCritical
-          ? `bg-red-950 text-red-300 ring-2 ring-red-500 ${silenced ? '' : 'animate-alarm-flash'}`
+          ? `bg-red-950 text-red-300 ring-2 ring-red-500 ${flashing ? 'animate-alarm-flash' : ''}`
           : 'bg-yellow-950 text-yellow-300 ring-2 ring-yellow-500/70'
       }`}
     >
-      {silenced && <span className="text-xs normal-case opacity-70">🔕 silenced</span>}
+      {silenced && <span className="text-xs normal-case opacity-70">⏸ alarms paused</span>}
       {shown.map((a, i) => (
-        <span key={`${a.vital}-${i}`} className="whitespace-nowrap">
+        <span
+          key={`${a.vital}-${i}`}
+          className={`whitespace-nowrap ${a.acknowledged ? 'opacity-70' : ''}`}
+          title={a.acknowledged ? 'Silenced — still out of range' : undefined}
+        >
+          {a.acknowledged && <span aria-label="Silenced">✓ </span>}
           {a.message}
         </span>
       ))}

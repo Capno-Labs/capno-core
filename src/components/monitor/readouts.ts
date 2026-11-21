@@ -37,6 +37,17 @@ export function cuffReadingFailed(nibp: NibpReading | null): boolean {
 }
 
 /**
+ * A silenced alarm normally stays on screen, ticked, while its cause lasts —
+ * "except for NBP alarms and alarms from other intermittent measurements.
+ * When such an alarm is acknowledged the alarm message disappears" (Philips
+ * IntelliVue MX750/MX850 Instructions for Use, "Acknowledging Alarms"). The
+ * next cuff reading alarms afresh if it is still out of range.
+ */
+export function alarmDismissed(alarm: AlarmState, nibp: NibpReading | null): boolean {
+  return alarm.acknowledged === true && alarm.vital === 'sbp' && nibp !== null;
+}
+
+/**
  * Alarm list for the banner: where a tile shows dashes, the alarm names the
  * lost signal instead of quoting the number the tile no longer shows. Levels,
  * order and every other alarm are unchanged.
@@ -48,7 +59,7 @@ export function displayAlarms(
 ): AlarmState[] {
   const noPulse = !oximeterHasSignal(vitals);
   const cuffFailed = cuffReadingFailed(nibp);
-  return alarms.map((a) => {
+  return alarms.filter((a) => !alarmDismissed(a, nibp)).map((a) => {
     if (a.vital === 'spo2' && noPulse) return { ...a, message: 'SpO₂ NO PULSE' };
     if (a.vital === 'sbp' && cuffFailed) return { ...a, message: 'NIBP NO READING' };
     return a;

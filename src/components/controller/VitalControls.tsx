@@ -457,7 +457,7 @@ export function VitalControls() {
               checked={snapshot.learnerAlarmSetup ?? false}
               onChange={(e) => setLearnerAlarmSetup(e.target.checked)}
             />
-            Learners can do the same on their display — each change is logged as theirs
+            Learners can do the same on their display, and press Silence — each is logged as theirs
           </label>
         </div>
 

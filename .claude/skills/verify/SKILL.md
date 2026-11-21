@@ -43,6 +43,9 @@ The canonical smoke flow:
    The same works on a joined student display (same browser context) while
    `Learners can do the same on their display` is ticked on the controller;
    the log line then ends `on a student display`.
+   `getByRole('button', { name: 'Silence alarms' })` is the monitor's Silence
+   key (disabled with nothing alarming); a silenced alarm shows `✓` in the
+   alarm bar. The faculty-only toggle above the preview is `pause all alarms`.
 5. Twitch monitor: click `Attach twitch monitor`; the steppers are
    `getByLabel('Count target')`, `Ratio target` (only at count 4) and
    `PTC target` (only at count 0). The TOF tile changes at the next

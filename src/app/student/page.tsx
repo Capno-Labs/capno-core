@@ -213,7 +213,7 @@ function StudentContent() {
             snapshot={snapshot}
             showRhythmLabel={false}
             soundRole="display"
-            // Learners operate the alarm setup when faculty allow it. The
+            // Learners operate the alarms (setup and Silence) when faculty allow it. The
             // display changes nothing itself: each press is a request, and
             // the session's next snapshot shows the result.
             alarmSetup={
@@ -222,6 +222,7 @@ function StudentContent() {
                     stepLimit: (vital, side, direction) =>
                       requestMonitor({ kind: 'alarmLimitStep', vital, side, direction }),
                     setOff: (vital, off) => requestMonitor({ kind: 'alarmOff', vital, off }),
+                    silence: () => requestMonitor({ kind: 'silence' }),
                   }
                 : undefined
             }
