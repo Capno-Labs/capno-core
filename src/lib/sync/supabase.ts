@@ -21,6 +21,13 @@ export function getSupabase(): SupabaseClient | null {
     client = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL as string,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+      // Never adopt a session from the address bar. By default supabase-js
+      // signs in as whoever `#access_token=…&refresh_token=…` belongs to on
+      // ANY page load, silently replacing the current user — so a link from
+      // a stranger could sign someone into the stranger's account, and their
+      // queued saves would sync there. Sign-in is explicit only: a password,
+      // or a link the user confirmed on /account (see cloud/authLink.ts).
+      { auth: { detectSessionInUrl: false } },
     );
   }
   return client;
