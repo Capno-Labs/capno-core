@@ -1,15 +1,23 @@
 'use client';
 
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Field } from '@/components/ui/Field';
 import { Pill } from '@/components/ui/Pill';
 import { Poster } from '@/components/ui/Poster';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { accountPortalUrl, passwordResetUrl } from '@/lib/accountPortal';
+import { accountPortalOrigin, accountPortalUrl, passwordResetUrl } from '@/lib/accountPortal';
+import {
+  cameFromPortal,
+  hasAuthFragment,
+  parseAuthFragment,
+  type AuthLink,
+} from '@/lib/cloud/authLink';
 import { useAuthStore } from '@/lib/cloud/authStore';
+import { queuedCount } from '@/lib/cloud/outbox';
 import { DISPLAY_COPY } from '@/lib/displayCopy';
+import { toast } from '@/lib/store/toastStore';
 
 const BENEFITS = [
   'A shared case library for your program',
@@ -22,17 +30,83 @@ const signUpUrl = accountPortalUrl('/start');
 const teamUrl = accountPortalUrl('/invites');
 const resetUrl = passwordResetUrl();
 
+/** What a sign-in link (see lib/cloud/authLink.ts) is doing on this page. */
+type LinkPhase = 'idle' | 'confirm' | 'working' | 'failed' | 'other-account';
+
 /** Institution account: sign in/out and see your role. Optional — Capno runs fully without it. */
 export default function AccountPage() {
-  const { status, user, profile, init, signIn, signOut } = useAuthStore();
+  const { status, user, profile, init, signIn, signInWithTokenHash, signOut } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // Messages from flows that land on this page (reserved for sign-in links).
-  const [notice] = useState<ReactNode>(null);
+  const [link, setLink] = useState<AuthLink | null>(null);
+  const [linkPhase, setLinkPhase] = useState<LinkPhase>('idle');
+  const [queued, setQueued] = useState(0);
+  // A token is single-use: never exchange it twice (StrictMode re-runs effects).
+  const exchanged = useRef(false);
+  // Whether this page was opened by the account portal itself (see
+  // cameFromPortal): the only case where a link is used without asking.
+  const fromPortal = useRef(false);
 
   useEffect(() => init(), [init]);
+
+  // A sign-in link arrives in the URL fragment. Take it out of the address
+  // bar (and history) before doing anything else with it.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hasAuthFragment(hash)) return;
+    const parsed = parseAuthFragment(hash);
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    fromPortal.current = cameFromPortal(document.referrer, accountPortalOrigin());
+    if (parsed.email) setEmail(parsed.email);
+    // A token is only usable together with the account it claims to be for.
+    if (parsed.tokenHash && parsed.email) setLink(parsed);
+  }, []);
+
+  const exchangeLink = async () => {
+    if (!link?.tokenHash || !link.type || !link.email || exchanged.current) return;
+    exchanged.current = true;
+    setLinkPhase('working');
+    // Rejected unless the session turns out to belong to link.email.
+    const result = await signInWithTokenHash(link.tokenHash, link.type, link.email);
+    setLink(null);
+    if (result.ok) {
+      setLinkPhase('idle');
+      const address = useAuthStore.getState().user?.email;
+      toast(address ? `Signed in as ${address}` : 'Signed in', 'success');
+    } else {
+      setLinkPhase('failed');
+    }
+  };
+
+  // Use the link only once the stored session is known, and only on a
+  // signed-out device — a link never replaces an existing session.
+  //
+  // It is used without asking only when the account portal itself opened
+  // this page AND nothing on this device is waiting to upload. Anything else
+  // — a link from an email or another site, or unsynced work that would
+  // upload to the link's account — gets an explicit "Sign in as …?" that
+  // names the account.
+  useEffect(() => {
+    if (!link?.tokenHash || linkPhase !== 'idle' || status === 'loading') return;
+    if (status !== 'signed_out') {
+      const current = useAuthStore.getState().user?.email ?? '';
+      const differs = current.toLowerCase() !== (link.email ?? '').toLowerCase();
+      setLink(null);
+      if (status === 'signed_in' && differs) setLinkPhase('other-account');
+      return;
+    }
+    const waiting = queuedCount();
+    setQueued(waiting);
+    if (fromPortal.current && waiting === 0) {
+      void exchangeLink();
+    } else {
+      setLinkPhase('confirm');
+    }
+    // exchangeLink is recreated each render; the guards above make this safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [link, linkPhase, status]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -64,7 +138,50 @@ export default function AccountPage() {
       </Poster>
 
       <div className="space-y-4">
-        {notice}
+        {linkPhase === 'confirm' && (
+          <Callout
+            tone="info"
+            title={`Sign in as ${link?.email ?? 'this account'}?`}
+            actions={
+              <>
+                <Button variant="primary" size="sm" onClick={() => void exchangeLink()}>
+                  Sign in
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setLink(null);
+                    setLinkPhase('idle');
+                  }}
+                >
+                  Not now
+                </Button>
+              </>
+            }
+          >
+            A link wants to sign this device in to that account. Only continue if you asked
+            for it.
+            {queued > 0 && (
+              <>
+                {' '}
+                This device has {queued} unsynced {queued === 1 ? 'change' : 'changes'}; after
+                signing in, {queued === 1 ? 'it' : 'they'} will upload to that account.
+              </>
+            )}
+          </Callout>
+        )}
+        {linkPhase === 'other-account' && (
+          <Callout tone="info" title="The sign-in link was not used" onDismiss={() => setLinkPhase('idle')}>
+            You’re already signed in here as {user?.email}. Sign out first if you meant to switch
+            accounts.
+          </Callout>
+        )}
+        {linkPhase === 'failed' && (
+          <Callout tone="warn" title="That sign-in link has expired or was already used">
+            Sign in with your password instead.
+          </Callout>
+        )}
 
         {status === 'unconfigured' && (
           <div className="card space-y-2 text-sm text-muted">
@@ -81,9 +198,11 @@ export default function AccountPage() {
           </div>
         )}
 
-        {status === 'loading' && (
+        {(status === 'loading' || linkPhase === 'working') && (
           <div className="card space-y-4" role="status">
-            <span className="sr-only">Checking session…</span>
+            <span className="sr-only">
+              {linkPhase === 'working' ? 'Signing you in…' : 'Checking session…'}
+            </span>
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-9 w-full" />
             <Skeleton className="h-3 w-20" />
@@ -92,8 +211,8 @@ export default function AccountPage() {
           </div>
         )}
 
-        {status === 'signed_out' && (
-          <form onSubmit={submit} className="card space-y-4" noValidate={false}>
+        {status === 'signed_out' && linkPhase !== 'working' && (
+          <form onSubmit={submit} className="card space-y-4">
             <h2 className="text-base font-bold">Sign in with your institution account</h2>
             {error && <Callout tone="danger">{error}</Callout>}
             <Field label="Email">
