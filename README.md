@@ -164,7 +164,6 @@ npm test           # vitest unit tests (engine, scoring, schema + scenario valid
 npm run typecheck  # tsc --noEmit
 npm run lint       # next lint (ESLint)
 npm run build      # production build
-npm run icons      # regenerate PWA icons (scripts/gen-icons.mjs, no deps)
 ```
 
 ## Deployment

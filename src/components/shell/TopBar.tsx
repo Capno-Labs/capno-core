@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogoTile } from '@/components/brand/LogoTile';
+import { BrandMark } from '@/components/brand/BrandMark';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { crumbFor } from './nav';
 import { SyncPill } from './SyncPill';
@@ -15,7 +15,7 @@ export function TopBar() {
     <header className="no-print sticky top-0 z-30 flex h-[var(--topbar-h)] items-center justify-between gap-4 border-b border-line bg-surface/85 px-4 backdrop-blur-md md:px-7">
       <div className="flex min-w-0 items-center gap-3">
         <Link href="/" aria-label="CAPNO Studio home" className="md:hidden">
-          <LogoTile size="sm" />
+          <BrandMark size="sm" />
         </Link>
         <div className="min-w-0 truncate font-mono text-[11px] uppercase tracking-[0.14em] text-faint">
           <span className="hidden sm:inline">Simulation lab / </span>

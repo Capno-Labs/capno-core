@@ -1,0 +1,15 @@
+/**
+ * The CAPNO symbol, "Soft shoulder": a rounded square in two pieces whose
+ * open gap traces one capnogram breath (docs/brand.md; same paths as
+ * public/brand/capno-symbol-*.svg). It fills with currentColor, so the
+ * surrounding text class picks the colour — white on dark and blue
+ * surfaces, cobalt on light ones — and the gap shows whatever is behind it.
+ */
+export function CapnoSymbol({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 128 128" fill="currentColor" aria-hidden className={className}>
+      <path d="M0 79.8H18.0C20.0 79.8 20.7 78.8 21.2 76.3L23.6 64.5C27.1 45.9 34.8 39.6 51.5 37.5C62.6 36.1 80.1 34.2 93.8 32.4C97.6 31.9 99.4 33.1 99.65 37.3L101.85 75.6Q102.0 79.8 106.2 79.8H128V14A14 14 0 0 0 114 0H14A14 14 0 0 0 0 14Z" />
+      <path d="M0 91.8H22.8C28.9 91.8 31.0 88.9 32.1 83.5L35.3 66.8C37.6 54.8 42.2 50.9 53.1 49.5C62.9 48.25 76.5 46.8 84.5 45.8Q87.6 45.4 87.8 48.9L89.55 80.5C90.0 88.5 93.15 91.8 100.7 91.8H128V114A14 14 0 0 1 114 128H14A14 14 0 0 1 0 114Z" />
+    </svg>
+  );
+}

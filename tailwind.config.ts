@@ -37,8 +37,11 @@ const config: Config = {
         'on-brand': '#ffffff',
         'on-brand-hover': v('on-brand-hover'),
         focus: v('focus'),
+        // The logo's colour on the app surface: white in the dark theme,
+        // cobalt in the light one (docs/brand.md). On blue posters use white.
+        logo: v('logo'),
         // Caution states (orange). Amber is deliberately NOT a UI colour: it
-        // is reserved for the logo mark and EtCO2 (`vital-etco2`). The guard
+        // is reserved for EtCO2 (`vital-etco2`). The guard
         // in src/lib/designGuard.test.ts fails on any `*-amber` class, because
         // with no DEFAULT here a stray `bg-amber` would compile to nothing.
         warn: { DEFAULT: v('warn'), strong: v('warn-strong'), soft: v('warn-soft') },

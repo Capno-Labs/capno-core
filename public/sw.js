@@ -10,7 +10,7 @@
  *    content-hashed and immutable.
  */
 
-const VERSION = 'capno-v7';
+const VERSION = 'capno-v8';
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const PAGE_CACHE = `${VERSION}-pages`;
 

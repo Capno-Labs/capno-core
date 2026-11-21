@@ -32,6 +32,7 @@
   --brand-hover: 255 255 255; /* primary button hover fill: a decisive swap, no lift */
   --on-brand-hover: 13 23 37;
   --focus: 96 165 250; /* #60a5fa focus ring */
+  --logo: 255 255 255; /* the logo is white on dark surfaces */
   --warn: 249 115 22; /* #f97316 — caution fills and dots */
   --warn-strong: 253 186 116; /* caution text on dark */
   --warn-soft: 61 39 24; /* caution-tinted surface */
@@ -68,6 +69,7 @@
   --brand-hover: 13 23 37;
   --on-brand-hover: 255 255 255;
   --focus: 59 130 246; /* #3b82f6 */
+  --logo: 7 84 248; /* #0754f8 — the logo is cobalt on light surfaces */
   --warn-strong: 194 65 12; /* #c2410c */
   --warn-soft: 255 237 213;
   --green: 22 130 55;

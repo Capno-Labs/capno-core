@@ -49,9 +49,13 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'CAPNO Studio',
   },
+  // From the brand asset pack (docs/brand.md). The SVG favicon adapts to the
+  // browser's light or dark theme; the .ico covers browsers without SVG
+  // favicon support.
   icons: {
     icon: [
-      { url: '/brand/capno-icon.svg', type: 'image/svg+xml' },
+      { url: '/brand/favicon.svg', type: 'image/svg+xml' },
+      { url: '/brand/favicon.ico', sizes: '48x48' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
     apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
