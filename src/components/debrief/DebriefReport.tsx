@@ -11,8 +11,8 @@ import { TrendStrip } from './TrendStrip';
 /** Performance-tier color for the score reveal (screen only; print is black). */
 function tierClasses(percent: number): { text: string; band: string } {
   if (percent >= 90) return { text: 'text-green', band: 'bg-green' };
-  if (percent >= 75) return { text: 'text-blue', band: 'bg-blue' };
-  if (percent >= 60) return { text: 'text-amber-strong', band: 'bg-amber' };
+  if (percent >= 75) return { text: 'text-brand-strong', band: 'bg-brand' };
+  if (percent >= 60) return { text: 'text-warn-strong', band: 'bg-warn' };
   return { text: 'text-red', band: 'bg-red' };
 }
 
@@ -32,14 +32,14 @@ const AMENDABLE_STATUSES: ActionStatus[] = ['done', 'delayed', 'incorrect', 'mis
 /** Status word color in the learner-action grid (pending renders as missed). */
 const ACTION_STATUS_CLASS: Record<Exclude<ActionStatus, 'pending'>, string> = {
   done: 'text-green',
-  delayed: 'text-amber-strong',
+  delayed: 'text-warn-strong',
   incorrect: 'text-red',
   missed: 'text-muted',
 };
 
 const SEVERITY_CLASS: Record<TurningPoint['severity'], string> = {
   info: 'text-ink-2',
-  warning: 'text-amber-strong',
+  warning: 'text-warn-strong',
   critical: 'text-red',
 };
 
@@ -93,9 +93,10 @@ export function DebriefReport({
   const manualRubric = score.possible === 0;
   const statusCount = (status: ActionStatus) =>
     snapshot.actions.filter((r) => r.status === status).length;
-  const markedCount = statusCount('done') + statusCount('delayed');
+  const doneCount = statusCount('done');
   const delayedCount = statusCount('delayed');
   const incorrectCount = statusCount('incorrect');
+  const unmarkedCount = scenario.expectedActions.length - doneCount - delayedCount - incorrectCount;
 
   return (
     <article className="print-report card space-y-8 !p-6 md:!p-8">
@@ -116,7 +117,7 @@ export function DebriefReport({
           {session.learnerNames?.length ? session.learnerNames.join(', ') : '—'}
           {amend && learnersDraft === null && (
             <button
-              className="no-print ml-2 text-xs text-amber-strong hover:underline"
+              className="no-print ml-2 text-xs text-brand-strong hover:underline"
               onClick={() => setLearnersDraft(session.learnerNames?.join(', ') ?? '')}
             >
               edit
@@ -159,9 +160,10 @@ export function DebriefReport({
           <div className="rounded-ctl bg-panel-2 px-4 py-3 text-sm">
             <p className="font-semibold text-ink">Faculty-scored rubric — no automatic score</p>
             <p className="mt-1 text-ink-2">
-              {markedCount} of {scenario.expectedActions.length} rubric items marked as observed
+              {doneCount} of {scenario.expectedActions.length} rubric items observed
               {delayedCount > 0 ? `, ${delayedCount} delayed` : ''}
-              {incorrectCount > 0 ? `, ${incorrectCount} incorrect` : ''}. Use the program&apos;s own
+              {incorrectCount > 0 ? `, ${incorrectCount} incorrect` : ''}
+              {unmarkedCount > 0 ? `, ${unmarkedCount} not marked` : ''}. Use the program&apos;s own
               scoring rule with the marks below.
             </p>
           </div>
@@ -174,7 +176,7 @@ export function DebriefReport({
               <span className="hidden print:inline">{score.percent}%</span>
             </div>
             <div
-              className={`keep-badge-bg mx-auto mt-1 h-1 rounded ${tier.band}`}
+              className={`keep-badge-bg mx-auto mt-1 h-1 rounded-ctl ${tier.band}`}
               style={{ width: `${Math.max(8, score.percent)}%` }}
             />
             <div className="mt-1 text-xs text-faint">
@@ -190,9 +192,9 @@ export function DebriefReport({
                     {c.earned}/{c.possible}
                   </td>
                   <td className="pl-3 py-0.5 w-40">
-                    <div className="keep-badge-bg h-2 w-full rounded bg-panel-3">
+                    <div className="keep-badge-bg h-2 w-full rounded-ctl bg-panel-3">
                       <div
-                        className="anim-bar h-2 origin-left rounded bg-green motion-safe:animate-bar-grow"
+                        className="anim-bar h-2 origin-left rounded-ctl bg-green motion-safe:animate-bar-grow"
                         style={{
                           width: `${c.possible ? (c.earned / c.possible) * 100 : 0}%`,
                           animationDelay: `${150 + i * 90}ms`,
@@ -305,7 +307,7 @@ export function DebriefReport({
                       </span>
                       {amend && (
                         <select
-                          className="no-print ml-2 rounded bg-panel-2 px-1 py-0.5 text-xs text-ink-2 ring-1 ring-line"
+                          className="no-print ml-2 rounded-ctl bg-panel-2 px-1 py-0.5 text-xs text-ink-2 ring-1 ring-line"
                           value={shown}
                           onChange={(e) => amend.markAction(a.id, e.target.value as ActionStatus)}
                           aria-label={`Amend status for ${a.label}`}
@@ -396,14 +398,14 @@ export function DebriefReport({
                 <li key={i}>
                   <span className="font-mono text-faint">{fmt(n.t)}</span> — {n.text}
                   {n.postHoc && (
-                    <span className="keep-badge-bg ml-2 rounded bg-panel-2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted ring-1 ring-line">
+                    <span className="keep-badge-bg ml-2 rounded-ctl bg-panel-2 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted ring-1 ring-line">
                       added at debrief
                     </span>
                   )}
                   {amend && (
                     <span className="no-print ml-2 space-x-2 text-xs">
                       <button
-                        className="text-amber-strong hover:underline"
+                        className="text-brand-strong hover:underline"
                         onClick={() => {
                           setConfirmDeleteIdx(null);
                           setNoteDraft({ idx: i, text: n.text });
@@ -462,7 +464,7 @@ export function DebriefReport({
               </div>
             ) : (
               <button
-                className="no-print mt-2 text-xs text-amber-strong hover:underline"
+                className="no-print mt-2 text-xs text-brand-strong hover:underline"
                 onClick={() => setNoteDraft({ idx: 'new', text: '' })}
               >
                 + Add note

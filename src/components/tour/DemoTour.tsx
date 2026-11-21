@@ -102,7 +102,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
     <>
       {rect && !narrow && (
         <div
-          className="pointer-events-none fixed z-40 rounded-lg ring-2 ring-amber"
+          className="pointer-events-none fixed z-40 rounded-lg ring-2 ring-brand"
           style={{
             top: rect.top - 4,
             left: rect.left - 4,
@@ -116,7 +116,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-label={`Demo tour: ${step.title}`}
         tabIndex={-1}
-        className={`${cardClass} border border-blue/30 bg-panel p-4 shadow-2xl outline-none`}
+        className={`${cardClass} border border-brand/30 bg-panel p-4 shadow-2xl outline-none`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === 'ArrowRight') {
             e.preventDefault();
@@ -127,7 +127,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
           }
         }}
       >
-        <p className="text-[10px] uppercase tracking-wider text-amber-strong">
+        <p className="text-[10px] uppercase tracking-wider text-brand-strong">
           Demo tour · {idx + 1} / {DEMO_TOUR_STEPS.length}
         </p>
         <h2 className="mt-1 text-sm font-bold text-ink">{step.title}</h2>
@@ -142,7 +142,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
                 ← Back
               </button>
             )}
-            <button className="btn-primary !py-1 text-xs" onClick={next}>
+            <button className="btn-primary btn-sm" onClick={next}>
               {last ? 'Finish' : 'Next →'}
             </button>
           </span>

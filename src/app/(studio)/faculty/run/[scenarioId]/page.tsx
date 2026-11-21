@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -136,7 +137,7 @@ export default function FacultyRunPage() {
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-3">
               <div className="min-w-0">
-                <div className="text-[10px] font-extrabold uppercase tracking-[0.11em] text-amber-strong">
+                <div className="text-[10px] font-extrabold uppercase tracking-[0.11em] text-brand-strong">
                   Live session
                 </div>
                 <h1 className="truncate text-xl font-bold tracking-[-0.02em]">
@@ -148,7 +149,7 @@ export default function FacultyRunPage() {
               </span>
               {imminentAuto && (
                 <span
-                  className="shrink-0 self-center rounded bg-amber-soft px-2 py-1 text-xs font-semibold text-amber-strong ring-1 ring-amber/40 motion-safe:animate-pulse"
+                  className="shrink-0 self-center rounded-ctl bg-warn-soft px-2 py-1 text-xs font-semibold text-warn-strong ring-1 ring-warn/40 motion-safe:animate-pulse"
                   title="Scripted event about to fire automatically"
                 >
                   ⏱ {imminentAuto.label} · {formatClock(imminentAuto.remaining)}
@@ -191,10 +192,11 @@ export default function FacultyRunPage() {
                     Live monitor (what students see)
                   </span>
                   <button
-                    className="text-xs text-muted hover:text-ink"
+                    className="inline-flex items-center gap-1 text-xs text-muted hover:text-ink"
                     onClick={() => setAlarmsSilenced(!snapshot.alarmsSilenced)}
                   >
-                    {snapshot.alarmsSilenced ? '🔕 alarms silenced' : '🔔 silence alarms'}
+                    <Icon name={snapshot.alarmsSilenced ? 'bell-off' : 'bell'} size={13} />
+                    {snapshot.alarmsSilenced ? 'alarms silenced' : 'silence alarms'}
                   </button>
                 </div>
                 <MonitorDisplay snapshot={snapshot} compact />

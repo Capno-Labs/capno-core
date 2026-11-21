@@ -1,18 +1,112 @@
 'use client';
 
-import { PageHead } from '@/components/ui/PageHead';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Callout } from '@/components/ui/Callout';
+import { Field } from '@/components/ui/Field';
+import { Pill } from '@/components/ui/Pill';
+import { Poster } from '@/components/ui/Poster';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { accountPortalOrigin, accountPortalUrl, passwordResetUrl } from '@/lib/accountPortal';
+import {
+  cameFromPortal,
+  hasAuthFragment,
+  parseAuthFragment,
+  type AuthLink,
+} from '@/lib/cloud/authLink';
 import { useAuthStore } from '@/lib/cloud/authStore';
+import { queuedCount } from '@/lib/cloud/outbox';
+import { DISPLAY_COPY } from '@/lib/displayCopy';
+import { toast } from '@/lib/store/toastStore';
+
+const BENEFITS = [
+  'A shared case library for your program',
+  'An institution-wide archive of debriefs',
+  'The same cases on every lab device',
+];
+
+// Build-time constants (NEXT_PUBLIC_*): identical on server and client.
+const signUpUrl = accountPortalUrl('/start');
+const teamUrl = accountPortalUrl('/invites');
+const resetUrl = passwordResetUrl();
+
+/** What a sign-in link (see lib/cloud/authLink.ts) is doing on this page. */
+type LinkPhase = 'idle' | 'confirm' | 'working' | 'failed' | 'other-account';
 
 /** Institution account: sign in/out and see your role. Optional — Capno runs fully without it. */
 export default function AccountPage() {
-  const { status, user, profile, init, signIn, signOut } = useAuthStore();
+  const { status, user, profile, init, signIn, signInWithTokenHash, signOut } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState<AuthLink | null>(null);
+  const [linkPhase, setLinkPhase] = useState<LinkPhase>('idle');
+  const [queued, setQueued] = useState(0);
+  // A token is single-use: never exchange it twice (StrictMode re-runs effects).
+  const exchanged = useRef(false);
+  // Whether this page was opened by the account portal itself (see
+  // cameFromPortal): the only case where a link is used without asking.
+  const fromPortal = useRef(false);
 
   useEffect(() => init(), [init]);
+
+  // A sign-in link arrives in the URL fragment. Take it out of the address
+  // bar (and history) before doing anything else with it.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hasAuthFragment(hash)) return;
+    const parsed = parseAuthFragment(hash);
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    fromPortal.current = cameFromPortal(document.referrer, accountPortalOrigin());
+    if (parsed.email) setEmail(parsed.email);
+    // A token is only usable together with the account it claims to be for.
+    if (parsed.tokenHash && parsed.email) setLink(parsed);
+  }, []);
+
+  const exchangeLink = async () => {
+    if (!link?.tokenHash || !link.type || !link.email || exchanged.current) return;
+    exchanged.current = true;
+    setLinkPhase('working');
+    // Rejected unless the session turns out to belong to link.email.
+    const result = await signInWithTokenHash(link.tokenHash, link.type, link.email);
+    setLink(null);
+    if (result.ok) {
+      setLinkPhase('idle');
+      const address = useAuthStore.getState().user?.email;
+      toast(address ? `Signed in as ${address}` : 'Signed in', 'success');
+    } else {
+      setLinkPhase('failed');
+    }
+  };
+
+  // Use the link only once the stored session is known, and only on a
+  // signed-out device — a link never replaces an existing session.
+  //
+  // It is used without asking only when the account portal itself opened
+  // this page AND nothing on this device is waiting to upload. Anything else
+  // — a link from an email or another site, or unsynced work that would
+  // upload to the link's account — gets an explicit "Sign in as …?" that
+  // names the account.
+  useEffect(() => {
+    if (!link?.tokenHash || linkPhase !== 'idle' || status === 'loading') return;
+    if (status !== 'signed_out') {
+      const current = useAuthStore.getState().user?.email ?? '';
+      const differs = current.toLowerCase() !== (link.email ?? '').toLowerCase();
+      setLink(null);
+      if (status === 'signed_in' && differs) setLinkPhase('other-account');
+      return;
+    }
+    const waiting = queuedCount();
+    setQueued(waiting);
+    if (fromPortal.current && waiting === 0) {
+      void exchangeLink();
+    } else {
+      setLinkPhase('confirm');
+    }
+    // exchangeLink is recreated each render; the guards above make this safe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [link, linkPhase, status]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,98 +118,191 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-4 py-10">
-      <PageHead eyebrow="Workspace" title="Institution account" />
+    <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:items-start">
+      <Poster
+        compact
+        label="Institution account"
+        titleLines={[...DISPLAY_COPY.account]}
+        promise="Signing in is optional. Everything works offline on this device without an account."
+      >
+        <ul className="space-y-2 border-t border-poster-line/40 pt-4 text-sm text-white">
+          {BENEFITS.map((b, i) => (
+            <li key={b} className="flex gap-3">
+              <span aria-hidden className="font-mono text-xs text-poster-muted">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </Poster>
 
-      {status === 'unconfigured' && (
-        <div className="card space-y-2 text-sm text-muted">
-          <p>
-            Institution sign-in is not configured on this installation. Capno runs fully on this
-            device — scenarios and debriefs are stored in this browser.
-          </p>
-          <p>
-            To enable shared scenario storage and an institution-wide session archive, deploy with
-            a Supabase backend (see <span className="font-mono text-ink-2">docs/DEPLOYMENT.md</span>).
-          </p>
-        </div>
-      )}
-
-      {status === 'loading' && <div className="card text-sm text-muted">Checking session…</div>}
-
-      {status === 'signed_out' && (
-        <form onSubmit={submit} className="card space-y-4">
-          <p className="text-sm text-muted">
-            Sign in with your institution account. Accounts are created by your program
-            administrator.
-          </p>
-          <div>
-            <span className="label">Email</span>
-            <input
-              className="input"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div>
-            <span className="label">Password</span>
-            <input
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          {error && <p className="text-sm text-red">{error}</p>}
-          <button type="submit" className="btn-primary w-full" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-      )}
-
-      {status === 'signed_in' && user && (
-        <div className="card space-y-3">
-          <div>
-            <span className="label">Signed in as</span>
-            <p className="font-mono text-sm">{user.email}</p>
-          </div>
-          <div>
-            <span className="label">Role</span>
-            <p className="text-sm">
-              {profile?.role ? (
-                <span
-                  className={`rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${
-                    profile.role === 'student'
-                      ? 'bg-panel-3 text-ink-2'
-                      : 'bg-green-soft text-green'
-                  }`}
+      <div className="space-y-4">
+        {linkPhase === 'confirm' && (
+          <Callout
+            tone="info"
+            title={`Sign in as ${link?.email ?? 'this account'}?`}
+            actions={
+              <>
+                <Button variant="primary" size="sm" onClick={() => void exchangeLink()}>
+                  Sign in
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setLink(null);
+                    setLinkPhase('idle');
+                  }}
                 >
-                  {profile.role}
-                </span>
+                  Not now
+                </Button>
+              </>
+            }
+          >
+            A link wants to sign this device in to that account. Only continue if you asked
+            for it.
+            {queued > 0 && (
+              <>
+                {' '}
+                This device has {queued} unsynced {queued === 1 ? 'change' : 'changes'}; after
+                signing in, {queued === 1 ? 'it' : 'they'} will upload to that account.
+              </>
+            )}
+          </Callout>
+        )}
+        {linkPhase === 'other-account' && (
+          <Callout tone="info" title="The sign-in link was not used" onDismiss={() => setLinkPhase('idle')}>
+            You’re already signed in here as {user?.email}. Sign out first if you meant to switch
+            accounts.
+          </Callout>
+        )}
+        {linkPhase === 'failed' && (
+          <Callout tone="warn" title="That sign-in link has expired or was already used">
+            Sign in with your password instead.
+          </Callout>
+        )}
+
+        {status === 'unconfigured' && (
+          <div className="card space-y-2 text-sm text-muted">
+            <h2 className="text-base font-bold text-ink">Not set up on this installation</h2>
+            <p>
+              Institution sign-in is not configured here. Capno runs fully on this device —
+              scenarios and debriefs are stored in this browser.
+            </p>
+            <p>
+              To enable shared scenario storage and an institution-wide session archive, deploy
+              with a Supabase backend (see{' '}
+              <span className="font-mono text-ink-2">docs/DEPLOYMENT.md</span>).
+            </p>
+          </div>
+        )}
+
+        {(status === 'loading' || linkPhase === 'working') && (
+          <div className="card space-y-4" role="status">
+            <span className="sr-only">
+              {linkPhase === 'working' ? 'Signing you in…' : 'Checking session…'}
+            </span>
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full !rounded-full" />
+          </div>
+        )}
+
+        {status === 'signed_out' && linkPhase !== 'working' && (
+          <form onSubmit={submit} className="card space-y-4">
+            <h2 className="text-base font-bold">Sign in with your institution account</h2>
+            {error && <Callout tone="danger">{error}</Callout>}
+            <Field label="Email">
+              <input
+                className="input"
+                type="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+            <Field label="Password">
+              <input
+                className="input"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </Field>
+            {resetUrl && (
+              <p className="-mt-2 text-right text-xs">
+                <a className="link" href={resetUrl}>
+                  Forgot password?
+                </a>
+              </p>
+            )}
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              loading={busy}
+              loadingLabel="Signing in…"
+            >
+              Sign in
+            </Button>
+            <p className="text-center text-sm text-muted">
+              {signUpUrl ? (
+                <>
+                  New to CAPNO Studio?{' '}
+                  <a className="link" href={signUpUrl}>
+                    Get started →
+                  </a>
+                </>
               ) : (
-                <span className="text-faint">unknown (profile unavailable — offline?)</span>
+                'Accounts are created by your program administrator.'
               )}
             </p>
-          </div>
-          {profile?.role === 'student' && (
-            <p className="text-sm text-amber-strong">
-              This account has no faculty permissions — saved scenarios and sessions stay on this
-              device only. Ask your program administrator to promote your account to faculty.
-            </p>
-          )}
-          <button className="btn-secondary w-full" onClick={() => void signOut()}>
-            Sign out
-          </button>
-        </div>
-      )}
+          </form>
+        )}
 
-      <p className="text-center text-xs text-faint">
-        Signing in is optional. Everything works offline on this device without an account.
-      </p>
+        {status === 'signed_in' && user && (
+          <div className="card space-y-4">
+            <div>
+              <span className="label">Signed in as</span>
+              <p className="break-all font-mono text-sm">{user.email}</p>
+            </div>
+            <div>
+              <span className="label">Role</span>
+              {profile?.role ? (
+                <Pill tone={profile.role === 'student' ? 'neutral' : 'green'} className="uppercase tracking-wider">
+                  {profile.role}
+                </Pill>
+              ) : (
+                <p className="text-sm text-faint">Unknown (profile unavailable — offline?)</p>
+              )}
+            </div>
+            {profile?.role === 'student' && (
+              <Callout tone="warn">
+                This account has no faculty permissions — saved scenarios and sessions stay on
+                this device only. Ask your program administrator to promote your account to
+                faculty.
+              </Callout>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {teamUrl && (profile?.role === 'faculty' || profile?.role === 'admin') && (
+                <Button variant="secondary" href={teamUrl} external icon="external">
+                  Manage team
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => void signOut()}>
+                Sign out
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

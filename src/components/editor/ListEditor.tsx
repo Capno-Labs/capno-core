@@ -22,7 +22,7 @@ export function ListEditor({
       <span className="label">{label}</span>
       <ul className="mb-1 space-y-1">
         {items.map((item, i) => (
-          <li key={i} className="flex items-center gap-2 rounded bg-panel-2 px-2 py-1 text-sm">
+          <li key={i} className="flex items-center gap-2 rounded-ctl bg-panel-2 px-2 py-1 text-sm">
             <span className="flex-1">{item}</span>
             <button
               className="text-faint hover:text-red"

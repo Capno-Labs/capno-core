@@ -25,25 +25,66 @@ const config: Config = {
         'ink-2': v('ink-2'),
         muted: v('muted'),
         faint: v('faint'),
+        // Brand blue — the one interactive accent, continued from capno.app.
+        // `brand` is for FILLS (white text on it); `brand-strong` is the
+        // text/link colour (plain brand is only 3.1:1 on the dark surface).
+        brand: {
+          DEFAULT: v('brand'),
+          strong: v('brand-strong'),
+          soft: v('brand-soft'),
+          hover: v('brand-hover'),
+        },
+        'on-brand': '#ffffff',
+        'on-brand-hover': v('on-brand-hover'),
+        focus: v('focus'),
+        // Caution states (orange). Amber is deliberately NOT a UI colour: it
+        // is reserved for the logo mark and EtCO2 (`vital-etco2`). The guard
+        // in src/lib/designGuard.test.ts fails on any `*-amber` class, because
+        // with no DEFAULT here a stray `bg-amber` would compile to nothing.
+        warn: { DEFAULT: v('warn'), strong: v('warn-strong'), soft: v('warn-soft') },
+        'on-warn': '#0d1725',
+        // Ink for text on a green fill ("Observed" marks).
+        'on-green': '#0d1a10',
         // Note: `extend` DEEP-merges these into Tailwind's built-in
-        // amber/green/red/blue/cyan scales, so numeric classes (`red-300`)
-        // still compile with the default palette values and are NOT
-        // theme-aware. The migration guard is the grep gate in the restyle
-        // PR description, not the compiler.
-        amber: { DEFAULT: v('amber'), strong: v('amber-strong'), soft: v('amber-soft') },
-        // Ink for text sitting on an amber fill — a fixed pairing in both
-        // themes (raw amber fills always take near-black ink, never white).
-        'on-amber': '#1b1c17',
+        // green/red/cyan/violet scales, so numeric classes (`red-300`) still
+        // compile with the default palette values and are NOT theme-aware.
         green: { DEFAULT: v('green'), soft: v('green-soft') },
         red: { DEFAULT: v('red'), solid: v('red-solid'), soft: v('red-soft') },
-        blue: { DEFAULT: v('blue'), soft: v('blue-soft') },
         cyan: { DEFAULT: v('cyan'), soft: v('cyan-soft') },
+        violet: { DEFAULT: v('violet'), soft: v('violet-soft') },
+        // Event categories: a fixed colour language shared by the run screen
+        // and the editor. Mid-weight hues that read in both themes; always
+        // paired with the category label, never used for text.
+        cat: {
+          physiology: '#ef4444',
+          airway: '#0ea5e9',
+          circulation: '#f43f5e',
+          drug: '#10b981',
+          equipment: '#f59e0b',
+          surgical: '#f97316',
+          resolution: '#14b8a6',
+        },
+        // Poster surfaces (.surface-blue / .surface-ink): theme-invariant
+        // literals from the landing page.
+        poster: {
+          blue: '#0754f8',
+          ink: '#0d1725',
+          raised: '#142338',
+          tint: '#f6f9fc',
+          muted: '#dce7ff',
+          line: '#8daeed',
+        },
         // Always-dark monitor domain: literal hex on purpose — the patient
         // monitor is theme-invariant in both light and dark app themes.
         monitor: {
           bg: '#080a08',
           panel: '#11140f',
           grid: '#293027',
+          ink: '#dce3d9',
+          // "Connection lost" banner over the monitor.
+          'stale-bg': '#452020',
+          'stale-ink': '#ff9999',
+          'stale-line': '#7f1d1d',
         },
         vital: {
           ecg: '#73ef82',
@@ -61,9 +102,17 @@ const config: Config = {
       boxShadow: {
         card: 'var(--shadow-card)',
         lift: 'var(--shadow-lift)',
+        pop: 'var(--shadow-pop)',
       },
       fontFamily: {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        // Inter Tight 900 caps subset, loaded in src/app/layout.tsx. Use via
+        // the `.display` class; see the usage rule in globals.css.
+        display: ['var(--font-display-face)', 'Arial Black', 'Arial', 'sans-serif'],
+      },
+      transitionTimingFunction: {
+        // The landing page's single motion token.
+        brand: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
       },
       keyframes: {
         'alarm-flash': {
@@ -102,9 +151,14 @@ const config: Config = {
           '70%': { transform: 'scale(1.04)', opacity: '1' },
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
+        // One-time headline reveal on entry screens (the landing poster's).
+        'poster-rise': {
+          '0%': { opacity: '0', transform: 'translateY(0.3em)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
         'event-fire': {
-          '0%': { transform: 'scale(0.97)', boxShadow: '0 0 0 0 rgba(250, 204, 21, 0.5)' },
-          '100%': { transform: 'scale(1)', boxShadow: '0 0 0 10px rgba(250, 204, 21, 0)' },
+          '0%': { transform: 'scale(0.97)', boxShadow: '0 0 0 0 rgba(122, 167, 255, 0.55)' },
+          '100%': { transform: 'scale(1)', boxShadow: '0 0 0 10px rgba(122, 167, 255, 0)' },
         },
       },
       animation: {
@@ -116,6 +170,7 @@ const config: Config = {
         'bar-grow': 'bar-grow 600ms ease-out both',
         'pop-in': 'pop-in 400ms ease-out both',
         'event-fire': 'event-fire 350ms ease-out',
+        'poster-rise': 'poster-rise 380ms cubic-bezier(0.215, 0.61, 0.355, 1) both',
       },
     },
   },

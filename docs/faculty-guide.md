@@ -101,10 +101,10 @@ Top-bar controls:
 - The **Session code** chip includes small sync dots: **Local** (same-device
   windows) is effectively always green; a **Cloud** dot appears only on
   Supabase installations — green means other devices receive live vitals,
-  amber is connecting, red means cross-device displays may be stale.
+  orange is connecting, red means cross-device displays may be stale.
 - **▶ Start** begins the clock; it becomes **⏸ Pause** / **▶ Resume**. Next to
   the clock, a countdown shows time remaining against the scenario's slot
-  budget (amber in the final stretch, red once over).
+  budget (orange in the final stretch, red once over).
 - **+1 min / +5 min** skip uneventful scenario time — vitals ramps, scheduled
   events, and the clock all jump forward together. These buttons appear only
   while **Auto events** is on; in a fully manual session you pace every beat
@@ -169,7 +169,7 @@ its description; type **/** to jump to the filter.
 - **Auto events are off by default** — nothing fires on its own, and scripted
   deteriorations show their authored time as "suggested ~M:SS" so you keep the
   pace. Flip **Auto events** in the top bar to restore the authored timeline
-  (cards then show a live "auto in M:SS" countdown, amber when imminent);
+  (cards then show a live "auto in M:SS" countdown, orange when imminent);
   firing an auto event early cancels its scheduled copy.
 - Fired events show a ✓ but can be fired again if the scenario calls for it.
 
@@ -233,7 +233,7 @@ buried in the percentage.
 > (JSON)** / per-session **Export** and **⬆ Import JSON** to back up session
 > history or move it to another machine; each report also has its own
 > **⬇ Export JSON** next to Export PDF. If the device's storage is full when a
-> session ends, the report shows an amber "held in memory only" warning —
+> session ends, the report shows an orange "held in memory only" warning —
 > export it before closing the tab. On installations with institution
 > accounts, ended sessions also sync to the shared **Institution archive** on
 > the Debrief page (read-only from other devices; amendments happen on the
@@ -303,7 +303,7 @@ descriptors) instead of a percentage.
 | Student sees "No controller responded" after joining | Wrong code; controller not open; different browser/profile on one machine; Supabase not configured across devices; or the code changed after a controller reload. Press **Retry** after fixing. |
 | "Connection to controller lost — showing last received data" on the monitor | The controller tab was closed, reloaded, or lost network. Reopen it — students rejoin with the new code. |
 | "Session ended by faculty" on the monitor | You pressed **■ End session** — this is normal; students can join the next session's code. |
-| Cloud sync dot is red or amber | Cross-device sync is degraded — remote displays may be stale until it recovers (it reconnects on its own). Same-device windows are unaffected. |
+| Cloud sync dot is red or orange | Cross-device sync is degraded — remote displays may be stale until it recovers (it reconnects on its own). Same-device windows are unaffected. |
 | No monitor sound | Sound defaults off — tap the 🔇 icon on the student display. |
 | BP "stuck" while sliders move | That's NIBP cuff mode working as intended — press **Cycle NIBP now** or wait for the next cuff cycle. |
 | PIN screen on a machine that shouldn't have one | `NEXT_PUBLIC_FACULTY_PIN` is set for this installation; the PIN is advisory only. Signed-in faculty accounts bypass it. |

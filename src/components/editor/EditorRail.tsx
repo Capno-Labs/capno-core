@@ -27,7 +27,7 @@ export function EditorRail({
   return (
     <nav
       aria-label="Editor sections"
-      className="flex gap-1 overflow-x-auto pb-1 desk:sticky desk:top-14 desk:w-52 desk:shrink-0 desk:flex-col desk:self-start desk:overflow-visible desk:pb-0"
+      className="flex gap-1 overflow-x-auto pb-1 desk:sticky desk:top-[calc(var(--topbar-h)+4rem)] desk:w-52 desk:shrink-0 desk:flex-col desk:self-start desk:overflow-visible desk:pb-0"
     >
       {sections.map((s) => {
         const counts = issueCounts.get(s.id);
@@ -36,7 +36,7 @@ export function EditorRail({
           <button
             key={s.id}
             aria-current={isActive ? 'true' : undefined}
-            className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition duration-150 ${
+            className={`flex shrink-0 items-center gap-2 rounded-ctl px-3 py-2 text-left text-sm transition duration-150 ${
               isActive
                 ? 'bg-panel-2 font-semibold text-ink ring-1 ring-line'
                 : 'text-muted hover:bg-panel-2 hover:text-ink'
@@ -46,7 +46,7 @@ export function EditorRail({
             <span className="desk:flex-1">{s.label}</span>
             {counts && counts.errors > 0 && (
               <span
-                className="rounded bg-red-soft px-1.5 py-0.5 text-[10px] font-semibold text-red ring-1 ring-red/40"
+                className="rounded-ctl bg-red-soft px-1.5 py-0.5 text-[10px] font-semibold text-red ring-1 ring-red/40"
                 title={`${counts.errors} validation issue${counts.errors === 1 ? '' : 's'}`}
               >
                 {counts.errors}
@@ -54,7 +54,7 @@ export function EditorRail({
             )}
             {counts && counts.warnings > 0 && (
               <span
-                className="rounded bg-amber-soft px-1.5 py-0.5 text-[10px] font-semibold text-amber-strong ring-1 ring-amber/40"
+                className="rounded-ctl bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn-strong ring-1 ring-warn/40"
                 title={`${counts.warnings} authoring warning${counts.warnings === 1 ? '' : 's'}`}
               >
                 ⚠ {counts.warnings}

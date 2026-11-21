@@ -32,7 +32,7 @@ export function RubricEditor({
           0,
         );
         return (
-          <div key={i} className="space-y-2 rounded bg-panel-2 p-2">
+          <div key={i} className="space-y-2 rounded-ctl bg-panel-2 p-2">
             <div className="flex items-start gap-2">
               <div className="grid flex-1 grid-cols-2 gap-2">
                 <div>

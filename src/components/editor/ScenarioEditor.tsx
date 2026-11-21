@@ -13,6 +13,8 @@ import {
   type CloudScenarioStatus,
 } from '@/lib/cloud/outbox';
 import { approveScenario, refreshScenarioStatus } from '@/lib/cloud/scenarioCloud';
+import { Callout } from '@/components/ui/Callout';
+import { Icon } from '@/components/ui/Icon';
 import { Pill, type PillTone } from '@/components/ui/Pill';
 import { downloadJson } from '@/lib/download';
 import { lintScenario, type LintWarning } from '@/lib/engine/lint';
@@ -91,7 +93,7 @@ const RAIL_IDS: SectionId[] = [...SECTIONS.map((s) => s.id), 'history'];
 
 const STATUS_TONE: Record<CloudScenarioStatus, PillTone> = {
   draft: 'neutral',
-  review: 'amber',
+  review: 'warn',
   published: 'green',
 };
 
@@ -446,7 +448,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
               )}
               {canApprove && (
                 <button
-                  className="btn-primary ml-auto !py-1 text-xs"
+                  className="btn-primary ml-auto btn-sm"
                   disabled={approving || cloudStatus === 'published' || formDirty || jsonDirty}
                   title={
                     cloudStatus === 'published'
@@ -472,13 +474,13 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
             ) : (
               <ul className="space-y-1 text-sm">
                 {history.map((v, i) => (
-                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded bg-panel-2 px-2 py-1">
+                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1">
                     <span>
                       {new Date(v.savedAtIso).toLocaleString()}{' '}
                       <span className="text-xs text-faint">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
                     </span>
                     {i > 0 && (
-                      <button className="text-xs text-amber-strong hover:underline" onClick={() => restoreVersion(v)}>
+                      <button className="text-xs text-brand-strong hover:underline" onClick={() => restoreVersion(v)}>
                         restore
                       </button>
                     )}
@@ -493,15 +495,16 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar — sticky so Save and issue counts stay visible on long sections. */}
-      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 bg-surface/95 py-2 backdrop-blur">
+      {/* Toolbar — sticky BELOW the shell's top bar (which is z-30), so Save
+          and the issue counts stay visible on long sections. */}
+      <div className="sticky top-[var(--topbar-h)] z-20 -mx-4 flex flex-wrap items-center gap-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur md:-mx-7 md:px-7">
         <button
           className="btn-primary"
           onClick={save}
           disabled={jsonDirty}
           title={jsonDirty ? 'Apply or discard your JSON edits first' : undefined}
         >
-          💾 Save version
+          <Icon name="save" size={16} /> Save version
         </button>
         <button
           className="btn-ghost"
@@ -509,13 +512,13 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           disabled={!validation.ok || jsonDirty}
           title={validation.ok ? 'Save first to run the latest edits' : 'Fix validation errors first'}
         >
-          ▶ Test run
+          <Icon name="play" size={16} /> Test run
         </button>
         <button className="btn-secondary" onClick={exportFile}>
-          ⬇ Export JSON
+          <Icon name="download" size={16} /> Export JSON
         </button>
         <button className="btn-secondary" onClick={() => fileInput.current?.click()}>
-          ⬆ Import JSON
+          <Icon name="upload" size={16} /> Import JSON
         </button>
         <input
           ref={fileInput}
@@ -534,23 +537,23 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           onClick={toggleJson}
           title="Advanced: edit the full definition as raw JSON"
         >
-          {'</>'} Edit JSON
+          <Icon name="code" size={16} /> Edit JSON
         </button>
         {savedAt && (
           <span className="text-xs text-green">
             Saved {savedAt}
             {cloudState === 'syncing' && <span className="text-muted"> · syncing…</span>}
-            {cloudState === 'synced' && <span className="text-amber-strong"> · synced to cloud</span>}
+            {cloudState === 'synced' && <span className="text-brand-strong"> · synced to cloud</span>}
             {cloudState === 'failed' && (
-              <span className="text-amber-strong"> · cloud sync pending (will retry)</span>
+              <span className="text-warn-strong"> · cloud sync pending (will retry)</span>
             )}
           </span>
         )}
         {!validation.ok && (
-          <span className="text-xs text-amber-strong">{validation.errors.length} validation issue(s)</span>
+          <span className="text-xs text-warn-strong">{validation.errors.length} validation issue(s)</span>
         )}
         {validation.ok && warnings.length > 0 && (
-          <span className="text-xs text-amber-strong">
+          <span className="text-xs text-warn-strong">
             {warnings.length} authoring warning{warnings.length === 1 ? '' : 's'}
           </span>
         )}
@@ -561,7 +564,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       {draft && <DraftPreviewCard draft={draft} onLoad={loadDraft} onDiscard={() => setDraft(null)} />}
 
       {draftError && (
-        <div className="space-y-2 rounded-md bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
+        <div className="space-y-2 rounded-ctl bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
           <p className="font-semibold">The AI draft failed validation:</p>
           <ul className="list-disc space-y-0.5 pl-5">
             {draftError.errors.map((e, i) => (
@@ -570,11 +573,11 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           </ul>
           <div className="flex flex-wrap gap-2">
             {draftError.rawText && (
-              <button className="btn-secondary !py-1 text-xs" onClick={repairInJson}>
+              <button className="btn-secondary btn-sm" onClick={repairInJson}>
                 Open in JSON editor to repair
               </button>
             )}
-            <button className="btn-ghost !py-1 text-xs" onClick={() => setDraftError(null)}>
+            <button className="btn-ghost btn-sm" onClick={() => setDraftError(null)}>
               Dismiss
             </button>
           </div>
@@ -582,27 +585,31 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {undoScenario && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md bg-blue-soft p-3 text-sm text-blue ring-1 ring-blue/30">
-          <span className="flex-1">AI draft loaded — your previous work was replaced.</span>
-          <button className="btn-secondary !py-1 text-xs" onClick={undoDraftLoad}>
-            Undo
-          </button>
-          <button className="btn-ghost !py-1 text-xs" onClick={() => setUndoScenario(null)}>
-            Keep draft
-          </button>
-        </div>
+        <Callout
+          tone="info"
+          title="AI draft loaded — your previous work was replaced."
+          actions={
+            <>
+              <button className="btn-secondary btn-sm" onClick={undoDraftLoad}>
+                Undo
+              </button>
+              <button className="btn-ghost btn-sm" onClick={() => setUndoScenario(null)}>
+                Keep draft
+              </button>
+            </>
+          }
+        />
       )}
 
       {aiDraft && (
-        <div className="rounded-md bg-amber-soft p-3 text-sm text-amber-strong ring-1 ring-amber/40">
-          ⚠ AI-generated draft — requires faculty review of all clinical content (drug effects,
-          vital values, timings) before use with learners. Remove the “{AI_GENERATED_TAG}” topic
-          tag after review.
-        </div>
+        <Callout tone="warn" title="AI-generated draft">
+          Requires faculty review of all clinical content (drug effects, vital values, timings)
+          before use with learners. Remove the “{AI_GENERATED_TAG}” topic tag after review.
+        </Callout>
       )}
 
       {globalErrors.length > 0 && (
-        <div className="rounded-md bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
+        <div className="rounded-ctl bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
           <ul className="list-disc space-y-0.5 pl-5">
             {globalErrors.map((e, i) => (
               <li key={i}>{e}</li>
@@ -612,10 +619,10 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       )}
 
       {issues.globalWarnings.length > 0 && (
-        <div className="rounded-md bg-amber-soft p-3 text-sm ring-1 ring-amber/40">
+        <div className="rounded-ctl bg-warn-soft p-3 text-sm ring-1 ring-warn/40">
           <ul className="list-disc space-y-0.5 pl-5">
             {issues.globalWarnings.map((w, i) => (
-              <li key={i} className={w.severity === 'warning' ? 'text-amber-strong' : 'text-muted'}>
+              <li key={i} className={w.severity === 'warning' ? 'text-warn-strong' : 'text-muted'}>
                 <span className="font-mono text-xs">{w.path}</span>: {w.message}
               </li>
             ))}
@@ -645,7 +652,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           ) : (
             <>
               {activeIssues && activeIssues.errors.length > 0 && (
-                <div className="rounded-md bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
+                <div className="rounded-ctl bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
                   <ul className="list-disc space-y-0.5 pl-5">
                     {activeIssues.errors.map((e, i) => (
                       <li key={i}>{e}</li>
@@ -654,13 +661,13 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
                 </div>
               )}
               {activeIssues && activeIssues.warnings.length > 0 && (
-                <div className="rounded-md bg-amber-soft p-3 text-sm ring-1 ring-amber/40">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-strong">
+                <div className="rounded-ctl bg-warn-soft p-3 text-sm ring-1 ring-warn/40">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-warn-strong">
                     Authoring warnings — saving is not blocked
                   </p>
                   <ul className="list-disc space-y-0.5 pl-5">
                     {activeIssues.warnings.map((w, i) => (
-                      <li key={i} className={w.severity === 'warning' ? 'text-amber-strong' : 'text-muted'}>
+                      <li key={i} className={w.severity === 'warning' ? 'text-warn-strong' : 'text-muted'}>
                         <span className="font-mono text-xs">{w.path}</span>: {w.message}
                       </li>
                     ))}

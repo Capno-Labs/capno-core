@@ -3,9 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
+import { Callout } from '@/components/ui/Callout';
 import { PageHead } from '@/components/ui/PageHead';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 import { createOpenRouterProvider, gatewayConfigured } from '@/lib/llm';
 import { toast } from '@/lib/store/toastStore';
+import { restoreOnboarding } from '@/lib/onboarding';
 import { useLlmSettingsStore } from '@/lib/store/llmSettingsStore';
 
 const MODEL_PLACEHOLDER = 'e.g. anthropic/claude-sonnet-4.5 or openai/gpt-4o-mini';
@@ -30,7 +33,7 @@ export default function SettingsPage() {
     setBaseUrl(settings?.baseUrl ?? '');
   }, [hydrated, settings]);
 
-  if (!hydrated) return null;
+  if (!hydrated) return <PageSkeleton kind="form" />;
 
   const draft = {
     apiKey: apiKey.trim(),
@@ -74,6 +77,25 @@ export default function SettingsPage() {
           </Link>
         </section>
 
+        <section className="card flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold">Getting started</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              Bring the first-run checklist back to the home page.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              restoreOnboarding();
+              toast('The getting-started checklist is back on Home.', 'success');
+            }}
+          >
+            Show checklist
+          </button>
+        </section>
+
         <section className="card space-y-4">
           <div>
             <h2 className="text-lg font-bold">AI assistance (optional)</h2>
@@ -83,12 +105,12 @@ export default function SettingsPage() {
               OpenRouter using your own API key and model choice.
             </p>
             {gatewayConfigured() && !settings && (
-              <p className="mt-2 rounded border border-green/30 bg-green-soft p-2 text-sm text-green">
-                Managed AI is active on this deployment: signed-in accounts get the sim
-                co-pilot and scenario drafting with no key — prompts go through your
-                institution&apos;s gateway instead of your own OpenRouter account. Saving a
-                key below overrides the managed gateway for this browser.
-              </p>
+              <Callout tone="success" title="Managed AI is active on this deployment" className="mt-3">
+                Signed-in accounts get the sim co-pilot and scenario drafting with no key —
+                prompts go through your institution&apos;s gateway instead of your own
+                OpenRouter account. Saving a key below overrides the managed gateway for this
+                browser.
+              </Callout>
             )}
           </div>
 
@@ -147,11 +169,15 @@ export default function SettingsPage() {
             >
               Save
             </button>
-            <button className="btn" disabled={!draftValid || testing} onClick={testConnection}>
+            <button
+              className="btn-secondary"
+              disabled={!draftValid || testing}
+              onClick={testConnection}
+            >
               {testing ? 'Testing…' : 'Test connection'}
             </button>
             <button
-              className="btn"
+              className="btn-ghost"
               disabled={!settings}
               onClick={() => {
                 clear();

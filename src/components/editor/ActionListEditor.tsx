@@ -1,5 +1,6 @@
 'use client';
 
+import { confirmDialog } from '@/lib/store/dialogStore';
 import type { ExpectedAction, Phase, RubricCategory, ScenarioEvent } from '@/lib/engine/types';
 
 /**
@@ -33,7 +34,7 @@ export function ActionListEditor({
         const refs = referencedBy(action.id);
         const links = linkedFrom(action.id);
         return (
-          <div key={i} className="space-y-2 rounded bg-panel-2 p-2">
+          <div key={i} className="space-y-2 rounded-ctl bg-panel-2 p-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="label">Action id (kebab-case)</span>
@@ -109,17 +110,21 @@ export function ActionListEditor({
                     ...refs.map((r) => `rubric: ${r}`),
                     ...links.map((l) => `event: ${l}`),
                   ];
-                  if (
-                    referencedIn.length > 0 &&
-                    !window.confirm(
-                      `"${action.label || action.id}" is referenced by ${referencedIn.join(
-                        ', ',
-                      )}. Remove anyway? (Fix those references afterwards.)`,
-                    )
-                  ) {
+                  const remove = () => onChange(actions.filter((_, j) => j !== i));
+                  if (referencedIn.length === 0) {
+                    remove();
                     return;
                   }
-                  onChange(actions.filter((_, j) => j !== i));
+                  void confirmDialog({
+                    title: 'Remove this action?',
+                    body: `“${action.label || action.id}” is referenced by ${referencedIn.join(
+                      ', ',
+                    )}. Fix those references afterwards.`,
+                    confirmLabel: 'Remove action',
+                    tone: 'danger',
+                  }).then((ok) => {
+                    if (ok) remove();
+                  });
                 }}
                 aria-label={`remove action ${action.label || i + 1}`}
               >

@@ -8,15 +8,22 @@ import { create } from 'zustand';
  * after a few seconds or on click.
  */
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface Toast {
   id: number;
   message: string;
   variant: 'success' | 'error' | 'info';
+  /** Optional follow-up (e.g. "Undo", "Open") shown beside the message. */
+  action?: ToastAction;
 }
 
 interface ToastState {
   toasts: Toast[];
-  show: (message: string, variant?: Toast['variant']) => void;
+  show: (message: string, variant?: Toast['variant'], action?: ToastAction) => void;
   dismiss: (id: number) => void;
 }
 
@@ -27,9 +34,9 @@ let nextId = 0;
 export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
 
-  show: (message, variant = 'info') => {
+  show: (message, variant = 'info', action) => {
     const id = nextId++;
-    set({ toasts: [...get().toasts, { id, message, variant }] });
+    set({ toasts: [...get().toasts, { id, message, variant, action }] });
     setTimeout(() => get().dismiss(id), AUTO_DISMISS_MS);
   },
 
@@ -39,6 +46,10 @@ export const useToastStore = create<ToastState>((set, get) => ({
 }));
 
 /** Fire a toast from non-component code (event handlers, stores, helpers). */
-export function toast(message: string, variant: Toast['variant'] = 'info'): void {
-  useToastStore.getState().show(message, variant);
+export function toast(
+  message: string,
+  variant: Toast['variant'] = 'info',
+  action?: ToastAction,
+): void {
+  useToastStore.getState().show(message, variant, action);
 }

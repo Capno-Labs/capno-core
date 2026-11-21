@@ -21,6 +21,8 @@ no env vars the app is a fully working offline simulator.
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL — enables cross-device sync, sign-in, cloud storage |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (safe client-side; RLS enforces access) |
    | `NEXT_PUBLIC_FACULTY_PIN` | Advisory faculty PIN for installations without accounts |
+   | `NEXT_PUBLIC_ACCOUNT_PORTAL_URL` | Optional. Origin of a hosted account portal you operate; the app then links to `<origin>/start` ("Get started") and `<origin>/invites` ("Invite faculty", "Manage team"). Unset = no such links |
+   | `NEXT_PUBLIC_PASSWORD_RESET_URL` | Optional. Full URL of your password-reset page; shows "Forgot password?" on the Account page. Unset = no link |
 
 4. Deploy, then assign your production domain (e.g.
    `capno.your-school.edu`) under Project → Domains. The service worker and
@@ -91,7 +93,8 @@ all work offline (localStorage).
 New accounts default to the `student` role, and RLS prevents
 self-promotion. To onboard faculty:
 
-1. Create the user (Auth → Users → Add user, or let them sign up).
+1. Create the user with a password (Auth → Users → Add user → **Create
+   new user**, not "Send invitation"), or let them sign up.
 2. Promote them in the SQL editor:
    ```sql
    update public.profiles set role = 'faculty' where id = '<user-uuid>';
@@ -100,6 +103,18 @@ self-promotion. To onboard faculty:
 3. They sign in at `/account`. Faculty/admin accounts bypass the PIN gate,
    and their scenario saves and session debriefs sync to the institution
    archive automatically.
+
+**Links that sign in by themselves are not accepted.** Supabase's dashboard
+invites and magic links (and the redirect after an emailed confirmation)
+append a ready-made session to the URL (`#access_token=…`). The app ignores
+it and removes it from the address bar: otherwise any link could silently
+replace whoever is signed in — on a shared lab machine, with someone else's
+account, and their queued saves would sync there. Opening such a link shows
+"Sign-in links are not accepted here"; the person then signs in with their
+email and password. The one exception is the single-use hand-off link an
+account portal you operate can send people to (`/account#token_hash=…`,
+documented in `src/lib/cloud/authLink.ts`): it is bound to a named email
+and asks before signing in unless it came from the configured portal.
 
 ### Approval and versions
 

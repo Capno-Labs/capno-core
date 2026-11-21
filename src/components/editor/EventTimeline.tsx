@@ -28,7 +28,7 @@ function Chip({
     <button
       onClick={onClick}
       title={event.description}
-      className={`shrink-0 rounded-md bg-panel px-2 py-1 text-left text-xs ring-1 transition hover:bg-panel-2 ${className}`}
+      className={`shrink-0 rounded-ctl bg-panel px-2 py-1 text-left text-xs ring-1 transition hover:bg-panel-2 ${className}`}
     >
       <span className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${CATEGORY_DOT[event.category]}`} />
@@ -58,12 +58,12 @@ export function EventTimeline({
   const runEndSec = estimatedMinutes * 60;
 
   return (
-    <div className="space-y-2 rounded bg-panel/60 p-2 ring-1 ring-line">
+    <div className="space-y-2 rounded-ctl bg-panel/60 p-2 ring-1 ring-line">
       <p className="text-[10px] uppercase tracking-wider text-faint">
         Run preview — the timed schedule and the faculty-fired sequence
       </p>
       <div>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-strong">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-warn-strong">
           Timed (automatic)
         </span>
         {autos.length === 0 ? (
@@ -77,7 +77,7 @@ export function EventTimeline({
                   key={index}
                   event={event}
                   onClick={() => onSelect(index)}
-                  className={late ? 'ring-amber/50' : 'ring-amber/40'}
+                  className={late ? 'ring-warn/50' : 'ring-warn/40'}
                   sub={`${fmtTime(event.autoAtSec ?? 0)}${late ? ' · after est. end' : ''}`}
                 />
               );

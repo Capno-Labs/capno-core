@@ -52,7 +52,7 @@ function Block({
   unmapped: boolean;
   onSelect?: (id: string) => void;
 }) {
-  const ring = active ? 'ring-2 ring-amber' : unmapped ? 'ring-1 ring-dashed ring-line-2' : '';
+  const ring = active ? 'ring-2 ring-brand' : unmapped ? 'ring-1 ring-dashed ring-line-2' : '';
   const base = `rounded-ctl px-2 py-1 text-sm transition ${ring}`;
   const meta = (
     <span className="mr-2 inline-block w-8 shrink-0 font-mono text-[10px] text-faint" title={block.page ? `page ${block.page}` : undefined}>

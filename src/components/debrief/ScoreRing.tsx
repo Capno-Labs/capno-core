@@ -10,7 +10,7 @@ export function ScoreRing({ percent, size = 96 }: { percent: number; size?: numb
       style={{
         width: size,
         height: size,
-        background: `conic-gradient(rgb(var(--amber)) 0 ${clamped}%, rgb(var(--panel-2)) ${clamped}% 100%)`,
+        background: `conic-gradient(rgb(var(--brand-strong)) 0 ${clamped}%, rgb(var(--panel-2)) ${clamped}% 100%)`,
       }}
       role="img"
       aria-label={`Score ${clamped} percent`}

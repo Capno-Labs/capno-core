@@ -26,7 +26,7 @@ export function PhaseListEditor({
   return (
     <div className="space-y-2">
       {phases.map((phase, i) => (
-        <div key={i} className="space-y-2 rounded bg-panel-2 p-2">
+        <div key={i} className="space-y-2 rounded-ctl bg-panel-2 p-2">
           <div className="flex items-start gap-2">
             <div className="grid flex-1 grid-cols-2 gap-2">
               <div>
@@ -48,7 +48,7 @@ export function PhaseListEditor({
             </div>
             <div className="mt-5 flex shrink-0 gap-1">
               <button
-                className="btn-ghost !px-2 !py-1"
+                className="btn-ghost btn-sm"
                 onClick={() => swap(i, i - 1)}
                 disabled={i === 0}
                 aria-label={`move phase ${phase.label || i + 1} up`}
@@ -56,7 +56,7 @@ export function PhaseListEditor({
                 ↑
               </button>
               <button
-                className="btn-ghost !px-2 !py-1"
+                className="btn-ghost btn-sm"
                 onClick={() => swap(i, i + 1)}
                 disabled={i === phases.length - 1}
                 aria-label={`move phase ${phase.label || i + 1} down`}
@@ -64,7 +64,7 @@ export function PhaseListEditor({
                 ↓
               </button>
               <button
-                className="btn-ghost !px-2 !py-1 text-red"
+                className="btn-ghost btn-sm text-red"
                 onClick={() => onChange(phases.filter((_, j) => j !== i))}
                 disabled={phases.length <= 1}
                 title={phases.length <= 1 ? 'A scenario needs at least one phase' : 'Remove phase'}
@@ -88,7 +88,7 @@ export function PhaseListEditor({
             <div className="w-28 shrink-0">
               <span
                 className="label"
-                title="Pacing budget for this phase — the run screen's phase stepper turns amber once the team is over it."
+                title="Pacing budget for this phase — the run screen's phase stepper turns orange once the team is over it."
               >
                 Target (min)
               </span>

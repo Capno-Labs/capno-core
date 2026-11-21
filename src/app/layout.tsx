@@ -1,8 +1,23 @@
 import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
 import './globals.css';
+import { AuthUrlGuard } from '@/components/AuthUrlGuard';
 import { ServiceWorkerRegistrar } from '@/components/ServiceWorkerRegistrar';
 import { THEME_COLORS, THEME_STORAGE_KEY } from '@/lib/theme';
+import { DialogHost } from '@/components/ui/Dialog';
 import { Toaster } from '@/components/ui/Toaster';
+
+// Display face: Inter Tight 900 (OFL), self-hosted and subset to capitals,
+// digits and basic punctuation (~4 KB) — the same file as the capno.app
+// landing page. No font CDN: the app stays offline-first, and the fallback
+// stack covers a cold offline load. Used only through the `.display` class.
+const display = localFont({
+  src: '../fonts/InterTight-900-display.woff2',
+  weight: '900',
+  display: 'swap',
+  variable: '--font-display-face',
+  adjustFontFallback: 'Arial',
+});
 
 // Public origin of this deployment (optional — self-hosts work without it).
 // When set, social-share metadata resolves to absolute URLs.
@@ -44,7 +59,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0d0f0c',
+  themeColor: THEME_COLORS.dark,
   width: 'device-width',
   initialScale: 1,
   // Prevent accidental pinch-zoom on the touch controller in the lab.
@@ -60,13 +75,15 @@ const themeInitScript = `try{if(localStorage.getItem('${THEME_STORAGE_KEY}')==='
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={display.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
+        <AuthUrlGuard />
         <ServiceWorkerRegistrar />
         <Toaster />
+        <DialogHost />
         {children}
       </body>
     </html>

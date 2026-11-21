@@ -1,5 +1,6 @@
 'use client';
 
+import { PageSkeleton } from '@/components/ui/Skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Pill } from '@/components/ui/Pill';
@@ -47,7 +48,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
   }, [draft]);
   const unmapped = useMemo(() => new Set(draft?.unmappedBlockIds ?? []), [draft]);
 
-  if (stored === undefined) return null;
+  if (stored === undefined) return <PageSkeleton kind="form" />;
   if (!stored || !draft) {
     return (
       <section className="card space-y-2">
@@ -112,7 +113,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
           {stored.drafts.map((d) => (
             <button
               key={d.draftId}
-              className={d.draftId === draftId ? 'btn-primary !px-2 !py-1 text-xs' : 'btn-ghost !px-2 !py-1 text-xs'}
+              className={d.draftId === draftId ? 'btn-primary btn-sm' : 'btn-ghost btn-sm'}
               onClick={() => setDraftId(d.draftId)}
             >
               {d.fields.title.value ?? d.draftId}
@@ -124,7 +125,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
       <section className="card space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Review queue</h2>
-          <Pill tone={unresolved.length === 0 ? 'green' : 'amber'}>
+          <Pill tone={unresolved.length === 0 ? 'green' : 'warn'}>
             {unresolved.length === 0 ? 'ready to save' : `${unresolved.length} to resolve`}
           </Pill>
           <span className="text-xs text-faint">
@@ -151,14 +152,14 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
             {unresolved.length > 40 && <li className="text-xs text-faint">+{unresolved.length - 40} more</li>}
           </ul>
         )}
-        <p className="text-xs text-amber-strong">
+        <p className="text-xs text-warn-strong">
           Nothing is filled in for you. Values the run sheet does not state — vital signs, doses, patient
           details, timings — stay “not in source” until you enter them.
         </p>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card max-h-[80vh] overflow-y-auto lg:sticky lg:top-4">
+        <div className="card max-h-[80vh] overflow-y-auto lg:sticky lg:top-[calc(var(--topbar-h)+1rem)] lg:max-h-[calc(100vh-var(--topbar-h)-2rem)]">
           <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
             Source · {stored.source.title ?? 'pasted text'}
           </h3>

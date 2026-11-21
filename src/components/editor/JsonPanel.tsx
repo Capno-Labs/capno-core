@@ -31,11 +31,11 @@ export function JsonPanel({
         </h2>
         {dirty ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-strong">unapplied edits</span>
-            <button className="btn-primary !py-1 text-xs" onClick={onApply}>
+            <span className="text-xs text-warn-strong">unapplied edits</span>
+            <button className="btn-primary btn-sm" onClick={onApply}>
               Apply JSON
             </button>
-            <button className="btn-ghost !py-1 text-xs" onClick={onDiscard}>
+            <button className="btn-ghost btn-sm" onClick={onDiscard}>
               Discard
             </button>
           </div>

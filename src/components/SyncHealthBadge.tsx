@@ -9,7 +9,7 @@ import type { TransportHealth, TransportState } from '@/lib/sync';
  */
 
 const DOT: Record<TransportState, string> = {
-  connecting: 'bg-amber',
+  connecting: 'bg-warn',
   connected: 'bg-green',
   error: 'bg-red-solid',
   closed: 'bg-panel-3',
