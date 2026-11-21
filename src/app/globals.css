@@ -135,19 +135,6 @@ body {
   .card-interactive {
     @apply card transition duration-150 ease-brand hover:shadow-lift hover:ring-brand/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus;
   }
-  /* Poster card for marquee CTAs: use as `card-hero surface-blue` — the
-     landing page's blue field in BOTH themes (deliberately outside the theme
-     tokens). Pair its text with .card-hero-ink / .card-hero-muted so the
-     palette lives in one place. */
-  .card-hero {
-    @apply card ring-0;
-  }
-  .card-hero-ink {
-    color: #fff;
-  }
-  .card-hero-muted {
-    color: #dce7ff; /* landing --on-blue-muted: >=4.5:1 on brand blue */
-  }
   .input {
     @apply w-full rounded-ctl border-0 bg-panel-2 px-3 py-2 text-sm text-ink ring-1 ring-line transition duration-150 placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-focus;
   }

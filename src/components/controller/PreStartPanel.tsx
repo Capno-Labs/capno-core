@@ -55,9 +55,9 @@ export function PreStartPanel() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <h3 className="label">Connect the student display</h3>
-          <div className="flex flex-wrap items-center gap-3 rounded-md bg-panel-2 p-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-ctl bg-panel-2 p-3">
             <span
-              className="font-mono text-3xl font-bold tracking-[0.3em] text-vital-ecg"
+              className="font-mono text-3xl font-bold tracking-[0.3em] text-ink"
               title="Session code"
             >
               {sessionCode}
@@ -65,7 +65,7 @@ export function PreStartPanel() {
             <span className="flex flex-wrap items-center gap-2">
               <CopyJoinLinkButton sessionId={sessionCode} />
               <button
-                className="btn-secondary !py-1 text-xs"
+                className="btn-secondary btn-sm"
                 onClick={() => window.open(joinUrl(sessionCode), '_blank', 'noopener')}
               >
                 Open display ↗

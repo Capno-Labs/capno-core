@@ -1,5 +1,6 @@
 'use client';
 
+import { Dialog } from '@/components/ui/Dialog';
 import { useEffect, useRef, useState } from 'react';
 
 /** Absolute student-join URL for a session (matches /student's ?code= handling). */
@@ -13,12 +14,13 @@ export function joinUrl(sessionId: string): string {
  */
 export function CopyJoinLinkButton({
   sessionId,
-  className = 'btn-ghost !py-1 text-xs',
+  className = 'btn-ghost btn-sm',
 }: {
   sessionId: string;
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [manual, setManual] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -34,15 +36,28 @@ export function CopyJoinLinkButton({
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard unavailable (permissions / non-secure context) — fall back
-      // to a prompt the user can copy from manually.
-      window.prompt('Copy the student join link:', joinUrl(sessionId));
+      // Clipboard unavailable (permissions / non-secure context) — show the
+      // link so it can be selected and copied by hand.
+      setManual(true);
     }
   };
 
   return (
-    <button className={className} onClick={copy} title="Copy the student join link">
-      {copied ? 'Copied ✓' : 'Copy join link'}
-    </button>
+    <>
+      <button className={className} onClick={copy} title="Copy the student join link">
+        {copied ? 'Copied ✓' : 'Copy join link'}
+      </button>
+      <Dialog open={manual} onClose={() => setManual(false)} title="Copy the student join link">
+        <p>This browser blocked automatic copying. Select the link below and copy it.</p>
+        <input
+          className="input mt-3 font-mono"
+          readOnly
+          value={joinUrl(sessionId)}
+          aria-label="Student join link"
+          onFocus={(e) => e.currentTarget.select()}
+          data-autofocus
+        />
+      </Dialog>
+    </>
   );
 }

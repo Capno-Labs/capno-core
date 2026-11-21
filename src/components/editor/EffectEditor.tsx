@@ -64,7 +64,7 @@ export function EffectEditor({
   };
 
   return (
-    <div className="space-y-2 rounded bg-panel/60 p-2 ring-1 ring-line">
+    <div className="space-y-2 rounded-ctl bg-panel/60 p-2 ring-1 ring-line">
       <p className="font-mono text-[11px] text-muted">{effectSummary(effect)}</p>
       <p className="text-xs text-faint">
         When the event fires: wait the delay, then ramp the vitals below to their targets over the

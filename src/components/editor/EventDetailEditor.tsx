@@ -49,7 +49,7 @@ export function EventDetailEditor({
   };
 
   return (
-    <section aria-label={`Editing event: ${title}`} className="space-y-2 rounded bg-panel-2 p-3">
+    <section aria-label={`Editing event: ${title}`} className="space-y-2 rounded-ctl bg-panel-2 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span
           className={`inline-block h-2 w-2 rounded-full ${CATEGORY_DOT[event.category]}`}
@@ -57,23 +57,23 @@ export function EventDetailEditor({
         />
         <span className="text-sm font-bold">{title}</span>
         {event.autoAtSec !== undefined ? (
-          <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-brand-strong ring-1 ring-brand/30">
+          <span className="rounded-ctl bg-brand-soft px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-brand-strong ring-1 ring-brand/30">
             AUTO {fmtTime(event.autoAtSec)}
           </span>
         ) : (
-          <span className="rounded bg-panel px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-muted ring-1 ring-line">
+          <span className="rounded-ctl bg-panel px-1.5 py-0.5 text-[10px] font-semibold tracking-wider text-muted ring-1 ring-line">
             FACULTY-FIRED
           </span>
         )}
         {warningCount > 0 && (
-          <span className="rounded bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn-strong ring-1 ring-warn/40">
+          <span className="rounded-ctl bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn-strong ring-1 ring-warn/40">
             ⚠ {warningCount}
           </span>
         )}
         <div className="ml-auto flex gap-1">
           {onSaveToLibrary && (
             <button
-              className="btn-ghost !px-2 !py-1"
+              className="btn-ghost btn-sm"
               onClick={onSaveToLibrary}
               title="Save this event to your personal library for reuse in other scenarios"
             >
@@ -81,7 +81,7 @@ export function EventDetailEditor({
             </button>
           )}
           <button
-            className="btn-ghost !px-2 !py-1 text-red"
+            className="btn-ghost btn-sm text-red"
             onClick={onRemove}
             aria-label={`remove event ${title}`}
           >
@@ -158,7 +158,7 @@ export function EventDetailEditor({
       <div className="space-y-1.5">
         <span className="label">Trigger</span>
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex overflow-hidden rounded-md ring-1 ring-line" role="group">
+          <div className="flex overflow-hidden rounded-ctl ring-1 ring-line" role="group">
             <button
               className={`px-3 py-1.5 text-xs font-semibold ${
                 event.autoAtSec !== undefined
@@ -215,7 +215,7 @@ export function EventDetailEditor({
             {actions.map((a) => (
               <label
                 key={a.id}
-                className="flex cursor-pointer items-center gap-2 rounded bg-panel/60 px-2 py-1 text-sm text-ink-2"
+                className="flex cursor-pointer items-center gap-2 rounded-ctl bg-panel/60 px-2 py-1 text-sm text-ink-2"
               >
                 <input
                   type="checkbox"

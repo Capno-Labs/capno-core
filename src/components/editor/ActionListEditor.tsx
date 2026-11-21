@@ -34,7 +34,7 @@ export function ActionListEditor({
         const refs = referencedBy(action.id);
         const links = linkedFrom(action.id);
         return (
-          <div key={i} className="space-y-2 rounded bg-panel-2 p-2">
+          <div key={i} className="space-y-2 rounded-ctl bg-panel-2 p-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="label">Action id (kebab-case)</span>

@@ -75,7 +75,7 @@ export function TrendStrip({
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="w-full min-w-[480px] rounded bg-panel-2 ring-1 ring-line"
+          className="w-full min-w-[480px] rounded-ctl bg-panel-2 ring-1 ring-line"
           role="img"
           aria-label="Vitals trends over the scenario"
         >

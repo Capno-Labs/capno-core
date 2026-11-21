@@ -142,7 +142,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
                 ← Back
               </button>
             )}
-            <button className="btn-primary !py-1 text-xs" onClick={next}>
+            <button className="btn-primary btn-sm" onClick={next}>
               {last ? 'Finish' : 'Next →'}
             </button>
           </span>

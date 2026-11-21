@@ -6,7 +6,7 @@ import { CapnoGlyph } from './CapnoGlyph';
  * background (docs/brand.md). Always dark, in both themes.
  */
 export function LogoTile({ size = 'md', className = '' }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
-  const box = size === 'lg' ? 'h-14 w-14 rounded-xl' : size === 'sm' ? 'h-7 w-7 rounded-md' : 'h-9 w-9 rounded-ctl';
+  const box = size === 'lg' ? 'h-14 w-14 rounded-xl' : size === 'sm' ? 'h-7 w-7 rounded-ctl' : 'h-9 w-9 rounded-ctl';
   const glyph = size === 'lg' ? 'h-6' : size === 'sm' ? 'h-3' : 'h-4';
   return (
     <span

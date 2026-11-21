@@ -474,7 +474,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
             ) : (
               <ul className="space-y-1 text-sm">
                 {history.map((v, i) => (
-                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded bg-panel-2 px-2 py-1">
+                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1">
                     <span>
                       {new Date(v.savedAtIso).toLocaleString()}{' '}
                       <span className="text-xs text-faint">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>

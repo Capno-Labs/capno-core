@@ -96,7 +96,7 @@ export function OverviewSection({
           {(Object.keys(TRAINING_LEVEL_LABELS) as TrainingLevel[]).map((level) => (
             <label
               key={level}
-              className="flex cursor-pointer items-center gap-2 rounded bg-panel-2 px-2 py-1 text-sm text-ink-2"
+              className="flex cursor-pointer items-center gap-2 rounded-ctl bg-panel-2 px-2 py-1 text-sm text-ink-2"
             >
               <input
                 type="checkbox"

@@ -187,7 +187,7 @@ export function FlowPanel() {
     return (
       <div
         key={ev.id}
-        className={`space-y-1.5 rounded-md p-1.5 ring-1 ${
+        className={`space-y-1.5 rounded-ctl p-1.5 ring-1 ${
           imminent ? 'bg-warn-soft ring-warn/40' : 'bg-panel/60 ring-line'
         }`}
       >
@@ -195,7 +195,7 @@ export function FlowPanel() {
           onClick={() => fire(ev.id)}
           onAnimationEnd={() => setFlashId((cur) => (cur === ev.id ? null : cur))}
           title={ev.description}
-          className={`w-full rounded-md px-2.5 py-2 text-left text-xs font-semibold ring-1 transition ${
+          className={`w-full rounded-ctl px-2.5 py-2 text-left text-xs font-semibold ring-1 transition ${
             CATEGORY_STYLES[ev.category]
           } ${fired.has(ev.id) ? 'bg-panel-2 text-faint' : 'bg-panel text-ink'} ${
             flashId === ev.id ? 'motion-safe:animate-event-fire' : ''
@@ -211,14 +211,14 @@ export function FlowPanel() {
             <span className="flex shrink-0 items-center gap-1.5">
               {!authoredIds.has(ev.id) && (
                 <span
-                  className="rounded bg-violet-950 px-1 py-0.5 text-[9px] font-bold uppercase text-violet-300 ring-1 ring-violet-800"
+                  className="rounded-ctl bg-violet-soft px-1 py-0.5 text-[9px] font-bold uppercase text-violet ring-1 ring-violet/40"
                   title="Improvised during this session — not part of the authored scenario"
                 >
                   added live
                 </span>
               )}
               {isNext && (
-                <span className="rounded bg-brand text-on-brand px-1 py-0.5 text-[9px] font-bold uppercase">
+                <span className="rounded-ctl bg-brand text-on-brand px-1 py-0.5 text-[9px] font-bold uppercase">
                   Next up · N
                 </span>
               )}
@@ -270,7 +270,7 @@ export function FlowPanel() {
         </h2>
         <div className="flex items-center gap-2">
           <button
-            className={`rounded px-2 py-1 text-xs font-semibold transition ${
+            className={`rounded-ctl px-2 py-1 text-xs font-semibold transition ${
               showAddForm
                 ? 'bg-brand-soft text-brand-strong ring-1 ring-brand/30'
                 : 'bg-panel-2 text-muted hover:bg-panel-3'
@@ -282,7 +282,7 @@ export function FlowPanel() {
             + Add event
           </button>
           <button
-            className={`rounded px-2 py-1 text-xs font-semibold transition ${
+            className={`rounded-ctl px-2 py-1 text-xs font-semibold transition ${
               criticalOnly
                 ? 'bg-red-soft text-red ring-1 ring-red/40'
                 : 'bg-panel-2 text-muted hover:bg-panel-3'

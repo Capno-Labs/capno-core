@@ -1,5 +1,6 @@
 'use client';
 
+import { Icon } from '@/components/ui/Icon';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -113,7 +114,7 @@ export function ImportStart() {
           Review pasted text
         </button>
         <button className="btn-secondary" onClick={() => fileInput.current?.click()} disabled={busy}>
-          ⬆ Upload {canUpload ? '.docx / .pdf / .txt' : '.txt / .md'}
+          <Icon name="upload" size={14} /> Upload {canUpload ? '.docx / .pdf / .txt' : '.txt / .md'}
         </button>
         <input
           ref={fileInput}

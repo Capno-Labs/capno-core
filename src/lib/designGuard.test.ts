@@ -46,17 +46,10 @@ describe('palette rules', () => {
   });
 
   it('keeps arbitrary hex colours out of class names', () => {
-    // The always-dark patient monitor owns its literal palette. The other
-    // entries are known debt that the cleanup pass removes — this list only
-    // ever shrinks.
-    const allowed = new Set([
-      'components/eventCategories.ts',
-      'components/controller/ActionMarkRow.tsx',
-    ]);
+    // Only the always-dark patient monitor owns a literal palette; everything
+    // else goes through the tokens in tailwind.config.ts.
     const hex = /-\[#[0-9a-fA-F]{3,8}\]/;
-    expect(
-      offenders(hex, (file) => file.startsWith('components/monitor/') || allowed.has(file)),
-    ).toEqual([]);
+    expect(offenders(hex, (file) => file.startsWith('components/monitor/'))).toEqual([]);
   });
 });
 

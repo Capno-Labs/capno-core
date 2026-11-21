@@ -6,7 +6,7 @@ import { formatClock } from '@/lib/format';
 // Display words are faculty-facing; the underlying ActionStatus values are
 // load-bearing (engine, scoring, schema, archives) and must not change.
 const STATUS_META: { status: ActionStatus; glyph: string; word: string; cls: string }[] = [
-  { status: 'done', glyph: '✓', word: 'Observed', cls: 'bg-green text-[#0d1a10]' },
+  { status: 'done', glyph: '✓', word: 'Observed', cls: 'bg-green text-on-green' },
   { status: 'delayed', glyph: '◐', word: 'Delayed', cls: 'bg-warn text-on-warn' },
   { status: 'incorrect', glyph: '✗', word: 'Incorrect', cls: 'bg-red-solid text-white' },
   { status: 'missed', glyph: '—', word: 'Missed', cls: 'bg-faint text-surface' },
@@ -44,8 +44,10 @@ export function ActionMarkRow({
   const btnSize = large ? 'h-10 min-w-10 px-1.5' : 'h-7 w-7';
 
   return (
-    <li className="flex items-center justify-between gap-2 rounded-md bg-panel-2 px-2 py-1.5">
-      <div className="min-w-0">
+    // Wraps: in a narrow column the mark buttons drop below the label instead
+    // of squeezing it to one word per line (the label keeps at least 9rem).
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
+      <div className="min-w-0 flex-1 basis-36">
         <p className="text-sm text-ink" title={action.description ?? action.label}>
           {action.critical && (
             <span className="mr-1 text-red" title="critical action">
@@ -71,7 +73,7 @@ export function ActionMarkRow({
             title={s.word}
             aria-label={`${action.label}: ${s.word}`}
             onClick={() => onMark(current === s.status ? 'pending' : s.status)}
-            className={`${btnSize} rounded text-sm font-bold transition ${
+            className={`${btnSize} rounded-ctl text-sm font-bold transition ${
               current === s.status ? s.cls : 'bg-panel-3 text-muted hover:bg-line-2 hover:text-ink'
             }`}
           >
