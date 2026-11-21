@@ -36,6 +36,10 @@ pack; never redraw, recolour by hand, or re-set the name in a font.
   dark one
 - `favicon.ico` — 16, 32 and 48 px, for browsers without SVG favicons
 
+`public/favicon.ico` is a copy of that `.ico` at the site root, for clients
+that ask for `/favicon.ico` without reading the page's icon links (link
+previews, feed readers). Keep the two identical.
+
 `public/icons/` — the app icons (white symbol on cobalt): `icon-192.png`,
 `icon-512.png`, the maskable `icon-192-maskable.png` and
 `icon-512-maskable.png` (extra margin for the platform's mask), and
