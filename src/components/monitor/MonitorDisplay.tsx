@@ -1,8 +1,10 @@
 'use client';
 
+import { useRef } from 'react';
 import type { SimSnapshot } from '@/lib/engine/types';
-import { map, RHYTHM_LABELS } from '@/lib/engine/types';
+import { map, PVC_FREQUENCY_EVERY_N, RHYTHM_LABELS } from '@/lib/engine/types';
 import { AlarmBanner } from './AlarmBanner';
+import { BeatClock } from './beatClock';
 import { MonitorAudio, useMonitorSoundPref } from './MonitorAudio';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
@@ -30,6 +32,19 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
   const v = snapshot.vitals;
   const frozen = snapshot.status !== 'running';
   const [soundOn, setSoundOn] = useMonitorSoundPref();
+
+  // One heartbeat clock per monitor: the ECG, pleth, arterial trace and the
+  // pulse tone all read the same beats, so they stay locked together.
+  const clockRef = useRef<BeatClock | null>(null);
+  clockRef.current ??= new BeatClock(Date.now());
+  const clock = clockRef.current;
+  clock.setInput({
+    hr: v.hr,
+    rhythm: v.rhythm,
+    pvcEveryN: PVC_FREQUENCY_EVERY_N[v.pvcFrequency ?? 'occasional'],
+    frozen,
+  });
+
   const alarmFor = (vital: string) =>
     snapshot.alarms.find((a) => a.vital === vital)?.level;
 
@@ -54,7 +69,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
 
   return (
     <div className="flex h-full flex-col gap-2 bg-monitor-bg p-2 md:p-3">
-      <MonitorAudio snapshot={snapshot} enabled={soundOn} />
+      <MonitorAudio snapshot={snapshot} enabled={soundOn} clock={clock} />
       {/* Header: alarms + sound + status + clock */}
       <div className="flex items-center justify-between gap-3">
         <AlarmBanner alarms={snapshot.alarms} silenced={snapshot.alarmsSilenced} />
@@ -96,7 +111,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
                 <span className="text-xs font-mono text-vital-ecg/80">{RHYTHM_LABELS[v.rhythm]}</span>
               )}
             </div>
-            <Waveform kind="ecg" color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="ecg" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
           </div>
           <VitalTile label="HR" value={String(Math.round(v.hr))} unit="bpm" color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>
@@ -109,7 +124,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
                 </span>
                 <span className="text-xs font-mono text-vital-nibp/80">0–170</span>
               </div>
-              <Waveform kind="art" color="#f87171" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} sbp={v.sbp} dbp={v.dbp} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
+              <Waveform kind="art" clock={clock} color="#f87171" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} sbp={v.sbp} dbp={v.dbp} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
             </div>
             <VitalTile
               label="ART"
@@ -127,7 +142,7 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
             <span className="px-1 text-xs font-bold uppercase tracking-wider text-vital-spo2">
               Pleth
             </span>
-            <Waveform kind="pleth" color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="pleth" clock={clock} color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
           </div>
           <VitalTile label="SpO₂" value={String(Math.round(v.spo2))} unit="%" color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={v.spo2} large={!compact} />
         </div>

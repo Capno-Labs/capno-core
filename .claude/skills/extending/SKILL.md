@@ -37,9 +37,13 @@ the zod partial (`src/lib/engine/schema.ts`), every scenario's
 
 Extend together: the `Rhythm` union + `RHYTHM_LABELS`
 (`src/lib/engine/types.ts`), the zod enum (`src/lib/engine/schema.ts`),
-and a waveform branch in `src/components/monitor/waveforms.ts`. If the
-rhythm is pulseless, add it to `PULSELESS` there — that set is what
-flattens the pleth and zeroes the pulse display.
+and a complex in `ecgBeat` (`src/components/monitor/waveforms.ts`), timed in
+milliseconds from the beat's start. If the rhythm is pulseless, add it to
+`PULSELESS` there — that set is what flattens the pleth and zeroes the pulse
+display. Beat *timing* (irregular intervals, ectopy patterns, per-beat pulse
+strength) lives in `src/components/monitor/beatClock.ts`, which the ECG,
+pleth, arterial trace and pulse tone all share; a rhythm with no discrete
+beats goes in its `NON_BEATING` set and draws from `ecgBaseline`.
 
 ## Add a sync transport
 
