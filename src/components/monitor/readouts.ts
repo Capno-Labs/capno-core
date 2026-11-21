@@ -1,4 +1,5 @@
 import type { AlarmState, NibpReading, Rhythm } from '@/lib/engine/types';
+import { ecgMorphologyApplies } from '@/lib/engine/types';
 import { isPulseless } from './waveforms';
 
 /**
@@ -12,14 +13,27 @@ import { isPulseless } from './waveforms';
 /** Shown in place of a number the monitor cannot measure. */
 export const NO_READING = '--';
 
-/** With no pulse there is nothing for the oximeter to read. */
+/** Pulse oximetry depends on a pulsatile arterial signal (Jubran, Crit Care
+ *  1999;3:R11); with no pulse a monitor replaces the number with a
+ *  no-reading mark and a technical alarm, not a value. */
 export function oximeterHasSignal(rhythm: Rhythm): boolean {
   return !isPulseless(rhythm);
 }
 
-/** A cuff cycle that found no pressure is a failed reading, not 0/0. */
+/** Whether an ST level means anything in this rhythm (not in VT, VF, PEA or asystole). */
+export function stIsMeasurable(rhythm: Rhythm): boolean {
+  return ecgMorphologyApplies(rhythm);
+}
+
+/** Lowest systolic pressure an oscillometric cuff can report, mmHg: the adult
+ *  measurement range starts at 30 systolic, and below it — or with no regular
+ *  pulse — the measurement fails (Philips IntelliVue MP20–MP90 Instructions
+ *  for Use, Rel. G.0: NBP range and "NBP MEASURE FAILED"). */
+export const NIBP_MIN_SYSTOLIC = 30;
+
+/** A cuff cycle below the measurable range is a failed reading, not a number. */
 export function cuffReadingFailed(nibp: NibpReading | null): boolean {
-  return nibp !== null && nibp.sbp <= 0;
+  return nibp !== null && nibp.sbp < NIBP_MIN_SYSTOLIC;
 }
 
 /**

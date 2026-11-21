@@ -62,5 +62,5 @@ The canonical smoke flow:
 - The HR tile is counted from drawn beats: in sinus rhythm it can read one
   either side of the slider value, and in AF several — assert a range, not an
   exact number. SVT, VT and PEA are metronomic and read exactly.
-- In VF/PEA/asystole the SpO₂ tile reads `--`; after a cuff cycle at
-  systolic 0 the NIBP tile reads `--/--`.
+- In VF/PEA/asystole the SpO₂ tile reads `--`; after a cuff cycle
+  below 30 mmHg systolic the NIBP tile reads `--/--`.

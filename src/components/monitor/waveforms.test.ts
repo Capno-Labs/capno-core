@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Rhythm } from '@/lib/engine/types';
 import { BeatClock, type Beat } from './beatClock';
 import {
+  AF_FIB_PER_MIN,
   ART_DELAY_MS,
   artValue,
   capnoSample,
@@ -138,6 +139,225 @@ describe('ecgBeat', () => {
   });
 });
 
+describe('drawn intervals against published normal ranges', () => {
+  /** First and last times the complex is off the baseline by more than `eps`. */
+  const span = (f: (ms: number) => number, from: number, to: number, eps = 0.02) => {
+    let first = NaN;
+    let last = NaN;
+    for (let ms = from; ms <= to; ms += 0.5) {
+      if (Math.abs(f(ms)) > eps) {
+        if (Number.isNaN(first)) first = ms;
+        last = ms;
+      }
+    }
+    return { first, last };
+  };
+  const oneSecond = beat({ baseSec: 1, rrSec: 1 }); // 60 bpm, so QT = QTc
+  const draw = (ecg = {}) => (ms: number) => ecgBeat(oneSecond, ms, ecg);
+
+  it('has a PR interval of 120–200 ms', () => {
+    const pOnset = span(draw(), 0, R_OFFSET_MS - 70).first;
+    const qrsOnset = span(draw({ tWave: 'flat' }), R_OFFSET_MS - 65, R_OFFSET_MS + 80).first;
+    expect(qrsOnset - pOnset).toBeGreaterThanOrEqual(120);
+    expect(qrsOnset - pOnset).toBeLessThanOrEqual(200);
+  });
+
+  it('has a normal QRS of 60–100 ms and a wide one of at least 120 ms', () => {
+    const qrsSpan = (ecg: object) => {
+      const { first, last } = span(draw({ ...ecg, tWave: 'flat' }), R_OFFSET_MS - 90, R_OFFSET_MS + 130, 0.05);
+      return last - first;
+    };
+    expect(qrsSpan({})).toBeGreaterThanOrEqual(60);
+    expect(qrsSpan({})).toBeLessThanOrEqual(100);
+    expect(qrsSpan({ qrs: 'wide' })).toBeGreaterThanOrEqual(120);
+  });
+
+  it('has a normal QTc under 450 ms and a prolonged one over 500 ms', () => {
+    const qt = (ecg: object) => {
+      const qrsOnset = span(draw({ ...ecg, tWave: 'flat' }), R_OFFSET_MS - 65, R_OFFSET_MS + 60).first;
+      const tEnd = span(draw(ecg), R_OFFSET_MS + 100, 1000).last;
+      return tEnd - qrsOnset;
+    };
+    expect(qt({})).toBeGreaterThan(350);
+    expect(qt({})).toBeLessThan(450);
+    expect(qt({ qt: 'long' })).toBeGreaterThan(500);
+    expect(qt({ qt: 'long' })).toBeLessThan(580);
+  });
+
+  it('shortens the QT with the square root of the cycle (Bazett)', () => {
+    const tPeakAfterR = (hr: number) => {
+      const b = beat({ baseSec: 60 / hr });
+      let at = 0;
+      let top = -Infinity;
+      for (let ms = R_OFFSET_MS + 60; ms < 900; ms += 0.5) {
+        const v = ecgBeat(b, ms);
+        if (v > top) {
+          top = v;
+          at = ms;
+        }
+      }
+      return at - R_OFFSET_MS;
+    };
+    for (const hr of [50, 100, 150]) {
+      expect(tPeakAfterR(hr) / tPeakAfterR(60)).toBeCloseTo(Math.sqrt(60 / hr), 2);
+    }
+  });
+
+  it('keeps the normal T wave under 5 mm and the peaked one above it', () => {
+    const tTop = (ecg: object) => Math.max(...Array.from({ length: 1400 }, (_, i) => draw(ecg)(R_OFFSET_MS + 100 + i * 0.5)));
+    expect(tTop({}) * 10).toBeLessThan(5);
+    expect(tTop({ tWave: 'peaked' }) * 10).toBeGreaterThan(5);
+  });
+
+  it('runs the fibrillatory waves of AF at 350–500 per minute', () => {
+    for (const perMin of AF_FIB_PER_MIN) {
+      expect(perMin).toBeGreaterThanOrEqual(350);
+      expect(perMin).toBeLessThanOrEqual(500);
+    }
+  });
+});
+
+describe('ECG morphology (ST, T wave, QRS width, QT)', () => {
+  const b = beat(); // sinus, 72 bpm
+  const at = (ms: number, ecg = {}) => ecgBeat(b, ms, ecg);
+  /** Mid ST segment: after the QRS, before the T wave begins to rise. */
+  const ST_MS = R_OFFSET_MS + 90;
+  const tPeakOf = (ecg = {}, beatOver = b) => {
+    let peakAt = 0;
+    let top = 0;
+    for (let ms = R_OFFSET_MS + 80; ms < 1000; ms += 0.5) {
+      const v = ecgBeat(beatOver, ms, ecg);
+      if (Math.abs(v) > Math.abs(top)) {
+        top = v;
+        peakAt = ms;
+      }
+    }
+    return { ms: peakAt - R_OFFSET_MS, value: top };
+  };
+
+  it('draws exactly the normal complex when nothing is set', () => {
+    for (let ms = 0; ms < 900; ms += 3) {
+      expect(at(ms, {})).toBe(at(ms));
+      expect(at(ms, { stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' })).toBe(at(ms));
+    }
+  });
+
+  it('moves the ST segment by a tenth of the R wave per millimetre', () => {
+    for (const stMm of [-3, -2, -1, 1, 2, 4]) {
+      expect(at(ST_MS, { stMm }) - at(ST_MS)).toBeCloseTo(stMm * 0.1, 2);
+    }
+    // Depression goes down, elevation up.
+    expect(at(ST_MS, { stMm: -2 })).toBeLessThan(at(ST_MS));
+    expect(at(ST_MS, { stMm: 2 })).toBeGreaterThan(at(ST_MS));
+  });
+
+  it('leaves the P wave, the R wave and the baseline after the T wave alone', () => {
+    for (const stMm of [-4, 4]) {
+      expect(at(R_OFFSET_MS - 150, { stMm })).toBeCloseTo(at(R_OFFSET_MS - 150), 3); // P
+      expect(at(R_OFFSET_MS, { stMm })).toBeCloseTo(at(R_OFFSET_MS), 2); // R peak
+      expect(at(700, { stMm })).toBeCloseTo(0, 2); // back on the baseline
+    }
+  });
+
+  it('carries the T wave on the shifted segment', () => {
+    // At the moment the normal T wave peaks, the trace is 2 mm lower.
+    const normal = tPeakOf();
+    const tMs = R_OFFSET_MS + normal.ms;
+    expect(at(tMs, { stMm: -2 })).toBeCloseTo(normal.value - 0.2, 1);
+    expect(at(tMs, { stMm: 3 })).toBeCloseTo(normal.value + 0.3, 1);
+  });
+
+  it('draws a peaked T wave taller and narrower', () => {
+    const normal = tPeakOf();
+    const peaked = tPeakOf({ tWave: 'peaked' });
+    expect(peaked.value).toBeGreaterThan(normal.value * 1.8);
+    const half = (ecg: object, top: number) =>
+      widthAt((ms) => at(ms, ecg), top / 2, R_OFFSET_MS + 80, 900);
+    expect(half({ tWave: 'peaked' }, peaked.value)).toBeLessThan(half({}, normal.value) * 0.75);
+    expect(peaked.ms).toBeCloseTo(normal.ms, 0); // same place
+  });
+
+  it('draws a flattened T wave small and an inverted one below the baseline', () => {
+    const normal = tPeakOf();
+    expect(Math.abs(tPeakOf({ tWave: 'flat' }).value)).toBeLessThan(normal.value * 0.3);
+    expect(tPeakOf({ tWave: 'inverted' }).value).toBeLessThan(-normal.value * 0.6);
+  });
+
+  it('widens the QRS past 120 ms and delays what follows', () => {
+    const width = (ecg: object) => {
+      // Span over which the trace is away from baseline around the QRS.
+      let first = NaN;
+      let last = NaN;
+      for (let ms = R_OFFSET_MS - 100; ms < R_OFFSET_MS + 130; ms += 0.5) {
+        if (Math.abs(at(ms, { ...ecg, tWave: 'flat' })) > 0.08) {
+          if (Number.isNaN(first)) first = ms;
+          last = ms;
+        }
+      }
+      return last - first;
+    };
+    expect(width({})).toBeLessThan(110);
+    expect(width({ qrs: 'wide' })).toBeGreaterThan(120);
+    expect(width({ qrs: 'wide' })).toBeGreaterThan(width({}) * 1.5);
+    expect(tPeakOf({ qrs: 'wide' }).ms).toBeGreaterThan(tPeakOf().ms + 20);
+    // The R wave still peaks where the pulse tone fires.
+    expect(at(R_OFFSET_MS, { qrs: 'wide' })).toBeGreaterThan(0.9);
+  });
+
+  it('moves the T wave later for a prolonged QT, at every rate', () => {
+    for (const hr of [50, 72, 110]) {
+      const beatAt = beat({ baseSec: 60 / hr });
+      const normal = tPeakOf({}, beatAt).ms;
+      const long = tPeakOf({ qt: 'long' }, beatAt).ms;
+      expect(long).toBeGreaterThan(normal * 1.4);
+      expect(long).toBeLessThan(normal * 1.6);
+    }
+  });
+
+  it('reshapes AF, SVT and PAC beats too', () => {
+    for (const over of [{ rhythm: 'afib' }, { rhythm: 'svt' }, { rhythm: 'pac', kind: 'pac' }] as const) {
+      const other = beat(over);
+      expect(ecgBeat(other, ST_MS, { stMm: -2 }) - ecgBeat(other, ST_MS)).toBeCloseTo(-0.2, 2);
+    }
+  });
+
+  it('leaves PVCs, VT and PEA as they were', () => {
+    const everything = { stMm: -4, tWave: 'peaked', qrs: 'wide', qt: 'long' } as const;
+    const unaffected = [
+      beat({ rhythm: 'pvc', kind: 'pvc' }),
+      beat({ rhythm: 'vtach', baseSec: 0.35, rrSec: 0.35 }),
+      beat({ rhythm: 'pea' }),
+    ];
+    for (const other of unaffected) {
+      for (let ms = 0; ms < 900; ms += 5) {
+        expect(ecgBeat(other, ms, everything)).toBe(ecgBeat(other, ms));
+      }
+    }
+  });
+
+  it('stays inside the trace area at the extremes', () => {
+    // The renderer has room for about +1.5 above and −1.25 below the baseline.
+    const extremes = [
+      { stMm: 5, tWave: 'peaked', qrs: 'wide', qt: 'long' },
+      { stMm: -5, tWave: 'inverted', qrs: 'wide', qt: 'long' },
+      { stMm: 5, tWave: 'peaked' },
+      { stMm: -5, tWave: 'inverted' },
+    ] as const;
+    for (const ecg of extremes) {
+      for (const hr of [40, 72, 150]) {
+        const clock = new BeatClock(2);
+        clock.setInput({ hr, rr: 0, rhythm: 'sinus', pvcEveryN: 4, frozen: false });
+        for (let i = 0; i < 2000; i++) {
+          clock.advance(0.004);
+          const v = ecgValue(clock.recent(), 'sinus', clock.t, ecg);
+          expect(v).toBeLessThan(1.5);
+          expect(v).toBeGreaterThan(-1.25);
+        }
+      }
+    }
+  });
+});
+
 describe('ecgValue', () => {
   it('stays amplitude-bounded across every beating rhythm and rate', () => {
     const rhythms: Rhythm[] = ['sinus', 'sinus_brady', 'sinus_tach', 'pvc', 'pac', 'afib', 'svt', 'vtach', 'pea'];
@@ -205,6 +425,46 @@ describe('pulse traces (pleth and arterial line)', () => {
     }
     return at;
   };
+
+  it('uses pulse arrival times inside the measured ranges', () => {
+    // Radial line 140–232 ms (Escobar-Restrepo 2018); finger 230–330 ms (Kortekaas 2018).
+    expect(ART_DELAY_MS).toBeGreaterThanOrEqual(140);
+    expect(ART_DELAY_MS).toBeLessThanOrEqual(232);
+    expect(PLETH_DELAY_MS).toBeGreaterThanOrEqual(230);
+    expect(PLETH_DELAY_MS).toBeLessThanOrEqual(330);
+  });
+
+  it('shortens the pulse wave as the rate rises, by the ejection-time regression', () => {
+    // Time from the start of the upstroke to the dicrotic wave, at each rate.
+    const upstrokeToDicrotic = (hr: number) => {
+      const b = [beat({ baseSec: 60 / hr, rrSec: 60 / hr })];
+      const onset = (R_OFFSET_MS + ART_DELAY_MS) / 1000;
+      let dicroticAt = 0;
+      let prev = -Infinity;
+      let rising = false;
+      // Find the second local maximum (the dicrotic bump) after the systolic peak.
+      let peaks = 0;
+      for (let t = onset; t < onset + 0.9; t += 0.0005) {
+        const v = artValue(b, 'sinus', t, 120, 80);
+        if (v > prev) rising = true;
+        else if (rising && v < prev) {
+          peaks += 1;
+          rising = false;
+          if (peaks === 2) {
+            dicroticAt = t - onset;
+            break;
+          }
+        }
+        prev = v;
+      }
+      return dicroticAt * 1000;
+    };
+    const lvet = (hr: number) => 244 - 0.926 * hr + 1.08 * 70; // Charlton 2019
+    for (const hr of [60, 100, 140]) {
+      expect(upstrokeToDicrotic(hr) / upstrokeToDicrotic(75)).toBeCloseTo(lvet(hr) / lvet(75), 1);
+    }
+    expect(upstrokeToDicrotic(140)).toBeLessThan(upstrokeToDicrotic(60));
+  });
 
   it('time-locks each pulse to its QRS: artery first, then the finger', () => {
     const beats = [beat()];

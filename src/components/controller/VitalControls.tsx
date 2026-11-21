@@ -1,8 +1,28 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { CapnoShape, NumericVitals, PvcFrequency, Rhythm } from '@/lib/engine/types';
-import { CAPNO_SHAPE_LABELS, PVC_FREQUENCY_LABELS, RHYTHM_LABELS } from '@/lib/engine/types';
+import type {
+  CapnoShape,
+  NumericVitals,
+  PvcFrequency,
+  QrsWidth,
+  QtInterval,
+  Rhythm,
+  TWave,
+} from '@/lib/engine/types';
+import {
+  CAPNO_SHAPE_LABELS,
+  ecgMorphologyApplies,
+  formatStMm,
+  NORMAL_ECG,
+  PVC_FREQUENCY_LABELS,
+  QRS_WIDTH_LABELS,
+  QT_INTERVAL_LABELS,
+  RHYTHM_LABELS,
+  ST_MM_MAX,
+  ST_MM_MIN,
+  T_WAVE_LABELS,
+} from '@/lib/engine/types';
 import { VITAL_META, clampVital, roundVital } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
@@ -121,10 +141,22 @@ export function VitalControls() {
   const setRhythm = useControllerStore((s) => s.setRhythm);
   const setCapnoShape = useControllerStore((s) => s.setCapnoShape);
   const setPvcFrequency = useControllerStore((s) => s.setPvcFrequency);
+  const setEcg = useControllerStore((s) => s.setEcg);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
   const [overSec, setOverSec] = useState(3);
   if (!engine || !snapshot) return null;
+
+  const ecg = { ...NORMAL_ECG, ...snapshot.vitals.ecg };
+  const stTarget = engine.getStTarget();
+  const stepSt = (by: number) => {
+    const next = Math.min(ST_MM_MAX, Math.max(ST_MM_MIN, Math.round((stTarget + by) * 2) / 2));
+    if (next !== stTarget) setEcg({ stMm: next }, overSec);
+  };
+  const ecgChip = (active: boolean) =>
+    `rounded-ctl px-2 py-1 text-xs font-semibold ${
+      active ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg' : 'bg-panel-2 text-muted hover:bg-panel-3'
+    }`;
 
   return (
     <section className="card space-y-3" data-tour="vitals">
@@ -234,6 +266,73 @@ export function VitalControls() {
             </div>
           </div>
         )}
+
+        <div className="space-y-1.5">
+          <span className="label">
+            ECG complex
+            {!ecgMorphologyApplies(snapshot.vitals.rhythm) && (
+              <span className="ml-1 font-normal normal-case text-faint">
+                — not drawn in this rhythm
+              </span>
+            )}
+          </span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="flex items-center gap-1">
+              <span className="w-10 text-xs font-semibold text-ink-2">ST II</span>
+              <button
+                className="btn-secondary btn-sm"
+                onClick={() => stepSt(-0.5)}
+                disabled={stTarget <= ST_MM_MIN}
+                aria-label="Lower the ST segment by half a millimetre"
+              >
+                −
+              </button>
+              <span
+                className={`w-20 text-center font-mono text-sm tabular-nums ${stTarget !== 0 ? 'text-vital-ecg' : 'text-ink'}`}
+                title="ST level in lead II, mm: negative is depression, positive is elevation. Changes over the selected ramp."
+              >
+                {formatStMm(stTarget)} mm
+              </span>
+              <button
+                className="btn-secondary btn-sm"
+                onClick={() => stepSt(0.5)}
+                disabled={stTarget >= ST_MM_MAX}
+                aria-label="Raise the ST segment by half a millimetre"
+              >
+                +
+              </button>
+              {stTarget !== 0 && (
+                <button className="btn-ghost btn-sm" onClick={() => setEcg({ stMm: 0 }, overSec)}>
+                  baseline
+                </button>
+              )}
+            </span>
+            <span className="flex items-center gap-1" role="group" aria-label="T wave">
+              <span className="text-xs font-semibold text-ink-2">T</span>
+              {(Object.keys(T_WAVE_LABELS) as TWave[]).map((t) => (
+                <button key={t} onClick={() => setEcg({ tWave: t })} className={ecgChip(ecg.tWave === t)}>
+                  {T_WAVE_LABELS[t]}
+                </button>
+              ))}
+            </span>
+            <span className="flex items-center gap-1" role="group" aria-label="QRS width">
+              <span className="text-xs font-semibold text-ink-2">QRS</span>
+              {(Object.keys(QRS_WIDTH_LABELS) as QrsWidth[]).map((q) => (
+                <button key={q} onClick={() => setEcg({ qrs: q })} className={ecgChip(ecg.qrs === q)}>
+                  {QRS_WIDTH_LABELS[q]}
+                </button>
+              ))}
+            </span>
+            <span className="flex items-center gap-1" role="group" aria-label="QT interval">
+              <span className="text-xs font-semibold text-ink-2">QT</span>
+              {(Object.keys(QT_INTERVAL_LABELS) as QtInterval[]).map((q) => (
+                <button key={q} onClick={() => setEcg({ qt: q })} className={ecgChip(ecg.qt === q)}>
+                  {QT_INTERVAL_LABELS[q]}
+                </button>
+              ))}
+            </span>
+          </div>
+        </div>
 
         <div>
           <span className="label">CO₂ waveform</span>

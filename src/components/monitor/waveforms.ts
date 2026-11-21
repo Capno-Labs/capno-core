@@ -1,4 +1,4 @@
-import type { CapnoShape, Rhythm } from '@/lib/engine/types';
+import type { CapnoShape, EcgMorphology, Rhythm } from '@/lib/engine/types';
 import type { Beat } from './beatClock';
 
 /**
@@ -26,27 +26,62 @@ function gaussian(x: number, center: number, width: number, amplitude: number): 
 export const SUBSTEP_SEC = 0.004;
 
 // ── Cardiac timing (milliseconds) ────────────────────────────────────────────
-// A beat's cycle starts a little before its P wave. Conduction times (P–R, QRS
-// width) are fixed in milliseconds — they do not stretch at slow rates or
-// shrink at fast ones, which a phase-based template did. Repolarization and
-// the pulse wave shorten with rate, scaled by the square root of the cycle
-// length. Values are carried over from the previous 72 bpm phase template.
+// A beat's cycle starts a little before its P wave. Conduction times are fixed
+// in milliseconds — they do not stretch at slow rates or shrink at fast ones.
+// The drawn complex has a PR interval of about 150 ms and a QRS of about
+// 95 ms, inside the normal adult ranges (PR 120–200 ms, QRS 60–100 ms;
+// StatPearls, "Electrocardiogram", NBK549803). The QT interval follows the
+// square root of the cycle length (Bazett: QTc = QT/√RR; Drew et al.,
+// Circulation 2010, AHA/ACCF statement on torsade de pointes): about 380 ms
+// at 60 bpm, a normal QTc.
 
 /** Beat start → R-wave peak. The pulse tone fires here. */
 export const R_OFFSET_MS = 210;
-/** R wave → start of the arterial upstroke at the transducer. */
-export const ART_DELAY_MS = 160;
-/** R wave → start of the pleth upstroke at the finger probe. */
-export const PLETH_DELAY_MS = 250;
+/** R wave → start of the arterial upstroke at a radial line: measured means
+ *  174–200 ms, individuals 140–232 ms (Escobar-Restrepo et al., Front Physiol
+ *  2018;9:1848). */
+export const ART_DELAY_MS = 185;
+/** R wave → start of the pleth upstroke at the finger probe: measured means
+ *  267–284 ms, individuals 230–330 ms (Kortekaas et al., PLoS One
+ *  2018;13:e0204105). */
+export const PLETH_DELAY_MS = 270;
 
 const P_BEFORE_R_MS = 150;
 /** R → T-wave peak, per √(cycle seconds): 208 ms at 72 bpm. */
 const T_AFTER_R_PER_ROOT_SEC = 228;
 const T_WIDTH_PER_ROOT_SEC = 63.5;
 /** Past this, a beat's complex has fully decayed. */
-const BEAT_TAIL_MS = 950;
+const BEAT_TAIL_MS = 1100;
 
-function qrs(ms: number, r: number, s: number): number {
+/** At standard calibration (10 mm/mV) 1 mm is 0.1 mV (StatPearls NBK549803;
+ *  Thygesen et al., Fourth Universal Definition of MI, Eur Heart J 2019). The
+ *  R wave here stands 1 mV — 10 mm — tall, so a millimetre is a tenth of the
+ *  trace's unit height, and the normal T wave (0.3) is 3 mm, under the 5 mm
+ *  limb-lead limit (StatPearls, "ECG T Wave", NBK538264). */
+const UNITS_PER_MM = 0.1;
+
+// A wide QRS spreads the same deflections over about 150 ms — past the
+// 120 ms that defines a wide complex (complete bundle branch block: Surawicz
+// et al., AHA/ACCF/HRS recommendations Part III, 2009) — and everything after
+// it (J point, ST segment, T wave) starts later.
+const WIDE_QRS_DELAY_MS = 35;
+/** A prolonged QT pushes the T wave later and makes it broader: QTc about
+ *  515 ms, beyond the 500 ms the AHA/ACCF statement calls highly abnormal
+ *  (Drew et al., Circulation 2010; 99th percentile 470 ms men, 480 ms women). */
+const LONG_QT_STRETCH = 1.5;
+
+function sigmoid(x: number): number {
+  return 1 / (1 + Math.exp(-x));
+}
+
+function qrs(ms: number, r: number, s: number, wide: boolean): number {
+  if (wide) {
+    return (
+      gaussian(ms, R_OFFSET_MS - 38, 16, -0.22) + // Q
+      gaussian(ms, R_OFFSET_MS, 22, r) + // broad R
+      gaussian(ms, R_OFFSET_MS + 58, 28, s * 1.4) // deep, slurred S
+    );
+  }
   return (
     gaussian(ms, R_OFFSET_MS - 33, 11, -0.22) + // Q
     gaussian(ms, R_OFFSET_MS, 10, r) + // R
@@ -54,17 +89,65 @@ function qrs(ms: number, r: number, s: number): number {
   );
 }
 
-function tWave(ms: number, baseSec: number, amplitude: number): number {
+/** T-wave peak time and width for a beat, given the morphology in force. */
+function tTiming(baseSec: number, ecg: EcgMorphology): { peakMs: number; widthMs: number } {
   const root = Math.sqrt(baseSec);
-  return gaussian(ms, R_OFFSET_MS + T_AFTER_R_PER_ROOT_SEC * root, T_WIDTH_PER_ROOT_SEC * root, amplitude);
+  const stretch = ecg.qt === 'long' ? LONG_QT_STRETCH : 1;
+  const delay = ecg.qrs === 'wide' ? WIDE_QRS_DELAY_MS : 0;
+  return {
+    peakMs: R_OFFSET_MS + delay + T_AFTER_R_PER_ROOT_SEC * root * stretch,
+    widthMs: T_WIDTH_PER_ROOT_SEC * root * (ecg.qt === 'long' ? 1.2 : 1),
+  };
+}
+
+function tWave(ms: number, baseSec: number, amplitude: number, ecg: EcgMorphology): number {
+  const { peakMs, widthMs } = tTiming(baseSec, ecg);
+  switch (ecg.tWave) {
+    case 'peaked':
+      // "Tall, narrow, and symmetrical", as in hyperkalemia (StatPearls,
+      // "ECG T Wave", NBK538264): 6.6 mm, past the 5 mm limb-lead limit.
+      return gaussian(ms, peakMs, widthMs * 0.6, amplitude * 2.2);
+    case 'flat':
+      // 0.6 mm. No accessible source gave a numeric definition of "flat".
+      return gaussian(ms, peakMs, widthMs, amplitude * 0.2);
+    case 'inverted':
+      // −2.4 mm. Likewise chosen, not cited.
+      return gaussian(ms, peakMs, widthMs, -amplitude * 0.8);
+    default:
+      return gaussian(ms, peakMs, widthMs, amplitude);
+  }
+}
+
+/**
+ * ST-segment offset: the trace sits `stMm` away from baseline from the J
+ * point (end of the QRS) through the T wave, which rides on it, and returns
+ * to baseline as the T wave ends. Negative = depression. The segment is
+ * level, i.e. the horizontal depression that counts as ischemic (≥0.5 mm at
+ * the J point: Fourth Universal Definition of MI; ≥1 mm 60–80 ms after it
+ * for intraoperative monitoring: London et al., Anesthesiology 1988;69:232).
+ */
+function stSegment(ms: number, baseSec: number, ecg: EcgMorphology): number {
+  const stMm = ecg.stMm ?? 0;
+  if (stMm === 0) return 0;
+  const { peakMs, widthMs } = tTiming(baseSec, ecg);
+  const jPointMs = R_OFFSET_MS + 50 + (ecg.qrs === 'wide' ? WIDE_QRS_DELAY_MS + 15 : 0);
+  const on = sigmoid((ms - jPointMs) / 6);
+  const off = 1 - sigmoid((ms - (peakMs + widthMs * 0.9)) / (widthMs * 0.35));
+  return stMm * UNITS_PER_MM * on * off;
 }
 
 /**
  * One beat's contribution to the ECG, `ms` after the beat's start. `ms` may
  * run past the beat's own interval — at fast rates the T wave lands in the
- * next cycle, as it does on a real trace.
+ * next cycle, as it does on a real trace. `ecg` (ST level, T wave, QRS
+ * width, QT) reshapes beats with a normal conduction pattern; ectopic wide
+ * complexes, VT and PEA keep their own shape.
  */
-export function ecgBeat(beat: Pick<Beat, 'rhythm' | 'kind' | 'baseSec' | 'rrSec'>, ms: number): number {
+export function ecgBeat(
+  beat: Pick<Beat, 'rhythm' | 'kind' | 'baseSec' | 'rrSec'>,
+  ms: number,
+  ecg: EcgMorphology = {},
+): number {
   if (ms < 0) return 0;
 
   if (beat.rhythm === 'vtach') {
@@ -77,40 +160,64 @@ export function ecgBeat(beat: Pick<Beat, 'rhythm' | 'kind' | 'baseSec' | 'rrSec'
   if (ms > BEAT_TAIL_MS) return 0;
 
   if (beat.kind === 'pvc') {
-    // Wide bizarre complex, no P, discordant T.
+    // Wide bizarre complex (over 120 ms), no P, discordant T (StatPearls,
+    // "Premature Ventricular Complex", NBK547713).
     return gaussian(ms, R_OFFSET_MS, 42, 1.15) + gaussian(ms, R_OFFSET_MS + 84, 58, -0.5);
   }
+  if (beat.rhythm === 'pea') {
+    // Organized-looking wide complexes (no pulse — the pleth goes flat).
+    return gaussian(ms, R_OFFSET_MS, 25, 0.55) + gaussian(ms, R_OFFSET_MS + 100, 42, -0.2);
+  }
+
+  const wide = ecg.qrs === 'wide';
+  const st = stSegment(ms, beat.baseSec, ecg);
   if (beat.kind === 'pac') {
-    // Narrow complex behind an ectopic P of different shape.
+    // Normal QRS behind an early P of different shape (StatPearls,
+    // "Premature Atrial Contractions", NBK559204).
     return (
-      gaussian(ms, R_OFFSET_MS - 142, 25, 0.12) + qrs(ms, 1.0, -0.32) + tWave(ms, beat.baseSec, 0.3)
+      gaussian(ms, R_OFFSET_MS - 142, 25, 0.12) +
+      qrs(ms, 1.0, -0.32, wide) +
+      tWave(ms, beat.baseSec, 0.3, ecg) +
+      st
     );
   }
 
   switch (beat.rhythm) {
     case 'afib':
       // No P wave (the fibrillatory baseline is added by ecgValue).
-      return gaussian(ms, R_OFFSET_MS, 10, 1.0) + gaussian(ms, R_OFFSET_MS + 33, 13, -0.3) + tWave(ms, beat.baseSec, 0.25);
+      return qrsNoQ(ms, 1.0, -0.3, 13, wide) + tWave(ms, beat.baseSec, 0.25, ecg) + st;
     case 'svt':
       // Narrow complex, P buried.
-      return gaussian(ms, R_OFFSET_MS, 10, 0.9) + gaussian(ms, R_OFFSET_MS + 33, 12, -0.28) + tWave(ms, beat.baseSec, 0.22);
-    case 'pea':
-      // Organized-looking wide complexes (no pulse — the pleth goes flat).
-      return gaussian(ms, R_OFFSET_MS, 25, 0.55) + gaussian(ms, R_OFFSET_MS + 100, 42, -0.2);
+      return qrsNoQ(ms, 0.9, -0.28, 12, wide) + tWave(ms, beat.baseSec, 0.22, ecg) + st;
     default:
       // Sinus P-QRS-T (also the normal beats between ectopics).
       return (
-        gaussian(ms, R_OFFSET_MS - P_BEFORE_R_MS, 29, 0.18) + qrs(ms, 1.0, -0.32) + tWave(ms, beat.baseSec, 0.3)
+        gaussian(ms, R_OFFSET_MS - P_BEFORE_R_MS, 29, 0.18) +
+        qrs(ms, 1.0, -0.32, wide) +
+        tWave(ms, beat.baseSec, 0.3, ecg) +
+        st
       );
   }
 }
 
+/** R and S only — the AF and SVT complexes have no Q wave. */
+function qrsNoQ(ms: number, r: number, s: number, sWidthMs: number, wide: boolean): number {
+  if (wide) return gaussian(ms, R_OFFSET_MS, 22, r) + gaussian(ms, R_OFFSET_MS + 58, 28, s * 1.4);
+  return gaussian(ms, R_OFFSET_MS, 10, r) + gaussian(ms, R_OFFSET_MS + 33, sWidthMs, s);
+}
+
+/** Fibrillatory-wave rates, per minute: atrial activity in AF runs at
+ *  350–500/min (Kwon & Kim, Korean J Anesthesiol 2017;70:120). */
+export const AF_FIB_PER_MIN: readonly number[] = [365, 420, 487];
+
 /** Rhythm components that don't belong to any one beat; `t` in seconds. */
 function ecgBaseline(rhythm: Rhythm, t: number): number {
   switch (rhythm) {
-    case 'afib':
-      // Fibrillatory baseline.
-      return 0.04 * Math.sin(t * 44) + 0.03 * Math.sin(t * 71 + 1.3) + 0.02 * Math.sin(t * 103 + 0.4);
+    case 'afib': {
+      // Fibrillatory baseline: three components beating against each other.
+      const [a, b, c] = AF_FIB_PER_MIN.map((perMin) => (perMin / 60) * 2 * Math.PI);
+      return 0.04 * Math.sin(t * a) + 0.03 * Math.sin(t * b + 1.3) + 0.02 * Math.sin(t * c + 0.4);
+    }
     case 'vfib':
       // Chaotic — irregular sum of sines.
       return (
@@ -127,12 +234,17 @@ function ecgBaseline(rhythm: Rhythm, t: number): number {
 
 /**
  * ECG amplitude at clock time `t` (seconds): the current rhythm's baseline
- * plus every recent beat's complex.
+ * plus every recent beat's complex, drawn with the morphology now in force.
  */
-export function ecgValue(beats: readonly Beat[], rhythm: Rhythm, t: number): number {
+export function ecgValue(
+  beats: readonly Beat[],
+  rhythm: Rhythm,
+  t: number,
+  ecg: EcgMorphology = {},
+): number {
   let v = ecgBaseline(rhythm, t);
   if (rhythm === 'vfib' || rhythm === 'asystole') return v;
-  for (const b of beats) v += ecgBeat(b, (t - b.startSec) * 1000);
+  for (const b of beats) v += ecgBeat(b, (t - b.startSec) * 1000, ecg);
   return v;
 }
 
@@ -142,9 +254,17 @@ export function isPulseless(rhythm: Rhythm): boolean {
   return PULSELESS.has(rhythm);
 }
 
-/** Systole shortens with rate; the pulse wave's timings scale with it. */
+/**
+ * Systole shortens as the rate rises, and the pulse wave's timings with it.
+ * Left ventricular ejection time falls about 0.93 ms per beat/min (LVET =
+ * 244 − 0.926·HR + 1.08·SV ms, fitted to Weissler's data: Charlton et al.,
+ * Am J Physiol Heart Circ Physiol 2019;317:H1062). Taken here at a stroke
+ * volume of 70 mL and expressed relative to 75 bpm, where the wave shapes
+ * were drawn.
+ */
 function pulseScale(baseSec: number): number {
-  return Math.min(1.5, Math.max(0.6, Math.sqrt(baseSec / 0.8)));
+  const lvetMs = (hr: number) => 244 - 0.926 * hr + 1.08 * 70;
+  return Math.min(1.3, Math.max(0.6, lvetMs(60 / baseSec) / lvetMs(75)));
 }
 
 /** Summed pulse waves of the recent beats, each weighted by its stroke strength. */

@@ -43,7 +43,11 @@ milliseconds from the beat's start. If the rhythm is pulseless, add it to
 display. Beat *timing* (irregular intervals, ectopy patterns, per-beat pulse
 strength) lives in `src/components/monitor/beatClock.ts`, which the ECG,
 pleth, arterial trace and pulse tone all share; a rhythm with no discrete
-beats goes in its `NON_BEATING` set and draws from `ecgBaseline`.
+beats goes in its `NON_BEATING` set and draws from `ecgBaseline`. If the new
+rhythm has normal-pattern complexes that ST/T/QRS/QT settings should reshape,
+add it to `MORPHOLOGY_RHYTHMS` in `types.ts` (that set also decides whether
+the monitor prints an ST level) and draw its complex through the
+morphology-aware helpers in `ecgBeat`.
 
 ## Add a sync transport
 

@@ -25,6 +25,9 @@ toggle.
 - **Waveforms:** ECG lead II, plethysmograph (pulse oximetry), and capnograph
   (CO₂), sweeping like a real monitor, plus an arterial trace when the patient
   has an arterial line. The rhythm is not labelled — read it from the trace.
+- **ST level:** under the heart rate, "ST II" shows the ST-segment level in
+  lead II in millimetres — negative is depression, positive is elevation. No
+  alarm sounds for it; watch the number and the trace.
 - **Numeric tiles:** HR, blood pressure, SpO₂, EtCO₂ (with respiratory rate),
   temperature, and end-tidal sevoflurane (SEV, with inspired fraction +
   depth). Small arrows

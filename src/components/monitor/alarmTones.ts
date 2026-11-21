@@ -3,11 +3,26 @@ import type { SimSnapshot } from '@/lib/engine/types';
 /**
  * Audible alarm patterns, by priority.
  *
- * A critical alarm sounds as a repeating ten-pulse burst (two groups of
- * three-then-two); a warning as a slower, lower three-pulse burst repeated
- * less often. That follows the general convention for medical alarm sounds —
- * faster, higher and more insistent as priority rises — but the pitches and
- * timings here are this project's own and make no claim to meet a standard.
+ * The bursts are timed to the tone-burst tables of IEC 60601-1-8 (2006, with
+ * Amendment 1:2012) — the "3 + 2, 3 + 2" ten-pulse high-priority burst and
+ * the three-pulse medium-priority burst — using the values reproduced in
+ * Texas Instruments application report SLOA273 (2019) and the x/y spacing
+ * values in the IEC Amendment 1 text:
+ *
+ *   high    pulse 75–200 ms; spacing x = 50–125 ms; between pulses 3–4 and
+ *           8–9: 2x + pulse; between pulses 5–6: 0.35–1.30 s; burst repeats
+ *           after 2.5–15 s
+ *   medium  pulse 125–250 ms; spacing y = 125–250 ms; burst repeats after
+ *           2.5–30 s; (pulse + y) must not be shorter than high's (pulse + x)
+ *   both    fundamental 150–1000 Hz with at least three further harmonics
+ *           below 4000 Hz, each within 15 dB of the fundamental; rise time
+ *           10–40% of the pulse
+ *
+ * The standard sets priority apart by rhythm and speed, not pitch (Edworthy,
+ * Forum Acusticum 2023), so the higher critical pitch here is this project's
+ * choice within the allowed range. Only the timing and spectrum are followed:
+ * sound level, the rest of the standard, and Amendment 2's auditory icons
+ * are not addressed, and this is a teaching simulator, not an alarm system.
  *
  * Framework-free: the patterns are data, and the browser layer
  * (MonitorAudio) only schedules them.
@@ -22,42 +37,70 @@ export interface TonePulse {
 }
 
 export interface AlarmPattern {
-  /** Pitch of every pulse in the burst, Hz. */
+  /** Fundamental of every pulse in the burst, Hz. */
   freq: number;
   /** Peak gain of each pulse (before the monitor's volume setting). */
   gain: number;
   pulses: TonePulse[];
-  /** Start of one burst to the start of the next, seconds. */
-  repeatSec: number;
+  /** Silence between the end of one burst and the start of the next, seconds. */
+  interburstSec: number;
 }
 
-/** Three pulses, a longer gap, two pulses. */
-function threeThenTwo(startSec: number, durSec: number, gapSec: number): TonePulse[] {
-  const step = durSec + gapSec;
-  return [0, step, 2 * step, 3 * step + gapSec, 4 * step + gapSec].map((at) => ({
-    atSec: startSec + at,
-    durSec,
-  }));
+/**
+ * Relative amplitude of the fundamental and its 2nd–4th harmonics. All are
+ * within 15 dB of the fundamental (the quietest is −12 dB).
+ */
+export const ALARM_HARMONICS: readonly number[] = [1, 0.5, 0.35, 0.25];
+
+/** Rise and fall of each pulse, as a fraction of its duration. */
+export const ALARM_EDGE_FRACTION = 0.15;
+
+/** High priority: five pulses as three-then-two, with spacing x. */
+function threeThenTwo(startSec: number, durSec: number, x: number): TonePulse[] {
+  const p1 = startSec;
+  const p2 = p1 + durSec + x;
+  const p3 = p2 + durSec + x;
+  const p4 = p3 + durSec + (2 * x + durSec); // the longer gap that makes the rhythm
+  const p5 = p4 + durSec + x;
+  return [p1, p2, p3, p4, p5].map((atSec) => ({ atSec, durSec }));
 }
+
+const HIGH_PULSE_SEC = 0.12;
+const HIGH_X_SEC = 0.08;
+/** Gap between the fifth and sixth pulses. */
+const HIGH_MID_GAP_SEC = 0.7;
+const highFirst = threeThenTwo(0, HIGH_PULSE_SEC, HIGH_X_SEC);
+const highSecondStart = highFirst[4].atSec + HIGH_PULSE_SEC + HIGH_MID_GAP_SEC;
+
+const MEDIUM_PULSE_SEC = 0.22;
+const MEDIUM_Y_SEC = 0.18;
 
 export const ALARM_PATTERNS: Record<AlarmTier, AlarmPattern> = {
   critical: {
-    freq: 1047,
+    freq: 988,
     gain: 0.2,
-    pulses: [...threeThenTwo(0, 0.12, 0.08), ...threeThenTwo(1.7, 0.12, 0.08)],
-    repeatSec: 5,
+    pulses: [...highFirst, ...threeThenTwo(highSecondStart, HIGH_PULSE_SEC, HIGH_X_SEC)],
+    interburstSec: 3,
   },
   warning: {
     freq: 523,
     gain: 0.16,
-    pulses: [0, 0.4, 0.8].map((atSec) => ({ atSec, durSec: 0.22 })),
-    repeatSec: 10,
+    pulses: [0, 1, 2].map((i) => ({
+      atSec: i * (MEDIUM_PULSE_SEC + MEDIUM_Y_SEC),
+      durSec: MEDIUM_PULSE_SEC,
+    })),
+    interburstSec: 9,
   },
 };
 
 /** Seconds from the start of a burst to the end of its last pulse. */
 export function burstLengthSec(pattern: AlarmPattern): number {
   return Math.max(...pattern.pulses.map((p) => p.atSec + p.durSec));
+}
+
+/** Start of one burst to the start of the next, seconds. */
+export function burstPeriodSec(pattern: AlarmPattern): number {
+  return burstLengthSec(pattern) + pattern.interburstSec;
 }
 
 /**

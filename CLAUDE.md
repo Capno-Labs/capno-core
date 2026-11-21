@@ -147,11 +147,15 @@ instead of guessing in either direction.
 - The monitor shows *measured* values, not always the snapshot's. The HR tile
   is `vitals.hr × clock.measuredRate()` (counted from the beats the shared
   `BeatClock` drew, so it can sit a beat off the slider and wanders in AF);
-  SpO₂ shows `--` in pulseless rhythms and NIBP `--/--` after a cuff cycle at
-  systolic 0 (`src/components/monitor/readouts.ts`); a capnogram breath can
+  SpO₂ shows `--` in pulseless rhythms and NIBP `--/--` after a cuff cycle
+  below 30 mmHg systolic (`src/components/monitor/readouts.ts`); a capnogram breath can
   peak up to 4% under the EtCO₂ number. All of it is display
   only — alarm levels, the log, history and the debrief use engine values.
   Don't "fix" these by pushing them into the engine or the snapshot.
+- The monitor's drawing and sound constants are sourced: each cites its
+  reference in a comment, `docs/curriculum.md` ("Clinical sources for the
+  monitor display") lists them, and tests assert the published ranges. Change
+  a constant only with a source, and update all three.
 
 ## Extending
 

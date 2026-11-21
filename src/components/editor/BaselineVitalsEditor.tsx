@@ -9,6 +9,7 @@ import {
   RHYTHM_LABELS,
 } from '@/lib/engine/types';
 import { MIN_PULSE_PRESSURE, VITAL_META, maxDbpFor } from '@/lib/engine/vitals';
+import { EcgMorphologyFields } from './EcgMorphologyFields';
 
 /**
  * Form editor for a scenario's starting vitals.
@@ -17,8 +18,9 @@ import { MIN_PULSE_PRESSURE, VITAL_META, maxDbpFor } from '@/lib/engine/vitals';
  * required — the patient always starts somewhere. Inputs hold local text
  * while focused so authors can clear-and-retype without values snapping;
  * blur restores the committed value if the field is left empty/invalid.
- * Optional display keys (capnoShape, pvcFrequency) follow the editor-wide
- * convention: choosing the default deletes the key from the document.
+ * Optional display keys (capnoShape, pvcFrequency, ecg) follow the
+ * editor-wide convention: choosing the default deletes the key from the
+ * document.
  */
 
 function VitalNumberField({
@@ -165,6 +167,16 @@ export function BaselineVitalsEditor({
               ))}
           </select>
         </div>
+        <EcgMorphologyFields
+          mode="baseline"
+          value={vitals.ecg}
+          onChange={(ecg) => {
+            const next = { ...vitals };
+            if (ecg) next.ecg = ecg;
+            else delete next.ecg;
+            onChange(next);
+          }}
+        />
       </div>
     </div>
   );

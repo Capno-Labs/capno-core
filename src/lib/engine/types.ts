@@ -76,6 +76,84 @@ export const PVC_FREQUENCY_EVERY_N: Record<PvcFrequency, number> = {
   bigeminy: 2,
 };
 
+/**
+ * ECG morphology — how each complex is drawn, independent of the rhythm.
+ * Applies to beats with a normal conduction pattern (the sinus rhythms, AF,
+ * SVT, PACs and the normal beats between PVCs); wide ectopic complexes, VT,
+ * VF, PEA and asystole are drawn as before.
+ *
+ * Display-only: none of it changes HR, pressures or alarms. Every field is
+ * optional; absent = normal.
+ */
+export type TWave = 'normal' | 'peaked' | 'flat' | 'inverted';
+export type QrsWidth = 'normal' | 'wide';
+export type QtInterval = 'normal' | 'long';
+
+export interface EcgMorphology {
+  /**
+   * ST-segment deviation in lead II, in millimetres at standard gain
+   * (1 mm = 0.1 mV): negative = depression, positive = elevation. −5 to +5.
+   * The one field that ramps — it follows the effect's `overSec`.
+   */
+  stMm?: number;
+  tWave?: TWave;
+  qrs?: QrsWidth;
+  qt?: QtInterval;
+}
+
+export const ST_MM_MIN = -5;
+export const ST_MM_MAX = 5;
+
+export const T_WAVE_LABELS: Record<TWave, string> = {
+  normal: 'Normal',
+  peaked: 'Peaked',
+  flat: 'Flattened',
+  inverted: 'Inverted',
+};
+
+export const QRS_WIDTH_LABELS: Record<QrsWidth, string> = {
+  normal: 'Narrow',
+  wide: 'Wide',
+};
+
+export const QT_INTERVAL_LABELS: Record<QtInterval, string> = {
+  normal: 'Normal',
+  long: 'Prolonged',
+};
+
+const MORPHOLOGY_RHYTHMS: ReadonlySet<Rhythm> = new Set([
+  'sinus',
+  'sinus_brady',
+  'sinus_tach',
+  'pvc',
+  'pac',
+  'afib',
+  'svt',
+]);
+
+/**
+ * Whether the rhythm has normal-pattern complexes that ECG morphology
+ * reshapes and an ST level can be read from — not VT, VF, PEA or asystole.
+ */
+export function ecgMorphologyApplies(rhythm: Rhythm): boolean {
+  return MORPHOLOGY_RHYTHMS.has(rhythm);
+}
+
+/** Every field at its default — a normal complex. */
+export const NORMAL_ECG: Required<EcgMorphology> = {
+  stMm: 0,
+  tWave: 'normal',
+  qrs: 'normal',
+  qt: 'normal',
+};
+
+/** "−2.0", "+1.5", "0.0" — signed, one decimal, as monitors print ST. */
+export function formatStMm(stMm: number): string {
+  const rounded = Math.round(stMm * 10) / 10;
+  if (rounded === 0) return '0.0';
+  return `${rounded > 0 ? '+' : '−'}${Math.abs(rounded).toFixed(1)}`;
+}
+
 /** Numeric (continuously interpolated) vital signs. */
 export interface NumericVitals {
   /** Heart rate, beats/min */
@@ -122,6 +200,8 @@ export interface Vitals extends NumericVitals {
   capnoShape?: CapnoShape;
   /** PVC coupling rate; only meaningful while rhythm is 'pvc'. Absent = 'occasional'. */
   pvcFrequency?: PvcFrequency;
+  /** ECG complex morphology (ST, T wave, QRS width, QT). Absent = normal. */
+  ecg?: EcgMorphology;
 }
 
 /** Mean arterial pressure derived from SBP/DBP. */
@@ -198,7 +278,8 @@ export interface Phase {
 
 /**
  * A change applied to the patient's vitals. Numeric vitals ramp linearly to
- * `vitals` over `overSec` seconds (0 = instant). Rhythm changes are immediate.
+ * `vitals` over `overSec` seconds (0 = instant), and so does the ST level in
+ * `ecg`. Rhythm, capnogram shape and the other ECG changes are immediate.
  */
 export interface VitalEffect {
   vitals?: Partial<NumericVitals>;
@@ -207,6 +288,9 @@ export interface VitalEffect {
   capnoShape?: CapnoShape;
   /** PVC coupling-rate change. Like rhythm, applied immediately. */
   pvcFrequency?: PvcFrequency;
+  /** ECG morphology change: only the fields listed change. `stMm` ramps over
+   *  `overSec`; T wave, QRS width and QT apply immediately. */
+  ecg?: EcgMorphology;
   /** Seconds over which numeric targets are reached. Default 0 (instant). */
   overSec?: number;
   /** Seconds to wait after the trigger before this effect begins. Default 0. */

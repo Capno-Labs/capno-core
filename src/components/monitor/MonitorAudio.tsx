@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SimSnapshot } from '@/lib/engine/types';
 import { migrateLegacyKey } from '@/lib/legacyStorage';
-import { ALARM_PATTERNS, alarmTier, type AlarmTier } from './alarmTones';
+import {
+  ALARM_EDGE_FRACTION,
+  ALARM_HARMONICS,
+  ALARM_PATTERNS,
+  alarmTier,
+  burstPeriodSec,
+  type AlarmTier,
+} from './alarmTones';
 import type { BeatClock } from './beatClock';
 import { getMonitorAudioContext, unlockMonitorAudio } from './monitorAudioContext';
 import {
@@ -25,7 +32,8 @@ import { isPulseless, R_OFFSET_MS } from './waveforms';
  *    wave being drawn (and an irregular rhythm sounds irregular).
  *  - Alarm tones: a repeating burst while an alarm is active and faculty has
  *    not silenced alarms — ten quick high pulses for critical, three slower
- *    low ones for a warning (see alarmTones.ts).
+ *    low ones for a warning, timed to the IEC 60601-1-8 burst tables (see
+ *    alarmTones.ts).
  *
  * Browsers only start audio from a user gesture. The shared context
  * (monitorAudioContext.ts) is unlocked by the student's Join click or any
@@ -94,20 +102,30 @@ export function MonitorAudio({
     master.gain.value = soundGain(level);
     master.connect(ctx.destination);
 
+    // Alarm timbre: the fundamental plus three harmonics, as the alarm
+    // standard asks, rather than a bare sine.
+    const alarmWave = ctx.createPeriodicWave(
+      new Float32Array(ALARM_HARMONICS.length + 1),
+      new Float32Array([0, ...ALARM_HARMONICS]),
+    );
+
     const tone = (
-      type: OscillatorType,
+      wave: 'sine' | PeriodicWave,
       freq: number,
       durSec: number,
       gainValue: number,
       at: number,
+      riseSec = 0.005,
+      fallSec = 0.02,
     ): OscillatorNode => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = type;
+      if (wave === 'sine') osc.type = 'sine';
+      else osc.setPeriodicWave(wave);
       osc.frequency.value = freq;
       gain.gain.setValueAtTime(0, at);
-      gain.gain.linearRampToValueAtTime(gainValue, at + 0.005);
-      gain.gain.setValueAtTime(gainValue, at + durSec - 0.02);
+      gain.gain.linearRampToValueAtTime(gainValue, at + riseSec);
+      gain.gain.setValueAtTime(gainValue, at + durSec - fallSec);
       gain.gain.linearRampToValueAtTime(0, at + durSec);
       osc.connect(gain).connect(master);
       osc.start(at);
@@ -158,10 +176,11 @@ export function MonitorAudio({
       }
       if (!tier || now < nextBurstAt) return;
       const pattern = ALARM_PATTERNS[tier];
-      pending = pattern.pulses.map((p) =>
-        tone('triangle', pattern.freq, p.durSec, pattern.gain, now + p.atSec),
-      );
-      nextBurstAt = now + pattern.repeatSec;
+      pending = pattern.pulses.map((p) => {
+        const edge = p.durSec * ALARM_EDGE_FRACTION;
+        return tone(alarmWave, pattern.freq, p.durSec, pattern.gain, now + p.atSec, edge, edge);
+      });
+      nextBurstAt = now + burstPeriodSec(pattern);
     }, ALARM_POLL_MS);
 
     return () => {

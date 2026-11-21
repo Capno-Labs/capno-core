@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { SimSnapshot } from '@/lib/engine/types';
-import { map, PVC_FREQUENCY_EVERY_N, RHYTHM_LABELS } from '@/lib/engine/types';
+import { formatStMm, map, PVC_FREQUENCY_EVERY_N, RHYTHM_LABELS } from '@/lib/engine/types';
 import { AlarmBanner } from './AlarmBanner';
 import { BeatClock } from './beatClock';
 import { MonitorAudio, useSoundLevel } from './MonitorAudio';
@@ -10,7 +10,7 @@ import { unlockMonitorAudio, useMonitorAudioRunning } from './monitorAudioContex
 import { nextSoundLevel, type SoundLevel, type SoundRole } from './soundPref';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
-import { cuffReadingFailed, displayAlarms, NO_READING, oximeterHasSignal } from './readouts';
+import { cuffReadingFailed, displayAlarms, NO_READING, oximeterHasSignal, stIsMeasurable } from './readouts';
 
 interface MonitorDisplayProps {
   snapshot: SimSnapshot;
@@ -87,6 +87,10 @@ export function MonitorDisplay({
   // wanders by a beat or so in sinus rhythm and more in AF. Display only:
   // alarms and the trend arrow still follow the instructor's value.
   const shownHr = Math.round(v.hr * clock.measuredRate());
+
+  // ST-segment level, as a monitor's ST analysis prints it under the heart
+  // rate — only while there are complexes it could measure one on.
+  const stSub = stIsMeasurable(v.rhythm) ? `ST II ${formatStMm(v.ecg?.stMm ?? 0)}` : `ST II ${NO_READING}`;
 
   // With no pulse there is nothing for the oximeter to read: the tile shows
   // dashes rather than whatever saturation the scenario holds underneath.
@@ -178,9 +182,9 @@ export function MonitorDisplay({
                 <span className="text-xs font-mono text-vital-ecg/80">{RHYTHM_LABELS[v.rhythm]}</span>
               )}
             </div>
-            <Waveform kind="ecg" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="ecg" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} ecg={v.ecg} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="HR" value={String(shownHr)} unit="bpm" color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
+          <VitalTile label="HR" value={String(shownHr)} unit="bpm" sub={stSub} color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>
         {art && (
           <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
