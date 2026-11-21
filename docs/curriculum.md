@@ -304,6 +304,28 @@ leaves a range fails the build. Where no source was found, that is said.
 | Disconnection: no pressure, no tidal volume, no capnogram | Russell et al., *Anaesth Intensive Care* 1993;21:617 (the low-pressure alarm caught 37% of disconnections); Peng, Paulus & Gravenstein in *Capnography*, Cambridge University Press 2011 (capnography is the best monitor of a complete disconnection). The sim does not link these: set each |
 | Oxygen supply failure: inspired oxygen falls, the low-oxygen alarm sounds, saturation follows | Mudumbai et al., *Anesth Analg* 2010;110:1292; Bohringer et al., AHRQ PSNet WebM&M 2024 |
 
+**Twitch monitor (train-of-four)**
+
+| What the monitor does | Source |
+| --- | --- |
+| Depth of block named on the controller: complete (post-tetanic count 0), deep (post-tetanic count ≥ 1, no train-of-four response), moderate (count 1–3), shallow (ratio < 0.4), minimal (0.4 to < 0.9), acceptable recovery (≥ 0.9) | Thilen et al., 2023 ASA Practice Guidelines for Monitoring and Antagonism of Neuromuscular Blockade, *Anesthesiology* 2023;138:13–41 (PMID 36520073), depth-of-block table; the same scheme in Fuchs-Buder et al., *Acta Anaesthesiol Scand* 2023;67:994–1017 (PMID 37345870), Table 10. The ESAIC guideline (Fuchs-Buder et al., *Eur J Anaesthesiol* 2023;40:82) writes deep as post-tetanic count > 1 |
+| Recovery threshold 90% | ASA 2023, recommendation 3: confirm a train-of-four ratio ≥ 0.9 before extubation |
+| Measures every 15 s | Organon TOF-Watch SX Operator Manual 33.512/A (15-second cycles); an option on the IDMED TOFscan (User Manual v1.8). Trains at least 12 s apart: Fuchs-Buder 2023, Table 3. A Blink TwitchView repeats every 20 s; a Philips IntelliVue NMT offers 12 s to 60 min (default 30 s, manual mode) |
+| Four stimuli 0.5 s apart (the bars appear at that spacing) | ASA 2023: four pulses at 2 Hz; Fuchs-Buder 2023, Table 3 |
+| Ratio shown only with four twitches; the count alone with fewer | Philips IntelliVue MX750/MX850 Instructions for Use (453564861711), NMT chapter: with fewer than four twitches the monitor shows the count instead. TOF-Watch SX manual: only the number of responses is displayed. GE NMT quick guide (JB16515XX): TOF% not calculated below four responses |
+| Post-tetanic count shown when the count is 0, up to 15 | Blink TwitchView user guide (post-tetanic count 0–15, taken automatically when the count is 0); TOF-Watch SX counts 15 single twitches. A Philips counts to 20, a TOFscan to 10 |
+| Ratio capped at 100% | A raw acceleromyograph often reads above 1.0 at baseline (1.1–1.15) and should be normalised (ASA 2023; Suzuki et al., *Br J Anaesth* 2006;96:44; Claudius et al., *Anesthesiology* 2009;110:1261). The sim shows a normalised reading, as a TOFscan does (capped at 100%) |
+| Twitches disappear fourth first, then third, second, first; fade shows as a slope in the bars | ASA 2023; Lee, *Anesth Analg* 1975;54:649 (PMID 1237253); GE NMT quick guide |
+| Reversal hints in the faculty guide: sugammadex 2 mg/kg at return of the second twitch, 4 mg/kg at post-tetanic count 1–2, 16 mg/kg about 3 min after rocuronium 1.2 mg/kg; neostigmine at minimal block | Bridion prescribing information (Merck, section 2.2); ASA 2023, recommendations 6–7 |
+
+Simplifications, none sourced: the bars slope evenly from the first twitch to
+the fourth (no source gives the second and third twitches as a function of the
+ratio) and are drawn relative to the first twitch — the sim holds no
+pre-relaxant reference, so it cannot show a depolarising block, where all four
+fall together. The post-tetanic count is taken at every measurement; a real
+monitor leaves at least 2 minutes between them (Fuchs-Buder 2023). The block
+is a reading, not a drug model.
+
 **Alarm sounds**
 
 | What the monitor does | Source |

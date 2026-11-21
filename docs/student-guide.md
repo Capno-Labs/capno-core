@@ -38,7 +38,12 @@ toggle.
   temperature, and end-tidal volatile agent (SEV, ISO or DES, with inspired
   fraction, MAC and depth). When the anesthesia machine is connected there
   are three more: airway pressure (peak, with plateau and PEEP), tidal volume
-  (with minute volume) and inspired oxygen. Small arrows
+  (with minute volume) and inspired oxygen. When a twitch monitor is
+  attached there is a **TOF** tile: the train-of-four ratio as a percentage
+  when all four twitches are present, the count (for example 2/4) when fewer
+  are, and the post-tetanic count (PTC) when there are none. Its four bars
+  are the twitches of the last train; it re-measures every 15 seconds, so it
+  shows the last measurement, not a live value. Small arrows
   show whether a value is trending up or down.
 - **Elapsed clock:** scenario time since start. A **paused** badge means the
   instructor has frozen the scenario.

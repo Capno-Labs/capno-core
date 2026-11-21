@@ -228,6 +228,37 @@ so move the vitals that go with it. A guide to which numbers to move:
 The machine alarms on airway pressure above 40 or below 8 cmH₂O, minute
 volume under 3 or over 12 L/min, and inspired oxygen under 20%.
 
+**Twitch monitor.** Press **Attach twitch monitor** to add a TOF tile to every
+display; a scenario can also start with one. You set the block — the
+train-of-four **Count** (0–4), the **Ratio** when the count is 4, and the
+post-tetanic count (**PTC**) when it is 0 — and the tile shows it the next
+time the monitor stimulates, every 15 seconds, or at once with **Stimulate
+now**. Like the cuff, it shows the last measurement, so a relaxant or a
+reversal does not register the instant you set it. The selected ramp applies:
+set Count 0 → 4 over 10 s and the tile steps through 1, 2 and 3 on the way.
+Taking the count under 4 resets the ratio to 0, so set the ratio after the
+fourth twitch returns. The tile shows the ratio as a percentage with four
+twitches and the count alone with fewer; four bars show the twitches of the
+last train, sloping when there is fade. The controller names the depth of
+block beside the last reading (learners do not see this):
+
+| Reading | Depth (ASA 2023) |
+|---|---|
+| Count 0, PTC 0 | Complete |
+| Count 0, PTC 1 or more | Deep |
+| Count 1–3 | Moderate |
+| Count 4, ratio under 40% | Shallow |
+| Ratio 40% to under 90% | Minimal |
+| Ratio 90% or more | Acceptable recovery — the threshold to confirm before extubation |
+
+For reversal, the sugammadex label gives 2 mg/kg once the second twitch has
+returned, 4 mg/kg at a post-tetanic count of 1–2 with no twitches, and
+16 mg/kg about 3 minutes after rocuronium 1.2 mg/kg; the ASA suggests
+neostigmine as an alternative only at minimal block. The sim does not model
+either drug: fire or set the reading the reversal produces. The bars are drawn
+relative to the first twitch, so a depolarising block — four equal, smaller
+twitches — cannot be shown. There are no alarms on the twitch monitor.
+
 **Agent** buttons (SEV, ISO, DES) say which volatile the end-tidal number
 refers to. The agent tile shows it as a multiple of the patient's MAC,
 adjusted for age: the same concentration is more MAC in an older patient.

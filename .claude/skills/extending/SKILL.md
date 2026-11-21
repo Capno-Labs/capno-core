@@ -44,6 +44,19 @@ generator's `SCHEMA_REFERENCE` and `docs/scenario.schema.md`. The controller
 and editor fields are generated from `VENT_KEYS`. An alarm on it goes in
 `evaluateAlarms` with a limit from a cited machine manual.
 
+## Touch the twitch monitor
+
+The neuromuscular block is the optional `nmb` block (`NeuromuscularBlock`,
+`NMB_KEYS`, `NMB_META` in `src/lib/engine/types.ts`), mirrored by `nmbSchema`.
+The engine keeps the true block and, separately, what the monitor last
+measured (`snapshot.tof`, refreshed every `TOF_INTERVAL_SEC` or by
+`measureTof()`), the way it keeps true pressure and the last cuff reading.
+The tile (`TofTile`) draws only from `snapshot.tof`; bar heights come from
+`twitchHeights` in `readouts.ts`. The depth names (`blockDepth`) follow the
+ASA table and are faculty-only. A new field moves with: those three, the zod
+schema, `tofReading`, the tile, the controller block, `NmbFields`, the
+generator's `SCHEMA_REFERENCE` and `docs/scenario.schema.md`.
+
 ## Add a rhythm
 
 Extend together: the `Rhythm` union + `RHYTHM_LABELS`

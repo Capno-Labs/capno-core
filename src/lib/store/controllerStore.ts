@@ -11,6 +11,7 @@ import type {
   CapnoShape,
   NumericVitals,
   EcgMorphology,
+  NeuromuscularBlock,
   PvcFrequency,
   Rhythm,
   Scenario,
@@ -63,6 +64,12 @@ interface ControllerState {
   /** Show or hide the machine tiles on the monitor. */
   setVentShown: (on: boolean) => void;
   setAgent: (agent: AnestheticAgent) => void;
+  /** Set the neuromuscular block; each field ramps over `overSec`. */
+  setNmb: (patch: Partial<NeuromuscularBlock>, overSec?: number) => void;
+  /** Attach or remove the twitch monitor. */
+  setTofAttached: (on: boolean) => void;
+  /** Have the twitch monitor stimulate now. */
+  measureTof: () => void;
   /** Set the inspired CO2 (rebreathing), ramping over `overSec`. */
   setFico2: (target: number, overSec?: number) => void;
   /** Take the pulse away (PEA, pulseless VT) or give it back. */
@@ -206,6 +213,9 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setVent: (patch, overSec = 0) => withEngine((e) => e.setVent(patch, overSec)),
     setVentShown: (on) => withEngine((e) => e.setVentShown(on)),
     setAgent: (agent) => withEngine((e) => e.setAgent(agent)),
+    setNmb: (patch, overSec = 0) => withEngine((e) => e.setNmb(patch, overSec)),
+    setTofAttached: (on) => withEngine((e) => e.setTofAttached(on)),
+    measureTof: () => withEngine((e) => e.measureTof()),
     // Firing an event or marking an action is live-session work: if the
     // session hasn't started (or is paused), the tap also starts/resumes it —
     // faculty shouldn't need a separate Start press to react to the room.

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { generateSessionId, isValidSessionCode, SimulationEngine } from './engine';
 import { parseScenario } from './schema';
-import { ageAdjustedMac, clampVital, defaultVentilation, MAC_AT_40, predictedBodyWeightKg } from './vitals';
+import {
+  ageAdjustedMac,
+  blockDepth,
+  clampVital,
+  defaultVentilation,
+  MAC_AT_40,
+  predictedBodyWeightKg,
+  TOF_INTERVAL_SEC,
+} from './vitals';
+import { PTC_MAX } from './types';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 import type { NumericVitals, Scenario, ScenarioEvent, Ventilation } from './types';
 
@@ -672,6 +681,154 @@ describe('SimulationEngine', () => {
       e.start();
       e.setVent({ vt: 380 }, 10);
       e.tick(3);
+      const snap = e.snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
+  });
+
+  describe('twitch monitor: train-of-four', () => {
+    const withNmb = (nmb: Scenario['baselineVitals']['nmb'] = {}): Scenario => ({
+      ...scenario(),
+      baselineVitals: { ...scenario().baselineVitals, nmb },
+    });
+    const attached = (nmb?: Scenario['baselineVitals']['nmb']) => {
+      const e = new SimulationEngine(withNmb(nmb), 'TEST');
+      e.start();
+      return e;
+    };
+
+    it('has no twitch monitor unless the scenario or the instructor attaches one', () => {
+      const e = newEngine();
+      expect(e.getTofAttached()).toBe(false);
+      expect('tof' in e.snapshot()).toBe(false);
+      expect('nmb' in e.getVitals()).toBe(false);
+      e.start();
+      e.setTofAttached(true);
+      // Attaching measures at once: an unblocked patient, four equal twitches.
+      expect(e.snapshot().tof).toEqual({ count: 4, ratio: 100, ptc: null, atSec: 0 });
+      expect(e.getVitals().nmb).toEqual({ tofCount: 4, tofRatio: 100, ptc: 0 });
+      e.setTofAttached(false);
+      expect('tof' in e.snapshot()).toBe(false);
+    });
+
+    it('starts from the block the scenario states', () => {
+      expect(attached({ tofCount: 2 }).snapshot().tof).toMatchObject({ count: 2, ratio: null, ptc: null });
+      expect(attached({ tofCount: 0, ptc: 3 }).snapshot().tof).toMatchObject({ count: 0, ratio: null, ptc: 3 });
+      expect(attached({ tofRatio: 60 }).snapshot().tof).toMatchObject({ count: 4, ratio: 60, ptc: null });
+    });
+
+    it('shows a change only when the monitor next stimulates, like the cuff', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 0, ptc: 2 });
+      expect(e.getVitals().nmb).toMatchObject({ tofCount: 0, ptc: 2 });
+      expect(e.snapshot().tof).toMatchObject({ count: 4, ratio: 100 });
+      e.tick(TOF_INTERVAL_SEC - 1);
+      expect(e.snapshot().tof).toMatchObject({ count: 4 });
+      e.tick(1);
+      expect(e.snapshot().tof).toEqual({ count: 0, ratio: null, ptc: 2, atSec: TOF_INTERVAL_SEC });
+    });
+
+    it('stimulates on request without waiting for the interval', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 1 });
+      e.tick(2);
+      e.measureTof();
+      expect(e.snapshot().tof).toEqual({ count: 1, ratio: null, ptc: null, atSec: 2 });
+    });
+
+    it('measures no more often than trains may be repeated', () => {
+      // At least 12 s between trains (Fuchs-Buder 2023, Table 3).
+      expect(TOF_INTERVAL_SEC).toBeGreaterThanOrEqual(12);
+    });
+
+    it('ramps the count and the ratio over time', () => {
+      const e = attached({ tofCount: 0 });
+      e.setNmb({ tofCount: 4 }, 80);
+      const counts: number[] = [];
+      for (let i = 0; i < 4; i++) {
+        e.tick(20);
+        e.measureTof();
+        counts.push(e.snapshot().tof!.count);
+      }
+      expect(counts).toEqual([1, 2, 3, 4]);
+      e.setNmb({ tofRatio: 90 }, 90);
+      e.tick(45);
+      e.measureTof();
+      expect(e.snapshot().tof!.ratio).toBe(45);
+      e.tick(45);
+      e.measureTof();
+      expect(e.snapshot().tof!.ratio).toBe(90);
+    });
+
+    it('takes the ratio to zero when the fourth twitch goes, so it climbs from there on recovery', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 2 });
+      expect(e.getNmbTarget('tofRatio')).toBe(0);
+      e.setNmb({ tofCount: 4 });
+      e.measureTof();
+      expect(e.snapshot().tof).toMatchObject({ count: 4, ratio: 0 });
+      // Only the count was a decision: the ratio following it is not logged.
+      expect(e.getFullLog().filter((l) => l.label.startsWith('TOF ratio'))).toEqual([]);
+    });
+
+    it('clamps to four twitches, 100% and the highest post-tetanic count', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 9, tofRatio: 140 });
+      expect(e.getVitals().nmb).toMatchObject({ tofCount: 4, tofRatio: 100 });
+      e.setNmb({ tofCount: -1, ptc: 99 });
+      expect(e.getVitals().nmb).toMatchObject({ tofCount: 0, ptc: PTC_MAX });
+    });
+
+    it('applies event effects and resets to the baseline block', () => {
+      const s = withNmb({ tofCount: 2 });
+      const ev: ScenarioEvent = {
+        id: 'reversal',
+        label: 'Reversal given',
+        description: '',
+        category: 'drug',
+        effects: [{ nmb: { tofCount: 4, tofRatio: 95 } }],
+      };
+      const e = new SimulationEngine({ ...s, events: [...s.events, ev] }, 'TEST');
+      e.start();
+      e.triggerEvent('reversal');
+      e.measureTof();
+      expect(e.snapshot().tof).toMatchObject({ count: 4, ratio: 95 });
+      e.reset();
+      expect(e.snapshot().tof).toEqual({ count: 2, ratio: null, ptc: null, atSec: 0 });
+    });
+
+    it('logs a measurement only when the reading changes', () => {
+      const e = attached();
+      const readings = () => e.getFullLog().filter((l) => l.detail === 'twitch monitor').map((l) => l.label);
+      e.tick(TOF_INTERVAL_SEC * 4);
+      expect(readings()).toEqual([]);
+      e.setNmb({ tofCount: 0, ptc: 1 });
+      e.tick(TOF_INTERVAL_SEC * 3);
+      expect(readings()).toEqual(['TOF count 0, PTC 1']);
+      e.setNmb({ tofCount: 3 });
+      e.tick(TOF_INTERVAL_SEC);
+      e.setNmb({ tofCount: 4, tofRatio: 70 });
+      e.tick(TOF_INTERVAL_SEC);
+      expect(readings()).toEqual(['TOF count 0, PTC 1', 'TOF count 3', 'TOF 70%']);
+    });
+
+    it('grades depth of block by the ASA scheme', () => {
+      const depth = (count: number, ratio: number | null, ptc: number | null) => blockDepth({ count, ratio, ptc });
+      expect(depth(0, null, 0)).toBe('complete');
+      expect(depth(0, null, 1)).toBe('deep');
+      expect(depth(1, null, null)).toBe('moderate');
+      expect(depth(3, null, null)).toBe('moderate');
+      expect(depth(4, 39, null)).toBe('shallow');
+      expect(depth(4, 40, null)).toBe('minimal');
+      expect(depth(4, 89, null)).toBe('minimal');
+      expect(depth(4, 90, null)).toBe('recovered');
+      expect(depth(4, 100, null)).toBe('recovered');
+    });
+
+    it('keeps the snapshot serializable with the twitch monitor attached', () => {
+      const e = attached({ tofCount: 0, ptc: 4 });
+      e.setNmb({ tofCount: 4, tofRatio: 80 }, 60);
+      e.tick(20);
       const snap = e.snapshot();
       expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
     });

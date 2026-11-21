@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { Scenario } from './types';
-import type { VentKey } from './types';
-import { FICO2_MAX, ST_MM_MAX, ST_MM_MIN, VENT_META } from './types';
+import type { NmbKey, VentKey } from './types';
+import { FICO2_MAX, NMB_META, ST_MM_MAX, ST_MM_MIN, VENT_META } from './types';
 import { MIN_PULSE_PRESSURE, maxDbpFor } from './vitals';
 
 /**
@@ -57,6 +57,16 @@ const ventSchema = z
   .partial()
   .strict();
 
+const nmbRange = (key: NmbKey) => z.number().min(NMB_META[key].min).max(NMB_META[key].max);
+const nmbSchema = z
+  .object({
+    tofCount: nmbRange('tofCount').int(),
+    tofRatio: nmbRange('tofRatio'),
+    ptc: nmbRange('ptc').int(),
+  })
+  .partial()
+  .strict();
+
 const agentSchema = z.enum(['sevoflurane', 'isoflurane', 'desflurane']);
 
 const pvcFrequencySchema = z.enum(['rare', 'occasional', 'trigeminy', 'bigeminy']);
@@ -105,6 +115,7 @@ const vitalsSchema = numericVitalsPartial
     pulseless: z.boolean().optional(),
     vent: ventSchema.optional(),
     agent: agentSchema.optional(),
+    nmb: nmbSchema.optional(),
   })
   .refine(pulsePressureOk, { message: PULSE_PRESSURE_MSG, path: ['dbp'] });
 
@@ -124,6 +135,7 @@ export const vitalEffectSchema = z.object({
   pulseless: z.boolean().optional(),
   vent: ventSchema.optional(),
   agent: agentSchema.optional(),
+  nmb: nmbSchema.optional(),
   overSec: z.number().min(0).optional(),
   afterSec: z.number().min(0).optional(),
 });

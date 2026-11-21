@@ -18,6 +18,7 @@ import {
   CAPNO_SHAPE_LABELS,
   ecgMorphologyApplies,
   FICO2_MAX,
+  NMB_META,
   rhythmPerfuses,
   formatStMm,
   NORMAL_ECG,
@@ -32,7 +33,7 @@ import {
   VENT_KEYS,
   VENT_META,
 } from '@/lib/engine/types';
-import { VITAL_META, clampVital, roundVital } from '@/lib/engine/vitals';
+import { VITAL_META, blockDepth, BLOCK_DEPTH_LABELS, clampVital, roundVital } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 // 'depth' is intentionally omitted: it drives no alarms, waveforms, or
@@ -231,6 +232,9 @@ export function VitalControls() {
   const setVent = useControllerStore((s) => s.setVent);
   const setVentShown = useControllerStore((s) => s.setVentShown);
   const setAgent = useControllerStore((s) => s.setAgent);
+  const setNmb = useControllerStore((s) => s.setNmb);
+  const setTofAttached = useControllerStore((s) => s.setTofAttached);
+  const measureTof = useControllerStore((s) => s.measureTof);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
   const setV5Lead = useControllerStore((s) => s.setV5Lead);
@@ -282,6 +286,8 @@ export function VitalControls() {
   const fico2Target = engine.getFico2Target();
   const machineShown = engine.getVentShown();
   const agent = snapshot.gas?.agent ?? 'sevoflurane';
+  const tof = snapshot.tof;
+  const tofCountTarget = engine.getNmbTarget('tofCount');
   const ecgChip = (active: boolean) =>
     `rounded-ctl px-2 py-1 text-xs font-semibold ${
       active ? 'bg-vital-ecg/20 text-vital-ecg ring-1 ring-vital-ecg' : 'bg-panel-2 text-muted hover:bg-panel-3'
@@ -413,6 +419,85 @@ export function VitalControls() {
               </span>
             )}
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
+            <span className="text-xs text-muted">
+              {tof ? (
+                <>
+                  <span className="font-semibold text-ink-2">Twitch monitor last read</span>{' '}
+                  <span className="font-mono text-ink">
+                    {tof.ratio !== null
+                      ? `${tof.ratio}%`
+                      : tof.ptc !== null
+                        ? `count 0, PTC ${tof.ptc}`
+                        : `count ${tof.count}`}
+                  </span>{' '}
+                  ({BLOCK_DEPTH_LABELS[blockDepth(tof)]}) at {Math.floor(tof.atSec / 60)}:
+                  {String(tof.atSec % 60).padStart(2, '0')} — you set the block; the monitor shows it
+                  when it next stimulates.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-ink-2">No twitch monitor</span> — add a
+                  train-of-four tile to the monitor.
+                </>
+              )}
+            </span>
+            <span className="flex shrink-0 gap-1.5">
+              {tof && (
+                <button className="btn-secondary btn-sm" onClick={measureTof}>
+                  Stimulate now
+                </button>
+              )}
+              <button
+                className="btn-secondary btn-sm"
+                onClick={() => setTofAttached(!tof)}
+                title="Attach or remove the twitch monitor on every display"
+              >
+                {tof ? 'Remove twitch monitor' : 'Attach twitch monitor'}
+              </button>
+            </span>
+          </div>
+          {tof && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+              <NumberStepper
+                label="Count"
+                unit={NMB_META.tofCount.unit}
+                min={NMB_META.tofCount.min}
+                max={NMB_META.tofCount.max}
+                step={NMB_META.tofCount.step}
+                value={tofCountTarget}
+                onCommit={(value) => setNmb({ tofCount: Math.round(value) }, overSec)}
+              />
+              {/* The ratio compares the fourth twitch with the first, and the
+                  post-tetanic count is taken when there are none: each control
+                  appears only where its reading exists. */}
+              {tofCountTarget === 4 && (
+                <NumberStepper
+                  label="Ratio"
+                  unit={NMB_META.tofRatio.unit}
+                  min={NMB_META.tofRatio.min}
+                  max={NMB_META.tofRatio.max}
+                  step={NMB_META.tofRatio.step}
+                  value={engine.getNmbTarget('tofRatio')}
+                  onCommit={(value) => setNmb({ tofRatio: value }, overSec)}
+                />
+              )}
+              {tofCountTarget === 0 && (
+                <NumberStepper
+                  label="PTC"
+                  unit={NMB_META.ptc.unit}
+                  min={NMB_META.ptc.min}
+                  max={NMB_META.ptc.max}
+                  step={NMB_META.ptc.step}
+                  value={engine.getNmbTarget('ptc')}
+                  onCommit={(value) => setNmb({ ptc: Math.round(value) }, overSec)}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">

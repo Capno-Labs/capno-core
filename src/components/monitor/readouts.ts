@@ -1,4 +1,4 @@
-import type { AlarmState, NibpReading, Rhythm, Vitals } from '@/lib/engine/types';
+import type { AlarmState, NibpReading, Rhythm, TofReading, Vitals } from '@/lib/engine/types';
 import { ecgMorphologyApplies, hasPulse } from '@/lib/engine/types';
 
 /**
@@ -53,4 +53,35 @@ export function displayAlarms(
     if (a.vital === 'sbp' && cuffFailed) return { ...a, message: 'NIBP NO READING' };
     return a;
   });
+}
+
+/** Milliseconds between the four stimuli of a train: 2 Hz (Thilen et al.,
+ *  Anesthesiology 2023;138:13 — "four brief electrical pulses … at the rate
+ *  of 2 Hz"). The tile's bars appear at this spacing after each measurement. */
+export const TOF_PULSE_INTERVAL_MS = 500;
+
+/**
+ * Heights of the four twitch bars, 0–1, relative to the first twitch of the
+ * same train — the sim holds no pre-relaxant reference, so it cannot draw the
+ * first twitch itself as depressed (and so cannot show a depolarising block,
+ * where all four fall together).
+ *
+ * Fade runs down the train: "the progressive disappearance of the fourth,
+ * then the third, then the second, and finally the first twitch" (Thilen
+ * 2023), which a monitor shows as "a slope in the bar graph" (GE HealthCare,
+ * NMT quick guide JB16515XX). No source gives the second and third twitches
+ * as a function of the ratio, so the even slope is a drawing choice: with
+ * four twitches it runs from the first down to the ratio; with fewer, from
+ * the first down to nothing at the first absent twitch — which is also where
+ * four twitches at a ratio of 0 would sit, so nothing jumps as the fourth
+ * returns.
+ */
+export function twitchHeights(reading: Pick<TofReading, 'count' | 'ratio'>): [number, number, number, number] {
+  const heights: [number, number, number, number] = [0, 0, 0, 0];
+  const count = Math.min(4, Math.max(0, Math.round(reading.count)));
+  if (count === 0) return heights;
+  const last = count === 4 ? Math.min(1, Math.max(0, (reading.ratio ?? 100) / 100)) : 0;
+  const span = count === 4 ? 3 : count;
+  for (let i = 0; i < count; i++) heights[i] = 1 - ((1 - last) * i) / span;
+  return heights;
 }
