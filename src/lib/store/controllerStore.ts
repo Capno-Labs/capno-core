@@ -80,6 +80,8 @@ interface ControllerState {
   skipAhead: (sec: number) => void;
   cycleNibp: () => void;
   setArtLine: (on: boolean) => void;
+  /** Add or remove the V5 lead on the monitor. */
+  setV5Lead: (on: boolean) => void;
 
   teardown: () => void;
 }
@@ -230,6 +232,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     skipAhead: (sec) => withEngine((e) => e.skipAhead(sec)),
     cycleNibp: () => withEngine((e) => e.cycleNibp()),
     setArtLine: (on) => withEngine((e) => e.setArtLine(on)),
+    setV5Lead: (on) => withEngine((e) => e.setV5Lead(on)),
 
     teardown: () => {
       if (tickHandle) {

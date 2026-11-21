@@ -71,7 +71,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "pulseless"?: true,   // no pulse despite an organized rhythm (PEA, pulseless VT); omit when the patient has a pulse
     "capnoShape"?: "normal|bronchospasm|curare_cleft",   // capnograph morphology; default normal
     "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",   // PVC coupling rate (pvc rhythm only); default occasional
-    "ecg"?: { "stMm"?: -5..5, "tWave"?: "normal|peaked|flat|inverted", "qrs"?: "normal|wide", "qt"?: "normal|long" }   // ECG complex morphology, lead II; omit entirely for a normal ECG. stMm: negative = ST depression, positive = elevation
+    "ecg"?: { "stMm"?: -5..5, "stV5Mm"?: -5..5, "tWave"?: "normal|peaked|flat|inverted", "qrs"?: "normal|wide", "qt"?: "normal|long" }   // ECG complex morphology; omit entirely for a normal ECG. stMm = ST level in lead II, stV5Mm = in lead V5 (needs monitoring.v5): negative = ST depression, positive = elevation
   },
   "phases": [{ "id": "...", "label": "...", "description"?: "...", "targetDurationSec"?: n }],   // ordered phases of care, at least 1; target = optional pacing budget in seconds
   "events": [{
@@ -81,7 +81,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "actionIds"?: ["<existing expectedActions ids this event embodies or responds to>"],
     "effects": [{ "vitals"?: { partial numeric vitals }, "rhythm"?: "...",
                   "capnoShape"?: "normal|bronchospasm|curare_cleft", "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",
-                  "ecg"?: { "stMm"?: -5..5, "tWave"?: "...", "qrs"?: "...", "qt"?: "..." },   // only the fields listed change; stMm ramps over overSec. Set it only when the source states the ECG change.
+                  "ecg"?: { "stMm"?: -5..5, "stV5Mm"?: -5..5, "tWave"?: "...", "qrs"?: "...", "qt"?: "..." },   // only the fields listed change; stMm ramps over overSec. Set it only when the source states the ECG change.
                   "pulseless"?: true|false,   // take the pulse away or give it back, whatever the rhythm (PEA = organized rhythm + pulseless true; pulseless VT = vtach + pulseless true). vfib, torsades, asystole and "pea" never have a pulse.
                   "overSec"?: rampSeconds, "afterSec"?: delaySeconds }]
   }],
@@ -94,7 +94,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "rubric": [{ "id": "...", "label": "...", "actionIds": ["<existing expectedAction ids>"] }],
   "estimatedMinutes": n,
   "targetDurationSec"?: n,           // optional hard time budget for a scheduled lab slot (pacing display)
-  "monitoring"?: { "artLine"?: bool, "nibpIntervalSec"?: 15-1800 }   // absent = NIBP cuff every 180 s
+  "monitoring"?: { "artLine"?: bool, "nibpIntervalSec"?: 15-1800, "v5"?: bool }   // absent = NIBP cuff every 180 s, lead II only; v5 adds a second ECG trace
 }`;
 
 const GENERATOR_RULES = `You author training scenarios for Capno, an anesthesia patient-simulator (manikin) teaching tool. This is simulation authoring for education — no real patient exists. Output ONLY one JSON document matching the structure below. No prose, no markdown fences.

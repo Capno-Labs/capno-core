@@ -197,10 +197,15 @@ monitor prints the level as "ST II −2.0" under the heart rate. These are
 display only — they change no numbers and raise no alarm, so learners have to
 see them. They apply to the sinus rhythms, AF, SVT and the normal beats
 around ectopics; in VT, VF, PEA and asystole they are not drawn and the
-readout shows dashes. One caveat worth telling learners: the simulator draws
-ST change in lead II because that is the lead it has, but in practice lead II
-alone picks up only about a third of intraoperative ischemia, and V5 about
-three-quarters (London et al., *Anesthesiology* 1988).
+readout shows dashes.
+
+**V5 lead.** Press **Add V5 lead** to put a second ECG trace under lead II on
+every display (a scenario can also start with it). It has its own **ST V5**
+stepper and readout, independent of lead II — so you can show ischemia in V5
+that lead II misses, which is the usual case: lead II alone picks up only
+about a third of intraoperative ischemia, V5 about three-quarters, and the
+two together four-fifths (London et al., *Anesthesiology* 1988). T-wave, QRS
+and QT settings apply to both leads.
 
 **NIBP behaves like a real cuff.** In the default cuff mode, the sliders set
 the patient's *true* pressure, but the monitor shows the **last measured**

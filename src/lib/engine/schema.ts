@@ -40,6 +40,7 @@ const pvcFrequencySchema = z.enum(['rare', 'occasional', 'trigeminy', 'bigeminy'
 const ecgSchema = z
   .object({
     stMm: z.number().min(ST_MM_MIN).max(ST_MM_MAX),
+    stV5Mm: z.number().min(ST_MM_MIN).max(ST_MM_MAX),
     tWave: z.enum(['normal', 'peaked', 'flat', 'inverted']),
     qrs: z.enum(['normal', 'wide']),
     qt: z.enum(['normal', 'long']),
@@ -220,6 +221,7 @@ export const scenarioSchema = z
       .object({
         artLine: z.boolean().optional(),
         nibpIntervalSec: z.number().min(15).max(1800).optional(),
+        v5: z.boolean().optional(),
       })
       .optional(),
   })

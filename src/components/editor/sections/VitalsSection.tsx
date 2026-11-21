@@ -49,6 +49,14 @@ export function VitalsSection({
           />
           Arterial line — BP displays continuously
         </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-2">
+          <input
+            type="checkbox"
+            checked={scenario.monitoring?.v5 === true}
+            onChange={(e) => updateMonitoring({ v5: e.target.checked ? true : undefined })}
+          />
+          V5 lead — a second ECG trace under lead II, with its own ST level
+        </label>
         <div className="flex items-end gap-3">
           <div>
             <span className="label">NIBP cuff interval (s)</span>

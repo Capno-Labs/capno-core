@@ -27,7 +27,9 @@ toggle.
   has an arterial line. The rhythm is not labelled — read it from the trace.
 - **ST level:** under the heart rate, "ST II" shows the ST-segment level in
   lead II in millimetres — negative is depression, positive is elevation. No
-  alarm sounds for it; watch the number and the trace.
+  alarm sounds for it; watch the number and the trace. When a second trace,
+  **ECG V5**, is on screen it has its own "ST V5" — check both: ischemia
+  often shows in one lead and not the other.
 - **Numeric tiles:** HR, blood pressure, SpO₂, EtCO₂ (with respiratory rate),
   temperature, and end-tidal sevoflurane (SEV, with inspired fraction +
   depth). Small arrows

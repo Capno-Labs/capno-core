@@ -154,6 +154,17 @@ describe('scenario schema', () => {
       expect(withEffectEcg({ tWave: 'peaked', qrs: 'wide' }).ok).toBe(true);
     });
 
+    it('accepts a V5 ST level, and a V5 lead in the monitoring config', () => {
+      expect(withBaselineEcg({ stV5Mm: -2 }).ok).toBe(true);
+      expect(withEffectEcg({ stMm: -1, stV5Mm: -2.5 }).ok).toBe(true);
+      expect(withEffectEcg({ stV5Mm: 7 }).ok).toBe(false);
+      const doc = JSON.parse(JSON.stringify(inductionHypotension));
+      doc.monitoring = { v5: true };
+      expect(validateScenario(doc).ok).toBe(true);
+      doc.monitoring = { v5: 'yes' };
+      expect(validateScenario(doc).ok).toBe(false);
+    });
+
     it('keeps the ST level within ±5 mm', () => {
       expect(withBaselineEcg({ stMm: 5 }).ok).toBe(true);
       expect(withBaselineEcg({ stMm: -5 }).ok).toBe(true);
@@ -167,7 +178,7 @@ describe('scenario schema', () => {
       expect(withEffectEcg({ qt: 'short' }).ok).toBe(false);
       // A misspelt field must not pass silently as "no change".
       expect(withEffectEcg({ stmm: -2 }).ok).toBe(false);
-      expect(withBaselineEcg({ stV5Mm: -2 }).ok).toBe(false);
+      expect(withBaselineEcg({ stV6Mm: -2 }).ok).toBe(false);
     });
   });
 

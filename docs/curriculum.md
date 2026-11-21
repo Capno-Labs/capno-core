@@ -206,7 +206,8 @@ clinical content is authored against published guidance:
   (StatPearls; intraoperative bolus-esmolol studies); AHA 2020 ACLS for the
   ventricular-fibrillation arm (defibrillate 120–200 J biphasic,
   epinephrine 1 mg q3–5 min, amiodarone 300 mg then 150 mg). ST levels
-  drawn on the monitor: 2 mm then 3 mm of horizontal depression and a
+  drawn on the monitor, the same in leads II and V5 as the scenario's
+  narration has it ("lead II and V5 now show 2 mm"): 2 mm then 3 mm of horizontal depression and a
   return to baseline are the scenario's own authored values, above the
   ≥1 mm horizontal-depression criterion of London et al. (*Anesthesiology*
   1988;69:232–41). No published definition was found for *improvement* of
@@ -258,7 +259,9 @@ leaves a range fails the build. Where no source was found, that is said.
 | Ventricular paced: a spike, then a wide QRS that is mainly negative in lead II, with a T wave the other way | Ebrille et al., *Indian Pacing Electrophysiol J* 2016;16:19 ([PMC4936653](https://pmc.ncbi.nlm.nih.gov/articles/PMC4936653/)): left-bundle-like pattern, left superior axis; Du & Zhang, *BMC Cardiovasc Disord* 2022;22:12 (secondary repolarization changes). That the spike sits just ahead of the QRS is inferred from the definition of non-capture |
 | Idioventricular: regular wide complexes, no P waves, under 40/min (selected at 35) | Gangwani & Nagalli, *Idioventricular Rhythm*, StatPearls ([NBK554520](https://www.ncbi.nlm.nih.gov/sites/books/NBK554520/)). Sources disagree on where "accelerated" begins (40, 50 or 100/min) |
 | PEA is any organized rhythm without a pulse; pulseless VT is VT without one. The ECG and heart rate carry on, and only the oximeter alarms | Oliver et al., *Pulseless Electrical Activity*, StatPearls ([NBK513349](https://www.ncbi.nlm.nih.gov/sites/books/NBK513349/)); Fulton & Nordquist, *Advanced Cardiac Life Support*, StatPearls (NBK613285). A narrow QRS suggests a mechanical cause and a wide one a metabolic or ischemic cause (Littmann et al., *Med Princ Pract* 2014;23:1 — a teaching tool) |
-| Lead II only | London et al. 1988 found lead II alone detected 33% of intraoperative ischemia, V5 75%, II + V5 80% — the reason a V5 trace is planned, and a caveat for teaching |
+| Optional V5 lead with its own ST level | London et al., *Anesthesiology* 1988;69:232–41 (PMID 3407971): single-lead sensitivity for intraoperative ischemia II 33%, V5 75%, V4 61%; II + V5 80%; II + V4 + V5 96%. A later study in vascular patients found V3 (87%) and V4 (79%) ahead of V5 (66%): Landesberg et al., *Anesthesiology* 2002;96:264–70 (PMID 11818754). The site of demand-ischemia ST depression does not identify the artery and is most often V4–V6: Dunn et al., *Am J Cardiol* 1981;48:837; Fox et al., *Am J Cardiol* 1984;53:1529 |
+| V5's normal complex: a small septal q (under 2 mm deep, 40 ms wide and a quarter of the R wave), a dominant R, a small or absent s, an upright T | Meek & Morris, *BMJ* 2002;324:470–3 ([PMC1122394](https://pmc.ncbi.nlm.nih.gov/articles/PMC1122394/)); StatPearls NBK549803 and NBK538264. P-wave polarity in V5 specifically was not found; it is drawn upright |
+| Ectopic, paced and ventricular complexes are drawn alike in II and V5 | **A simplification, not sourced.** Their polarity differs by lead in life; sources on a paced complex in V5–V6 were inconsistent |
 
 **Pulse, pressure and breathing**
 

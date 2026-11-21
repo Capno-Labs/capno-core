@@ -626,7 +626,7 @@ describe('SimulationEngine', () => {
 
     it('starts normal when the scenario sets none', () => {
       const e = newEngine();
-      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
       expect(e.getStTarget()).toBe(0);
     });
 
@@ -636,7 +636,7 @@ describe('SimulationEngine', () => {
         baselineVitals: { ...scenario().baselineVitals, ecg: { stMm: -1, tWave: 'inverted' } },
       };
       const e = new SimulationEngine(s, 'TEST');
-      expect(e.getVitals().ecg).toEqual({ stMm: -1, tWave: 'inverted', qrs: 'normal', qt: 'normal' });
+      expect(e.getVitals().ecg).toEqual({ stMm: -1, stV5Mm: 0, tWave: 'inverted', qrs: 'normal', qt: 'normal' });
     });
 
     it('sets the ST level instantly by default and logs it', () => {
@@ -687,9 +687,9 @@ describe('SimulationEngine', () => {
       const e = newEngine();
       e.start();
       e.setEcg({ tWave: 'peaked', qrs: 'wide' }, 60); // the ramp does not apply to these
-      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'peaked', qrs: 'wide', qt: 'normal' });
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'peaked', qrs: 'wide', qt: 'normal' });
       e.setEcg({ qt: 'long' });
-      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'peaked', qrs: 'wide', qt: 'long' });
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'peaked', qrs: 'wide', qt: 'long' });
       expect(lastLog(e)).toMatchObject({ label: 'QT → Prolonged' });
     });
 
@@ -697,7 +697,7 @@ describe('SimulationEngine', () => {
       const e = newEngine();
       e.start();
       const before = e.getFullLog().length;
-      e.setEcg({ stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      e.setEcg({ stMm: 0, stV5Mm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
       e.setEcg({});
       expect(e.getFullLog().length).toBe(before);
     });
@@ -730,10 +730,42 @@ describe('SimulationEngine', () => {
       e.setEcg({ stMm: -3, qrs: 'wide' }, 60);
       e.tick(10);
       e.reset();
-      expect(e.getVitals().ecg).toEqual({ stMm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
       e.start();
       e.tick(30);
       expect(e.getVitals().ecg?.stMm).toBe(0);
+    });
+
+    it('ramps the V5 ST level separately from lead II', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stV5Mm: -3 }, 60);
+      e.setEcg({ stMm: -1 }, 10);
+      expect(e.getStTarget('V5')).toBe(-3);
+      expect(e.getStTarget('II')).toBe(-1);
+      e.tick(10);
+      expect(e.getVitals().ecg).toMatchObject({ stMm: -1, stV5Mm: -0.5 });
+      e.tick(50);
+      expect(e.getVitals().ecg).toMatchObject({ stMm: -1, stV5Mm: -3 });
+      const labels = e.getFullLog().map((l) => l.label);
+      expect(labels).toContain('ST V5 → −3.0 mm');
+      expect(labels).toContain('ST II → −1.0 mm');
+    });
+
+    it('shows a V5 lead when the scenario asks for one, and lets faculty add or remove it', () => {
+      expect(newEngine().snapshot().v5Lead).toBe(false);
+      const withV5: Scenario = { ...scenario(), monitoring: { ...scenario().monitoring, v5: true } };
+      const e = new SimulationEngine(withV5, 'TEST');
+      expect(e.snapshot().v5Lead).toBe(true);
+      e.start();
+      e.setV5Lead(false);
+      expect(e.snapshot().v5Lead).toBe(false);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'V5 lead removed' });
+      e.setV5Lead(true);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'V5 lead added' });
+      e.setV5Lead(false);
+      e.reset();
+      expect(e.snapshot().v5Lead).toBe(true); // back to the scenario's setting
     });
 
     it('stays serializable in the snapshot', () => {

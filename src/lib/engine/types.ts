@@ -137,6 +137,12 @@ export interface EcgMorphology {
    * The one field that ramps — it follows the effect's `overSec`.
    */
   stMm?: number;
+  /**
+   * ST-segment deviation in lead V5, same units and range. Independent of
+   * lead II: ischemia often shows in one lead and not the other. Drawn only
+   * when the monitor has a V5 lead (see MonitoringConfig.v5).
+   */
+  stV5Mm?: number;
   tWave?: TWave;
   qrs?: QrsWidth;
   qt?: QtInterval;
@@ -186,9 +192,14 @@ export function ecgMorphologyApplies(rhythm: Rhythm): boolean {
   return MORPHOLOGY_RHYTHMS.has(rhythm);
 }
 
+/** The ECG leads the monitor can show, and the ST field each one reads. */
+export type EcgLead = 'II' | 'V5';
+export const ST_FIELD: Record<EcgLead, 'stMm' | 'stV5Mm'> = { II: 'stMm', V5: 'stV5Mm' };
+
 /** Every field at its default — a normal complex. */
 export const NORMAL_ECG: Required<EcgMorphology> = {
   stMm: 0,
+  stV5Mm: 0,
   tWave: 'normal',
   qrs: 'normal',
   qt: 'normal',
@@ -422,6 +433,12 @@ export interface MonitoringConfig {
   artLine?: boolean;
   /** Automatic cuff cycle interval in seconds (default 180). */
   nibpIntervalSec?: number;
+  /**
+   * True = the monitor shows a second ECG trace, lead V5, under lead II, with
+   * its own ST readout. Absent/false = lead II only. Faculty can add or
+   * remove it during a session.
+   */
+  v5?: boolean;
 }
 
 export interface Scenario {
@@ -520,6 +537,9 @@ export interface SimSnapshot {
   vitals: Vitals;
   /** Last cuff reading; null when the scenario uses an arterial line. */
   nibp: NibpReading | null;
+  /** True while the monitor shows a V5 lead under lead II. Optional: absent
+   *  (= lead II only) in snapshots archived before the V5 lead existed. */
+  v5Lead?: boolean;
   alarms: AlarmState[];
   /** True while faculty has silenced audible/visual alarm emphasis. */
   alarmsSilenced: boolean;

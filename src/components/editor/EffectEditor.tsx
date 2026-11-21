@@ -35,7 +35,8 @@ export function effectSummary(effect: VitalEffect): string {
   }
   if (effect.rhythm) parts.push(`rhythm→${RHYTHM_LABELS[effect.rhythm]}`);
   if (effect.capnoShape) parts.push(`CO₂→${CAPNO_SHAPE_LABELS[effect.capnoShape]}`);
-  if (effect.ecg?.stMm !== undefined) parts.push(`ST→${formatStMm(effect.ecg.stMm)} mm`);
+  if (effect.ecg?.stMm !== undefined) parts.push(`ST II→${formatStMm(effect.ecg.stMm)} mm`);
+  if (effect.ecg?.stV5Mm !== undefined) parts.push(`ST V5→${formatStMm(effect.ecg.stV5Mm)} mm`);
   if (effect.ecg?.tWave) parts.push(`T→${T_WAVE_LABELS[effect.ecg.tWave]}`);
   if (effect.ecg?.qrs) parts.push(`QRS→${QRS_WIDTH_LABELS[effect.ecg.qrs]}`);
   if (effect.ecg?.qt) parts.push(`QT→${QT_INTERVAL_LABELS[effect.ecg.qt]}`);

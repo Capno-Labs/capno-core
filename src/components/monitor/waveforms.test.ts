@@ -374,6 +374,93 @@ describe('ECG morphology (ST, T wave, QRS width, QT)', () => {
   });
 });
 
+describe('V5 lead', () => {
+  const b = beat();
+  const ST_MS = R_OFFSET_MS + 90;
+  const ii = (ms: number, ecg = {}) => ecgBeat(b, ms, ecg, 'II');
+  const v5 = (ms: number, ecg = {}) => ecgBeat(b, ms, ecg, 'V5');
+
+  it('reads its own ST level, independent of lead II', () => {
+    const ecg = { stMm: -3, stV5Mm: -1 };
+    expect(v5(ST_MS, ecg) - v5(ST_MS)).toBeCloseTo(-0.1, 2);
+    expect(ii(ST_MS, ecg) - ii(ST_MS)).toBeCloseTo(-0.3, 2);
+    // Ischemia in V5 that lead II misses.
+    const lateral = { stV5Mm: -2 };
+    expect(v5(ST_MS, lateral) - v5(ST_MS)).toBeCloseTo(-0.2, 2);
+    expect(ii(ST_MS, lateral)).toBe(ii(ST_MS));
+  });
+
+  it('defaults to lead II when no lead is named', () => {
+    for (let ms = 0; ms < 800; ms += 7) expect(ecgBeat(b, ms, { stMm: -2 })).toBe(ii(ms, { stMm: -2 }));
+  });
+
+  it('shows a small septal q, a dominant R and a smaller s than lead II', () => {
+    const q = Math.min(...Array.from({ length: 60 }, (_, i) => v5(R_OFFSET_MS - 60 + i)));
+    const r = v5(R_OFFSET_MS);
+    const s = Math.min(...Array.from({ length: 60 }, (_, i) => v5(R_OFFSET_MS + 15 + i)));
+    const sInII = Math.min(...Array.from({ length: 60 }, (_, i) => ii(R_OFFSET_MS + 15 + i)));
+    expect(r).toBeGreaterThan(0.9);
+    expect(q).toBeLessThan(0); // a q wave is there…
+    expect(Math.abs(q)).toBeLessThan(0.25 * r); // …under a quarter of the R wave
+    expect(Math.abs(q) * 10).toBeLessThan(2); // …and under 2 mm deep (Meek & Morris 2002)
+    const qWidth = widthAt((ms) => -v5(ms), Math.abs(q) / 2, R_OFFSET_MS - 60, R_OFFSET_MS - 12);
+    expect(qWidth).toBeLessThan(40); // …and under 40 ms wide
+    expect(Math.abs(s)).toBeLessThan(Math.abs(sInII));
+    expect(Math.abs(s)).toBeLessThan(0.25 * r);
+  });
+
+  it('has upright P and T waves', () => {
+    expect(v5(P_MS)).toBeGreaterThan(0.1);
+    const t = Math.max(...Array.from({ length: 600 }, (_, i) => v5(R_OFFSET_MS + 100 + i * 0.5)));
+    expect(t).toBeGreaterThan(0.2);
+  });
+
+  it('takes the T-wave, QRS and QT settings like lead II', () => {
+    const tTop = (ecg: object) => Math.max(...Array.from({ length: 1400 }, (_, i) => v5(R_OFFSET_MS + 100 + i * 0.5, ecg)));
+    expect(tTop({ tWave: 'peaked' })).toBeGreaterThan(tTop({}) * 1.8);
+    const tMin = Math.min(...Array.from({ length: 1400 }, (_, i) => v5(R_OFFSET_MS + 100 + i * 0.5, { tWave: 'inverted' })));
+    expect(tMin).toBeLessThan(-0.15);
+    expect(widthAt((ms) => v5(ms, { qrs: 'wide' }), 0.5, 0, 500)).toBeGreaterThan(
+      widthAt((ms) => v5(ms), 0.5, 0, 500) * 1.5,
+    );
+  });
+
+  it('draws ectopic, paced and ventricular complexes as in lead II', () => {
+    const same = [
+      beat({ rhythm: 'pvc', kind: 'pvc' }),
+      beat({ rhythm: 'vtach', baseSec: 0.35, rrSec: 0.35 }),
+      beat({ rhythm: 'paced' }),
+      beat({ rhythm: 'idioventricular' }),
+      beat({ rhythm: 'pea' }),
+    ];
+    for (const other of same) {
+      for (let ms = 0; ms < 800; ms += 5) {
+        expect(ecgBeat(other, ms, { stV5Mm: -3 }, 'V5')).toBe(ecgBeat(other, ms, {}, 'II'));
+      }
+    }
+  });
+
+  it('follows the same beats as lead II — one rhythm, two views', () => {
+    const clock = new BeatClock(4);
+    clock.setInput({ hr: 80, rr: 0, rhythm: 'afib', pvcEveryN: 4, frozen: false });
+    let rInII = 0;
+    let rInV5 = 0;
+    let prevII = 0;
+    let prevV5 = 0;
+    for (let i = 0; i < 7500; i++) {
+      clock.advance(0.004);
+      const a = ecgValue(clock.recent(), 'afib', clock.t, {}, 'II');
+      const c = ecgValue(clock.recent(), 'afib', clock.t, {}, 'V5');
+      if (prevII < 0.6 && a >= 0.6) rInII++;
+      if (prevV5 < 0.6 && c >= 0.6) rInV5++;
+      prevII = a;
+      prevV5 = c;
+    }
+    expect(rInV5).toBe(rInII);
+    expect(rInII).toBeGreaterThan(30);
+  });
+});
+
 describe('added rhythms', () => {
   /** First and last times a curve is off the baseline by more than `eps`. */
   const offBaseline = (f: (ms: number) => number, from: number, to: number, eps: number) => {
