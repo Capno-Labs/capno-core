@@ -21,6 +21,8 @@ no env vars the app is a fully working offline simulator.
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL — enables cross-device sync, sign-in, cloud storage |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (safe client-side; RLS enforces access) |
    | `NEXT_PUBLIC_FACULTY_PIN` | Advisory faculty PIN for installations without accounts |
+   | `NEXT_PUBLIC_ACCOUNT_PORTAL_URL` | Optional. Origin of a hosted account portal you operate; the app then links to `<origin>/start` ("Get started") and `<origin>/invites` ("Invite faculty", "Manage team"). Unset = no such links |
+   | `NEXT_PUBLIC_PASSWORD_RESET_URL` | Optional. Full URL of your password-reset page; shows "Forgot password?" on the Account page. Unset = no link |
 
 4. Deploy, then assign your production domain (e.g.
    `capno.your-school.edu`) under Project → Domains. The service worker and

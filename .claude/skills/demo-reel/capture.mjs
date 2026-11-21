@@ -110,9 +110,19 @@ async function main() {
       deviceScaleFactor: SCALE,
       recordVideo: { dir: VIDEO_TMP, size: VIEWPORT },
     });
+    // Steady-state home: tour already seen, getting-started checklist hidden
+    // (capno:onboarding:v1 — see src/lib/onboarding.ts).
     await ctx.addInitScript(
-      ([k, v]) => localStorage.setItem(k, v),
-      [DEMO_SEEN_KEY, DEMO_SEEN_VALUE],
+      ([k, v, ok, ov]) => {
+        localStorage.setItem(k, v);
+        localStorage.setItem(ok, ov);
+      },
+      [
+        DEMO_SEEN_KEY,
+        DEMO_SEEN_VALUE,
+        'capno:onboarding:v1',
+        JSON.stringify({ dismissedAtIso: '2026-01-01T00:00:00.000Z' }),
+      ],
     );
     const faculty = await ctx.newPage();
 

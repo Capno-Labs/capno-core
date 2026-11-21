@@ -50,7 +50,6 @@ describe('palette rules', () => {
     // entries are known debt that the cleanup pass removes — this list only
     // ever shrinks.
     const allowed = new Set([
-      'app/student/page.tsx',
       'components/eventCategories.ts',
       'components/controller/ActionMarkRow.tsx',
     ]);

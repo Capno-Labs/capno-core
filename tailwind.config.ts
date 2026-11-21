@@ -66,6 +66,11 @@ const config: Config = {
           bg: '#080a08',
           panel: '#11140f',
           grid: '#293027',
+          ink: '#dce3d9',
+          // "Connection lost" banner over the monitor.
+          'stale-bg': '#452020',
+          'stale-ink': '#ff9999',
+          'stale-line': '#7f1d1d',
         },
         vital: {
           ecg: '#73ef82',

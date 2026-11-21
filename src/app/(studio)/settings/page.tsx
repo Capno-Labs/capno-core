@@ -6,6 +6,7 @@ import { FacultyGate } from '@/components/FacultyGate';
 import { PageHead } from '@/components/ui/PageHead';
 import { createOpenRouterProvider, gatewayConfigured } from '@/lib/llm';
 import { toast } from '@/lib/store/toastStore';
+import { restoreOnboarding } from '@/lib/onboarding';
 import { useLlmSettingsStore } from '@/lib/store/llmSettingsStore';
 
 const MODEL_PLACEHOLDER = 'e.g. anthropic/claude-sonnet-4.5 or openai/gpt-4o-mini';
@@ -72,6 +73,25 @@ export default function SettingsPage() {
           <Link href="/account" className="btn-secondary">
             Open account →
           </Link>
+        </section>
+
+        <section className="card flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold">Getting started</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              Bring the first-run checklist back to the home page.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              restoreOnboarding();
+              toast('The getting-started checklist is back on Home.', 'success');
+            }}
+          >
+            Show checklist
+          </button>
         </section>
 
         <section className="card space-y-4">

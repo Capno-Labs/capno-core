@@ -1,11 +1,18 @@
+'use client';
+
 import Link from 'next/link';
-import { PageHead } from '@/components/ui/PageHead';
+import { GettingStarted } from '@/components/home/GettingStarted';
+import { Button } from '@/components/ui/Button';
+import { Poster } from '@/components/ui/Poster';
+import { DISPLAY_COPY } from '@/lib/displayCopy';
+import { DEMO_HREF } from '@/lib/onboarding';
 
 /**
- * Workflow-oriented home. The blue poster card is the faculty fast path (run a
- * case); the student-display card mirrors the second role in the room;
- * review and authoring are secondary. Plain-language actions throughout —
- * CAPNO Studio is the only branded name.
+ * Workflow-oriented home. The poster is the faculty fast path (run a case)
+ * with the student display — the second role in the room — beside it; the
+ * getting-started checklist shows until it is done or hidden; review and
+ * authoring are secondary. Plain-language actions throughout — CAPNO Studio
+ * is the only branded name.
  */
 
 const SECONDARY = [
@@ -20,92 +27,113 @@ const SECONDARY = [
     desc: 'Author new cases for the library — form-based editing with JSON preview and import/export.',
   },
   {
-    href: '/faculty/run/quick-start',
-    title: 'Quick-start freeform',
-    desc: 'Standardized patient, normal baseline vitals, no script — you drive everything live.',
+    href: '/scenarios/import',
+    title: 'Import a run sheet',
+    desc: 'Turn the instructor guide you already teach from into a runnable, reviewable case.',
   },
+];
+
+const STRIP = [
+  { href: '/editor', label: 'Build' },
+  { href: '/scenarios', label: 'Run' },
+  { href: '/debrief', label: 'Debrief' },
 ];
 
 export default function HomePage() {
   return (
-    <>
-      <PageHead
-        eyebrow="Simulation lab"
-        title="Run today's case."
-        lede="Faculty-controlled patient monitor, scenario engine, and structured debriefing — everything works offline on this device."
-      />
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
-        {/* Poster card: the faculty fast path. */}
-        <Link
-          href="/scenarios"
-          className="card-hero surface-blue card-interactive flex min-h-[240px] flex-col justify-between !p-7"
-        >
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-white/10"
-          />
-          <div className="relative">
-            <span className="inline-flex items-center rounded-full bg-white/15 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-              Faculty
+    <div className="space-y-6">
+      <Poster
+        label="CAPNO Studio / Faculty workspace"
+        titleLines={[...DISPLAY_COPY.home]}
+        promise="Pick a reviewed case and drive the simulated monitor — vitals, events, and learner assessment from one controller. Everything works offline on this device."
+        actions={
+          <>
+            <Button variant="onBlue" href="/scenarios" arrow>
+              Open the case library
+            </Button>
+            <Button variant="ghostOnBlue" href="/faculty/run/quick-start" icon="play">
+              Quick start
+            </Button>
+          </>
+        }
+        aside={
+          /* Student display: the second role in the room. */
+          <Link
+            href="/student"
+            className="group block w-full max-w-xs rounded-card bg-poster-ink p-5 ring-1 ring-poster-line/30 transition duration-150 ease-brand hover:ring-poster-line/70"
+          >
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-poster-muted">
+              Student display
             </span>
-            <h2 className="card-hero-ink mt-4 max-w-md text-3xl font-bold leading-none tracking-[-0.04em] md:text-4xl">
-              Start teaching in under two minutes.
-            </h2>
-            <p className="card-hero-muted mt-3 max-w-md text-sm">
-              Pick a reviewed case, drive the simulated monitor — vitals, events, and learner
-              assessment from the faculty controller.
-            </p>
-          </div>
-          <span className="relative mt-5 inline-flex items-center gap-2 self-start rounded-full bg-white px-4 py-2 text-sm font-semibold text-poster-ink">
-            Open the case library <span className="link-arrow">→</span>
-          </span>
-        </Link>
-
-        {/* Student display join card. */}
-        <Link href="/student" className="card-interactive flex flex-col !p-6">
-          <h2 className="text-lg font-bold">Student display</h2>
-          <p className="mt-1 text-sm text-muted">
-            Full-screen patient monitor for the sim room. No account — join with the 4-character
-            session code from your instructor.
-          </p>
-          <div className="my-5 flex justify-center gap-2" aria-hidden>
-            {['K', '7', 'C', 'P'].map((c, i) => (
-              <span
-                key={i}
-                className="grid h-12 w-10 place-items-center rounded-ctl bg-panel-2 font-mono text-xl font-bold text-ink ring-1 ring-line"
-              >
-                {c}
+            <span className="my-4 flex gap-2" aria-hidden>
+              {['K', '7', 'C', 'P'].map((c) => (
+                <span
+                  key={c}
+                  className="grid h-12 w-10 place-items-center rounded-ctl bg-poster-raised font-mono text-xl font-bold text-white ring-1 ring-white/15"
+                >
+                  {c}
+                </span>
+              ))}
+            </span>
+            <span className="block text-sm text-poster-muted">
+              Full-screen patient monitor for the sim room. No account — join with the session
+              code.
+            </span>
+            <span className="mt-3 block text-sm font-semibold text-white">
+              Join with a code <span className="link-arrow">→</span>
+            </span>
+          </Link>
+        }
+        footer={
+          <nav
+            aria-label="Workflow"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] font-semibold uppercase tracking-[0.16em]"
+          >
+            {STRIP.map((s, i) => (
+              <span key={s.href} className="flex items-center gap-3">
+                {i > 0 && (
+                  <span aria-hidden className="text-poster-line">
+                    /
+                  </span>
+                )}
+                <Link href={s.href} className="text-white hover:underline">
+                  {s.label}
+                </Link>
               </span>
             ))}
-          </div>
-          <span className="mt-auto text-sm font-semibold text-brand-strong">
-            Join with a code <span className="link-arrow">→</span>
-          </span>
-        </Link>
-      </div>
+          </nav>
+        }
+      />
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <GettingStarted />
+
+      <div className="grid gap-x-8 gap-y-2 sm:grid-cols-3">
         {SECONDARY.map((r) => (
-          <Link key={r.href} href={r.href} className="card-interactive flex flex-col gap-1 !p-4">
-            <h2 className="text-base font-bold">{r.title}</h2>
-            <p className="text-sm text-muted">{r.desc}</p>
+          <Link
+            key={r.href}
+            href={r.href}
+            className="group border-t-2 border-ink py-4 transition duration-150 ease-brand hover:border-brand-strong"
+          >
+            <h2 className="flex items-center gap-2 text-base font-bold">
+              {r.title}
+              <span aria-hidden className="link-arrow text-brand-strong">
+                →
+              </span>
+            </h2>
+            <p className="mt-1 text-sm text-muted">{r.desc}</p>
           </Link>
         ))}
       </div>
 
-      <p className="mt-8 text-center text-sm text-muted">
+      <p className="text-center text-sm text-muted">
         New here?{' '}
-        <Link
-          href="/faculty/run/laryngospasm-lma?demo=1"
-          className="font-semibold text-brand-strong underline-offset-2 hover:underline"
-        >
+        <Link href={DEMO_HREF} className="link">
           Try the guided demo →
         </Link>{' '}
         <span className="text-faint">(laryngospasm after LMA placement)</span>
       </p>
 
-      <footer className="mt-6 text-center text-xs text-faint">
+      <footer className="text-center text-xs text-faint">
         For simulation and education only — not for clinical use. · Apache-2.0 core ·{' '}
         <a className="underline hover:text-muted" href="https://capno.app">
           capno.app
@@ -115,6 +143,6 @@ export default function HomePage() {
           GitHub
         </a>
       </footer>
-    </>
+    </div>
   );
 }

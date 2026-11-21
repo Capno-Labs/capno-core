@@ -21,6 +21,7 @@ export function Poster({
   compact = false,
   as: Heading = 'h1',
   className = '',
+  children,
 }: {
   tone?: 'blue' | 'ink';
   label?: string;
@@ -34,6 +35,8 @@ export function Poster({
   compact?: boolean;
   as?: 'h1' | 'h2';
   className?: string;
+  /** Extra content under the promise (a short list, a note). */
+  children?: ReactNode;
 }) {
   const safe = titleLines.every(isDisplaySafe);
   const muted = tone === 'blue' ? 'text-poster-muted' : 'text-muted';
@@ -77,6 +80,7 @@ export function Poster({
               {promise}
             </p>
           )}
+          {children && <div className="mt-5">{children}</div>}
           {actions && <div className="mt-6 flex flex-wrap items-center gap-2.5">{actions}</div>}
         </div>
         {aside && <div className="min-w-0">{aside}</div>}
