@@ -47,8 +47,8 @@ maintainer instead of working around it.
    drives a session (today: the browser `controllerStore`) — never a second
    tick loop. Student displays render broadcast snapshots and never change
    simulation state themselves. They send two things: `hello`, and `monitor`
-   requests to operate the monitor's alarm setup (step an alarm limit,
-   switch one vital's alarms on or off). A request is untrusted input: the
+   requests to operate the monitor's alarms (step an alarm limit, switch one
+   vital's alarms on or off, press Silence). A request is untrusted input: the
    controller parses it (`src/lib/sync/monitorRequest.ts`), drops anything
    else, and applies it to its own engine, so there is still one authority.
    Requests stay relative and narrow — no vitals, events, session control or

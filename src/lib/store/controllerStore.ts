@@ -102,6 +102,8 @@ interface ControllerState {
   markAction: (actionId: string, status: ActionStatus) => void;
   addNote: (text: string) => void;
   setAlarmsSilenced: (silenced: boolean) => void;
+  /** The monitor's Silence key: acknowledge the alarms active now. */
+  acknowledgeAlarms: () => void;
   setAutoEvents: (on: boolean) => void;
   /** Show or hide the patient pre-brief on student displays before the start. */
   setPreBrief: (on: boolean) => void;
@@ -273,6 +275,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       }),
     addNote: (text) => withEngine((e) => e.addNote(text)),
     setAlarmsSilenced: (silenced) => withEngine((e) => e.setAlarmsSilenced(silenced)),
+    acknowledgeAlarms: () => withEngine((e) => e.acknowledgeAlarms()),
     setAutoEvents: (on) => withEngine((e) => e.setAutoEvents(on)),
     setPreBrief: (on) => withEngine((e) => e.setPreBrief(on)),
     skipAhead: (sec) => withEngine((e) => e.skipAhead(sec)),

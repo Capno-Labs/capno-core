@@ -13,6 +13,8 @@ import { ALARM_PROFILES, VITAL_META } from '@/lib/engine/vitals';
 export interface AlarmSetupActions {
   stepLimit: (vital: AlarmVital, side: AlarmSide, direction: -1 | 1) => void;
   setOff: (vital: AlarmVital, off: boolean) => void;
+  /** The Silence key: acknowledge the alarms active now. */
+  silence: () => void;
 }
 
 const SIDE_LABEL: Record<AlarmSide, string> = { high: 'High', low: 'Low' };

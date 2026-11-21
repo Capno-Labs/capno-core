@@ -16,6 +16,8 @@ interface VitalTileProps {
   sub?: string;
   color: string; // tailwind text color class
   alarm?: 'warning' | 'critical';
+  /** The alarm has been silenced: keep its colour, stop the flashing. */
+  alarmAcknowledged?: boolean;
   /** Numeric value for trend arrow computation (optional). */
   trendValue?: number;
   large?: boolean;
@@ -35,6 +37,7 @@ export function VitalTile({
   sub,
   color,
   alarm,
+  alarmAcknowledged = false,
   trendValue,
   large = false,
 }: VitalTileProps) {
@@ -61,7 +64,7 @@ export function VitalTile({
 
   const alarmClass =
     alarm === 'critical'
-      ? 'animate-alarm-flash ring-2 ring-red-500'
+      ? `${alarmAcknowledged ? '' : 'animate-alarm-flash'} ring-2 ring-red-500`
       : alarm === 'warning'
         ? 'ring-2 ring-yellow-400/70'
         : 'ring-1 ring-monitor-grid';

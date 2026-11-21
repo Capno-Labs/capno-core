@@ -36,6 +36,16 @@ describe('alarmTier', () => {
     expect(alarmTier(state([critical]))).toBe('critical');
   });
 
+  it('does not sound an alarm someone has silenced, but still sounds the rest', () => {
+    const ack = (a: AlarmState): AlarmState => ({ ...a, acknowledged: true });
+    expect(alarmTier(state([ack(warning)]))).toBeNull();
+    expect(alarmTier(state([ack(warning), ack(critical)]))).toBeNull();
+    // A silenced critical alarm does not keep a new warning quiet…
+    expect(alarmTier(state([warning, ack(critical)]))).toBe('warning');
+    // …nor a silenced warning a new critical one.
+    expect(alarmTier(state([ack(warning), critical]))).toBe('critical');
+  });
+
   it('is silent while faculty has silenced alarms', () => {
     expect(alarmTier(state([warning, critical], { alarmsSilenced: true }))).toBeNull();
   });

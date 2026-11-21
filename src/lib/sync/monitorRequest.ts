@@ -3,13 +3,13 @@ import type { SimulationEngine } from '../engine/engine';
 
 /**
  * What a student display may ask the session to do: operate the monitor's
- * alarm setup, and nothing else. A display never changes simulation state
+ * alarms (its alarm setup and its Silence key), and nothing else. A display never changes simulation state
  * itself — it sends one of these, and the authoritative engine (the faculty
  * controller) checks it and applies it, then the next snapshot shows the
  * result on every display.
  *
- * Deliberately narrow and relative: a press of − or + on a limit, or an
- * alarms on/off switch. No vitals, no events, no session control — and no
+ * Deliberately narrow and relative: a press of − or + on a limit, an alarms
+ * on/off switch, or a press of Silence. No vitals, no events, no session control — and no
  * absolute values, so presses made before the next snapshot arrives are not
  * lost or doubled.
  */
@@ -25,6 +25,8 @@ export const monitorRequestSchema = z.discriminatedUnion('kind', [
     })
     .strict(),
   z.object({ kind: z.literal('alarmOff'), vital: alarmVital, off: z.boolean() }).strict(),
+  // The Silence key: acknowledge whatever is alarming now.
+  z.object({ kind: z.literal('silence') }).strict(),
 ]);
 
 export type MonitorRequest = z.infer<typeof monitorRequestSchema>;
@@ -42,8 +44,10 @@ export function applyMonitorRequest(engine: SimulationEngine, raw: unknown): boo
   const request = parsed.data;
   if (request.kind === 'alarmLimitStep') {
     engine.stepAlarmLimit(request.vital, request.side, request.direction, 'display');
-  } else {
+  } else if (request.kind === 'alarmOff') {
     engine.setAlarmOff(request.vital, request.off, 'display');
+  } else {
+    engine.acknowledgeAlarms('display');
   }
   return true;
 }

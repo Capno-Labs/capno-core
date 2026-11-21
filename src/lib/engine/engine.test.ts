@@ -941,6 +941,99 @@ describe('SimulationEngine', () => {
       });
     });
 
+    describe('the Silence key', () => {
+      const messages = (e: SimulationEngine) => e.snapshot().alarms.map((a) => [a.message, a.acknowledged ?? false]);
+
+      it('acknowledges the alarms active now and leaves them listed', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.setVital('spo2', 88);
+        e.acknowledgeAlarms();
+        expect(messages(e)).toEqual([
+          ['HR HIGH 150', true],
+          ['SpO₂ low 88', true],
+        ]);
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Alarms silenced: HR HIGH 150, SpO₂ low 88' });
+      });
+
+      it('does nothing, and logs nothing, when there is nothing to silence', () => {
+        const e = running();
+        const before = e.getFullLog().length;
+        e.acknowledgeAlarms();
+        e.setVital('hr', 150);
+        e.acknowledgeAlarms();
+        e.acknowledgeAlarms(); // already silenced
+        expect(e.getFullLog().length).toBe(before + 2); // the vital change and one silence
+      });
+
+      it('stays silenced while the number drifts, but a new alarm sounds', () => {
+        const e = running();
+        e.setVital('hr', 120);
+        e.acknowledgeAlarms();
+        e.setVital('hr', 125);
+        expect(messages(e)).toEqual([['HR high 125', true]]);
+        // Another vital: a new alarm.
+        e.setVital('spo2', 88);
+        expect(messages(e)).toEqual([
+          ['HR high 125', true],
+          ['SpO₂ low 88', false],
+        ]);
+        // The same vital, now critical: a new alarm too.
+        e.setVital('hr', 150);
+        expect(messages(e)[0]).toEqual(['HR HIGH 150', false]);
+      });
+
+      it('resets when the cause clears, so the same alarm coming back sounds again', () => {
+        const e = running();
+        e.setVital('hr', 120);
+        e.acknowledgeAlarms();
+        e.setVital('hr', 80);
+        expect(e.snapshot().alarms).toEqual([]);
+        e.setVital('hr', 120);
+        expect(messages(e)).toEqual([['HR high 120', false]]);
+      });
+
+      it('treats a different rhythm as a new alarm', () => {
+        const e = running();
+        e.setRhythm('vtach', false);
+        e.acknowledgeAlarms();
+        expect(e.snapshot().alarms.find((a) => a.vital === 'rhythm')?.acknowledged).toBe(true);
+        e.setRhythm('vfib', false);
+        expect(e.snapshot().alarms.find((a) => a.vital === 'rhythm')?.acknowledged).toBeUndefined();
+      });
+
+      it('silences a cuff pressure only until the next reading', () => {
+        const e = running();
+        e.setVital('sbp', 80);
+        e.cycleNibp();
+        e.acknowledgeAlarms();
+        expect(alarmOn(e, 'sbp')).toMatchObject({ acknowledged: true });
+        e.tick(60);
+        expect(alarmOn(e, 'sbp')).toMatchObject({ acknowledged: true }); // no new reading yet
+        e.cycleNibp(); // still 80: an intermittent measurement alarms afresh
+        expect(alarmOn(e, 'sbp')?.acknowledged).toBeUndefined();
+      });
+
+      it('is separate from the instructor\'s pause, and reset clears it', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.acknowledgeAlarms();
+        expect(e.snapshot().alarmsSilenced).toBe(false);
+        e.reset();
+        e.start();
+        e.setVital('hr', 150);
+        expect(alarmOn(e, 'hr')?.acknowledged).toBeUndefined();
+      });
+
+      it('keeps the snapshot serializable with silenced alarms', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.acknowledgeAlarms();
+        const snap = e.snapshot();
+        expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+      });
+    });
+
     it('keeps the snapshot serializable with its limits', () => {
       const snap = running({ alarmProfile: 'neonatal', alarmLimits: { spo2: { warnLow: 88 } } }).snapshot();
       expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);

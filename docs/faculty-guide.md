@@ -106,8 +106,9 @@ Tips and pitfalls:
   remembered separately.
 - **Alarm sounds follow priority.** A critical alarm is a repeating burst of
   ten quick, high pulses; a warning is three slower, lower pulses repeated
-  less often. Warnings were silent before. **🔔 silence alarms** stops both on
-  every display.
+  less often. Warnings were silent before. The monitor's **🔕 Silence** key
+  quiets the alarms sounding now; **pause all alarms** above the preview
+  stops every alarm sound until you switch it back (§5).
 - For a clean projector image, put the browser in fullscreen (F11, or ⌃⌘F on
   Mac) or install Capno as a PWA (see [DEPLOYMENT.md](DEPLOYMENT.md)).
 
@@ -143,8 +144,8 @@ Orientation on the controller:
   event highlighted as **Next up**. This is the case's driving surface — see
   §6.
 - **Live monitor (what students see)**: an exact preview of the student
-  display, with a **🔔 silence alarms** toggle that silences the alarm state on
-  every connected display.
+  display, with a **pause all alarms** toggle that stops alarm sound and
+  flashing on every connected display until you switch it back.
 - **Phase of care**: the sticky command bar lists the scenario's phases with
   the current one highlighted. Press **Next phase →** (or any phase, to jump
   or step back) when the case moves on — phases never advance on their own.
@@ -287,17 +288,34 @@ Changes show on every display at once and are written to the log (the
 debrief shows when an alarm was switched off). Switching category returns to
 that category's limits; Reset returns to the scenario's. A scenario can also
 start with an alarm switched off — the monitor someone left that way.
-**🔔 silence alarms** above the preview is separate: it quiets whatever is
-alarming now, on every number.
 
-**Learners can operate the alarm setup too.** On a student display the same
-numbers are selectable and open the same setup, so learners set limits and
-switch alarms off themselves, as they would on a real monitor. Their changes
-apply to every display, and the log marks each one "on a student display" —
-the debrief shows who silenced what, and when. That is all a display can
-change: not vitals, not events, not the session. Untick **Learners can do
-the same on their display** under the Alarms buttons to keep the alarm setup
-to yourself; the choice carries over to the next case.
+**🔕 Silence**, at the top of the monitor, is the monitor's own key. It
+acknowledges the alarms active at that moment:
+
+- They stop sounding and flashing. Each stays in the alarm bar with a ✓, and
+  its tile keeps its colour, for as long as the number is out of range.
+- A **new** alarm still sounds: another number, the same number going from
+  warning to critical, or a different rhythm.
+- When a silenced number comes back into range the alarm is reset, so if it
+  goes out again it sounds again.
+- A silenced **cuff** pressure alarm disappears altogether and returns with
+  the next cuff reading if that is still out of range — a real monitor
+  treats intermittent measurements this way.
+
+The log records what was silenced ("Alarms silenced: HR HIGH 150, SpO₂ low
+88"). **pause all alarms**, above the preview, is different and yours alone:
+it stops all alarm sound and flashing until you switch it back, for a pause
+to teach or a noisy room.
+
+**Learners can operate the alarms too.** On a student display the Silence key
+and the same selectable numbers are there, so learners silence alarms, set
+limits and switch alarms off themselves, as they would on a real monitor.
+Their changes apply to every display, and the log marks each one "on a
+student display" — the debrief shows who silenced what, and when. That is
+all a display can change: not vitals, not events, not the session, and not
+your pause. Untick **Learners can do the same on their display** under the
+Alarms buttons to keep the alarms to yourself; the choice carries over to
+the next case.
 
 **Agent** buttons (SEV, ISO, DES) say which volatile the end-tidal number
 refers to. The agent tile shows it as a multiple of the patient's MAC,
@@ -499,7 +517,7 @@ descriptors) instead of a percentage.
 | "Session ended by faculty" on the monitor | You pressed **■ End session** — this is normal; students can join the next session's code. |
 | Cloud sync dot is red or orange | Cross-device sync is degraded — remote displays may be stale until it recovers (it reconnects on its own). Same-device windows are unaffected. |
 | No monitor sound | Check the device volume, then the speaker button on the monitor: **🔈 tap for sound** means the browser is waiting for a tap; 🔇 means it was turned off there. Your own preview is off by default. |
-| Alarm tone on a mild abnormality | Warnings now sound (three low pulses). Use **🔔 silence alarms**, or correct the vital. |
+| Alarm tone on a mild abnormality | Warnings now sound (three low pulses). Press **🔕 Silence** on the monitor, use **pause all alarms**, or correct the vital. |
 | BP "stuck" while sliders move | That's NIBP cuff mode working as intended — press **Cycle NIBP now** or wait for the next cuff cycle. |
 | HR tile is a beat off the slider, or bounces in AF | The monitor counts rate from the beats it draws (§5). Alarms and the debrief use the slider value. |
 | SpO₂ or NIBP shows dashes | No pulse to measure (VF, PEA, asystole), or the cuff cycled at a systolic under 30 mmHg (§5). |

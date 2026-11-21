@@ -79,8 +79,14 @@ that send a `monitor` request (`src/lib/sync/monitorRequest.ts`) while
 `snapshot.learnerAlarmSetup` is true. The controller validates each request,
 counts it once (`createRequestGate` — a display can reach it on two
 transports) and applies it with `by: 'display'`, which marks the log line.
-The request vocabulary is deliberately two kinds; a test pins it, and
-invariant 3 says who decides on a third.
+The request vocabulary is deliberately three kinds (limit step, alarms
+on/off, Silence); a test pins it, and invariant 3 says who decides on more.
+
+Silence is `acknowledgeAlarms()`: it remembers which alarms were active
+(`alarmKey` — vital, priority and kind, not the number) and marks them
+`acknowledged` in the snapshot until their cause clears. Sound
+(`alarmTier`), the banner and the tiles all read that mark; the faculty
+"pause all alarms" toggle (`alarmsSilenced`) is a separate, global switch.
 
 ## Add a rhythm
 

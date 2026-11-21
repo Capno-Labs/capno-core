@@ -68,7 +68,8 @@ describe('requests from a student display', () => {
       // Nothing but the alarm setup is reachable from a display.
       { kind: 'setVital', vital: 'hr', value: 0 },
       { kind: 'triggerEvent', eventId: 'x' },
-      { kind: 'silence' },
+      { kind: 'silence', all: true },
+      { kind: 'pauseAlarms' },
       { kind: 'end' },
     ];
     for (const raw of junk) {
@@ -78,11 +79,24 @@ describe('requests from a student display', () => {
     expect(e.getFullLog().filter((l) => l.detail === 'on a student display')).toEqual([]);
   });
 
-  it('can only ask for alarm-setup actions', () => {
+  it('presses Silence: the alarms active now are acknowledged, as the learner\'s act', () => {
+    const e = session();
+    e.setVital('spo2', 80);
+    expect(applyMonitorRequest(e, { kind: 'silence' })).toBe(true);
+    expect(e.snapshot().alarms.every((a) => a.acknowledged)).toBe(true);
+    expect(e.snapshot().log.at(-1)).toMatchObject({
+      label: 'Alarms silenced: SpO₂ LOW 80',
+      detail: 'on a student display',
+    });
+    // It does not pause alarms: that stays the instructor's.
+    expect(e.snapshot().alarmsSilenced).toBe(false);
+  });
+
+  it('can only ask for alarm actions', () => {
     // The whole vocabulary a display has. Adding a kind here widens what
     // learners can change — see CLAUDE.md invariant 3 before doing so.
     const kinds = monitorRequestSchema.options.map((o) => o.shape.kind.value);
-    expect(kinds).toEqual(['alarmLimitStep', 'alarmOff']);
+    expect(kinds).toEqual(['alarmLimitStep', 'alarmOff', 'silence']);
   });
 
   it('keeps limits inside their rules however many presses arrive', () => {

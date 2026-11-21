@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AlarmState } from '@/lib/engine/types';
 import { formatStMm } from '@/lib/engine/types';
 import {
+  alarmDismissed,
   cuffReadingFailed,
   displayAlarms,
   oximeterHasSignal,
@@ -119,6 +120,27 @@ describe('twitch bars', () => {
     const three = twitchHeights({ count: 3, ratio: null });
     const four = twitchHeights({ count: 4, ratio: 0 });
     three.forEach((h, i) => expect(four[i]).toBeCloseTo(h));
+  });
+});
+
+describe('silenced alarms on the display', () => {
+  const cuffReading = { sbp: 80, dbp: 50, atSec: 60 };
+  const sbp = (acknowledged?: boolean): AlarmState => ({ ...alarm('sbp', 'SBP low 80', 'warning'), acknowledged });
+
+  it('drops a silenced cuff-pressure alarm until the next reading', () => {
+    expect(alarmDismissed(sbp(true), cuffReading)).toBe(true);
+    expect(displayAlarms([sbp(true)], { rhythm: 'sinus' }, cuffReading)).toEqual([]);
+  });
+
+  it('keeps it while it has not been silenced, and always on an arterial line', () => {
+    expect(alarmDismissed(sbp(), cuffReading)).toBe(false);
+    expect(alarmDismissed(sbp(true), null)).toBe(false);
+  });
+
+  it('keeps other silenced alarms listed', () => {
+    const hr: AlarmState = { ...alarm('hr', 'HR HIGH 150'), acknowledged: true };
+    expect(alarmDismissed(hr, cuffReading)).toBe(false);
+    expect(displayAlarms([hr], { rhythm: 'sinus' }, cuffReading)).toEqual([hr]);
   });
 });
 
