@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { ConfirmButton } from '@/components/ui/ConfirmButton';
+import { Icon } from '@/components/ui/Icon';
+import { Menu, MenuItem } from '@/components/ui/Menu';
+import { confirmDialog } from '@/lib/store/dialogStore';
 import type { Scenario } from '@/lib/engine/types';
 import type { ScenarioCollection } from '@/lib/scenarios';
 
@@ -72,43 +74,45 @@ export function CollectionSection({
             </button>
           </form>
         ) : (
-          <h2 className="label !mb-0">
-            📚 {collection.title}{' '}
+          <h2 className="label !mb-0 flex items-center gap-2">
+            <Icon name="folder" size={14} />
+            {collection.title}{' '}
             <span className="font-normal normal-case text-faint">
               ({items.length + missingIds.length})
             </span>
           </h2>
         )}
         {showControls && !editing && (
-          <>
-            <button
-              className="text-xs text-faint hover:text-ink-2"
-              onClick={() => setEditing(true)}
-              title="Rename collection"
+          <Menu label={`Actions for collection ${collection.title}`} triggerClassName="btn-ghost btn-sm">
+            <MenuItem icon="edit" onSelect={() => setEditing(true)}>
+              Rename
+            </MenuItem>
+            <MenuItem icon="download" onSelect={onExport}>
+              Export bundle (JSON)
+            </MenuItem>
+            <MenuItem
+              icon="trash"
+              tone="danger"
+              onSelect={() => {
+                void confirmDialog({
+                  title: 'Delete this collection?',
+                  body: `“${collection.title}” will be removed. Its cases stay in the library.`,
+                  confirmLabel: 'Delete collection',
+                  tone: 'danger',
+                }).then((ok) => {
+                  if (ok) onDelete();
+                });
+              }}
             >
-              ✎ rename
-            </button>
-            <button
-              className="text-xs text-faint hover:text-ink-2"
-              onClick={onExport}
-              title="Export the collection and its custom scenarios as one JSON bundle"
-            >
-              ⬇ export bundle
-            </button>
-            <ConfirmButton
-              label="🗑 delete"
-              confirmLabel="Delete collection (scenarios are kept)"
-              title="Delete collection — its scenarios are not deleted"
-              className="text-xs text-faint hover:text-ink-2"
-              onConfirm={onDelete}
-            />
-          </>
+              Delete collection
+            </MenuItem>
+          </Menu>
         )}
       </div>
       {collection.description && <p className="text-sm text-faint">{collection.description}</p>}
       {items.length === 0 && missingIds.length === 0 && (
         <p className="text-sm text-faint">
-          Empty — use “＋ Collection…” on any scenario card to add cases.
+          Empty — use the ⋯ menu on any case to add it here.
         </p>
       )}
       <ul className="space-y-3">
@@ -117,30 +121,30 @@ export function CollectionSection({
             {showControls && (
               <div className="flex shrink-0 flex-col items-center justify-center gap-1">
                 <button
-                  className="btn-ghost !px-1.5 !py-0.5 text-xs"
+                  className="btn-ghost btn-sm btn-icon !h-7 !w-7"
                   onClick={() => onSwap(s.id, items[i - 1].id)}
                   disabled={i === 0}
                   title="Move up"
                   aria-label={`Move ${s.title} up`}
                 >
-                  ↑
+                  <Icon name="chevron-down" size={14} className="rotate-180" />
                 </button>
                 <button
-                  className="btn-ghost !px-1.5 !py-0.5 text-xs"
+                  className="btn-ghost btn-sm btn-icon !h-7 !w-7"
                   onClick={() => onSwap(s.id, items[i + 1].id)}
                   disabled={i === items.length - 1}
                   title="Move down"
                   aria-label={`Move ${s.title} down`}
                 >
-                  ↓
+                  <Icon name="chevron-down" size={14} />
                 </button>
                 <button
-                  className="btn-ghost !px-1.5 !py-0.5 text-xs"
+                  className="btn-ghost btn-sm btn-icon !h-7 !w-7"
                   onClick={() => onRemove(s.id)}
                   title="Remove from collection (scenario is kept)"
                   aria-label={`Remove ${s.title} from collection`}
                 >
-                  ✕
+                  <Icon name="close" size={14} />
                 </button>
               </div>
             )}
@@ -151,18 +155,18 @@ export function CollectionSection({
           missingIds.map((id) => (
             <li
               key={id}
-              className="flex items-center justify-between gap-2 rounded border border-dashed border-line px-3 py-2 text-xs text-faint"
+              className="flex items-center justify-between gap-2 rounded-ctl border border-dashed border-line px-3 py-2 text-xs text-faint"
             >
               <span>
                 <code>{id}</code> — not on this device: it was deleted here or belongs to a
                 bundle not yet imported. Import a bundle containing it, or remove the reference.
               </span>
               <button
-                className="btn-ghost !px-1.5 !py-0.5"
+                className="btn-ghost btn-sm btn-icon !h-7 !w-7"
                 onClick={() => onRemove(id)}
                 aria-label={`Remove missing reference ${id}`}
               >
-                ✕
+                <Icon name="close" size={14} />
               </button>
             </li>
           ))}

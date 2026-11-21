@@ -1,12 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { ImportReview } from '@/components/import/ImportReview';
 import { ImportStart } from '@/components/import/ImportStart';
+import { Button } from '@/components/ui/Button';
 import { PageHead } from '@/components/ui/PageHead';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 
 function ImportContent() {
   const search = useSearchParams();
@@ -22,9 +23,9 @@ function ImportContent() {
             : 'Turn an existing instructor run sheet into a Capno scenario without rewriting it.'
         }
         actions={
-          <Link href="/scenarios" className="btn-ghost">
-            ← Library
-          </Link>
+          <Button variant="ghost" href="/scenarios">
+            Back to the case library
+          </Button>
         }
       />
       {sourceId ? <ImportReview sourceId={sourceId} /> : <ImportStart />}
@@ -35,7 +36,7 @@ function ImportContent() {
 export default function ImportPage() {
   return (
     <FacultyGate>
-      <Suspense>
+      <Suspense fallback={<PageSkeleton kind="form" />}>
         <ImportContent />
       </Suspense>
     </FacultyGate>

@@ -1,10 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Eyebrow } from '@/components/ui/PageHead';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 import { DebriefReport } from '@/components/debrief/DebriefReport';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { fetchCloudSession } from '@/lib/cloud/sessionCloud';
@@ -43,22 +45,59 @@ export default function CloudDebriefPage() {
           <Eyebrow>Institution archive</Eyebrow>
           <div className="flex items-center gap-3">
             <span className="text-xs text-faint">
-              Institution archive — read-only (amend on the device that ran the session)
+              Read-only — amend on the device that ran the session
             </span>
-            <button className="btn-primary" onClick={() => window.print()}>
-              🖨 Export PDF
-            </button>
+            <Button
+              variant="primary"
+              icon="print"
+              onClick={() => window.print()}
+              disabled={!session}
+            >
+              Export PDF
+            </Button>
           </div>
         </header>
-        {session === undefined && (
-          <p className="text-sm text-muted">Loading from the institution archive…</p>
+        {/* The archive needs a signed-in account; say so instead of loading forever. */}
+        {authStatus === 'unconfigured' && (
+          <EmptyState
+            icon="cloud"
+            title="No institution archive here."
+            body="This installation is not connected to a cloud backend, so there is no shared archive. Debriefs from this device are under Debriefs."
+            action={
+              <Button variant="primary" href="/debrief" arrow>
+                All debriefs
+              </Button>
+            }
+          />
         )}
-        {session === null && (
-          <p className="text-sm text-muted">
-            Session not found in the institution archive, or your account cannot read it.
-          </p>
+        {authStatus === 'signed_out' && (
+          <EmptyState
+            icon="user"
+            title="Sign in to open this debrief."
+            body="Reports in the institution archive are only visible to signed-in faculty."
+            action={
+              <Button variant="primary" href="/account" arrow>
+                Sign in
+              </Button>
+            }
+          />
         )}
-        {session && <DebriefReport session={session} />}
+        {(authStatus === 'loading' || (authStatus === 'signed_in' && session === undefined)) && (
+          <PageSkeleton kind="report" />
+        )}
+        {authStatus === 'signed_in' && session === null && (
+          <EmptyState
+            icon="debrief"
+            title="Debrief not found."
+            body="It is not in the institution archive, or your account cannot read it."
+            action={
+              <Button variant="primary" href="/debrief" arrow>
+                All debriefs
+              </Button>
+            }
+          />
+        )}
+        {authStatus === 'signed_in' && session && <DebriefReport session={session} />}
       </div>
     </FacultyGate>
   );

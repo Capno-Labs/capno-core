@@ -158,6 +158,14 @@ body {
   .link {
     @apply font-semibold text-brand-strong underline-offset-2 hover:underline;
   }
+  /* Toggle chip (filters, segmented choices): style keys off aria-pressed so
+     the visual state and the announced state cannot drift apart. */
+  .chip {
+    @apply rounded-full bg-panel-2 px-2.5 py-1 text-xs font-semibold text-muted transition duration-150 ease-brand hover:bg-panel-3 hover:text-ink;
+  }
+  .chip[aria-pressed='true'] {
+    @apply bg-brand text-on-brand;
+  }
   /* Arrow affordance: the arrow nudges right on hover of the parent link. */
   .link-arrow {
     @apply inline-block transition-transform duration-150 ease-brand;

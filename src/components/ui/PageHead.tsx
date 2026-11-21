@@ -49,7 +49,8 @@ export function PageHead({
         >
           {title}
         </h1>
-        {lede && <p className="mt-3 max-w-2xl text-sm text-muted">{lede}</p>}
+        {/* A div, not a p: a lede may hold block content (e.g. a disclosure). */}
+        {lede && <div className="mt-3 max-w-2xl text-sm text-muted">{lede}</div>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>

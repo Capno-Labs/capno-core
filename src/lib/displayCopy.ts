@@ -7,6 +7,7 @@
 export const DISPLAY_COPY = {
   home: ['Run the', 'case.'],
   account: ['Sign in.'],
+  quickStart: ['Quick start.'],
   studentJoin: ['Join a', 'session.'],
   notFound: ['Page not', 'found.'],
   error: ['Something', 'went wrong.'],

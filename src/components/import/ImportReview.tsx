@@ -1,5 +1,6 @@
 'use client';
 
+import { PageSkeleton } from '@/components/ui/Skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Pill } from '@/components/ui/Pill';
@@ -47,7 +48,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
   }, [draft]);
   const unmapped = useMemo(() => new Set(draft?.unmappedBlockIds ?? []), [draft]);
 
-  if (stored === undefined) return null;
+  if (stored === undefined) return <PageSkeleton kind="form" />;
   if (!stored || !draft) {
     return (
       <section className="card space-y-2">
@@ -158,7 +159,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card max-h-[80vh] overflow-y-auto lg:sticky lg:top-4">
+        <div className="card max-h-[80vh] overflow-y-auto lg:sticky lg:top-[calc(var(--topbar-h)+1rem)] lg:max-h-[calc(100vh-var(--topbar-h)-2rem)]">
           <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
             Source · {stored.source.title ?? 'pasted text'}
           </h3>

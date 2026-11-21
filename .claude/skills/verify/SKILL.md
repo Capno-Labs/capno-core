@@ -45,7 +45,7 @@ The canonical smoke flow:
    shows two scenario tabs, a **Review queue** pill with the unresolved
    count, and the source blocks on the left.
 2. Hover/click a field's `source bN` link → block `#block-bN` gets
-   `ring-amber`. `Save to library` stays disabled until the queue is empty;
+   `ring-brand`. `Save to library` stays disabled until the queue is empty;
    vitals and patient demographics must be typed by hand (never defaulted).
 3. After saving, `/editor?id=<slug>` opens with the `imported` tag; running
    it and ending the session gives a debrief that reads

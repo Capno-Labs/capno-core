@@ -1,16 +1,20 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
-import { ConfirmButton } from '@/components/ui/ConfirmButton';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Menu, MenuItem } from '@/components/ui/Menu';
 import { PageHead } from '@/components/ui/PageHead';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { cloudEligible } from '@/lib/cloud/outbox';
 import { listCloudSessions, type CloudSessionSummary } from '@/lib/cloud/sessionCloud';
 import type { ArchivedSession } from '@/lib/engine/types';
 import { deleteSession, listSessions, replaceAllSessions } from '@/lib/store/sessionArchive';
 import { downloadJson } from '@/lib/download';
+import { confirmDialog } from '@/lib/store/dialogStore';
+import { toast } from '@/lib/store/toastStore';
 import { mergeImported, parseSessionExport, serializeSessions } from '@/lib/store/sessionExport';
 
 type SortKey = 'date' | 'score' | 'duration';
@@ -23,9 +27,9 @@ const SORTERS: Record<SortKey, (a: ArchivedSession, b: ArchivedSession) => numbe
 
 /** List of completed sessions stored on this device. */
 export default function DebriefListPage() {
-  const [sessions, setSessions] = useState<ArchivedSession[]>([]);
+  // null until the device archive has been read (avoids an empty-state flash).
+  const [sessions, setSessions] = useState<ArchivedSession[] | null>(null);
   const [cloudSessions, setCloudSessions] = useState<CloudSessionSummary[] | null>(null);
-  const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const authStatus = useAuthStore((s) => s.status);
   const authRole = useAuthStore((s) => s.profile?.role);
@@ -53,28 +57,25 @@ export default function DebriefListPage() {
     reader.onload = () => {
       const parsed = parseSessionExport(String(reader.result));
       if (!parsed.ok) {
-        setNotice({ kind: 'error', text: parsed.errors.join(' ') });
+        toast(parsed.errors.join(' '), 'error');
         return;
       }
       const { merged, added, skipped } = mergeImported(listSessions(), parsed.sessions);
       if (!replaceAllSessions(merged)) {
-        setNotice({
-          kind: 'error',
-          text: 'Device storage is full — nothing was imported. Delete old sessions and retry.',
-        });
+        toast('Device storage is full — nothing was imported. Delete old sessions and retry.', 'error');
         return;
       }
       setSessions(listSessions());
-      setNotice({
-        kind: 'ok',
-        text: `Imported ${added} session${added === 1 ? '' : 's'}${skipped > 0 ? ` (${skipped} skipped — already on this device or over the 50-session cap)` : ''}.`,
-      });
+      toast(
+        `Imported ${added} session${added === 1 ? '' : 's'}${skipped > 0 ? ` (${skipped} skipped — already on this device or over the 50-session cap)` : ''}.`,
+        'success',
+      );
     };
     reader.readAsText(file);
   };
 
   const q = query.trim().toLowerCase();
-  const visible = sessions
+  const visible = (sessions ?? [])
     .filter(
       (s) =>
         q === '' ||
@@ -90,56 +91,73 @@ export default function DebriefListPage() {
           eyebrow="Debriefs"
           title="Debrief while it's fresh."
           lede="Sessions are stored on this device. Open one for the full timeline, scores, and PDF export. Use JSON export to back up session history or move it to another machine."
+          actions={
+            <>
+              <Button
+                variant="secondary"
+                icon="download"
+                onClick={() =>
+                  downloadJson(
+                    `capno-sessions-${new Date().toISOString().slice(0, 10)}.json`,
+                    serializeSessions(sessions ?? []),
+                  )
+                }
+                disabled={!sessions || sessions.length === 0}
+              >
+                Export all
+              </Button>
+              <Button variant="secondary" icon="upload" onClick={() => fileInput.current?.click()}>
+                Import
+              </Button>
+              <input
+                ref={fileInput}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importFile(f);
+                  e.target.value = '';
+                }}
+              />
+            </>
+          }
         />
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            className="btn-secondary"
-            onClick={() =>
-              downloadJson(
-                `capno-sessions-${new Date().toISOString().slice(0, 10)}.json`,
-                serializeSessions(sessions),
-              )
-            }
-            disabled={sessions.length === 0}
-          >
-            ⬇ Export all (JSON)
-          </button>
-          <button className="btn-secondary" onClick={() => fileInput.current?.click()}>
-            ⬆ Import JSON
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) importFile(f);
-              e.target.value = '';
-            }}
-          />
-        </div>
-
-        {notice && (
-          <div
-            className={`rounded-md p-3 text-sm ring-1 ${
-              notice.kind === 'ok'
-                ? 'bg-green-soft text-green ring-green/40'
-                : 'bg-red-soft text-red ring-red/40'
-            }`}
-          >
-            {notice.text}
+        {sessions === null && (
+          <div className="space-y-2" role="status">
+            <span className="sr-only">Loading sessions…</span>
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-[4.5rem] w-full !rounded-card" />
+            ))}
           </div>
         )}
 
-        {sessions.length > 0 && (
+        {sessions !== null && sessions.length === 0 && (
+          <EmptyState
+            icon="debrief"
+            title="No debriefs yet."
+            body="Run a case and end the session — the scored, printable debrief appears here."
+            action={
+              <Button variant="primary" href="/scenarios" arrow>
+                Open the case library
+              </Button>
+            }
+            secondaryAction={
+              <Button variant="ghost" icon="upload" onClick={() => fileInput.current?.click()}>
+                Import sessions
+              </Button>
+            }
+          />
+        )}
+
+        {sessions !== null && sessions.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <input
-              className="input w-56"
+              className="input w-full sm:w-64"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by scenario or code…"
+              placeholder="Search by case or code…"
               aria-label="Search sessions"
             />
             <select
@@ -158,47 +176,51 @@ export default function DebriefListPage() {
         <ul className="space-y-2">
           {visible.map((s) => (
             <li key={s.sessionId} className="card flex flex-wrap items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <h2 className="font-bold">{s.scenario.title}</h2>
-                <p className="text-xs text-faint">
+                <p className="font-mono text-[11px] text-faint">
                   {new Date(s.endedAtIso).toLocaleString()} · session {s.sessionId} ·{' '}
                   {Math.floor(s.snapshot.elapsedSec / 60)} min ·{' '}
                   {s.score.possible > 0 ? `score ${s.score.percent}%` : 'faculty-scored'}
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Link href={`/debrief/${s.sessionId}`} className="btn-primary">
+              <div className="flex items-center gap-2">
+                <Button variant="primary" href={`/debrief/${s.sessionId}`} arrow>
                   Open report
-                </Link>
-                <button
-                  className="btn-secondary"
-                  onClick={() =>
-                    downloadJson(`capno-session-${s.sessionId}.json`, serializeSessions([s]))
-                  }
-                >
-                  Export
-                </button>
-                <ConfirmButton
-                  label="Delete"
-                  confirmLabel="Confirm delete"
-                  onConfirm={() => {
-                    deleteSession(s.sessionId);
-                    setSessions(listSessions());
-                  }}
-                />
+                </Button>
+                <Menu label={`More actions for session ${s.sessionId}`}>
+                  <MenuItem
+                    icon="download"
+                    onSelect={() =>
+                      downloadJson(`capno-session-${s.sessionId}.json`, serializeSessions([s]))
+                    }
+                  >
+                    Export JSON
+                  </MenuItem>
+                  <MenuItem
+                    icon="trash"
+                    tone="danger"
+                    onSelect={() => {
+                      void confirmDialog({
+                        title: 'Delete this debrief?',
+                        body: `The report for “${s.scenario.title}” (session ${s.sessionId}) will be removed from this device. Export it first if you need a copy.`,
+                        confirmLabel: 'Delete debrief',
+                        tone: 'danger',
+                      }).then((ok) => {
+                        if (!ok) return;
+                        deleteSession(s.sessionId);
+                        setSessions(listSessions());
+                        toast('Debrief deleted', 'success');
+                      });
+                    }}
+                  >
+                    Delete debrief
+                  </MenuItem>
+                </Menu>
               </div>
             </li>
           ))}
-          {sessions.length === 0 && (
-            <li className="card text-sm text-muted">
-              No completed sessions yet. Run a scenario from the{' '}
-              <Link href="/scenarios" className="text-brand-strong underline">
-                library
-              </Link>{' '}
-              and end it to generate a debrief.
-            </li>
-          )}
-          {sessions.length > 0 && visible.length === 0 && (
+          {sessions !== null && sessions.length > 0 && visible.length === 0 && (
             <li className="card text-sm text-muted">No sessions match “{query}”.</li>
           )}
         </ul>
@@ -224,12 +246,13 @@ export default function DebriefListPage() {
                       {s.learnerNames.length > 0 ? ` · ${s.learnerNames.join(', ')}` : ''}
                     </p>
                   </div>
-                  <Link
+                  <Button
+                    variant="secondary"
                     href={`/debrief/cloud/${encodeURIComponent(s.cloudId)}`}
-                    className="btn-secondary"
+                    arrow
                   >
                     Open report
-                  </Link>
+                  </Button>
                 </li>
               ))}
               {cloudSessions.length === 0 && (

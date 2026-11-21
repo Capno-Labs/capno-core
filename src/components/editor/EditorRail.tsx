@@ -27,7 +27,7 @@ export function EditorRail({
   return (
     <nav
       aria-label="Editor sections"
-      className="flex gap-1 overflow-x-auto pb-1 desk:sticky desk:top-14 desk:w-52 desk:shrink-0 desk:flex-col desk:self-start desk:overflow-visible desk:pb-0"
+      className="flex gap-1 overflow-x-auto pb-1 desk:sticky desk:top-[calc(var(--topbar-h)+4rem)] desk:w-52 desk:shrink-0 desk:flex-col desk:self-start desk:overflow-visible desk:pb-0"
     >
       {sections.map((s) => {
         const counts = issueCounts.get(s.id);
