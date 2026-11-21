@@ -2,6 +2,7 @@ import type {
   ActionRecord,
   ActionStatus,
   CapnoShape,
+  EcgLead,
   EcgMorphology,
   FacultyNote,
   LogEntry,
@@ -27,11 +28,16 @@ import {
   QRS_WIDTH_LABELS,
   QT_INTERVAL_LABELS,
   RHYTHM_LABELS,
+  ST_FIELD,
   ST_MM_MAX,
   ST_MM_MIN,
   T_WAVE_LABELS,
 } from './types';
 import { clampVital, evaluateAlarms, maxDbpFor, measuredEtco2, roundVital, VITAL_META } from './vitals';
+
+const ECG_LEADS: readonly EcgLead[] = ['II', 'V5'];
+type StField = (typeof ST_FIELD)[EcgLead];
+const ST_FIELDS: readonly StField[] = ['stMm', 'stV5Mm'];
 
 /** Rate an escape rhythm is brought to when selected above its range. */
 const ESCAPE_RATES: Partial<Record<Rhythm, { above: number; hr: number }>> = {
@@ -91,7 +97,9 @@ export class SimulationEngine {
   private pulseless = false;
   /** ECG complex morphology. The ST level ramps like a numeric vital. */
   private ecg: Required<EcgMorphology>;
-  private stRamp: { target: number; ratePerSec: number } | null = null;
+  private stRamps: Partial<Record<StField, { target: number; ratePerSec: number }>> = {};
+  /** The monitor shows a V5 lead under lead II. Faculty can toggle at runtime. */
+  private v5Lead: boolean;
 
   /** Current interpolated values. */
   private current: NumericVitals;
@@ -163,6 +171,7 @@ export class SimulationEngine {
     this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
     this.actions = scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = scenario.monitoring?.artLine ?? false;
+    this.v5Lead = scenario.monitoring?.v5 ?? false;
     if (this.usesCuff()) {
       this.lastNibp = { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 };
     }
@@ -286,7 +295,7 @@ export class SimulationEngine {
     this.capnoShape = capnoShape ?? 'normal';
     this.pvcFrequency = pvcFrequency ?? 'occasional';
     this.ecg = { ...NORMAL_ECG, ...ecg };
-    this.stRamp = null;
+    this.stRamps = {};
     this.pulseless = pulseless ?? false;
     this.current = { ...numeric };
     this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
@@ -301,6 +310,7 @@ export class SimulationEngine {
     this.alarmsSilenced = false;
     this.actions = this.scenario.expectedActions.map((a) => ({ actionId: a.id, status: 'pending' }));
     this.artLine = this.scenario.monitoring?.artLine ?? false;
+    this.v5Lead = this.scenario.monitoring?.v5 ?? false;
     this.lastNibp = this.usesCuff()
       ? { sbp: this.current.sbp, dbp: this.current.dbp, atSec: 0 }
       : null;
@@ -374,12 +384,14 @@ export class SimulationEngine {
     if (dbpRamp && this.current.dbp === dbpRamp.target) this.ramps.delete('dbp');
 
     // The ST level ramps the same way.
-    if (this.stRamp) {
-      const { target, ratePerSec } = this.stRamp;
-      const step = ratePerSec * dtSec;
-      const cur = this.ecg.stMm;
-      this.ecg.stMm = cur < target ? Math.min(target, cur + step) : Math.max(target, cur - step);
-      if (this.ecg.stMm === target) this.stRamp = null;
+    for (const field of ST_FIELDS) {
+      const ramp = this.stRamps[field];
+      if (!ramp) continue;
+      const step = ramp.ratePerSec * dtSec;
+      const cur = this.ecg[field];
+      const next = cur < ramp.target ? Math.min(ramp.target, cur + step) : Math.max(ramp.target, cur - step);
+      this.ecg[field] = next;
+      if (next === ramp.target) delete this.stRamps[field];
     }
 
     // Automatic NIBP cuff cycle.
@@ -527,9 +539,17 @@ export class SimulationEngine {
     this.addLog('vital_change', `Pulse → ${on ? 'absent' : 'present'}`);
   }
 
-  /** Where the ST level is headed: its ramp target if ramping, else its value now. */
-  getStTarget(): number {
-    return this.stRamp?.target ?? this.ecg.stMm;
+  /** Where a lead's ST level is headed: its ramp target if ramping, else its value now. */
+  getStTarget(lead: EcgLead = 'II'): number {
+    const field = ST_FIELD[lead];
+    return this.stRamps[field]?.target ?? this.ecg[field];
+  }
+
+  /** Add or remove the V5 lead on the monitor at runtime (faculty toggle). */
+  setV5Lead(on: boolean): void {
+    if (on === this.v5Lead) return;
+    this.v5Lead = on;
+    this.addLog('vital_change', on ? 'V5 lead added' : 'V5 lead removed');
   }
 
   /**
@@ -538,23 +558,24 @@ export class SimulationEngine {
    * T wave, QRS width and QT switch immediately, like a rhythm.
    */
   setEcg(patch: EcgMorphology, overSec = 0): void {
-    if (patch.stMm !== undefined) {
-      const target = Math.min(ST_MM_MAX, Math.max(ST_MM_MIN, patch.stMm));
-      const headed = this.stRamp?.target ?? this.ecg.stMm;
-      if (target !== headed) {
-        const distance = Math.abs(target - this.ecg.stMm);
-        if (overSec <= 0 || distance === 0) {
-          this.stRamp = null;
-          this.ecg.stMm = target;
-        } else {
-          this.stRamp = { target, ratePerSec: distance / overSec };
-        }
-        this.addLog(
-          'vital_change',
-          `ST II → ${formatStMm(target)} mm`,
-          overSec > 0 ? `over ${overSec}s` : undefined,
-        );
+    for (const lead of ECG_LEADS) {
+      const field = ST_FIELD[lead];
+      const asked = patch[field];
+      if (asked === undefined) continue;
+      const target = Math.min(ST_MM_MAX, Math.max(ST_MM_MIN, asked));
+      if (target === this.getStTarget(lead)) continue;
+      const distance = Math.abs(target - this.ecg[field]);
+      if (overSec <= 0 || distance === 0) {
+        delete this.stRamps[field];
+        this.ecg[field] = target;
+      } else {
+        this.stRamps[field] = { target, ratePerSec: distance / overSec };
       }
+      this.addLog(
+        'vital_change',
+        `ST ${lead} → ${formatStMm(target)} mm`,
+        overSec > 0 ? `over ${overSec}s` : undefined,
+      );
     }
     if (patch.tWave !== undefined && patch.tWave !== this.ecg.tWave) {
       this.ecg.tWave = patch.tWave;
@@ -714,7 +735,11 @@ export class SimulationEngine {
       rhythm: this.rhythm,
       capnoShape: this.capnoShape,
       pvcFrequency: this.pvcFrequency,
-      ecg: { ...this.ecg, stMm: Math.round(this.ecg.stMm * 10) / 10 },
+      ecg: {
+        ...this.ecg,
+        stMm: Math.round(this.ecg.stMm * 10) / 10,
+        stV5Mm: Math.round(this.ecg.stV5Mm * 10) / 10,
+      },
       pulseless: this.pulseless,
     };
   }
@@ -753,6 +778,7 @@ export class SimulationEngine {
       phaseChangedAtSec: Math.floor(this.phaseChangedAtSec),
       vitals,
       nibp: this.lastNibp ? { ...this.lastNibp, atSec: Math.floor(this.lastNibp.atSec) } : null,
+      v5Lead: this.v5Lead,
       alarms: evaluateAlarms(alarmVitals),
       alarmsSilenced: this.alarmsSilenced,
       actions: this.actions.map((a) => ({ ...a })),

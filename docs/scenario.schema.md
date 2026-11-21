@@ -18,7 +18,7 @@ scenario from the library for a complete working example.
 | `setup` | string[] | Room/equipment/confederate instructions for faculty. |
 | `estimatedMinutes` | number | Library display only. |
 | `targetDurationSec` | number? | Optional hard time budget for a scheduled lab slot. The run screen counts down against it and flags overruns; pacing display only, never drives engine behavior. |
-| `monitoring` | object? | BP display mode. Absent = NIBP cuff cycling every 180 s. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff on demand. |
+| `monitoring` | object? | What the monitor is connected to. Absent = NIBP cuff cycling every 180 s, ECG lead II only. `{ "artLine": true }` = continuous arterial pressure. `{ "nibpIntervalSec": 120 }` overrides the cuff interval (15–1800 s). `{ "v5": true }` adds a V5 ECG trace under lead II, with its own ST level. In cuff mode the monitor and BP alarms use the last *measured* reading; faculty can cycle the cuff, place a line, or add the V5 lead during a session. |
 
 ## `patient`
 
@@ -75,7 +75,8 @@ rhythm. Omit it (or any field) for a normal ECG.
 
 | Field | Values | Meaning |
 | --- | --- | --- |
-| `stMm` | −5 to 5 | ST-segment level in millimetres at standard gain (1 mm = 0.1 mV). Negative = depression, positive = elevation. Shown on the monitor as "ST II". |
+| `stMm` | −5 to 5 | ST-segment level in lead II, in millimetres at standard gain (1 mm = 0.1 mV). Negative = depression, positive = elevation. Shown on the monitor as "ST II". |
+| `stV5Mm` | −5 to 5 | The same for lead V5, independent of lead II. Drawn, and shown as "ST V5", only when the monitor has a V5 lead (`monitoring.v5`, or added by faculty). |
 | `tWave` | `normal`, `peaked`, `flat`, `inverted` | T-wave shape. |
 | `qrs` | `normal`, `wide` | QRS width. |
 | `qt` | `normal`, `long` | QT interval. |
@@ -111,7 +112,7 @@ Faculty-triggerable (or automatic) occurrences:
     { "vitals": { "sbp": 55, "dbp": 30 }, "overSec": 120 },  // ramp over 120 s
     { "rhythm": "sinus_tach" },                               // rhythm switches instantly
     { "capnoShape": "bronchospasm" },                         // CO2 trace morphology, instant
-    { "ecg": { "stMm": -2 }, "overSec": 60 },                 // ST depression developing over 60 s
+    { "ecg": { "stMm": -1, "stV5Mm": -2 }, "overSec": 60 },   // ST depression developing over 60 s, deeper in V5
     { "ecg": { "tWave": "peaked", "qrs": "wide" } },          // other ECG changes switch instantly
     { "rhythm": "sinus_tach", "pulseless": true },            // PEA: the rhythm stays, the pulse goes
     { "vitals": { "spo2": 88 }, "overSec": 90, "afterSec": 60 } // starts 60 s later

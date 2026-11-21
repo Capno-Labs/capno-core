@@ -90,7 +90,9 @@ export function MonitorDisplay({
 
   // ST-segment level, as a monitor's ST analysis prints it under the heart
   // rate — only while there are complexes it could measure one on.
-  const stSub = stIsMeasurable(v.rhythm) ? `ST II ${formatStMm(v.ecg?.stMm ?? 0)}` : `ST II ${NO_READING}`;
+  const stReadable = stIsMeasurable(v.rhythm);
+  const stSub = stReadable ? `ST II ${formatStMm(v.ecg?.stMm ?? 0)}` : `ST II ${NO_READING}`;
+  const stV5 = stReadable ? formatStMm(v.ecg?.stV5Mm ?? 0) : NO_READING;
 
   // With no pulse there is nothing for the oximeter to read: the tile shows
   // dashes rather than whatever saturation the scenario holds underneath.
@@ -119,8 +121,14 @@ export function MonitorDisplay({
   // no longer shows. Levels are untouched.
   const shownAlarms = displayAlarms(snapshot.alarms, v, cuff);
 
-  // Slightly shorter traces when the ART row makes it four waveforms.
-  const waveH = compact ? (art ? 'h-11' : 'h-14') : art ? 'h-16 md:h-24' : 'h-20 md:h-28';
+  // A second ECG lead, when the monitor has one.
+  const v5 = snapshot.v5Lead === true;
+  // Traces get shorter as rows are added: ECG, pleth and CO₂ always, plus the
+  // arterial line and the V5 lead when present.
+  const traceRows = 3 + (art ? 1 : 0) + (v5 ? 1 : 0);
+  const waveH = compact
+    ? ['h-14', 'h-11', 'h-9'][traceRows - 3]
+    : ['h-20 md:h-28', 'h-16 md:h-24', 'h-14 md:h-20'][traceRows - 3];
   // Waveform + paired numeric per row; the tile column stays narrow so the
   // trace keeps most of the width.
   const traceRowCols = compact
@@ -186,6 +194,17 @@ export function MonitorDisplay({
           </div>
           <VitalTile label="HR" value={String(shownHr)} unit="bpm" sub={stSub} color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
         </div>
+        {v5 && (
+          <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
+            <div className="min-w-0">
+              <span className="px-1 text-xs font-bold uppercase tracking-wider text-vital-ecg">
+                ECG V5
+              </span>
+              <Waveform kind="ecg" lead="V5" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} ecg={v.ecg} frozen={frozen} heightClass={waveH} />
+            </div>
+            <VitalTile label="ST V5" value={stV5} unit="mm" color="text-vital-ecg" />
+          </div>
+        )}
         {art && (
           <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
             <div className="min-w-0">

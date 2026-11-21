@@ -1,5 +1,5 @@
-import type { CapnoShape, EcgMorphology, Rhythm } from '@/lib/engine/types';
-import { rhythmPerfuses } from '@/lib/engine/types';
+import type { CapnoShape, EcgLead, EcgMorphology, Rhythm } from '@/lib/engine/types';
+import { rhythmPerfuses, ST_FIELD } from '@/lib/engine/types';
 import { P_MS, R_MS, type Beat } from './beatClock';
 
 /**
@@ -85,17 +85,28 @@ function pWave(ms: number): number {
   return gaussian(ms, P_MS, 29, 0.18);
 }
 
+/** Depth of the Q and S waves of a normally conducted beat, per lead. */
+const Q_S_DEPTH: Record<EcgLead, { q: number; s: number }> = {
+  II: { q: -0.22, s: -0.32 },
+  // V5: a small septal q (normal there: under 2 mm deep, under 40 ms wide
+  // and under a quarter of the R wave), a dominant R, and an s wave that is
+  // small or often absent (Meek & Morris, BMJ 2002;324:470; StatPearls,
+  // "Electrocardiogram", NBK549803). Drawn 0.8 mm and 1 mm.
+  V5: { q: -0.08, s: -0.1 },
+};
+
 /** Q, R and S around an R wave at `R` ms. */
-function qrs(ms: number, R: number, r: number, s: number, wide: boolean): number {
+function qrs(ms: number, R: number, r: number, lead: EcgLead, wide: boolean): number {
+  const { q, s } = Q_S_DEPTH[lead];
   if (wide) {
     return (
-      gaussian(ms, R - 38, 16, -0.22) + // Q
+      gaussian(ms, R - 38, 16, q) + // Q
       gaussian(ms, R, 22, r) + // broad R
       gaussian(ms, R + 58, 28, s * 1.4) // deep, slurred S
     );
   }
   return (
-    gaussian(ms, R - 33, 11, -0.22) + // Q
+    gaussian(ms, R - 33, 11, q) + // Q
     gaussian(ms, R, 10, r) + // R
     gaussian(ms, R + 33, 13, s) // S
   );
@@ -144,8 +155,7 @@ function tWave(ms: number, R: number, baseSec: number, amplitude: number, ecg: E
  * the J point: Fourth Universal Definition of MI; ≥1 mm 60–80 ms after it
  * for intraoperative monitoring: London et al., Anesthesiology 1988;69:232).
  */
-function stSegment(ms: number, R: number, baseSec: number, ecg: EcgMorphology): number {
-  const stMm = ecg.stMm ?? 0;
+function stSegment(ms: number, R: number, baseSec: number, ecg: EcgMorphology, stMm: number): number {
   if (stMm === 0) return 0;
   const { peakMs, widthMs } = tTiming(R, baseSec, ecg);
   const jPointMs = R + 50 + (ecg.qrs === 'wide' ? WIDE_QRS_DELAY_MS + 15 : 0);
@@ -206,9 +216,18 @@ const PACING_SPIKE_BEFORE_R_MS = 70;
  * run past the beat's own interval — at fast rates the T wave lands in the
  * next cycle, as it does on a real trace. `ecg` (ST level, T wave, QRS
  * width, QT) reshapes beats with a normal conduction pattern; ectopic, paced
- * and escape wide complexes, VT and PEA keep their own shape.
+ * and escape wide complexes, VT and PEA keep their own shape. `lead` picks the
+ * ST level that lead reads and the normal QRS shape seen from it. The wide
+ * and ectopic complexes are drawn alike in both leads — a simplification:
+ * their polarity really differs by lead, and no consistent source was found
+ * for, e.g., a paced complex in V5.
  */
-export function ecgBeat(beat: BeatShape, ms: number, ecg: EcgMorphology = {}): number {
+export function ecgBeat(
+  beat: BeatShape,
+  ms: number,
+  ecg: EcgMorphology = {},
+  lead: EcgLead = 'II',
+): number {
   if (ms < 0) return 0;
 
   if (beat.rhythm === 'vtach') {
@@ -258,12 +277,12 @@ export function ecgBeat(beat: BeatShape, ms: number, ecg: EcgMorphology = {}): n
   // Herweg, Front Cardiovasc Med 2024;11:1450705).
   if (beat.rhythm === 'av_block_mobitz2' && ecg.qrs !== 'wide') ecg = { ...ecg, qrs: 'wide' };
   const wide = ecg.qrs === 'wide';
-  const st = stSegment(ms, R, beat.baseSec, ecg);
+  const st = stSegment(ms, R, beat.baseSec, ecg, ecg[ST_FIELD[lead]] ?? 0);
   if (beat.kind === 'pac') {
     // Normal QRS behind an early P of different shape (StatPearls,
     // "Premature Atrial Contractions", NBK559204).
     return (
-      gaussian(ms, R - 142, 25, 0.12) + qrs(ms, R, 1.0, -0.32, wide) + tWave(ms, R, beat.baseSec, 0.3, ecg) + st
+      gaussian(ms, R - 142, 25, 0.12) + qrs(ms, R, 1.0, lead, wide) + tWave(ms, R, beat.baseSec, 0.3, ecg) + st
     );
   }
 
@@ -280,12 +299,12 @@ export function ecgBeat(beat: BeatShape, ms: number, ecg: EcgMorphology = {}): n
       // (StatPearls, "Junctional Rhythm", NBK507715). In complete block this
       // is a junctional escape; set the QRS to wide for a ventricular escape.
       // The dissociated P waves are added by ecgValue.
-      return qrs(ms, R, 1.0, -0.32, wide) + tWave(ms, R, beat.baseSec, 0.3, ecg) + st;
+      return qrs(ms, R, 1.0, lead, wide) + tWave(ms, R, beat.baseSec, 0.3, ecg) + st;
     default:
       // Sinus P-QRS-T (also the normal beats between ectopics, and the
       // conducted beats of first- and second-degree block, where the QRS
       // simply follows its P wave later).
-      return pWave(ms) + qrs(ms, R, 1.0, -0.32, wide) + tWave(ms, R, beat.baseSec, 0.3, ecg) + st;
+      return pWave(ms) + qrs(ms, R, 1.0, lead, wide) + tWave(ms, R, beat.baseSec, 0.3, ecg) + st;
   }
 }
 
@@ -356,11 +375,12 @@ export function ecgValue(
   rhythm: Rhythm,
   t: number,
   ecg: EcgMorphology = {},
+  lead: EcgLead = 'II',
 ): number {
   const cycleSec = beats.length > 0 ? beats[beats.length - 1].baseSec : 1;
   let v = ecgBaseline(rhythm, t, cycleSec);
   if (BASELINE_ONLY.has(rhythm)) return v;
-  for (const b of beats) v += ecgBeat(b, (t - b.startSec) * 1000, ecg);
+  for (const b of beats) v += ecgBeat(b, (t - b.startSec) * 1000, ecg, lead);
   return v;
 }
 

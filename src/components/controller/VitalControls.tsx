@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import type {
   CapnoShape,
+  EcgLead,
   NumericVitals,
   PvcFrequency,
   QrsWidth,
@@ -20,6 +21,7 @@ import {
   QRS_WIDTH_LABELS,
   QT_INTERVAL_LABELS,
   RHYTHM_LABELS,
+  ST_FIELD,
   ST_MM_MAX,
   ST_MM_MIN,
   T_WAVE_LABELS,
@@ -146,14 +148,51 @@ export function VitalControls() {
   const setPulseless = useControllerStore((s) => s.setPulseless);
   const cycleNibp = useControllerStore((s) => s.cycleNibp);
   const setArtLine = useControllerStore((s) => s.setArtLine);
+  const setV5Lead = useControllerStore((s) => s.setV5Lead);
   const [overSec, setOverSec] = useState(3);
   if (!engine || !snapshot) return null;
 
   const ecg = { ...NORMAL_ECG, ...snapshot.vitals.ecg };
-  const stTarget = engine.getStTarget();
-  const stepSt = (by: number) => {
-    const next = Math.min(ST_MM_MAX, Math.max(ST_MM_MIN, Math.round((stTarget + by) * 2) / 2));
-    if (next !== stTarget) setEcg({ stMm: next }, overSec);
+  // ST stepper for one lead: half-millimetre steps, following the selected ramp.
+  const stStepper = (lead: EcgLead) => {
+    const field = ST_FIELD[lead];
+    const target = engine.getStTarget(lead);
+    const step = (by: number) => {
+      const next = Math.min(ST_MM_MAX, Math.max(ST_MM_MIN, Math.round((target + by) * 2) / 2));
+      if (next !== target) setEcg({ [field]: next }, overSec);
+    };
+    return (
+      <span className="flex items-center gap-1" key={lead}>
+        <span className="w-10 text-xs font-semibold text-ink-2">ST {lead}</span>
+        <button
+          className="btn-secondary btn-sm"
+          onClick={() => step(-0.5)}
+          disabled={target <= ST_MM_MIN}
+          aria-label={`Lower the ST segment in lead ${lead} by half a millimetre`}
+        >
+          −
+        </button>
+        <span
+          className={`w-20 text-center font-mono text-sm tabular-nums ${target !== 0 ? 'text-vital-ecg' : 'text-ink'}`}
+          title={`ST level in lead ${lead}, mm: negative is depression, positive is elevation. Changes over the selected ramp.`}
+        >
+          {formatStMm(target)} mm
+        </span>
+        <button
+          className="btn-secondary btn-sm"
+          onClick={() => step(0.5)}
+          disabled={target >= ST_MM_MAX}
+          aria-label={`Raise the ST segment in lead ${lead} by half a millimetre`}
+        >
+          +
+        </button>
+        {target !== 0 && (
+          <button className="btn-ghost btn-sm" onClick={() => setEcg({ [field]: 0 }, overSec)}>
+            baseline
+          </button>
+        )}
+      </span>
+    );
   };
   const ecgChip = (active: boolean) =>
     `rounded-ctl px-2 py-1 text-xs font-semibold ${
@@ -228,6 +267,29 @@ export function VitalControls() {
             </button>
           </div>
         )}
+
+        <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
+          <span className="text-xs text-muted">
+            {snapshot.v5Lead ? (
+              <>
+                <span className="font-semibold text-vital-ecg">Leads II and V5</span> — the monitor
+                shows both, each with its own ST level.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold text-ink-2">Lead II only</span> — add V5, the lead
+                that shows most intraoperative ischemia.
+              </>
+            )}
+          </span>
+          <button
+            className="btn-secondary btn-sm shrink-0"
+            onClick={() => setV5Lead(!snapshot.v5Lead)}
+            title="Show or hide a V5 ECG trace under lead II on every display"
+          >
+            {snapshot.v5Lead ? 'Remove V5 lead' : 'Add V5 lead'}
+          </button>
+        </div>
 
         <div>
           <span className="label">Rhythm</span>
@@ -316,36 +378,8 @@ export function VitalControls() {
             )}
           </span>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <span className="flex items-center gap-1">
-              <span className="w-10 text-xs font-semibold text-ink-2">ST II</span>
-              <button
-                className="btn-secondary btn-sm"
-                onClick={() => stepSt(-0.5)}
-                disabled={stTarget <= ST_MM_MIN}
-                aria-label="Lower the ST segment by half a millimetre"
-              >
-                −
-              </button>
-              <span
-                className={`w-20 text-center font-mono text-sm tabular-nums ${stTarget !== 0 ? 'text-vital-ecg' : 'text-ink'}`}
-                title="ST level in lead II, mm: negative is depression, positive is elevation. Changes over the selected ramp."
-              >
-                {formatStMm(stTarget)} mm
-              </span>
-              <button
-                className="btn-secondary btn-sm"
-                onClick={() => stepSt(0.5)}
-                disabled={stTarget >= ST_MM_MAX}
-                aria-label="Raise the ST segment by half a millimetre"
-              >
-                +
-              </button>
-              {stTarget !== 0 && (
-                <button className="btn-ghost btn-sm" onClick={() => setEcg({ stMm: 0 }, overSec)}>
-                  baseline
-                </button>
-              )}
-            </span>
+            {stStepper('II')}
+            {snapshot.v5Lead && stStepper('V5')}
             <span className="flex items-center gap-1" role="group" aria-label="T wave">
               <span className="text-xs font-semibold text-ink-2">T</span>
               {(Object.keys(T_WAVE_LABELS) as TWave[]).map((t) => (

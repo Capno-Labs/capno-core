@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { CapnoShape, EcgMorphology, PvcFrequency, Rhythm } from '@/lib/engine/types';
+import type { CapnoShape, EcgLead, EcgMorphology, PvcFrequency, Rhythm } from '@/lib/engine/types';
 import { PVC_FREQUENCY_EVERY_N, rhythmPerfuses } from '@/lib/engine/types';
 import { BeatClock } from './beatClock';
 import { artValue, capnoSample, ecgValue, plethValue, SUBSTEP_SEC } from './waveforms';
@@ -29,6 +29,8 @@ interface WaveformProps {
   pvcFrequency?: PvcFrequency;
   /** Complex morphology — ST, T wave, QRS width, QT (ecg traces only). */
   ecg?: EcgMorphology;
+  /** Which ECG lead to draw (ecg traces only). Default lead II. */
+  lead?: EcgLead;
   /** No pulse (pleth and art traces go flat). Defaults to what the rhythm
    *  alone implies; pass `!hasPulse(vitals)` to honour PEA and pulseless VT. */
   pulseless?: boolean;
@@ -69,14 +71,15 @@ export function Waveform({
   capnoShape = 'normal',
   pvcFrequency = 'occasional',
   ecg,
+  lead = 'II',
   pulseless = !rhythmPerfuses(rhythm),
   frozen = false,
   clock,
   heightClass = 'h-20 md:h-24',
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, pulseless, frozen });
-  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, pulseless, frozen };
+  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, lead, pulseless, frozen });
+  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, ecg, lead, pulseless, frozen };
 
   // A trace without a shared clock keeps a private one fed from props.
   const ownClock = useRef<BeatClock | null>(null);
@@ -133,7 +136,7 @@ export function Waveform({
       const beats = beatClock.recent();
       switch (kind) {
         case 'ecg':
-          return ecgValue(beats, v.rhythm, t, v.ecg);
+          return ecgValue(beats, v.rhythm, t, v.ecg, v.lead);
         case 'pleth':
           return plethValue(beats, v.pulseless, t, v.spo2);
         case 'capno':
