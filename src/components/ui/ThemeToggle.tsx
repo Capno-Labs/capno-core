@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { applyTheme, getActiveTheme, type Theme } from '@/lib/theme';
+import { Icon } from './Icon';
 
 /** Dark/light switch. The DOM attribute (set pre-hydration by the inline
  *  script in layout.tsx) is the source of truth, so read it after mount. */
@@ -17,7 +18,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="btn-ghost h-9 w-9 !p-0 text-base"
+      className="btn-ghost btn-icon"
       aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
       title={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
       onClick={() => {
@@ -25,7 +26,7 @@ export function ThemeToggle() {
         setTheme(next);
       }}
     >
-      <span aria-hidden="true">{theme === 'light' ? '☾' : '☀'}</span>
+      <Icon name={theme === 'light' ? 'moon' : 'sun'} size={16} />
     </button>
   );
 }

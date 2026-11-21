@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuthStore } from '@/lib/cloud/authStore';
+import { PageSkeleton } from '@/components/ui/Skeleton';
 import { supabaseConfigured } from '@/lib/sync/supabase';
 
 const PIN = process.env.NEXT_PUBLIC_FACULTY_PIN;
@@ -39,10 +40,11 @@ export function FacultyGate({ children }: { children: React.ReactNode }) {
     status === 'signed_in' && (profile?.role === 'faculty' || profile?.role === 'admin');
 
   if (authUnlocked) return <>{children}</>;
-  if (unlocked === null) return null; // avoid hydration flash
+  // Hydrating: a placeholder, not a blank page (and no flash of the PIN form).
+  if (unlocked === null) return <PageSkeleton />;
   if (unlocked) return <>{children}</>;
   // While auth is restoring a persisted session, don't flash the PIN form.
-  if (status === 'loading') return null;
+  if (status === 'loading') return <PageSkeleton />;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -79,7 +81,7 @@ export function FacultyGate({ children }: { children: React.ReactNode }) {
         {supabaseConfigured() && (
           <Link
             href="/account"
-            className="block text-center text-xs text-brand-strong hover:underline"
+            className="link block text-center text-xs"
           >
             or sign in with your institution account →
           </Link>

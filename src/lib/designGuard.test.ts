@@ -51,7 +51,6 @@ describe('palette rules', () => {
     // ever shrinks.
     const allowed = new Set([
       'app/student/page.tsx',
-      'components/shell/SideNav.tsx',
       'components/eventCategories.ts',
       'components/controller/ActionMarkRow.tsx',
     ]);
