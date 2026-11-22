@@ -398,8 +398,12 @@ event's category. It reads as done / now / later:
   it, so you can run the case out of order; **⤒** makes it the next event
   (the one N fires) instead, and the small arrow opens its description and
   actions without firing.
-- **Done** — a fired event folds to one line once its actions are marked (it
-  stays open while any are still waiting). Tap the line to reopen it; firing
+- **Done** — once a fired event's actions are marked it leaves the list for
+  the **Done** line at the top, which counts the finished events and tallies
+  their marks. (A fired event stays open, in place, while any of its actions
+  are still waiting.) Because finished events collect there, the events in
+  play and **Next up** stay at the top of the panel all session. Tap **Done**
+  to list the finished events; tap one to reopen it and change a mark. Firing
   it again is the **Fire again** button inside, so a stray tap can't repeat a
   deterioration.
 - The panel follows along: when an event fires — by tap, N, or its auto timer

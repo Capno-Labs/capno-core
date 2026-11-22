@@ -55,7 +55,11 @@ The canonical smoke flow:
    `data-flow-state` = `next | upcoming | watching | done`. An unfired
    event's fire button is the one whose `title` is the event description
    (`button[title="…"]`); a fired event's header is a toggle
-   (`aria-expanded`), and re-firing is `Fire again` inside it. Action rows
+   (`aria-expanded`), and re-firing is `Fire again` inside it. `done` events
+   (fired, nothing left to mark) are not in the DOM until the Done line is
+   opened: `[data-flow-done-group] > button` (`aria-expanded`), about 2 s
+   after the last mark. With `Show all` on, or a filter typed, every event
+   renders in place instead. Action rows
    render only in open cards — press `Show all` (`aria-pressed`) to render
    every `getByLabel('<action>: Observed')`; a marked row folds after ~2 s
    into a `Change mark — <action>` button. `N` fires the next event from

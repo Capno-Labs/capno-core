@@ -57,7 +57,8 @@ palette-quantized downstream — not this skill's job, and no ffmpeg here
   again afterwards so the stills show the folded rail.
 - At the reel's viewport the controller fits the window: the page does not
   scroll, each zone does. A fired event is a toggle, not a fire button —
-  re-firing is "Fire again" inside it.
+  re-firing is "Fire again" inside it — and once its actions are marked it
+  moves under the "Done" line at the top of the Flow.
 - Videos are silent (Playwright records no audio) — don't debug
   "missing beeps".
 - The "Simulation only — not for clinical use" disclaimer must stay
