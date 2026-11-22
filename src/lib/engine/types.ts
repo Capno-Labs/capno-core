@@ -605,6 +605,15 @@ export const ALARM_PROFILE_LABELS: Record<AlarmProfile, string> = {
 export const ALARM_VITALS = ['hr', 'sbp', 'spo2', 'etco2', 'rr', 'temp'] as const satisfies readonly (keyof NumericVitals)[];
 export type AlarmVital = (typeof ALARM_VITALS)[number];
 
+/** The anesthesia-machine readings that have alarm limits: airway pressure,
+ *  minute volume and inspired oxygen. */
+export const MACHINE_ALARM_PARAMS = ['paw', 'mv', 'fio2'] as const;
+export type MachineAlarmParam = (typeof MACHINE_ALARM_PARAMS)[number];
+
+/** Everything with settable alarm limits: the vitals, then the machine readings. */
+export const ALARM_PARAMS = [...ALARM_VITALS, ...MACHINE_ALARM_PARAMS] as const;
+export type AlarmParam = (typeof ALARM_PARAMS)[number];
+
 export const ALARM_BAND_KEYS = ['critLow', 'warnLow', 'warnHigh', 'critHigh'] as const;
 export type AlarmBandKey = (typeof ALARM_BAND_KEYS)[number];
 
@@ -614,14 +623,14 @@ export type AlarmBandKey = (typeof ALARM_BAND_KEYS)[number];
  */
 export type AlarmBand = Partial<Record<AlarmBandKey, number>>;
 
-/** The limits in force: one band per vital. */
-export type AlarmLimits = Record<AlarmVital, AlarmBand>;
+/** The limits in force: one band per vital and per machine reading. */
+export type AlarmLimits = Record<AlarmParam, AlarmBand>;
 
 /**
  * A scenario's changes to its profile's limits. Only the limits listed
  * change; `null` switches a limit off.
  */
-export type AlarmLimitOverrides = Partial<Record<AlarmVital, Partial<Record<AlarmBandKey, number | null>>>>;
+export type AlarmLimitOverrides = Partial<Record<AlarmParam, Partial<Record<AlarmBandKey, number | null>>>>;
 
 /** The two limits a clinician sets on a monitor: the low and the high warning limit. */
 export type AlarmSide = 'low' | 'high';
@@ -652,11 +661,11 @@ export interface MonitoringConfig {
    */
   alarmLimits?: AlarmLimitOverrides;
   /**
-   * Vitals whose limit alarms start switched off — the monitor someone left
-   * with an alarm disabled. Faculty can switch each on or off during a
-   * session.
+   * Vitals and machine readings whose limit alarms start switched off — the
+   * monitor someone left with an alarm disabled. Each can be switched on or
+   * off during a session.
    */
-  alarmsOff?: AlarmVital[];
+  alarmsOff?: AlarmParam[];
 }
 
 export interface Scenario {
@@ -794,7 +803,7 @@ export interface SimSnapshot {
   /** Vitals whose limit alarms are switched off: the monitor shows an
    *  alarms-off mark beside the number in place of its limits. Optional:
    *  absent (= none) in older snapshots. */
-  alarmsOff?: AlarmVital[];
+  alarmsOff?: AlarmParam[];
   /**
    * True while learners may operate the monitor's alarm setup from their
    * display (the display then offers it and sends requests; the session

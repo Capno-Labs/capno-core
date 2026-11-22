@@ -151,6 +151,16 @@ describe('alarm limits beside the numbers', () => {
     expect(limitsText({ warnHigh: 38, critHigh: 39.5 })).toBe('max 38');
   });
 
+  it('prints a machine reading\'s own limits, whatever band they sit in', () => {
+    expect(limitsText({ critLow: 8, critHigh: 40 }, 'paw')).toBe('8–40');
+    expect(limitsText({ warnLow: 3, warnHigh: 12 }, 'mv')).toBe('3–12');
+    expect(limitsText({ critLow: 20 }, 'fio2')).toBe('min 20');
+    expect(limitsText({ critHigh: 40 }, 'paw')).toBe('max 40');
+    expect(limitsText({}, 'fio2')).toBeUndefined();
+    // A vital named explicitly reads as it does by default.
+    expect(limitsText({ warnLow: 50, warnHigh: 110, critLow: 40 }, 'hr')).toBe('50–110');
+  });
+
   it('prints nothing when there are no warning limits or no limits were sent', () => {
     expect(limitsText({ critHigh: 39.5 })).toBeUndefined();
     expect(limitsText({})).toBeUndefined();

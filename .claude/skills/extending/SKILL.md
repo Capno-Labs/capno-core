@@ -70,6 +70,15 @@ limits joins `ALARM_VITALS` (types), every profile, `alarmLimitsSchema`, the
 generator's `SCHEMA_REFERENCE` and the table in `docs/scenario.schema.md`.
 Change a profile's numbers only with a source.
 
+The machine's alarms (`paw`, `mv`, `fio2` — `MACHINE_ALARM_PARAMS`) share
+the same limits object, with one limit a side in the band of the alarm's
+priority. `ALARM_PARAMS` is everything with limits; `ALARM_PARAM_META` has
+each one's label and range, and `ALARM_SET_KEYS` says which band key each
+side sets (a vital's warning limit; a machine reading's only limit). Use
+those three, not `VITAL_META` and `warnLow`/`warnHigh`, in anything that
+handles limits generally. Minute-volume alarms still carry
+`AlarmState.vital: 'vt'` — the tile they light.
+
 At runtime the monitor is operated through `AlarmSetup`
 (`src/components/monitor/`), opened by selecting a tile: it calls
 `setAlarmLimit` / `setAlarmOff` (engine → `withAlarmLimit`, the `alarmsOff`

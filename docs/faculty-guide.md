@@ -227,7 +227,11 @@ so move the vitals that go with it. A guide to which numbers to move:
   saturation follows later.
 
 The machine alarms on airway pressure above 40 or below 8 cmH₂O, minute
-volume under 3 or over 12 L/min, and inspired oxygen under 20%.
+volume under 3 or over 12 L/min, and inspired oxygen under 20%. Those are
+the starting limits: select the Paw, VT or O₂ tile to change them or switch
+that alarm off, as for any other number (see **Alarm setup, on the monitor**
+below). They are the same in every patient category, so for a small child
+lower the minute-volume limit — a neonate's sits well under 3 L/min.
 
 **Twitch monitor.** Press **Attach twitch monitor** to add a TOF tile to every
 display; a scenario can also start with one. You set the block — the
@@ -272,8 +276,12 @@ The category is yours to choose, as on a real monitor: it does not follow the
 patient's age.
 
 **Alarm setup, on the monitor.** Select a number on the monitor preview — HR,
-SpO₂, EtCO₂, blood pressure or temperature — to open its alarm setup, as on a
-real monitor. (EtCO₂ opens with the breathing rate, which shares its tile.)
+SpO₂, EtCO₂, blood pressure, temperature, or the machine's airway pressure,
+tidal volume and inspired oxygen — to open its alarm setup, as on a real
+monitor. (EtCO₂ opens with the breathing rate, which shares its tile; the VT
+tile sets the minute-volume limits, printed on it as `MV 3–12`.) A machine
+reading has one limit a side and no separate critical value, and inspired
+oxygen has a low limit only.
 
 - **High** and **Low** set that number's limits with − and +. A limit taken
   to the end of its range reads **off**.

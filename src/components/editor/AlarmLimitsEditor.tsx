@@ -4,12 +4,28 @@ import { useState } from 'react';
 import type {
   AlarmBandKey,
   AlarmLimitOverrides,
+  AlarmParam,
   AlarmProfile,
-  AlarmVital,
   MonitoringConfig,
 } from '@/lib/engine/types';
-import { ALARM_BAND_KEYS, ALARM_PROFILE_LABELS, ALARM_VITALS } from '@/lib/engine/types';
-import { ALARM_PROFILES, alarmLimitProblems, resolveAlarmLimits, VITAL_META } from '@/lib/engine/vitals';
+import { ALARM_BAND_KEYS, ALARM_PARAMS, ALARM_PROFILE_LABELS, MACHINE_ALARM_PARAMS } from '@/lib/engine/types';
+import {
+  ALARM_PARAM_META,
+  ALARM_PROFILES,
+  ALARM_SET_KEYS,
+  alarmLimitProblems,
+  resolveAlarmLimits,
+} from '@/lib/engine/vitals';
+
+/**
+ * A vital has all four limits. A machine reading has one a side, in the
+ * column of its priority (airway pressure and inspired oxygen alarm as
+ * critical, minute volume as a warning): its other cells are not limits.
+ */
+function hasLimit(param: AlarmParam, key: AlarmBandKey): boolean {
+  if (!(MACHINE_ALARM_PARAMS as readonly string[]).includes(param)) return true;
+  return Object.values(ALARM_SET_KEYS[param]).includes(key);
+}
 
 const BAND_LABELS: Record<AlarmBandKey, string> = {
   critLow: 'Critical low',
@@ -73,14 +89,14 @@ export function AlarmLimitsEditor({
   const base = ALARM_PROFILES[profile];
   const problems = alarmLimitProblems(resolveAlarmLimits(monitoring));
 
-  const setLimit = (vital: AlarmVital, key: AlarmBandKey, raw: string) => {
+  const setLimit = (vital: AlarmParam, key: AlarmBandKey, raw: string) => {
     const text = raw.trim().toLowerCase();
     const next: AlarmLimitOverrides = { ...overrides, [vital]: { ...overrides?.[vital] } };
     const band = next[vital]!;
     const n = Number(text);
     if (text === 'off') band[key] = null;
     else if (text === '' || !Number.isFinite(n)) delete band[key];
-    else band[key] = Math.min(VITAL_META[vital].max, Math.max(VITAL_META[vital].min, n));
+    else band[key] = Math.min(ALARM_PARAM_META[vital].max, Math.max(ALARM_PARAM_META[vital].min, n));
     if (Object.keys(band).length === 0) delete next[vital];
     onChange({
       alarmProfile: monitoring?.alarmProfile,
@@ -90,8 +106,8 @@ export function AlarmLimitsEditor({
   };
 
   const alarmsOff = monitoring?.alarmsOff ?? [];
-  const setOff = (vital: AlarmVital, off: boolean) => {
-    const next = ALARM_VITALS.filter((v) => (v === vital ? off : alarmsOff.includes(v)));
+  const setOff = (vital: AlarmParam, off: boolean) => {
+    const next = ALARM_PARAMS.filter((v) => (v === vital ? off : alarmsOff.includes(v)));
     onChange({
       alarmProfile: monitoring?.alarmProfile,
       alarmLimits: overrides,
@@ -99,7 +115,7 @@ export function AlarmLimitsEditor({
     });
   };
 
-  const shown = (vital: AlarmVital, key: AlarmBandKey): string => {
+  const shown = (vital: AlarmParam, key: AlarmBandKey): string => {
     const value = overrides?.[vital]?.[key];
     return value === null ? 'off' : value === undefined ? '' : String(value);
   };
@@ -133,7 +149,7 @@ export function AlarmLimitsEditor({
         <table className="text-sm">
           <thead>
             <tr className="text-left text-xs text-faint">
-              <th className="pr-3 font-normal">Vital</th>
+              <th className="pr-3 font-normal">Reading</th>
               {ALARM_BAND_KEYS.map((key) => (
                 <th key={key} className="pr-2 font-normal">
                   {BAND_LABELS[key]}
@@ -143,22 +159,28 @@ export function AlarmLimitsEditor({
             </tr>
           </thead>
           <tbody>
-            {ALARM_VITALS.map((vital) => (
+            {ALARM_PARAMS.map((vital) => (
               <tr key={vital}>
                 <td className="pr-3 text-ink-2">
-                  {VITAL_META[vital].label}
-                  {VITAL_META[vital].unit && (
-                    <span className="text-xs text-faint"> {VITAL_META[vital].unit}</span>
+                  {ALARM_PARAM_META[vital].label}
+                  {ALARM_PARAM_META[vital].unit && (
+                    <span className="text-xs text-faint"> {ALARM_PARAM_META[vital].unit}</span>
                   )}
                 </td>
                 {ALARM_BAND_KEYS.map((key) => (
                   <td key={key} className="py-0.5 pr-2">
-                    <LimitInput
-                      label={`${VITAL_META[vital].label} ${BAND_LABELS[key].toLowerCase()} limit`}
-                      placeholder={base[vital][key] === undefined ? 'none' : String(base[vital][key])}
-                      value={shown(vital, key)}
-                      onCommit={(raw) => setLimit(vital, key, raw)}
-                    />
+                    {hasLimit(vital, key) ? (
+                      <LimitInput
+                        label={`${ALARM_PARAM_META[vital].label} ${BAND_LABELS[key].toLowerCase()} limit`}
+                        placeholder={base[vital][key] === undefined ? 'none' : String(base[vital][key])}
+                        value={shown(vital, key)}
+                        onCommit={(raw) => setLimit(vital, key, raw)}
+                      />
+                    ) : (
+                      <span className="block w-20 text-center text-faint" aria-hidden>
+                        —
+                      </span>
+                    )}
                   </td>
                 ))}
                 <td className="py-0.5 pr-2">
@@ -167,7 +189,7 @@ export function AlarmLimitsEditor({
                       type="checkbox"
                       checked={!alarmsOff.includes(vital)}
                       onChange={(e) => setOff(vital, !e.target.checked)}
-                      aria-label={`${VITAL_META[vital].label} alarms on`}
+                      aria-label={`${ALARM_PARAM_META[vital].label} alarms on`}
                     />
                     {alarmsOff.includes(vital) ? 'off' : 'on'}
                   </label>
@@ -187,7 +209,10 @@ export function AlarmLimitsEditor({
       <p className="text-xs text-faint">
         Grey numbers are the category’s limits. Type a number to change one for this case, or
         “off” to switch it off; clear the box to go back. Below Low or above High is a warning;
-        beyond a critical limit the alarm is critical. Blood-pressure limits are systolic. Untick
+        beyond a critical limit the alarm is critical. Blood-pressure limits are systolic. The last
+        three rows are the anesthesia machine’s alarms, which apply while the machine readings are
+        on the monitor: airway pressure and inspired oxygen alarm as critical, minute volume as a
+        warning, each with one limit a side. Untick
         Alarm to start the case with that alarm switched off, the way a monitor is sometimes
         found. During a session, faculty change all of this by selecting a number on the monitor.
       </p>

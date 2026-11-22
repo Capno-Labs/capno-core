@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { SimulationEngine } from '../engine/engine';
+import { ALARM_PARAMS } from '../engine/types';
 
 /**
  * What a student display may ask the session to do: operate the monitor's
@@ -13,7 +14,8 @@ import type { SimulationEngine } from '../engine/engine';
  * absolute values, so presses made before the next snapshot arrives are not
  * lost or doubled.
  */
-const alarmVital = z.enum(['hr', 'sbp', 'spo2', 'etco2', 'rr', 'temp']);
+// Every reading with settable alarm limits: the vitals and the machine's.
+const alarmVital = z.enum(ALARM_PARAMS);
 
 export const monitorRequestSchema = z.discriminatedUnion('kind', [
   z

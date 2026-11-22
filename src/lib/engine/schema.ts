@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import type { Scenario } from './types';
-import type { AlarmVital, NmbKey, VentKey } from './types';
-import { FICO2_MAX, NMB_META, ST_MM_MAX, ST_MM_MIN, VENT_META } from './types';
-import { alarmLimitProblems, MIN_PULSE_PRESSURE, maxDbpFor, resolveAlarmLimits, VITAL_META } from './vitals';
+import type { AlarmParam, NmbKey, VentKey } from './types';
+import { ALARM_PARAMS, FICO2_MAX, NMB_META, ST_MM_MAX, ST_MM_MIN, VENT_META } from './types';
+import { ALARM_PARAM_META, alarmLimitProblems, MIN_PULSE_PRESSURE, maxDbpFor, resolveAlarmLimits } from './vitals';
 
 /**
  * Zod schema mirroring the Scenario type. This is the single source of truth
@@ -67,10 +67,11 @@ const nmbSchema = z
   .partial()
   .strict();
 
-/** One vital's alarm-limit changes: each limit a number in the vital's range,
- *  or null to switch it off. */
-const alarmBandSchema = (vital: AlarmVital) => {
-  const limit = z.number().min(VITAL_META[vital].min).max(VITAL_META[vital].max).nullable().optional();
+/** Alarm-limit changes for one vital or machine reading: each limit a number
+ *  in its range, or null to switch it off. */
+const alarmBandSchema = (param: AlarmParam) => {
+  const { min, max } = ALARM_PARAM_META[param];
+  const limit = z.number().min(min).max(max).nullable().optional();
   return z.object({ critLow: limit, warnLow: limit, warnHigh: limit, critHigh: limit }).strict();
 };
 
@@ -82,6 +83,9 @@ const alarmLimitsSchema = z
     etco2: alarmBandSchema('etco2'),
     rr: alarmBandSchema('rr'),
     temp: alarmBandSchema('temp'),
+    paw: alarmBandSchema('paw'),
+    mv: alarmBandSchema('mv'),
+    fio2: alarmBandSchema('fio2'),
   })
   .partial()
   .strict();
@@ -285,7 +289,7 @@ export const scenarioSchema = z
         v5: z.boolean().optional(),
         alarmProfile: z.enum(['adult', 'pediatric', 'neonatal']).optional(),
         alarmLimits: alarmLimitsSchema.optional(),
-        alarmsOff: z.array(z.enum(['hr', 'sbp', 'spo2', 'etco2', 'rr', 'temp'])).optional(),
+        alarmsOff: z.array(z.enum(ALARM_PARAMS)).optional(),
       })
       .optional(),
   })

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { AlarmVital, SimSnapshot } from '@/lib/engine/types';
+import type { AlarmParam, SimSnapshot } from '@/lib/engine/types';
 import {
   AGENT_TAGS,
   formatStMm,
@@ -69,8 +69,8 @@ export function MonitorDisplay({
   alarmSetup,
 }: MonitorDisplayProps) {
   // Which numeric's alarm setup is open (the vitals that tile alarms on).
-  const [setupVitals, setSetupVitals] = useState<AlarmVital[] | null>(null);
-  const setupFor = (...vitals: AlarmVital[]) => (alarmSetup ? () => setSetupVitals(vitals) : undefined);
+  const [setupVitals, setSetupVitals] = useState<AlarmParam[] | null>(null);
+  const setupFor = (...vitals: AlarmParam[]) => (alarmSetup ? () => setSetupVitals(vitals) : undefined);
   const v = snapshot.vitals;
   const frozen = snapshot.status !== 'running';
   const [soundLevel, setSoundLevel] = useSoundLevel(soundRole);
@@ -124,7 +124,9 @@ export function MonitorDisplay({
   // The limits in force, printed beside each number as a monitor does.
   // Absent in snapshots from before limits could vary: print nothing.
   const lim = snapshot.alarmLimits;
-  const isOff = (vital: AlarmVital) => snapshot.alarmsOff?.includes(vital) ?? false;
+  const isOff = (vital: AlarmParam) => snapshot.alarmsOff?.includes(vital) ?? false;
+  // The VT tile alarms on minute volume, so its limits say so.
+  const mvLimits = limitsText(lim?.mv, 'mv');
 
   // A monitor counts heart rate from the beats it detects, so the number
   // wanders by a beat or so in sinus rhythm and more in AF. Display only:
@@ -373,6 +375,9 @@ export function MonitorDisplay({
                 label="Paw"
                 value={String(vent.pip)}
                 unit="cmH₂O"
+                limits={limitsText(lim?.paw, 'paw')}
+                alarmsOff={isOff('paw')}
+                onSetup={setupFor('paw')}
                 sub={`Pplat ${vent.pplat} · PEEP ${vent.peep}`}
                 color="text-monitor-ink"
                 {...tileAlarm('paw')}
@@ -382,6 +387,9 @@ export function MonitorDisplay({
                 label="VT"
                 value={String(vent.vt)}
                 unit="mL"
+                limits={mvLimits && `MV ${mvLimits}`}
+                alarmsOff={isOff('mv')}
+                onSetup={setupFor('mv')}
                 sub={`MV ${minuteVentilation(vent.vt, v.rr).toFixed(1)} L/min`}
                 color="text-monitor-ink"
                 {...tileAlarm('vt')}
@@ -391,6 +399,9 @@ export function MonitorDisplay({
                 label="O₂"
                 value={String(vent.fio2)}
                 unit="% Fi"
+                limits={limitsText(lim?.fio2, 'fio2')}
+                alarmsOff={isOff('fio2')}
+                onSetup={setupFor('fio2')}
                 color="text-monitor-ink"
                 {...tileAlarm('fio2')}
                 trendValue={vent.fio2}

@@ -5,7 +5,7 @@ import { SyncHealthBadge } from '@/components/SyncHealthBadge';
 import { CopyJoinLinkButton, joinUrl } from '@/components/controller/JoinLink';
 import { cloudEligible } from '@/lib/cloud/outbox';
 import { ALARM_PROFILE_LABELS } from '@/lib/engine/types';
-import { VITAL_META } from '@/lib/engine/vitals';
+import { ALARM_PARAM_META } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
@@ -119,7 +119,7 @@ export function PreStartPanel() {
                 ? ' Learners can silence alarms, set limits and switch alarms off on their display.'
                 : ' Only you can change alarm limits.'}
               {snapshot.alarmsOff && snapshot.alarmsOff.length > 0
-                ? ` Switched off: ${snapshot.alarmsOff.map((v) => VITAL_META[v].label).join(', ')}.`
+                ? ` Switched off: ${snapshot.alarmsOff.map((v) => ALARM_PARAM_META[v].label).join(', ')}.`
                 : ''}
             </li>
             <li>

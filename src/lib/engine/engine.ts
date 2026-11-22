@@ -2,10 +2,10 @@ import type {
   ActionRecord,
   ActionStatus,
   AlarmLimits,
+  AlarmParam,
   AlarmProfile,
   AlarmSide,
   AlarmState,
-  AlarmVital,
   AnestheticAgent,
   CapnoShape,
   EcgLead,
@@ -32,8 +32,8 @@ import type {
 } from './types';
 import {
   AGENT_LABELS,
+  ALARM_PARAMS,
   ALARM_PROFILE_LABELS,
-  ALARM_VITALS,
   CAPNO_SHAPE_LABELS,
   FICO2_MAX,
   formatStMm,
@@ -55,6 +55,8 @@ import {
   VENT_META,
 } from './types';
 import {
+  ALARM_PARAM_META,
+  ALARM_SET_KEYS,
   clampNmb,
   clampVent,
   clampVital,
@@ -227,8 +229,8 @@ export class SimulationEngine {
   /** The monitor's patient category and the alarm limits in force. */
   private alarmProfile: AlarmProfile;
   private alarmLimits: AlarmLimits;
-  /** Vitals whose limit alarms are switched off. */
-  private alarmsOff: Set<AlarmVital>;
+  /** Vitals and machine readings whose limit alarms are switched off. */
+  private alarmsOff: Set<AlarmParam>;
 
   /** Arterial line in place: continuous BP, no cuff. Faculty can toggle at runtime. */
   private artLine: boolean;
@@ -871,19 +873,22 @@ export class SimulationEngine {
   }
 
   /**
-   * Set one vital's low or high alarm limit, as on the monitor's alarm
-   * setup: `null`, or the end of the vital's range, switches that limit off;
-   * a critical limit the new limit passes moves with it.
+   * Set the low or high alarm limit of one vital or machine reading, as on
+   * the monitor's alarm setup: `null`, or the end of its range, switches
+   * that limit off; a vital's critical limit moves with a limit that passes
+   * it. A reading with no limit on that side (inspired oxygen, high) is
+   * left alone.
    */
-  setAlarmLimit(vital: AlarmVital, side: AlarmSide, value: number | null, by?: AlarmSetupSource): void {
-    const key = side === 'low' ? 'warnLow' : 'warnHigh';
+  setAlarmLimit(vital: AlarmParam, side: AlarmSide, value: number | null, by?: AlarmSetupSource): void {
+    const key = ALARM_SET_KEYS[vital][side];
+    if (!key) return;
     const before = this.alarmLimits[vital][key];
     this.alarmLimits = withAlarmLimit(this.alarmLimits, vital, side, value);
     const after = this.alarmLimits[vital][key];
     if (after === before) return;
     // One limit is usually reached with several presses: keep the log to
     // where it ended up, not every step on the way.
-    const prefix = `${VITAL_META[vital].label} ${side} alarm limit → `;
+    const prefix = `${ALARM_PARAM_META[vital].label} ${side} alarm limit → `;
     const last = this.log.at(-1);
     const t = Math.floor(this.elapsedSec);
     const detail = by === 'display' ? LEARNER_DETAIL : undefined;
@@ -901,18 +906,18 @@ export class SimulationEngine {
   }
 
   /** One press of − or + on a limit in the alarm setup. */
-  stepAlarmLimit(vital: AlarmVital, side: AlarmSide, direction: -1 | 1, by?: AlarmSetupSource): void {
+  stepAlarmLimit(vital: AlarmParam, side: AlarmSide, direction: -1 | 1, by?: AlarmSetupSource): void {
     this.setAlarmLimit(vital, side, steppedAlarmLimit(this.alarmLimits, vital, side, direction), by);
   }
 
-  /** Switch one vital's limit alarms off or back on. */
-  setAlarmOff(vital: AlarmVital, off: boolean, by?: AlarmSetupSource): void {
+  /** Switch the limit alarms of one vital or machine reading off or back on. */
+  setAlarmOff(vital: AlarmParam, off: boolean, by?: AlarmSetupSource): void {
     if (off === this.alarmsOff.has(vital)) return;
     if (off) this.alarmsOff.add(vital);
     else this.alarmsOff.delete(vital);
     this.addLog(
       'vital_change',
-      `${VITAL_META[vital].label} alarms ${off ? 'off' : 'on'}`,
+      `${ALARM_PARAM_META[vital].label} alarms ${off ? 'off' : 'on'}`,
       by === 'display' ? LEARNER_DETAIL : undefined,
     );
   }
@@ -1261,7 +1266,7 @@ export class SimulationEngine {
       alarmsSilenced: this.alarmsSilenced,
       alarmLimits: this.alarmLimits,
       alarmProfile: this.alarmProfile,
-      alarmsOff: ALARM_VITALS.filter((v) => this.alarmsOff.has(v)),
+      alarmsOff: ALARM_PARAMS.filter((v) => this.alarmsOff.has(v)),
       learnerAlarmSetup: this.learnerAlarmSetup,
       actions: this.actions.map((a) => ({ ...a })),
       log: this.log.slice(-SNAPSHOT_LOG_TAIL),
