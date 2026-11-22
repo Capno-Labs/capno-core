@@ -51,7 +51,8 @@ export const DEMO_TOUR_STEPS: readonly DemoTourStep[] = [
     body:
       'Scenario events in narrative order. The large card is next up — fire it ' +
       'with a tap or the N key. Tap any other event to fire it out of order, or ⤒ ' +
-      'to make it next; fired events fold to one line. + Add event improvises one.',
+      'to make it next; finished events collect under Done at the top. + Add ' +
+      'event improvises one.',
   },
   {
     id: 'vitals',

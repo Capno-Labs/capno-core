@@ -59,9 +59,11 @@ function Chevron({ open }: { open: boolean }) {
  * place to run the sequence and mark the response.
  *
  * The rail reads as done / now / later (see flowCardState):
- * - a fired event whose actions are all marked folds to one line — tap it to
- *   reopen (its actions, and "Fire again");
- * - a fired event with actions still to mark stays open;
+ * - a fired event whose actions are all marked leaves the list for the
+ *   "Done" line at the top (count and a tally of marks). Open it to see the
+ *   finished events, each a one-line row — tap one to reopen it (its
+ *   actions, and "Fire again");
+ * - a fired event with actions still to mark stays open, in place;
  * - the next event is the large card, and the one the N key fires. A
  *   per-card "make next" points it at a different unfired event;
  * - every other event is a one-line row that still fires on a tap, so the
@@ -113,29 +115,57 @@ export function FlowPanel() {
   // same guards as every other shortcut.
   useKeyboardShortcuts({ '/': () => filterRef.current?.focus() });
 
-  const hold = useCallback((id: string) => {
-    const until = Date.now() + HOLD_MS;
-    setHeld((h) => ({ ...h, [id]: until }));
-    window.setTimeout(() => {
-      setHeld((h) => {
-        if (h[id] !== until) return h;
-        const rest = { ...h };
-        delete rest[id];
-        return rest;
-      });
-    }, HOLD_MS);
+  // The rail's scroll box, unless the instructor is busy in it (typing in the
+  // filter or the add-event form) or it has nothing to scroll.
+  const scrollBox = useCallback((): HTMLDivElement | null => {
+    const box = bodyRef.current;
+    if (!box || box.scrollHeight <= box.clientHeight + 1) return null;
+    if (addFormOpen.current) return null;
+    const active = document.activeElement;
+    if (active instanceof HTMLInputElement && box.closest('section')?.contains(active)) return null;
+    return box;
   }, []);
+
+  // When a finished card leaves for the Done group the list gets shorter. If
+  // everything down to the next event now fits from the top, go back to the
+  // top, so the Done line isn't left half scrolled away.
+  const settle = useCallback(() => {
+    requestAnimationFrame(() => {
+      const box = scrollBox();
+      if (!box || box.scrollTop === 0) return;
+      const nextCard = box.querySelector<HTMLElement>('[data-flow-state="next"]');
+      if (!nextCard) return;
+      const bottom = nextCard.getBoundingClientRect().bottom - box.getBoundingClientRect().top + box.scrollTop;
+      if (bottom + 8 > box.clientHeight) return;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      box.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+    });
+  }, [scrollBox]);
+
+  const hold = useCallback(
+    (id: string) => {
+      const until = Date.now() + HOLD_MS;
+      setHeld((h) => ({ ...h, [id]: until }));
+      window.setTimeout(() => {
+        setHeld((h) => {
+          if (h[id] !== until) return h;
+          const rest = { ...h };
+          delete rest[id];
+          return rest;
+        });
+        settle();
+      }, HOLD_MS);
+    },
+    [settle],
+  );
 
   // Keep the just-fired card and the new next-up card in view. Scrolls the
   // rail's own box only (never the page), and stays out of the way while the
   // instructor is typing in the rail or adding an event.
   const follow = useCallback((firedId: string) => {
     requestAnimationFrame(() => {
-      const box = bodyRef.current;
-      if (!box || box.scrollHeight <= box.clientHeight + 1) return;
-      if (addFormOpen.current) return;
-      const active = document.activeElement;
-      if (active instanceof HTMLInputElement && box.closest('section')?.contains(active)) return;
+      const box = scrollBox();
+      if (!box) return;
       const firedCard = box.querySelector<HTMLElement>(`[data-flow-card="${CSS.escape(firedId)}"]`);
       if (!firedCard) return;
       const nextCard = box.querySelector<HTMLElement>('[data-flow-state="next"]');
@@ -157,13 +187,15 @@ export function FlowPanel() {
         bottom = top + box.clientHeight;
       }
       let target = box.scrollTop;
-      if (top < target) target = top;
+      // Both visible from the very top: prefer it, so the Done line shows.
+      if (bottom <= box.clientHeight) target = 0;
+      else if (top < target) target = top;
       else if (bottom > target + box.clientHeight) target = bottom - box.clientHeight;
       if (Math.abs(target - box.scrollTop) < 1) return;
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       box.scrollTo({ top: Math.max(0, target), behavior: reduced ? 'auto' : 'smooth' });
     });
-  }, []);
+  }, [scrollBox]);
 
   // Every way an event fires (a tap, the N key, an auto timer) lands in
   // snapshot.firedEventIds, so the flash, the hold and the follow-along key
@@ -272,7 +304,7 @@ export function FlowPanel() {
     return { long: `auto in ${left}`, short: `auto ${left}`, imminent: remaining <= IMMINENT_SEC };
   };
 
-  const actionList = (cardId: string, actions: ExpectedAction[]) => (
+  const actionList = (cardId: string, actions: ExpectedAction[], holdOnMark = true) => (
     <ul className="space-y-1">
       {actions.map((a) => (
         <ActionMarkRow
@@ -282,9 +314,11 @@ export function FlowPanel() {
           large={criticalOnly}
           onMark={(status) => {
             markAction(a.id, status);
-            // Marking the last pending action would fold the card at once;
-            // hold it so the row stays under the finger.
-            hold(cardId);
+            // Marking the last pending action would fold the card (and move
+            // it into the Done group) at once; hold it so the row stays
+            // under the finger. A card already in the group isn't going
+            // anywhere, so it needs no hold.
+            if (holdOnMark) hold(cardId);
           }}
         />
       ))}
@@ -304,17 +338,33 @@ export function FlowPanel() {
     <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${CATEGORY_DOT[ev.category]}`} />
   );
 
-  const eventCard = (ev: ScenarioEvent) => {
+  const cardStateOf = (ev: ScenarioEvent): { actions: ExpectedAction[]; state: FlowCardState } => {
+    const actions = linkedActions(ev);
+    return {
+      actions,
+      state: flowCardState({
+        fired: fired.has(ev.id),
+        isNext: next?.id === ev.id,
+        pendingActions: actions.filter((a) => statusOf(a.id) === 'pending').length,
+      }),
+    };
+  };
+
+  // Finished events (fired, nothing left to mark) leave the list for a single
+  // "Done" line at the top, so the events still in play and the next one sit
+  // in the same place all session instead of sliding down behind a growing
+  // run of finished rows. Not while reading through (Show all) or filtering —
+  // then every event shows in place — and not during a card's hold, so
+  // nothing moves the moment it is touched.
+  const grouping = !showAll && q === '';
+  const inDoneGroup = (ev: ScenarioEvent) =>
+    grouping && cardStateOf(ev).state === 'done' && !((held[ev.id] ?? 0) > 0);
+
+  const eventCard = (ev: ScenarioEvent, inGroup = false) => {
     const isFired = fired.has(ev.id);
     const isPinned = pinned === ev.id;
     const adhoc = !authoredIds.has(ev.id);
-    const actions = linkedActions(ev);
-    const pending = actions.filter((a) => statusOf(a.id) === 'pending').length;
-    const state: FlowCardState = flowCardState({
-      fired: isFired,
-      isNext: next?.id === ev.id,
-      pendingActions: pending,
-    });
+    const { actions, state } = cardStateOf(ev);
     const t = timing(ev);
     const imminent = !isFired && t.imminent;
     const open = isOpen(ev.id, state === 'watching' || state === 'next');
@@ -512,7 +562,7 @@ export function FlowPanel() {
             {isFired && ev.description && actions.length === 0 && (
               <p className="px-1 text-xs leading-snug text-faint">{ev.description}</p>
             )}
-            {actions.length > 0 && actionList(ev.id, actions)}
+            {actions.length > 0 && actionList(ev.id, actions, !inGroup)}
             {controls.length > 0 && (
               <div className="flex items-center justify-end gap-3 px-1">{controls}</div>
             )}
@@ -522,11 +572,23 @@ export function FlowPanel() {
     );
   };
 
+  const doneEvents = listed.filter(inDoneGroup);
+  const doneOpen = openOverride['group:done'] ?? false;
+  // Marks across the finished events, for the group's one-line tally.
+  const doneTally: Partial<Record<ActionStatus, number>> = {};
+  for (const ev of doneEvents) {
+    for (const a of linkedActions(ev)) {
+      const status = statusOf(a.id);
+      doneTally[status] = (doneTally[status] ?? 0) + 1;
+    }
+  }
+
   // A phase caption wherever the events move into a different phase — a
   // reading aid only: the cards stay in author order.
   const rows: ReactNode[] = [];
   let lastPhase: string | undefined;
   for (const ev of listed) {
+    if (inDoneGroup(ev)) continue;
     const label = phaseHintLabel(scenario.phases, ev.phaseHint);
     if (label !== undefined && label !== lastPhase) {
       const current = ev.phaseHint === snapshot.phaseId;
@@ -611,6 +673,48 @@ export function FlowPanel() {
       >
         {/* Inside the scrolling list, so its buttons are always reachable. */}
         {showAddForm && <AddEventForm onDone={() => setShowAddForm(false)} />}
+        {doneEvents.length > 0 && (
+          <div
+            data-flow-done-group
+            className={`rounded-ctl ${doneOpen ? 'bg-panel-2/50 ring-1 ring-line' : ''}`}
+          >
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded-ctl px-2.5 py-1.5 text-left text-xs font-semibold text-muted hover:bg-panel-2"
+              aria-expanded={doneOpen}
+              title={
+                doneOpen
+                  ? 'Hide the finished events'
+                  : 'Show the finished events — to change a mark or fire one again'
+              }
+              onClick={() => toggle('group:done', doneOpen)}
+            >
+              <span className="w-3 shrink-0 text-center text-faint">✓</span>
+              <span className="min-w-0 flex-1 truncate">
+                Done
+                <span className="ml-1.5 font-normal tabular-nums text-faint">
+                  {doneEvents.length} event{doneEvents.length === 1 ? '' : 's'}
+                </span>
+              </span>
+              <span className="flex shrink-0 gap-2 text-[11px] tabular-nums" aria-hidden>
+                {(['done', 'delayed', 'incorrect', 'missed'] as const).map(
+                  (status) =>
+                    doneTally[status] !== undefined && (
+                      <span key={status} className={STATUS_TEXT[status]}>
+                        {STATUS_GLYPH[status]} {doneTally[status]}
+                      </span>
+                    ),
+                )}
+              </span>
+              <Chevron open={doneOpen} />
+            </button>
+            {doneOpen && (
+              <div className="space-y-0.5 px-1 pb-1">
+                {doneEvents.map((ev) => eventCard(ev, true))}
+              </div>
+            )}
+          </div>
+        )}
         {rows}
         {events.length === 0 && (
           <p className="text-xs text-faint">
