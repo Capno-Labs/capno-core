@@ -6,6 +6,8 @@ import {
   ALARM_LIMIT_STEP,
   ALARM_PROFILES,
   alarmLimitProblems,
+  evaluateAlarms,
+  MACHINE_ALARM_LIMITS,
   blockDepth,
   clampVital,
   defaultVentilation,
@@ -13,7 +15,7 @@ import {
   predictedBodyWeightKg,
   TOF_INTERVAL_SEC,
 } from './vitals';
-import { PTC_MAX } from './types';
+import { ALARM_VITALS, PTC_MAX } from './types';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
 import type { NumericVitals, Scenario, ScenarioEvent, Ventilation } from './types';
 
@@ -705,7 +707,7 @@ describe('SimulationEngine', () => {
     });
 
     it('keeps the adult set as it has always been', () => {
-      expect(ALARM_PROFILES.adult).toEqual({
+      expect(ALARM_PROFILES.adult).toMatchObject({
         hr: { warnLow: 50, warnHigh: 110, critLow: 40, critHigh: 140 },
         sbp: { warnLow: 90, warnHigh: 160, critLow: 70, critHigh: 200 },
         spo2: { warnLow: 92, critLow: 85 },
@@ -713,6 +715,25 @@ describe('SimulationEngine', () => {
         rr: { warnLow: 8, warnHigh: 24, critLow: 4, critHigh: 35 },
         temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
       });
+      // Exactly, for the vitals: no limit has crept in or out.
+      for (const vital of ALARM_VITALS) {
+        expect(Object.keys(ALARM_PROFILES.adult[vital]).length, vital).toBe(
+          { hr: 4, sbp: 4, spo2: 2, etco2: 4, rr: 4, temp: 3 }[vital],
+        );
+      }
+    });
+
+    it('starts the machine\'s alarms from the Dräger factory defaults in every category', () => {
+      for (const profile of Object.values(ALARM_PROFILES)) {
+        expect(profile.paw).toEqual({ critLow: MACHINE_ALARM_LIMITS.pawLow, critHigh: MACHINE_ALARM_LIMITS.pawHigh });
+        expect(profile.mv).toEqual({ warnLow: MACHINE_ALARM_LIMITS.mvLow, warnHigh: MACHINE_ALARM_LIMITS.mvHigh });
+        expect(profile.fio2).toEqual({ critLow: MACHINE_ALARM_LIMITS.fio2Low });
+      }
+      expect(ALARM_PROFILES.adult.paw).toEqual({ critLow: 8, critHigh: 40 });
+      expect(ALARM_PROFILES.adult.mv).toEqual({ warnLow: 3, warnHigh: 12 });
+      expect(ALARM_PROFILES.adult.fio2).toEqual({ critLow: 20 });
+      // Each category has its own copy: editing one cannot leak into another.
+      expect(ALARM_PROFILES.adult.paw).not.toBe(ALARM_PROFILES.pediatric.paw);
     });
 
     it('takes pediatric and neonatal limits from the monitor\'s factory defaults', () => {
@@ -938,6 +959,129 @@ describe('SimulationEngine', () => {
         e.setAlarmProfile('pediatric');
         e.setAlarmProfile('adult');
         expect(e.snapshot().alarmLimits).toEqual(ALARM_PROFILES.adult);
+      });
+    });
+
+    describe('the machine\'s alarms, set like any other', () => {
+      // A ventilated patient with the machine readings on the monitor.
+      const machine = (monitoring?: Scenario['monitoring']) => {
+        const base = scenario();
+        const e = new SimulationEngine(
+          { ...base, baselineVitals: { ...base.baselineVitals, rr: 12, vent: { vt: 500 } }, monitoring },
+          'TEST',
+        );
+        e.start();
+        return e;
+      };
+      const machineAlarms = (e: SimulationEngine) =>
+        e.snapshot().alarms.filter((a) => a.vital === 'paw' || a.vital === 'vt' || a.vital === 'fio2');
+
+      it('raises the airway-pressure limit so a pressure that alarmed no longer does', () => {
+        const e = machine();
+        e.setVent({ pip: 44 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'Paw HIGH 44' }]);
+        for (let i = 0; i < 5; i++) e.stepAlarmLimit('paw', 'high', 1);
+        expect(e.snapshot().alarmLimits!.paw).toEqual({ critLow: 8, critHigh: 45 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVent({ pip: 46 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'Paw HIGH 46' }]);
+        expect(e.getFullLog().map((l) => l.label)).toContain('Paw high alarm limit → 45');
+      });
+
+      it('moves the apnea-pressure threshold and the minute-volume limits', () => {
+        const e = machine();
+        e.setVent({ pip: 9 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.stepAlarmLimit('paw', 'low', 1);
+        e.stepAlarmLimit('paw', 'low', 1);
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'APNEA PRESSURE' }]);
+        e.setVent({ pip: 18 });
+
+        // 500 mL × 12 = 6.0 L/min: inside 3–12. Lower the high limit under it.
+        e.setAlarmLimit('mv', 'high', 5.5);
+        expect(e.snapshot().alarmLimits!.mv).toEqual({ warnLow: 3, warnHigh: 5.5 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV high 6.0' }]);
+        e.stepAlarmLimit('mv', 'high', 1); // 0.5 L/min a press
+        expect(e.snapshot().alarmLimits!.mv.warnHigh).toBe(6);
+        expect(machineAlarms(e)).toEqual([]);
+      });
+
+      it('lowers the minute-volume limit for a small patient', () => {
+        const e = machine();
+        e.setVent({ vt: 60 });
+        e.setVital('rr', 30); // 1.8 L/min
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV low 1.8' }]);
+        e.setAlarmLimit('mv', 'low', 1.5);
+        expect(machineAlarms(e)).toEqual([]);
+      });
+
+      it('gives inspired oxygen a low limit only', () => {
+        const e = machine();
+        e.stepAlarmLimit('fio2', 'low', 1);
+        expect(e.snapshot().alarmLimits!.fio2).toEqual({ critLow: 21 });
+        const before = e.getFullLog().length;
+        e.stepAlarmLimit('fio2', 'high', -1);
+        e.setAlarmLimit('fio2', 'high', 60);
+        expect(e.snapshot().alarmLimits!.fio2).toEqual({ critLow: 21 });
+        expect(e.getFullLog().length).toBe(before);
+      });
+
+      it('switches a limit off at the end of its range and keeps low below high', () => {
+        const e = machine();
+        e.setAlarmLimit('paw', 'low', 0);
+        expect(e.snapshot().alarmLimits!.paw).toEqual({ critHigh: 40 });
+        e.setVent({ pip: 0, vt: 0 }); // a disconnection: no apnea-pressure alarm now
+        expect(machineAlarms(e).map((a) => a.message)).toEqual(['MV low 0.0']);
+        e.setAlarmLimit('fio2', 'low', null);
+        expect(e.snapshot().alarmLimits!.fio2).toEqual({});
+        e.setVent({ fio2: 10 });
+        expect(machineAlarms(e).some((a) => a.vital === 'fio2')).toBe(false);
+
+        e.setAlarmLimit('mv', 'low', 20);
+        const mv = e.snapshot().alarmLimits!.mv;
+        expect(mv.warnLow).toBe(mv.warnHigh! - ALARM_LIMIT_STEP.mv);
+        expect(alarmLimitProblems(e.snapshot().alarmLimits!)).toEqual([]);
+      });
+
+      it('switches each machine alarm off on its own', () => {
+        const e = machine();
+        e.setVent({ pip: 50, vt: 100, fio2: 15 });
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['paw', 'vt', 'fio2']);
+        e.setAlarmOff('paw', true);
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['vt', 'fio2']);
+        e.setAlarmOff('mv', true);
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['fio2']);
+        e.setAlarmOff('fio2', true);
+        expect(machineAlarms(e)).toEqual([]);
+        expect(e.snapshot().alarmsOff).toEqual(['paw', 'mv', 'fio2']);
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'FiO₂ alarms off' });
+        e.setAlarmOff('mv', false);
+        expect(machineAlarms(e).map((a) => a.message)).toEqual(['MV low 1.2']);
+      });
+
+      it('takes a scenario\'s machine limits and switched-off alarms, and reset restores them', () => {
+        const e = machine({ alarmLimits: { paw: { critHigh: 50 }, mv: { warnLow: 1 } }, alarmsOff: ['fio2'] });
+        expect(e.snapshot().alarmLimits!.paw).toEqual({ critLow: 8, critHigh: 50 });
+        expect(e.snapshot().alarmLimits!.mv).toEqual({ warnLow: 1, warnHigh: 12 });
+        e.setVent({ pip: 45, fio2: 10 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setAlarmLimit('paw', 'high', 40);
+        e.setAlarmOff('fio2', false);
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['paw', 'fio2']);
+        e.reset();
+        expect(e.snapshot().alarmLimits!.paw.critHigh).toBe(50);
+        expect(e.snapshot().alarmsOff).toEqual(['fio2']);
+      });
+
+      it('still judges the machine by its defaults when archived limits carry none', () => {
+        // Limits saved before the machine's were adjustable have only the vitals.
+        const { paw: _paw, mv: _mv, fio2: _fio2, ...vitalsOnly } = ALARM_PROFILES.adult;
+        const alarms = evaluateAlarms(
+          { ...machine().getVitals(), vent: { fio2: 15, pip: 45, pplat: 20, peep: 5, vt: 500 } },
+          vitalsOnly as typeof ALARM_PROFILES.adult,
+        );
+        expect(alarms.map((a) => a.message)).toEqual(['Paw HIGH 45', 'FiO₂ LOW 15']);
+        expect(alarmLimitProblems(vitalsOnly as typeof ALARM_PROFILES.adult)).toEqual([]);
       });
     });
 

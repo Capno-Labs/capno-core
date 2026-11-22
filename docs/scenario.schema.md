@@ -97,7 +97,9 @@ when they change, so an effect that raises peak pressure for bronchospasm
 should also set the SpO₂, EtCO₂ and capnogram shape that go with it. The
 monitor shows the plateau no higher than the peak and PEEP no higher than the
 plateau. Alarms: airway pressure above 40 or below 8 cmH₂O, minute volume
-under 3 or over 12 L/min, inspired oxygen under 20%.
+under 3 or over 12 L/min, inspired oxygen under 20% — the starting limits,
+which a scenario or the monitor's alarm setup can change (see
+[Alarm limits](#alarm-limits)).
 
 Optional: `nmb` — the neuromuscular block, as a twitch monitor finds it. Its
 presence, even as `{}`, attaches a twitch monitor from the start (faculty can
@@ -171,6 +173,17 @@ limits come from the monitor's patient category, `monitoring.alarmProfile`:
 | `rr` warning / critical | 8–24 / 4, 35 | 8–30 / 4, 35 | 30–100 / 4, none |
 | `etco2` warning / critical | 25–50 / 15, 60 | same | same |
 | `temp` warning / critical high | 35–38 / 39.5 | same | same |
+| `paw` critical (airway pressure, cmH₂O) | 8, 40 | same | same |
+| `mv` warning (minute volume, L/min) | 3–12 | same | same |
+| `fio2` critical low (inspired oxygen, %) | 20 | same | same |
+
+The last three are the anesthesia machine's alarms. They apply only while
+the machine readings are on the monitor, and each has one limit a side, in
+the band of its priority: `paw` uses `critLow` (the apnea-pressure
+threshold) and `critHigh`, `mv` uses `warnLow` and `warnHigh`, and `fio2`
+uses `critLow` only. Their starting values are the machine's defaults in
+every category, so a small child's minute volume sits under 3 L/min until a
+scenario lowers `mv.warnLow`.
 
 Blood-pressure limits are systolic, and in cuff mode they are read against
 the last cuff measurement. The category is the author's choice, as it is the
@@ -197,16 +210,16 @@ alarm disabled. The monitor shows an alarms-off mark (🔕) beside that number
 in place of its limits. Only limit alarms are switched off: the oximeter's
 lost-signal alarm and the rhythm alarms still sound.
 
-During a session faculty set each vital's low and high limit and switch its
-alarms on or off by selecting the number on the monitor preview; a reset
-returns to what the scenario states.
+During a session the low and high limit of each vital and machine reading
+are set, and its alarms switched on or off, by selecting the number on the
+monitor — by faculty on the preview, and by learners on their display while
+faculty allow it; a reset returns to what the scenario states.
 
 Each limit must lie in the vital's range, and the result must stay
 consistent — a critical limit at or beyond its warning limit, low limits
 below high ones — or validation rejects the scenario. The monitor prints the
-warning limits beside each number. The machine alarms (airway pressure,
-minute volume, inspired oxygen), the inspired-CO₂ alarm and the rhythm alarms
-are fixed.
+limits beside each number. The inspired-CO₂ alarm and the rhythm alarms are
+fixed.
 
 ## `events`
 

@@ -402,6 +402,15 @@ different rhythm — is the sim's reading of "a new alarm"; the manual's
 optional alarm reminder (the tone repeating after 1–3 minutes) is not
 modelled.
 
+The machine's alarms (airway pressure, minute volume, inspired oxygen) start
+from the Dräger Fabius GS factory defaults listed under "Anesthesia machine"
+in every patient category — that manual's defaults are not per category, so
+a small child's minute volume sits under 3 L/min until the limit is lowered.
+They are set and switched off through the same alarm setup. Not sourced: the
+step each press moves them (1 cmH₂O, 0.5 L/min, 1%), the 0–30 L/min range
+the minute-volume limits can take, and treating the limits' ranges as the
+readings' own. The sim has no high inspired-oxygen alarm.
+
 **Alarm sounds**
 
 | What the monitor does | Source |

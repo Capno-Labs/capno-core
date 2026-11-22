@@ -1,7 +1,7 @@
 'use client';
 
-import type { AlarmSide, AlarmVital, SimSnapshot } from '@/lib/engine/types';
-import { ALARM_PROFILES, VITAL_META } from '@/lib/engine/vitals';
+import type { AlarmParam, AlarmSide, SimSnapshot } from '@/lib/engine/types';
+import { ALARM_PARAM_META, ALARM_PROFILES, ALARM_SET_KEYS } from '@/lib/engine/vitals';
 
 /**
  * What the alarm setup can do. Passed only where the monitor may be
@@ -11,8 +11,8 @@ import { ALARM_PROFILES, VITAL_META } from '@/lib/engine/vitals';
  * arrives are neither lost nor doubled.
  */
 export interface AlarmSetupActions {
-  stepLimit: (vital: AlarmVital, side: AlarmSide, direction: -1 | 1) => void;
-  setOff: (vital: AlarmVital, off: boolean) => void;
+  stepLimit: (vital: AlarmParam, side: AlarmSide, direction: -1 | 1) => void;
+  setOff: (vital: AlarmParam, off: boolean) => void;
   /** The Silence key: acknowledge the alarms active now. */
   silence: () => void;
 }
@@ -27,14 +27,14 @@ function LimitRow({
   disabled,
   onStep,
 }: {
-  vital: AlarmVital;
+  vital: AlarmParam;
   side: AlarmSide;
   value: number | undefined;
   critical: number | undefined;
   disabled: boolean;
   onStep: (direction: -1 | 1) => void;
 }) {
-  const meta = VITAL_META[vital];
+  const meta = ALARM_PARAM_META[vital];
   // An off limit sits at the end of the range: stepping inward switches it on.
   const end = side === 'low' ? meta.min : meta.max;
   const current = value ?? end;
@@ -78,7 +78,9 @@ function LimitRow({
  * The monitor's alarm setup for one numeric, opened by selecting it — as a
  * Philips IntelliVue's measurement alarm-limits window: the high and low
  * (yellow) limits are set here, the critical (red) limits are shown but not
- * set, and an Alarms On/Off key switches this measurement's alarms.
+ * set, and an Alarms On/Off key switches this measurement's alarms. A
+ * machine reading has a single limit a side (and inspired oxygen only a low
+ * one), so it shows only the rows it has and no critical value.
  */
 export function AlarmSetup({
   vitals,
@@ -86,7 +88,7 @@ export function AlarmSetup({
   actions,
   onClose,
 }: {
-  vitals: AlarmVital[];
+  vitals: AlarmParam[];
   snapshot: SimSnapshot;
   actions: AlarmSetupActions;
   onClose: () => void;
@@ -115,9 +117,16 @@ export function AlarmSetup({
           </button>
         </div>
         {vitals.map((vital) => {
-          const band = limits[vital];
+          // Limits archived before the machine's were adjustable carry none.
+          const band = limits[vital] ?? ALARM_PROFILES.adult[vital];
           const isOff = off.includes(vital);
-          const meta = VITAL_META[vital];
+          const meta = ALARM_PARAM_META[vital];
+          const keys = ALARM_SET_KEYS[vital];
+          // The view-only critical value belongs to a vital's warning limit.
+          const crit = (side: AlarmSide) =>
+            keys[side] === (side === 'low' ? 'warnLow' : 'warnHigh')
+              ? band[side === 'low' ? 'critLow' : 'critHigh']
+              : undefined;
           return (
             <div key={vital} className="space-y-2 rounded bg-monitor-bg/60 p-2">
               <div className="flex items-center justify-between gap-2">
@@ -138,22 +147,20 @@ export function AlarmSetup({
                   {isOff ? '🔕 Alarms off' : '🔔 Alarms on'}
                 </button>
               </div>
-              <LimitRow
-                vital={vital}
-                side="high"
-                value={band.warnHigh}
-                critical={band.critHigh}
-                disabled={isOff}
-                onStep={(direction) => actions.stepLimit(vital, 'high', direction)}
-              />
-              <LimitRow
-                vital={vital}
-                side="low"
-                value={band.warnLow}
-                critical={band.critLow}
-                disabled={isOff}
-                onStep={(direction) => actions.stepLimit(vital, 'low', direction)}
-              />
+              {(['high', 'low'] as const).map((side) => {
+                const key = keys[side];
+                return key ? (
+                  <LimitRow
+                    key={side}
+                    vital={vital}
+                    side={side}
+                    value={band[key]}
+                    critical={crit(side)}
+                    disabled={isOff}
+                    onStep={(direction) => actions.stepLimit(vital, side, direction)}
+                  />
+                ) : null;
+              })}
             </div>
           );
         })}

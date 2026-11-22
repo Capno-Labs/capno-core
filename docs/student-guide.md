@@ -71,8 +71,9 @@ patient and the rhythm, not for a number.
   means that number's alarms are switched off — it will not flash or sound,
   so check whether that is what you want.
 - **You can set the alarms yourself**, unless your instructor has locked
-  them. Tap a number (HR, SpO₂, EtCO₂, blood pressure, temperature) to open
-  its alarm setup: − and + move the **High** and **Low** limit, and
+  them. Tap a number (HR, SpO₂, EtCO₂, blood pressure, temperature, or the
+  machine's airway pressure, tidal volume and inspired oxygen) to open its
+  alarm setup: − and + move the **High** and **Low** limit, and
   **Alarms on/off** switches that number's alarms. The change applies to
   every display and is recorded for the debrief, as it would be charted in
   an OR. Alarms — these settings and the Silence key — are all you can

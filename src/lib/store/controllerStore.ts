@@ -8,8 +8,8 @@ import { scoreSession } from '../engine/scoring';
 import type {
   ActionStatus,
   AlarmProfile,
+  AlarmParam,
   AlarmSide,
-  AlarmVital,
   AnestheticAgent,
   CapnoShape,
   NumericVitals,
@@ -73,9 +73,9 @@ interface ControllerState {
   /** Switch the monitor's patient category and its alarm limits. */
   setAlarmProfile: (profile: AlarmProfile) => void;
   /** One press of − or + on a vital's low or high alarm limit. */
-  stepAlarmLimit: (vital: AlarmVital, side: AlarmSide, direction: -1 | 1) => void;
+  stepAlarmLimit: (vital: AlarmParam, side: AlarmSide, direction: -1 | 1) => void;
   /** Switch one vital's limit alarms off or back on. */
-  setAlarmOff: (vital: AlarmVital, off: boolean) => void;
+  setAlarmOff: (vital: AlarmParam, off: boolean) => void;
   /** Let learners operate the alarm setup from their display, or not. */
   setLearnerAlarmSetup: (on: boolean) => void;
   /** Attach or remove the twitch monitor. */

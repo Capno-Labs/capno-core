@@ -1,5 +1,6 @@
-import type { AlarmBand, AlarmState, NibpReading, Rhythm, TofReading, Vitals } from '@/lib/engine/types';
+import type { AlarmBand, AlarmParam, AlarmState, NibpReading, Rhythm, TofReading, Vitals } from '@/lib/engine/types';
 import { ecgMorphologyApplies, hasPulse } from '@/lib/engine/types';
+import { ALARM_SET_KEYS } from '@/lib/engine/vitals';
 
 /**
  * What the monitor shows when it has no signal to measure.
@@ -98,14 +99,18 @@ export function twitchHeights(reading: Pick<TofReading, 'count' | 'ratio'>): [nu
 }
 
 /**
- * A vital's alarm limits as a monitor prints them beside the number: the low
- * and high warning limits ("50–110"), or the one that exists ("min 92").
- * Empty when the vital has neither. The critical tier is not printed — a
- * monitor shows the limits the clinician sets, not its extreme alarms.
+ * Alarm limits as a monitor prints them beside the number: the low and high
+ * limit the clinician sets ("50–110"), or the one that exists ("min 92").
+ * Empty when there is neither. For a vital those are the warning limits — the
+ * critical tier is not printed, since a monitor shows the limits the
+ * clinician sets, not its extreme alarms. A machine reading has one limit a
+ * side, named by `param`.
  */
-export function limitsText(band: AlarmBand | undefined): string | undefined {
+export function limitsText(band: AlarmBand | undefined, param?: AlarmParam): string | undefined {
   if (!band) return undefined;
-  const { warnLow: low, warnHigh: high } = band;
+  const keys = param ? ALARM_SET_KEYS[param] : { low: 'warnLow' as const, high: 'warnHigh' as const };
+  const low = keys.low ? band[keys.low] : undefined;
+  const high = keys.high ? band[keys.high] : undefined;
   if (low !== undefined && high !== undefined) return `${low}–${high}`;
   if (low !== undefined) return `min ${low}`;
   if (high !== undefined) return `max ${high}`;

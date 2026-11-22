@@ -101,8 +101,25 @@ describe('scenario schema', () => {
     expect(validateScenario(doc).errors.join(' ')).toContain('monitoring.alarmLimits.sbp');
     doc.monitoring = { alarmsOff: ['spo2', 'temp'] };
     expect(validateScenario(doc).ok).toBe(true);
-    doc.monitoring = { alarmsOff: ['paw'] }; // not a vital with limit alarms
+    doc.monitoring = { alarmsOff: ['pplat'] }; // not a reading with limit alarms
     expect(validateScenario(doc).ok).toBe(false);
+
+    // The machine's alarms take limits and switches like the vitals'.
+    doc.monitoring = {
+      alarmLimits: { paw: { critHigh: 50, critLow: 5 }, mv: { warnLow: 1, warnHigh: 15 }, fio2: { critLow: null } },
+      alarmsOff: ['paw', 'mv', 'fio2'],
+    };
+    expect(validateScenario(doc).ok).toBe(true);
+    for (const monitoring of [
+      { alarmLimits: { paw: { critHigh: 90 } } }, // above the reading's range of 0–80
+      { alarmLimits: { mv: { warnHigh: 31 } } }, // above 30 L/min
+      { alarmLimits: { fio2: { critLow: 101 } } },
+      { alarmLimits: { paw: { critLow: 45 } } }, // above the high limit of 40
+      { alarmLimits: { mv: { warnLow: 12 } } }, // not below the high limit of 12
+    ]) {
+      doc.monitoring = monitoring;
+      expect(validateScenario(doc).ok, JSON.stringify(monitoring)).toBe(false);
+    }
   });
 
   it('accepts event actionIds that exist and rejects unknown ones', () => {

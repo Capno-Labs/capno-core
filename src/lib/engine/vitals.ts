@@ -1,10 +1,12 @@
 import type {
   AlarmBand,
+  AlarmBandKey,
   AlarmLimits,
+  AlarmParam,
   AlarmProfile,
   AlarmSide,
   AlarmState,
-  AlarmVital,
+  MachineAlarmParam,
   AnestheticAgent,
   MonitoringConfig,
   NeuromuscularBlock,
@@ -18,6 +20,7 @@ import type {
 } from './types';
 import {
   ALARM_BAND_KEYS,
+  ALARM_PARAMS,
   ALARM_VITALS,
   hasPulse,
   minuteVentilation,
@@ -254,6 +257,64 @@ export const MACHINE_ALARM_LIMITS = {
 } as const;
 
 /**
+ * Those defaults as alarm bands, the starting point in every patient
+ * category (the machine's defaults are not per category, so a small child's
+ * minute volume will sit under 3 L/min until the limit is lowered). The band
+ * a limit sits in is its priority: airway pressure and inspired oxygen
+ * alarm as critical, minute volume as a warning.
+ */
+const MACHINE_ALARM_BANDS: Record<MachineAlarmParam, AlarmBand> = {
+  paw: { critLow: MACHINE_ALARM_LIMITS.pawLow, critHigh: MACHINE_ALARM_LIMITS.pawHigh },
+  mv: { warnLow: MACHINE_ALARM_LIMITS.mvLow, warnHigh: MACHINE_ALARM_LIMITS.mvHigh },
+  fio2: { critLow: MACHINE_ALARM_LIMITS.fio2Low },
+};
+const machineBands = (): Record<MachineAlarmParam, AlarmBand> => ({
+  paw: { ...MACHINE_ALARM_BANDS.paw },
+  mv: { ...MACHINE_ALARM_BANDS.mv },
+  fio2: { ...MACHINE_ALARM_BANDS.fio2 },
+});
+
+/** Name, unit, range and display precision of everything with alarm limits. */
+export interface AlarmParamMeta {
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  decimals: number;
+}
+
+export const ALARM_PARAM_META: Record<AlarmParam, AlarmParamMeta> = {
+  hr: VITAL_META.hr,
+  sbp: VITAL_META.sbp,
+  spo2: VITAL_META.spo2,
+  etco2: VITAL_META.etco2,
+  rr: VITAL_META.rr,
+  temp: VITAL_META.temp,
+  // Ranges as the readings themselves; minute volume's upper end is a choice.
+  paw: { label: 'Paw', unit: 'cmH₂O', min: VENT_META.pip.min, max: VENT_META.pip.max, decimals: 0 },
+  mv: { label: 'MV', unit: 'L/min', min: 0, max: 30, decimals: 1 },
+  fio2: { label: 'FiO₂', unit: '%', min: VENT_META.fio2.min, max: VENT_META.fio2.max, decimals: 0 },
+};
+
+/**
+ * Which limit of a band the clinician sets on each side. For a vital it is
+ * the warning limit (the critical one is view-only); a machine reading has a
+ * single limit per side, in the band of its priority. Inspired oxygen has no
+ * high alarm here.
+ */
+export const ALARM_SET_KEYS: Record<AlarmParam, Partial<Record<AlarmSide, AlarmBandKey>>> = {
+  hr: { low: 'warnLow', high: 'warnHigh' },
+  sbp: { low: 'warnLow', high: 'warnHigh' },
+  spo2: { low: 'warnLow', high: 'warnHigh' },
+  etco2: { low: 'warnLow', high: 'warnHigh' },
+  rr: { low: 'warnLow', high: 'warnHigh' },
+  temp: { low: 'warnLow', high: 'warnHigh' },
+  paw: { low: 'critLow', high: 'critHigh' },
+  mv: { low: 'warnLow', high: 'warnHigh' },
+  fio2: { low: 'critLow' },
+};
+
+/**
  * MAC at age 40 in oxygen, % end-tidal (Mapleson, Br J Anaesth 1996;76:179).
  */
 export const MAC_AT_40: Record<AnestheticAgent, number> = {
@@ -326,6 +387,7 @@ export const ALARM_PROFILES: Record<AlarmProfile, AlarmLimits> = {
     etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
     rr: { warnLow: 8, warnHigh: 24, critLow: 4, critHigh: 35 },
     temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+    ...machineBands(),
   },
   pediatric: {
     hr: { warnLow: 75, warnHigh: 160, critLow: 55, critHigh: 180 },
@@ -334,6 +396,7 @@ export const ALARM_PROFILES: Record<AlarmProfile, AlarmLimits> = {
     etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
     rr: { warnLow: 8, warnHigh: 30, critLow: 4, critHigh: 35 },
     temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+    ...machineBands(),
   },
   neonatal: {
     hr: { warnLow: 100, warnHigh: 200, critLow: 80, critHigh: 220 },
@@ -342,6 +405,7 @@ export const ALARM_PROFILES: Record<AlarmProfile, AlarmLimits> = {
     etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
     rr: { warnLow: 30, warnHigh: 100, critLow: 4 },
     temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+    ...machineBands(),
   },
 };
 
@@ -354,7 +418,7 @@ export function resolveAlarmLimits(
 ): AlarmLimits {
   const profile = ALARM_PROFILES[monitoring?.alarmProfile ?? 'adult'];
   const limits = {} as AlarmLimits;
-  for (const vital of ALARM_VITALS) {
+  for (const vital of ALARM_PARAMS) {
     const band: AlarmBand = { ...profile[vital] };
     const changes = monitoring?.alarmLimits?.[vital];
     for (const key of ALARM_BAND_KEYS) {
@@ -371,13 +435,16 @@ export function resolveAlarmLimits(
  * How far one press moves a limit on the monitor's alarm setup. A choice: a
  * real monitor offers a list of values for each limit.
  */
-export const ALARM_LIMIT_STEP: Record<AlarmVital, number> = {
+export const ALARM_LIMIT_STEP: Record<AlarmParam, number> = {
   hr: 5,
   sbp: 5,
   spo2: 1,
   etco2: 1,
   rr: 1,
   temp: 0.5,
+  paw: 1,
+  mv: 0.5,
+  fio2: 1,
 };
 
 /**
@@ -394,28 +461,34 @@ export const ALARM_LIMIT_STEP: Record<AlarmVital, number> = {
  */
 export function withAlarmLimit(
   limits: AlarmLimits,
-  vital: AlarmVital,
+  vital: AlarmParam,
   side: AlarmSide,
   value: number | null,
 ): AlarmLimits {
-  const meta = VITAL_META[vital];
+  const setKey = ALARM_SET_KEYS[vital][side];
+  if (!setKey) return limits; // this reading has no limit on that side
+  const meta = ALARM_PARAM_META[vital];
   const step = ALARM_LIMIT_STEP[vital];
   const band: AlarmBand = { ...limits[vital] };
-  const warnKey = side === 'low' ? 'warnLow' : 'warnHigh';
-  const critKey = side === 'low' ? 'critLow' : 'critHigh';
+  const otherKey = ALARM_SET_KEYS[vital][side === 'low' ? 'high' : 'low'];
+  const other = otherKey ? band[otherKey] : undefined;
   const end = side === 'low' ? meta.min : meta.max;
+  const round = (n: number) => Math.round(n * 10 ** meta.decimals) / 10 ** meta.decimals;
 
-  let next = value === null ? end : roundVital(vital, Math.min(meta.max, Math.max(meta.min, value)));
+  let next = value === null ? end : round(Math.min(meta.max, Math.max(meta.min, value)));
   // Keep low below high.
-  if (side === 'low' && band.warnHigh !== undefined) next = Math.min(next, band.warnHigh - step);
-  if (side === 'high' && band.warnLow !== undefined) next = Math.max(next, band.warnLow + step);
+  if (other !== undefined) next = side === 'low' ? Math.min(next, other - step) : Math.max(next, other + step);
 
   if (next === end) {
-    delete band[warnKey];
+    delete band[setKey];
   } else {
-    band[warnKey] = next;
-    const crit = band[critKey];
-    if (crit !== undefined && (side === 'low' ? crit > next : crit < next)) band[critKey] = next;
+    band[setKey] = next;
+    // A vital's critical limit follows only if the warning limit passes it.
+    if (setKey === 'warnLow' || setKey === 'warnHigh') {
+      const critKey = side === 'low' ? 'critLow' : 'critHigh';
+      const crit = band[critKey];
+      if (crit !== undefined && (side === 'low' ? crit > next : crit < next)) band[critKey] = next;
+    }
   }
   return { ...limits, [vital]: band };
 }
@@ -427,12 +500,13 @@ export function withAlarmLimit(
  */
 export function steppedAlarmLimit(
   limits: AlarmLimits,
-  vital: AlarmVital,
+  vital: AlarmParam,
   side: AlarmSide,
   direction: -1 | 1,
 ): number {
-  const meta = VITAL_META[vital];
-  const current = limits[vital][side === 'low' ? 'warnLow' : 'warnHigh'] ?? (side === 'low' ? meta.min : meta.max);
+  const meta = ALARM_PARAM_META[vital];
+  const setKey = ALARM_SET_KEYS[vital][side];
+  const current = (setKey ? limits[vital][setKey] : undefined) ?? (side === 'low' ? meta.min : meta.max);
   return current + direction * ALARM_LIMIT_STEP[vital];
 }
 
@@ -440,11 +514,12 @@ export function steppedAlarmLimit(
  * What is wrong with a set of limits, if anything: a critical limit must lie
  * at or beyond its warning limit, and low below high. Empty = consistent.
  */
-export function alarmLimitProblems(limits: AlarmLimits): { vital: AlarmVital; message: string }[] {
-  const problems: { vital: AlarmVital; message: string }[] = [];
-  for (const vital of ALARM_VITALS) {
-    const { critLow, warnLow, warnHigh, critHigh } = limits[vital];
-    const label = VITAL_META[vital].label;
+export function alarmLimitProblems(limits: AlarmLimits): { vital: AlarmParam; message: string }[] {
+  const problems: { vital: AlarmParam; message: string }[] = [];
+  for (const vital of ALARM_PARAMS) {
+    // A machine band may be missing from limits archived before it existed.
+    const { critLow, warnLow, warnHigh, critHigh } = limits[vital] ?? {};
+    const label = ALARM_PARAM_META[vital].label;
     const bad = (message: string) => problems.push({ vital, message: `${label}: ${message}` });
     if (critLow !== undefined && warnLow !== undefined && critLow > warnLow) {
       bad(`critical low (${critLow}) must not be above the low warning (${warnLow})`);
@@ -467,7 +542,7 @@ const LETHAL_RHYTHMS = new Set(['vtach', 'vfib', 'torsades', 'pea', 'asystole'])
 export function evaluateAlarms(
   vitals: Vitals,
   limits: AlarmLimits = ALARM_PROFILES.adult,
-  alarmsOff: readonly AlarmVital[] = [],
+  alarmsOff: readonly AlarmParam[] = [],
 ): AlarmState[] {
   const alarms: AlarmState[] = [];
 
@@ -482,20 +557,28 @@ export function evaluateAlarms(
   // Anesthesia machine, when its readings are on the monitor.
   const vent = vitals.vent;
   if (vent && vent.pip !== undefined && vent.vt !== undefined && vent.fio2 !== undefined) {
-    const lim = MACHINE_ALARM_LIMITS;
-    if (vent.pip > lim.pawHigh) {
-      alarms.push({ vital: 'paw', level: 'critical', message: `Paw HIGH ${vent.pip}` });
-    } else if (vent.pip < lim.pawLow) {
-      // No pressure being generated: a disconnection, or no ventilation.
-      alarms.push({ vital: 'paw', level: 'critical', message: 'APNEA PRESSURE' });
+    // Limits archived before the machine's were adjustable carry none: use
+    // the defaults. A limit left out of a band does not alarm.
+    const paw = limits.paw ?? MACHINE_ALARM_BANDS.paw;
+    const mvLim = limits.mv ?? MACHINE_ALARM_BANDS.mv;
+    const o2 = limits.fio2 ?? MACHINE_ALARM_BANDS.fio2;
+    if (!alarmsOff.includes('paw')) {
+      if (paw.critHigh !== undefined && vent.pip > paw.critHigh) {
+        alarms.push({ vital: 'paw', level: 'critical', message: `Paw HIGH ${vent.pip}` });
+      } else if (paw.critLow !== undefined && vent.pip < paw.critLow) {
+        // No pressure being generated: a disconnection, or no ventilation.
+        alarms.push({ vital: 'paw', level: 'critical', message: 'APNEA PRESSURE' });
+      }
     }
-    const mv = minuteVentilation(vent.vt, vitals.rr);
-    if (mv < lim.mvLow) {
-      alarms.push({ vital: 'vt', level: 'warning', message: `MV low ${mv.toFixed(1)}` });
-    } else if (mv > lim.mvHigh) {
-      alarms.push({ vital: 'vt', level: 'warning', message: `MV high ${mv.toFixed(1)}` });
+    if (!alarmsOff.includes('mv')) {
+      const mv = minuteVentilation(vent.vt, vitals.rr);
+      if (mvLim.warnLow !== undefined && mv < mvLim.warnLow) {
+        alarms.push({ vital: 'vt', level: 'warning', message: `MV low ${mv.toFixed(1)}` });
+      } else if (mvLim.warnHigh !== undefined && mv > mvLim.warnHigh) {
+        alarms.push({ vital: 'vt', level: 'warning', message: `MV high ${mv.toFixed(1)}` });
+      }
     }
-    if (vent.fio2 < lim.fio2Low) {
+    if (!alarmsOff.includes('fio2') && o2.critLow !== undefined && vent.fio2 < o2.critLow) {
       alarms.push({ vital: 'fio2', level: 'critical', message: `FiO₂ LOW ${vent.fio2}` });
     }
   }

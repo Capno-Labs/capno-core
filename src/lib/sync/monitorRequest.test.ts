@@ -59,7 +59,8 @@ describe('requests from a student display', () => {
       42,
       {},
       { kind: 'alarmOff' },
-      { kind: 'alarmOff', vital: 'paw', off: true }, // not a vital with limit alarms
+      { kind: 'alarmOff', vital: 'pplat', off: true }, // not a reading with limit alarms
+      { kind: 'alarmOff', vital: 'vt', off: true }, // the limit is on minute volume: 'mv'
       { kind: 'alarmOff', vital: 'spo2', off: 'yes' },
       { kind: 'alarmOff', vital: 'spo2', off: true, extra: 1 },
       { kind: 'alarmLimitStep', vital: 'hr', side: 'high', direction: 20 }, // one press only
@@ -90,6 +91,21 @@ describe('requests from a student display', () => {
     });
     // It does not pause alarms: that stays the instructor's.
     expect(e.snapshot().alarmsSilenced).toBe(false);
+  });
+
+  it('operates the machine\'s alarms the same way', () => {
+    const e = session();
+    e.setVentShown(true);
+    expect(applyMonitorRequest(e, { kind: 'alarmLimitStep', vital: 'paw', side: 'high', direction: 1 })).toBe(true);
+    expect(e.snapshot().alarmLimits!.paw.critHigh).toBe(41);
+    expect(applyMonitorRequest(e, { kind: 'alarmLimitStep', vital: 'mv', side: 'low', direction: -1 })).toBe(true);
+    expect(e.snapshot().alarmLimits!.mv.warnLow).toBe(2.5);
+    expect(applyMonitorRequest(e, { kind: 'alarmOff', vital: 'fio2', off: true })).toBe(true);
+    expect(e.snapshot().alarmsOff).toEqual(['fio2']);
+    expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'FiO₂ alarms off', detail: 'on a student display' });
+    // Inspired oxygen has no high limit: a well-formed request that changes nothing.
+    applyMonitorRequest(e, { kind: 'alarmLimitStep', vital: 'fio2', side: 'high', direction: -1 });
+    expect(e.snapshot().alarmLimits!.fio2).toEqual({ critLow: 20 });
   });
 
   it('can only ask for alarm actions', () => {
