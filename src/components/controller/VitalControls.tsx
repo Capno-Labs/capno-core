@@ -302,7 +302,7 @@ export function VitalControls() {
     }`;
 
   return (
-    <section className="card space-y-3" data-tour="vitals">
+    <section className="card space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted">Vitals</h2>
         <div className="flex items-center gap-1" role="radiogroup" aria-label="Transition speed">
@@ -331,8 +331,8 @@ export function VitalControls() {
           </div>
 
         {snapshot.nibp ? (
-          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
-            <span className="text-xs text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 rounded-ctl bg-panel-2 px-2 py-1.5">
+            <span className="min-w-0 flex-1 basis-44 text-xs text-muted">
               Cuff last read{' '}
               <span className="font-mono text-ink">
                 {snapshot.nibp.sbp}/{snapshot.nibp.dbp}
@@ -355,8 +355,8 @@ export function VitalControls() {
             </span>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
-            <span className="text-xs text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 rounded-ctl bg-panel-2 px-2 py-1.5">
+            <span className="min-w-0 flex-1 basis-44 text-xs text-muted">
               <span className="font-semibold text-vital-nibp">Arterial line in place</span> — the
               monitor shows beat-to-beat pressure and an ART waveform.
             </span>
@@ -370,199 +370,9 @@ export function VitalControls() {
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
-            <span className="text-xs text-muted">
-              {machineShown ? (
-                <>
-                  <span className="font-semibold text-ink-2">Machine readings on the monitor</span> —
-                  airway pressure, tidal volume and inspired oxygen. They read what you set.
-                </>
-              ) : (
-                <>
-                  <span className="font-semibold text-ink-2">No machine readings</span> — add airway
-                  pressure, tidal volume and inspired oxygen tiles to the monitor.
-                </>
-              )}
-            </span>
-            <button
-              className="btn-secondary btn-sm shrink-0"
-              onClick={() => setVentShown(!machineShown)}
-              title="Show or hide the anesthesia-machine tiles on every display"
-            >
-              {machineShown ? 'Hide machine readings' : 'Show machine readings'}
-            </button>
-          </div>
-          {machineShown && (
-            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-              {VENT_KEYS.map((key) => (
-                <NumberStepper
-                  key={key}
-                  label={VENT_META[key].label}
-                  unit={VENT_META[key].unit}
-                  min={VENT_META[key].min}
-                  max={VENT_META[key].max}
-                  step={VENT_META[key].step}
-                  value={engine.getVentTarget(key)}
-                  onCommit={(value) => setVent({ [key]: value }, overSec)}
-                />
-              ))}
-            </div>
-          )}
-          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Volatile agent">
-            <span className="w-12 text-xs font-semibold text-ink-2">Agent</span>
-            {(Object.keys(AGENT_LABELS) as AnestheticAgent[]).map((a) => (
-              <button
-                key={a}
-                onClick={() => setAgent(a)}
-                className={ecgChip(agent === a)}
-                title={AGENT_LABELS[a]}
-              >
-                {AGENT_TAGS[a]}
-              </button>
-            ))}
-            {snapshot.gas && (
-              <span className="ml-1 text-xs text-faint" title="End-tidal concentration as a multiple of this patient's age-adjusted MAC">
-                MAC {snapshot.gas.mac.toFixed(1)} at Et {snapshot.vitals.agentEt.toFixed(1)}%
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Alarm limits">
-          <span className="w-12 text-xs font-semibold text-ink-2">Alarms</span>
-          {(Object.keys(ALARM_PROFILE_LABELS) as AlarmProfile[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setAlarmProfile(p)}
-              className={ecgChip(alarmProfile === p)}
-              title={`Use the ${ALARM_PROFILE_LABELS[p].toLowerCase()} alarm limits on every display`}
-            >
-              {ALARM_PROFILE_LABELS[p]}
-            </button>
-          ))}
-          {hrLimits && sbpLimits && (
-            <span className="ml-1 text-xs text-faint" title="The warning limits now in force">
-              HR {limitsText(hrLimits)} · SBP {limitsText(sbpLimits)}
-            </span>
-          )}
-          <span className="basis-full text-xs text-faint">
-            Select a number on the monitor preview to set its high and low limit or switch its alarm
-            off.
-          </span>
-          <label className="flex basis-full cursor-pointer items-center gap-2 text-xs text-ink-2">
-            <input
-              type="checkbox"
-              className="accent-brand"
-              checked={snapshot.learnerAlarmSetup ?? false}
-              onChange={(e) => setLearnerAlarmSetup(e.target.checked)}
-            />
-            Learners can do the same on their display, and press Silence — each is logged as theirs
-          </label>
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
-            <span className="text-xs text-muted">
-              {tof ? (
-                <>
-                  <span className="font-semibold text-ink-2">Twitch monitor last read</span>{' '}
-                  <span className="font-mono text-ink">
-                    {tof.ratio !== null
-                      ? `${tof.ratio}%`
-                      : tof.ptc !== null
-                        ? `count 0, PTC ${tof.ptc}`
-                        : `count ${tof.count}`}
-                  </span>{' '}
-                  ({BLOCK_DEPTH_LABELS[blockDepth(tof)]}) at {Math.floor(tof.atSec / 60)}:
-                  {String(tof.atSec % 60).padStart(2, '0')} — you set the block; the monitor shows it
-                  when it next stimulates.
-                </>
-              ) : (
-                <>
-                  <span className="font-semibold text-ink-2">No twitch monitor</span> — add a
-                  train-of-four tile to the monitor.
-                </>
-              )}
-            </span>
-            <span className="flex shrink-0 gap-1.5">
-              {tof && (
-                <button className="btn-secondary btn-sm" onClick={measureTof}>
-                  Stimulate now
-                </button>
-              )}
-              <button
-                className="btn-secondary btn-sm"
-                onClick={() => setTofAttached(!tof)}
-                title="Attach or remove the twitch monitor on every display"
-              >
-                {tof ? 'Remove twitch monitor' : 'Attach twitch monitor'}
-              </button>
-            </span>
-          </div>
-          {tof && (
-            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-              <NumberStepper
-                label="Count"
-                unit={NMB_META.tofCount.unit}
-                min={NMB_META.tofCount.min}
-                max={NMB_META.tofCount.max}
-                step={NMB_META.tofCount.step}
-                value={tofCountTarget}
-                onCommit={(value) => setNmb({ tofCount: Math.round(value) }, overSec)}
-              />
-              {/* The ratio compares the fourth twitch with the first, and the
-                  post-tetanic count is taken when there are none: each control
-                  appears only where its reading exists. */}
-              {tofCountTarget === 4 && (
-                <NumberStepper
-                  label="Ratio"
-                  unit={NMB_META.tofRatio.unit}
-                  min={NMB_META.tofRatio.min}
-                  max={NMB_META.tofRatio.max}
-                  step={NMB_META.tofRatio.step}
-                  value={engine.getNmbTarget('tofRatio')}
-                  onCommit={(value) => setNmb({ tofRatio: value }, overSec)}
-                />
-              )}
-              {tofCountTarget === 0 && (
-                <NumberStepper
-                  label="PTC"
-                  unit={NMB_META.ptc.unit}
-                  min={NMB_META.ptc.min}
-                  max={NMB_META.ptc.max}
-                  step={NMB_META.ptc.step}
-                  value={engine.getNmbTarget('ptc')}
-                  onCommit={(value) => setNmb({ ptc: Math.round(value) }, overSec)}
-                />
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1.5">
-          <span className="text-xs text-muted">
-            {snapshot.v5Lead ? (
-              <>
-                <span className="font-semibold text-vital-ecg">Leads II and V5</span> — the monitor
-                shows both, each with its own ST level.
-              </>
-            ) : (
-              <>
-                <span className="font-semibold text-ink-2">Lead II only</span> — add V5, the lead
-                that shows most intraoperative ischemia.
-              </>
-            )}
-          </span>
-          <button
-            className="btn-secondary btn-sm shrink-0"
-            onClick={() => setV5Lead(!snapshot.v5Lead)}
-            title="Show or hide a V5 ECG trace under lead II on every display"
-          >
-            {snapshot.v5Lead ? 'Remove V5 lead' : 'Add V5 lead'}
-          </button>
-        </div>
-
+        {/* Rhythm and the capnogram shape are the live controls after the
+            sliders, so they sit above the monitor-setup strips (machine
+            readings, agent, alarm limits, twitch monitor, V5 lead). */}
         <div>
           <span className="label">Rhythm</span>
           <div className="flex flex-wrap gap-1">
@@ -731,6 +541,199 @@ export function VitalControls() {
               </span>
             )}
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 rounded-ctl bg-panel-2 px-2 py-1.5">
+            <span className="min-w-0 flex-1 basis-44 text-xs text-muted">
+              {machineShown ? (
+                <>
+                  <span className="font-semibold text-ink-2">Machine readings on the monitor</span> —
+                  airway pressure, tidal volume and inspired oxygen. They read what you set.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-ink-2">No machine readings</span> — add airway
+                  pressure, tidal volume and inspired oxygen tiles to the monitor.
+                </>
+              )}
+            </span>
+            <button
+              className="btn-secondary btn-sm shrink-0"
+              onClick={() => setVentShown(!machineShown)}
+              title="Show or hide the anesthesia-machine tiles on every display"
+            >
+              {machineShown ? 'Hide machine readings' : 'Show machine readings'}
+            </button>
+          </div>
+          {machineShown && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+              {VENT_KEYS.map((key) => (
+                <NumberStepper
+                  key={key}
+                  label={VENT_META[key].label}
+                  unit={VENT_META[key].unit}
+                  min={VENT_META[key].min}
+                  max={VENT_META[key].max}
+                  step={VENT_META[key].step}
+                  value={engine.getVentTarget(key)}
+                  onCommit={(value) => setVent({ [key]: value }, overSec)}
+                />
+              ))}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Volatile agent">
+            <span className="w-12 text-xs font-semibold text-ink-2">Agent</span>
+            {(Object.keys(AGENT_LABELS) as AnestheticAgent[]).map((a) => (
+              <button
+                key={a}
+                onClick={() => setAgent(a)}
+                className={ecgChip(agent === a)}
+                title={AGENT_LABELS[a]}
+              >
+                {AGENT_TAGS[a]}
+              </button>
+            ))}
+            {snapshot.gas && (
+              <span className="ml-1 text-xs text-faint" title="End-tidal concentration as a multiple of this patient's age-adjusted MAC">
+                MAC {snapshot.gas.mac.toFixed(1)} at Et {snapshot.vitals.agentEt.toFixed(1)}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Alarm limits">
+          <span className="w-12 text-xs font-semibold text-ink-2">Alarms</span>
+          {(Object.keys(ALARM_PROFILE_LABELS) as AlarmProfile[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setAlarmProfile(p)}
+              className={ecgChip(alarmProfile === p)}
+              title={`Use the ${ALARM_PROFILE_LABELS[p].toLowerCase()} alarm limits on every display`}
+            >
+              {ALARM_PROFILE_LABELS[p]}
+            </button>
+          ))}
+          {hrLimits && sbpLimits && (
+            <span className="ml-1 text-xs text-faint" title="The warning limits now in force">
+              HR {limitsText(hrLimits)} · SBP {limitsText(sbpLimits)}
+            </span>
+          )}
+          <span className="basis-full text-xs text-faint">
+            Select a number on the monitor preview to set its high and low limit or switch its alarm
+            off.
+          </span>
+          <label className="flex basis-full cursor-pointer items-center gap-2 text-xs text-ink-2">
+            <input
+              type="checkbox"
+              className="accent-brand"
+              checked={snapshot.learnerAlarmSetup ?? false}
+              onChange={(e) => setLearnerAlarmSetup(e.target.checked)}
+            />
+            Learners can do the same on their display, and press Silence — each is logged as theirs
+          </label>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 rounded-ctl bg-panel-2 px-2 py-1.5">
+            <span className="min-w-0 flex-1 basis-44 text-xs text-muted">
+              {tof ? (
+                <>
+                  <span className="font-semibold text-ink-2">Twitch monitor last read</span>{' '}
+                  <span className="font-mono text-ink">
+                    {tof.ratio !== null
+                      ? `${tof.ratio}%`
+                      : tof.ptc !== null
+                        ? `count 0, PTC ${tof.ptc}`
+                        : `count ${tof.count}`}
+                  </span>{' '}
+                  ({BLOCK_DEPTH_LABELS[blockDepth(tof)]}) at {Math.floor(tof.atSec / 60)}:
+                  {String(tof.atSec % 60).padStart(2, '0')} — you set the block; the monitor shows it
+                  when it next stimulates.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold text-ink-2">No twitch monitor</span> — add a
+                  train-of-four tile to the monitor.
+                </>
+              )}
+            </span>
+            <span className="flex shrink-0 gap-1.5">
+              {tof && (
+                <button className="btn-secondary btn-sm" onClick={measureTof}>
+                  Stimulate now
+                </button>
+              )}
+              <button
+                className="btn-secondary btn-sm"
+                onClick={() => setTofAttached(!tof)}
+                title="Attach or remove the twitch monitor on every display"
+              >
+                {tof ? 'Remove twitch monitor' : 'Attach twitch monitor'}
+              </button>
+            </span>
+          </div>
+          {tof && (
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+              <NumberStepper
+                label="Count"
+                unit={NMB_META.tofCount.unit}
+                min={NMB_META.tofCount.min}
+                max={NMB_META.tofCount.max}
+                step={NMB_META.tofCount.step}
+                value={tofCountTarget}
+                onCommit={(value) => setNmb({ tofCount: Math.round(value) }, overSec)}
+              />
+              {/* The ratio compares the fourth twitch with the first, and the
+                  post-tetanic count is taken when there are none: each control
+                  appears only where its reading exists. */}
+              {tofCountTarget === 4 && (
+                <NumberStepper
+                  label="Ratio"
+                  unit={NMB_META.tofRatio.unit}
+                  min={NMB_META.tofRatio.min}
+                  max={NMB_META.tofRatio.max}
+                  step={NMB_META.tofRatio.step}
+                  value={engine.getNmbTarget('tofRatio')}
+                  onCommit={(value) => setNmb({ tofRatio: value }, overSec)}
+                />
+              )}
+              {tofCountTarget === 0 && (
+                <NumberStepper
+                  label="PTC"
+                  unit={NMB_META.ptc.unit}
+                  min={NMB_META.ptc.min}
+                  max={NMB_META.ptc.max}
+                  step={NMB_META.ptc.step}
+                  value={engine.getNmbTarget('ptc')}
+                  onCommit={(value) => setNmb({ ptc: Math.round(value) }, overSec)}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 rounded-ctl bg-panel-2 px-2 py-1.5">
+          <span className="min-w-0 flex-1 basis-44 text-xs text-muted">
+            {snapshot.v5Lead ? (
+              <>
+                <span className="font-semibold text-vital-ecg">Leads II and V5</span> — the monitor
+                shows both, each with its own ST level.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold text-ink-2">Lead II only</span> — add V5, the lead
+                that shows most intraoperative ischemia.
+              </>
+            )}
+          </span>
+          <button
+            className="btn-secondary btn-sm shrink-0"
+            onClick={() => setV5Lead(!snapshot.v5Lead)}
+            title="Show or hide a V5 ECG trace under lead II on every display"
+          >
+            {snapshot.v5Lead ? 'Remove V5 lead' : 'Add V5 lead'}
+          </button>
         </div>
       </div>
     </section>

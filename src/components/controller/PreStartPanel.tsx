@@ -44,7 +44,10 @@ export function PreStartPanel() {
       };
 
   return (
-    <section className="card space-y-3 ring-1 !ring-brand/30" data-tour="connect">
+    <section
+      className="card space-y-3 ring-1 !ring-brand/30 fit:max-h-[38dvh] fit:shrink-0 fit:overflow-y-auto"
+      data-tour="connect"
+    >
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-brand-strong">
           Before you start
@@ -95,7 +98,7 @@ export function PreStartPanel() {
               <span className="block text-xs text-faint">
                 {preBriefOn
                   ? 'Displays now show the patient’s history, allergies, medications, airway exam and plan, exactly as written in the scenario — never its title or events. The monitor takes over when you start.'
-                  : 'Off: displays show the monitor on standby. Turn on to put the patient’s history, allergies, medications, airway exam and plan on the displays — check the patient card below first, since learners see it exactly as written.'}
+                  : 'Off: displays show the monitor on standby. Turn on to put the patient’s history, allergies, medications, airway exam and plan on the displays — check the Patient tab below first, since learners see it exactly as written.'}
               </span>
             </span>
           </label>

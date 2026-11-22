@@ -98,3 +98,63 @@ export function adhocEventId(events: readonly ScenarioEvent[]): string {
   while (taken.has(`adhoc-${n}`)) n += 1;
   return `adhoc-${n}`;
 }
+
+/**
+ * How the run screen's Flow rail draws one event:
+ * - `done`: fired, and none of its linked actions is still waiting for a
+ *   mark — it collapses to one line.
+ * - `watching`: fired, with linked actions still to mark — the learners'
+ *   response to it is what faculty are looking for right now.
+ * - `next`: the event the highlight and the N key point at.
+ * - `upcoming`: everything else, one line each.
+ *
+ * `pendingActions` counts the linked actions the rail is showing (so under
+ * "Critical only" a fired event with only non-critical actions left is done).
+ */
+export type FlowCardState = 'done' | 'watching' | 'next' | 'upcoming';
+
+export function flowCardState(input: {
+  fired: boolean;
+  isNext: boolean;
+  pendingActions: number;
+}): FlowCardState {
+  if (!input.fired) return input.isNext ? 'next' : 'upcoming';
+  return input.pendingActions > 0 ? 'watching' : 'done';
+}
+
+/**
+ * The label to show for an event's `phaseHint`: the phase's label, or the
+ * raw hint when no phase has that id (the hint is free text in the schema).
+ */
+export function phaseHintLabel(
+  phases: readonly Phase[],
+  phaseHint: string | undefined,
+): string | undefined {
+  if (phaseHint === undefined) return undefined;
+  return phases.find((p) => p.id === phaseHint)?.label ?? phaseHint;
+}
+
+/**
+ * How far the case has got, as an index into `phases`: the furthest of the
+ * phase the instructor has selected, the phase of any fired event, and the
+ * phase of the next event. Phases only advance when the instructor presses
+ * the stepper, so the selected phase alone can lag the events — this keeps
+ * phase-scoped prompts (the rail's "Also watch for" groups) in step with
+ * what has actually happened. -1 when nothing resolves to a phase.
+ */
+export function flowProgressPhaseIndex(
+  phases: readonly Phase[],
+  currentPhaseId: string,
+  events: readonly ScenarioEvent[],
+  firedIds: ReadonlySet<string> | readonly string[],
+  next?: ScenarioEvent,
+): number {
+  const fired = firedIds instanceof Set ? firedIds : new Set(firedIds);
+  const indexOf = (id: string | undefined) =>
+    id === undefined ? -1 : phases.findIndex((p) => p.id === id);
+  let progress = Math.max(indexOf(currentPhaseId), indexOf(next?.phaseHint));
+  for (const ev of events) {
+    if (fired.has(ev.id)) progress = Math.max(progress, indexOf(ev.phaseHint));
+  }
+  return progress;
+}

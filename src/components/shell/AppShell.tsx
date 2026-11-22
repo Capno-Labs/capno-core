@@ -14,7 +14,10 @@ import { TopBar } from './TopBar';
  * (studio) routes. On the live-session cockpit the sidebar collapses to an
  * icon rail so the three-zone controller keeps its width (iPad Pro 12.9"
  * landscape is 1366 CSS px — see the `desk` breakpoint note in
- * tailwind.config.ts). The student display lives outside this shell.
+ * tailwind.config.ts), the content area widens for large displays, and —
+ * when the window has room (the `fit` variants) — the shell is clamped to
+ * the viewport so the cockpit's zones scroll instead of the page. The
+ * student display lives outside this shell.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -60,7 +63,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="min-h-screen md:grid md:grid-cols-[auto_minmax(0,1fr)]"
+      className={`min-h-screen md:grid md:grid-cols-[auto_minmax(0,1fr)] ${
+        runFocus ? 'fit:h-dvh fit:min-h-0 fit:overflow-hidden' : ''
+      }`}
       style={{ ['--topbar-h' as string]: '60px' }}
     >
       <aside
@@ -71,9 +76,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <SideNav rail={runFocus} />
       </aside>
-      <div className="min-w-0">
+      <div className={`min-w-0 ${runFocus ? 'fit:flex fit:h-dvh fit:flex-col' : ''}`}>
         <TopBar />
-        <main className="print-main mx-auto w-full max-w-[1440px] px-4 pb-28 pt-6 md:px-7 md:pb-12">
+        <main
+          className={`print-main mx-auto w-full px-4 pb-28 pt-6 md:px-7 md:pb-12 ${
+            runFocus
+              ? 'max-w-[1760px] fit:flex fit:min-h-0 fit:flex-1 fit:flex-col fit:pt-0 md:fit:pb-3'
+              : 'max-w-[1440px]'
+          }`}
+        >
           {children}
         </main>
       </div>

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   adhocEventId,
+  flowCardState,
+  flowProgressPhaseIndex,
   nextPhase,
   nextUnfiredEvent,
   paceAgainst,
+  phaseHintLabel,
   phasePace,
   sessionBudgetSec,
   sessionPace,
@@ -131,5 +134,73 @@ describe('pacing', () => {
       expect(nextPhase(phases, 'c')).toBeUndefined();
       expect(nextPhase(phases, 'zzz')).toBeUndefined();
     });
+  });
+});
+
+describe('flowCardState', () => {
+  it('an unfired event is next or upcoming', () => {
+    expect(flowCardState({ fired: false, isNext: true, pendingActions: 2 })).toBe('next');
+    expect(flowCardState({ fired: false, isNext: false, pendingActions: 2 })).toBe('upcoming');
+    expect(flowCardState({ fired: false, isNext: false, pendingActions: 0 })).toBe('upcoming');
+  });
+
+  it('a fired event is watched until its linked actions are marked', () => {
+    expect(flowCardState({ fired: true, isNext: false, pendingActions: 1 })).toBe('watching');
+    expect(flowCardState({ fired: true, isNext: false, pendingActions: 0 })).toBe('done');
+  });
+});
+
+describe('phaseHintLabel', () => {
+  const phases: Phase[] = [
+    { id: 'induction', label: 'Induction' },
+    { id: 'crisis', label: 'Crisis' },
+  ];
+
+  it('resolves a hint to its phase label', () => {
+    expect(phaseHintLabel(phases, 'crisis')).toBe('Crisis');
+  });
+
+  it('falls back to the raw hint, and passes undefined through', () => {
+    expect(phaseHintLabel(phases, 'after the block')).toBe('after the block');
+    expect(phaseHintLabel(phases, undefined)).toBeUndefined();
+  });
+
+  it('resolves every bundled event hint', () => {
+    for (const scenario of BUILT_IN_SCENARIOS) {
+      const labels = new Set(scenario.phases.map((p) => p.label));
+      for (const event of scenario.events) {
+        if (event.phaseHint === undefined) continue;
+        expect(labels.has(phaseHintLabel(scenario.phases, event.phaseHint)!)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('flowProgressPhaseIndex', () => {
+  const phases: Phase[] = [
+    { id: 'p0', label: 'P0' },
+    { id: 'p1', label: 'P1' },
+    { id: 'p2', label: 'P2' },
+  ];
+  const hinted = (id: string, phaseHint?: string): ScenarioEvent => ({ ...ev(id), phaseHint });
+  const list = [hinted('a', 'p0'), hinted('b', 'p1'), hinted('c', 'p2'), hinted('d')];
+
+  it('is the selected phase when nothing has fired and there is no next event', () => {
+    expect(flowProgressPhaseIndex(phases, 'p1', list, [])).toBe(1);
+  });
+
+  it('runs ahead of a stepper the instructor has not pressed', () => {
+    // Still "in" p0, but a p1 event has fired and a p2 event is next.
+    expect(flowProgressPhaseIndex(phases, 'p0', list, ['b'])).toBe(1);
+    expect(flowProgressPhaseIndex(phases, 'p0', list, ['a'], list[2])).toBe(2);
+  });
+
+  it('never moves back when the instructor selects a later phase', () => {
+    expect(flowProgressPhaseIndex(phases, 'p2', list, ['a'], list[1])).toBe(2);
+  });
+
+  it('ignores events without a resolvable phase', () => {
+    expect(flowProgressPhaseIndex(phases, 'p0', list, ['d'], hinted('e', 'nowhere'))).toBe(0);
+    expect(flowProgressPhaseIndex(phases, 'gone', [], [])).toBe(-1);
   });
 });

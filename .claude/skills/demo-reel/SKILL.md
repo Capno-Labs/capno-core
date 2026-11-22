@@ -51,7 +51,13 @@ palette-quantized downstream — not this skill's job, and no ffmpeg here
 - The end-session ConfirmButton auto-cancels after 6 s; end the session
   in-app (End → Confirm) so the armed `beforeunload` never trips.
 - The Flow panel auto-arms its "Critical only" filter at session start —
-  disarm it before marking the full action list.
+  disarm it before marking the full action list. It also renders action rows
+  only for open cards (the next event, and fired events still waiting for
+  marks): press "Show all" first so every row is on the page, and press it
+  again afterwards so the stills show the folded rail.
+- At the reel's viewport the controller fits the window: the page does not
+  scroll, each zone does. A fired event is a toggle, not a fire button —
+  re-firing is "Fire again" inside it.
 - Videos are silent (Playwright records no audio) — don't debug
   "missing beeps".
 - The "Simulation only — not for clinical use" disclaimer must stay

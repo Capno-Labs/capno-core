@@ -135,18 +135,27 @@ Top-bar controls:
   and opens the debrief report.
 
 Keyboard: **Space** starts/pauses, **N** fires the next event, **/** jumps to
-the Flow filter. Keys are ignored while you're typing in any field.
+the Flow filter. Keys are ignored while you're typing in any field or a
+confirmation dialog is open. N and / keep working after you click a button or
+drag a slider; Space pressed on a focused button presses that button.
 
-Orientation on the controller:
+Orientation on the controller. On a laptop or desktop the controller fits the
+window: nothing scrolls off screen, and each of the three zones scrolls on its
+own. (On a short window or a smaller tablet the page scrolls instead.)
 
-- **Flow panel** (right column): every scenario event as a card in narrative
-  order with its linked learner actions underneath, and the first unfired
-  event highlighted as **Next up**. This is the case's driving surface — see
-  §6.
-- **Live monitor (what students see)**: an exact preview of the student
-  display, with a **pause all alarms** toggle that stops alarm sound and
-  flashing on every connected display until you switch it back.
-- **Phase of care**: the sticky command bar lists the scenario's phases with
+- **Flow panel** (left): the scenario's events in narrative order with their
+  linked learner actions, and the first unfired event as the large **Next
+  up** card. This is the case's driving surface — see §6.
+- **Live monitor (what students see)** (centre): an exact preview of the
+  student display, with a **pause all alarms** toggle that stops alarm sound
+  and flashing on every connected display until you switch it back.
+- **Notes, Log and Patient** (under the monitor): **Faculty notes** beside a
+  card that switches between the live **Log** and the **Patient** background.
+  The patient opens first; the card turns to the log when you start.
+- **Vitals** (right): the sliders, then rhythm and CO₂ waveform, then the
+  monitor setup (machine readings, agent, alarm limits, twitch monitor, V5
+  lead) — see §5.
+- **Phase of care**: the command bar lists the scenario's phases with
   the current one highlighted. Press **Next phase →** (or any phase, to jump
   or step back) when the case moves on — phases never advance on their own.
   The timer beside them is time in the current phase, shown against the
@@ -378,43 +387,59 @@ pressure instead (the tile reads **ART**).
 ## 6. The Flow panel
 
 The **Flow** panel is the scenario's driving surface: every event —
-deteriorations, treatment responses, complications — as a one-tap card in
-narrative order, colour-coded by category. Hover (or long-press) a card for
-its description; type **/** to jump to the filter.
+deteriorations, treatment responses, complications — in narrative order, with
+a caption where the case moves into a new phase and a colour dot for the
+event's category. It reads as done / now / later:
 
-- The first unfired event carries a **Next up** highlight, so the whole
-  sequence is one press after another.
+- **Next up** — the first unfired event is the large card, with its
+  description and the actions to watch for. Tap it or press **N** to fire it,
+  so the whole sequence is one press after another.
+- **Later** — every other unfired event is a one-line row. A tap still fires
+  it, so you can run the case out of order; **⤒** makes it the next event
+  (the one N fires) instead, and the small arrow opens its description and
+  actions without firing.
+- **Done** — a fired event folds to one line once its actions are marked (it
+  stays open while any are still waiting). Tap the line to reopen it; firing
+  it again is the **Fire again** button inside, so a stray tap can't repeat a
+  deterioration.
+- The panel follows along: when an event fires — by tap, N, or its auto timer
+  — the list scrolls to keep it and the new next event in view.
+- **Show all** opens every event at once. It is on before you start, so you
+  can read the case through, and switches off when the session first runs.
+  Type **/** to jump to the filter; a filter opens whatever it matches.
 - Firing an event applies its vital effects over the event's built-in ramp and
   logs it to the timeline.
 - **Auto events are off by default** — nothing fires on its own, and scripted
   deteriorations show their authored time as "suggested ~M:SS" so you keep the
   pace. Flip **Auto events** in the top bar to restore the authored timeline
-  (cards then show a live "auto in M:SS" countdown, orange when imminent);
+  (cards then show a live "auto M:SS" countdown, orange when imminent);
   firing an auto event early cancels its scheduled copy.
-- Fired events show a ✓ but can be fired again if the scenario calls for it.
 
 ## 7. Assessing learners
 
 Learner actions live in the Flow panel too. Actions linked to an event (the
-treatments that event responds to) sit directly under that event's card;
-everything else — vigilance, communication, planning — is in **Other learner
-actions** below, grouped by phase. ● marks a critical action, and the
-**Critical only** toggle (which arms itself when the scenario starts) trims
-the action rows to the critical ones with bigger tap targets. As the team
-works, tap a status on each action:
+treatments that event responds to) sit directly under that event;
+everything else — vigilance, communication, planning — is in **Also watch
+for** at the end of the list, grouped by phase. A group opens once the case
+has reached its phase (from the phase you've selected or the events you've
+fired), and you can open any group yourself. ● marks a critical action, and
+the **Critical only** toggle (which arms itself when the scenario starts)
+trims the action rows to the critical ones with bigger, labelled tap targets.
+As the team works, tap a status on each action:
 
-- **✓ done**
+- **✓ observed**
 - **◐ delayed** — done, but later than it should have been
 - **✗ incorrect** — attempted, but not correctly
 - **— missed**
 
-Tap the active status again to clear it. Marks are timestamped into the
-timeline. **Don't stress about perfect live marking** — every status can be
+A marked action folds to one line showing its status and time; tap the line
+to bring the buttons back, and tap the active status again to clear it. Marks
+are timestamped into the timeline. **Don't stress about perfect live marking** — every status can be
 amended on the session record afterwards, before you start the debrief.
 
-**Faculty notes**: type an observation and press **Add** — it's timestamped and
-appears in the debrief report. The **Log** panel shows everything as it
-happens, newest first.
+**Faculty notes** (under the monitor): type an observation and press **Add** —
+it's timestamped and appears in the debrief report. The **Log** beside it
+shows everything as it happens, newest first.
 
 ## 8. Ending the session and debriefing
 

@@ -195,9 +195,16 @@ async function main() {
     // sections, so .first() disambiguates; one click sets the status.
     const critBtn = faculty.getByRole('button', { name: 'Critical only' });
     if ((await critBtn.getAttribute('aria-pressed')) === 'true') await critBtn.click();
+    // The rail only renders the action rows of open cards (the next event
+    // and fired ones still waiting for marks); "Show all" opens every event
+    // and "Also watch for" group so each row is on the page. Fold it again
+    // afterwards so the stills show the rail as it looks in use.
+    const showAll = faculty.getByRole('button', { name: 'Show all', exact: true });
+    if ((await showAll.getAttribute('aria-pressed')) !== 'true') await showAll.click();
     for (const label of OBSERVED_ACTIONS) {
       await faculty.getByLabel(`${label}: Observed`).first().click();
     }
+    await showAll.click();
     log('actions marked');
 
     // Beat 11: recovery. The next three unfired events in narrative order
@@ -212,9 +219,8 @@ async function main() {
     await faculty.locator(`button[title=${JSON.stringify(FULL_RECOVERY_TITLE)}]`).click();
     log('recovery fired');
     await wait(25);
-    // Marking actions auto-scrolled the page; bring the cockpit back in
-    // frame before the recovery still.
-    await faculty.evaluate(() => window.scrollTo({ top: 0 }));
+    // At this viewport the cockpit fits the window (no page scroll), so the
+    // still needs no re-framing.
     await wait(1);
     await shot(faculty, '07-controller-recovery.png');
 

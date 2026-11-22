@@ -7,15 +7,15 @@ import { useEffect, useRef, useState } from 'react';
 import { FacultyGate } from '@/components/FacultyGate';
 import { CopilotPanel } from '@/components/controller/CopilotPanel';
 import { FlowPanel } from '@/components/controller/FlowPanel';
-import { LogPanel } from '@/components/controller/LogPanel';
-import { NotesPanel } from '@/components/controller/NotesPanel';
-import { PatientCard } from '@/components/controller/PatientCard';
 import { PhaseStepper } from '@/components/controller/PhaseStepper';
 import { PreStartPanel } from '@/components/controller/PreStartPanel';
+import { RunDock } from '@/components/controller/RunDock';
 import { SessionControls } from '@/components/controller/SessionControls';
 import { VitalControls } from '@/components/controller/VitalControls';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
+import { SyncPill } from '@/components/shell/SyncPill';
 import { DemoTour } from '@/components/tour/DemoTour';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { hasSeenDemo } from '@/lib/demoTour';
 import { nextUnfiredEvent, sessionPace } from '@/lib/engine/flow';
 import { formatClock } from '@/lib/format';
@@ -25,13 +25,18 @@ import { getScenario } from '@/lib/scenarios';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
- * Faculty controller for a live session. A sticky command bar (title, clock,
- * session controls) sits over the cockpit. Up to `desk` the cockpit is two
- * columns (monitor preview + physiology on the left, case flow + notes/log
- * on the right — iPad landscape keeps this layout); at `desk` it becomes a
- * three-zone cockpit: case-flow rail, monitor with notes/log beneath, and a
- * physiology rail. Below `lg` (iPad portrait) everything collapses to a
- * single monitor-first stack.
+ * Faculty controller for a live session. A command bar (title, clock,
+ * session controls, phase stepper) sits over the cockpit. Up to `desk` the
+ * cockpit is two columns (monitor preview + physiology on the left, case
+ * flow + the notes/log/patient dock on the right — iPad landscape keeps this
+ * layout); at `desk` it becomes a three-zone cockpit: case-flow rail,
+ * monitor with the dock beneath, and a physiology rail. Below `lg` (iPad
+ * portrait) everything collapses to a single monitor-first stack.
+ *
+ * When the window has room (the `fit` variants in tailwind.config.ts) the
+ * cockpit fills the viewport (the shell's top bar steps aside) and each
+ * zone scrolls on its own, so the monitor and the next event stay on screen;
+ * otherwise the page scrolls and the command bar sticks.
  */
 export default function FacultyRunPage() {
   const params = useParams<{ scenarioId: string }>();
@@ -145,19 +150,25 @@ export default function FacultyRunPage() {
 
   return (
     <FacultyGate>
-      <div className="mx-auto max-w-[1600px] space-y-3">
-        {/* Sticky command bar: title, clock, and session controls stay
-            visible while faculty scroll the panels. Kept to one compact row
-            so the monitor preview keeps its height on iPad (still fully
-            supported, just no longer the primary device). */}
-        <div className="sticky top-[var(--topbar-h)] z-20 -mx-4 space-y-2 border-b border-line bg-surface px-4 py-2 md:-mx-7 md:px-7">
-          <header className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 items-baseline gap-3">
+      <div className="space-y-3 fit:flex fit:min-h-0 fit:flex-1 fit:flex-col">
+        {/* Command bar: title, clock, and session controls. Sticky while the
+            page scrolls; in the viewport-fit cockpit nothing scrolls past it.
+            Kept compact so the monitor preview keeps its height on iPad
+            (still fully supported, just no longer the primary device). */}
+        <div className="sticky top-[var(--topbar-h)] z-20 -mx-4 space-y-2 border-b border-line bg-surface px-4 py-2 md:-mx-7 md:px-7 fit:static fit:shrink-0">
+          {/* One row at the three-zone width: a long title truncates rather
+              than pushing the controls onto a second line (every line here
+              is height the monitor and dock lose). */}
+          <header className="flex flex-wrap items-center justify-between gap-3 fit3:flex-nowrap">
+            <div className="flex min-w-0 items-baseline gap-3 fit3:flex-1">
               <div className="min-w-0">
                 <div className="text-[10px] font-extrabold uppercase tracking-[0.11em] text-brand-strong">
                   Live session
                 </div>
-                <h1 className="truncate text-xl font-bold tracking-[-0.02em]">
+                <h1
+                  className="truncate text-xl font-bold tracking-[-0.02em]"
+                  title={engine.scenario.title}
+                >
                   {engine.scenario.title}
                 </h1>
               </div>
@@ -189,7 +200,7 @@ export default function FacultyRunPage() {
                 </span>
               )}
             </div>
-            <span className="flex flex-wrap items-center gap-2">
+            <span className="flex flex-wrap items-center gap-2 fit3:shrink-0 fit3:flex-nowrap">
               {demoRequested && !tourOpen && (
                 <button
                   className="btn-ghost text-xs"
@@ -202,7 +213,18 @@ export default function FacultyRunPage() {
               <SessionControls />
             </span>
           </header>
-          <PhaseStepper />
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <PhaseStepper />
+            </div>
+            {/* The viewport-fit cockpit hides the shell's top bar to give its
+                height to the monitor; its sync pill and theme toggle ride
+                here instead. */}
+            <span className="hidden shrink-0 items-center gap-2 fit:flex">
+              <SyncPill />
+              <ThemeToggle />
+            </span>
+          </div>
         </div>
 
         {tourOpen && <DemoTour onClose={() => setTourOpen(false)} />}
@@ -212,14 +234,38 @@ export default function FacultyRunPage() {
         {/* Cockpit grid. Below `desk` this is the proven two-column layout
             (iPad landscape stays two columns — see tailwind.config.ts); at
             `desk` the wrappers dissolve (display: contents) into the
-            prototype's three-zone cockpit: case-flow rail | monitor +
-            notes/log | physiology rail. Every zone needs min-w-0 so
-            waveforms and truncated text can shrink inside grid tracks. */}
-        <div className="grid gap-3 lg:grid-cols-2 desk:grid-cols-[300px_minmax(0,1fr)_340px]">
+            three-zone cockpit: case-flow rail | monitor + dock | physiology
+            rail. Every zone needs min-w-0 so waveforms and truncated text can
+            shrink inside grid tracks.
+
+            Row 2 is flexible at `desk` so the rails (which span both rows)
+            stretch it rather than row 1 — otherwise a gap opens between the
+            monitor and the dock.
+
+            Viewport fit: the grid takes the height left under the command
+            bar. At `fit3` row 1 is the monitor's own height and row 2 (the
+            dock) takes the rest; the rails span both and scroll. At `fit2`
+            each column is a flex stack (the dock keeps a fixed height there,
+            so the Flow gets the room).
+
+            The grid's own overflow is a safety valve for a monitor taller
+            than the window allows (an arterial line, V5, machine readings
+            and a twitch monitor each add a row). At `fit3` the grid is a
+            size container and the rails are pinned at its visible height
+            (100cqh, sticky), so only the centre column moves when that
+            happens — the Flow and the vitals stay put.
+
+            The `fit*` variants sort before the screen variants, so a fit
+            utility that must override `md:`/`desk:` on the same element is
+            written stacked (`desk:fit3:…`). */}
+        <div className="grid gap-3 lg:grid-cols-2 desk:grid-cols-[minmax(340px,0.8fr)_minmax(0,1.6fr)_minmax(340px,0.8fr)] desk:grid-rows-[auto_1fr] fit:min-h-0 fit:flex-1 fit:overflow-y-auto fit2:grid-rows-[minmax(0,1fr)] fit3:[container-type:size] desk:fit3:grid-rows-[auto_minmax(108px,1fr)]">
           {/* lg left column (first in DOM so the single-column stack leads
               with the monitor): preview + physiology controls. */}
-          <div className="min-w-0 space-y-3 desk:contents">
-            <div className="min-w-0 desk:col-start-2 desk:row-start-1">
+          <div className="min-w-0 space-y-3 desk:space-y-0 desk:contents fit2:flex fit2:min-h-0 fit2:flex-col">
+            {/* The frame keeps the monitor's natural height (no explicit
+                height: the alarm-setup overlay and the monitor's own h-full
+                size against it). */}
+            <div className="min-w-0 desk:col-start-2 desk:row-start-1 fit2:shrink-0">
               <div className="overflow-hidden rounded-xl ring-1 ring-line">
                 <div className="flex items-center justify-between bg-panel px-3 py-1.5">
                   <span className="text-xs font-semibold uppercase tracking-wider text-faint">
@@ -240,22 +286,25 @@ export default function FacultyRunPage() {
                 />
               </div>
             </div>
-            <div className="min-w-0 space-y-3 desk:col-start-3 desk:row-start-1 desk:row-span-2 desk:self-start">
+            {/* Physiology rail. The 1px padding keeps the cards' rings from
+                being clipped by the rail's own scroll box. */}
+            <div
+              className="min-w-0 space-y-3 desk:col-start-3 desk:row-start-1 desk:row-span-2 desk:self-start fit:overflow-y-auto fit:overscroll-contain fit:p-px fit2:min-h-0 fit2:flex-1 fit3:sticky fit3:top-0 fit3:h-[100cqh]"
+              data-tour="vitals"
+            >
               <VitalControls />
               <CopilotPanel />
             </div>
           </div>
 
-          {/* lg right column: case flow (events + linked actions) + patient,
-              then notes and log (which sit under the monitor at desk). */}
-          <div className="min-w-0 space-y-3 desk:contents">
-            <div className="min-w-0 space-y-3 desk:col-start-1 desk:row-start-1 desk:row-span-2 desk:self-start">
+          {/* lg right column: case flow (events + linked actions), then the
+              notes/log/patient dock (which sits under the monitor at desk). */}
+          <div className="min-w-0 space-y-3 desk:space-y-0 desk:contents fit2:flex fit2:min-h-0 fit2:flex-col">
+            <div className="min-w-0 desk:col-start-1 desk:row-start-1 desk:row-span-2 desk:self-start fit2:min-h-0 fit2:flex-1 fit3:sticky fit3:top-0 fit3:h-[100cqh]">
               <FlowPanel />
-              <PatientCard patient={engine.scenario.patient} />
             </div>
-            <div className="min-w-0 space-y-3 desk:col-start-2 desk:row-start-2 desk:self-start">
-              <NotesPanel />
-              <LogPanel />
+            <div className="min-w-0 desk:col-start-2 desk:row-start-2 desk:self-start fit2:h-56 fit2:shrink-0 fit3:min-h-0 desk:fit3:self-stretch">
+              <RunDock />
             </div>
           </div>
         </div>
