@@ -85,9 +85,6 @@ registerPushHandler('session', pushSessionById);
 export interface CloudSessionSummary {
   cloudId: string;
   title: string;
-  percent: number;
-  /** Points available; 0 means a faculty-scored rubric (no automatic score). */
-  possible: number;
   endedAtIso: string;
   learnerNames: string[];
 }
@@ -98,15 +95,13 @@ export async function listCloudSessions(): Promise<CloudSessionSummary[]> {
   if (!supabase || !cloudEligible()) return [];
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, scenario_snapshot->>title, score->>percent, score->>possible, ended_at, learner_names')
+    .select('id, scenario_snapshot->>title, ended_at, learner_names')
     .order('ended_at', { ascending: false })
     .limit(200);
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map((row) => ({
     cloudId: String(row.id),
     title: String(row.title ?? 'Untitled scenario'),
-    percent: Number(row.percent ?? 0),
-    possible: Number(row.possible ?? 0),
     endedAtIso: String(row.ended_at ?? ''),
     learnerNames: Array.isArray(row.learner_names) ? (row.learner_names as string[]) : [],
   }));

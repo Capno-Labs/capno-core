@@ -62,8 +62,24 @@ The canonical smoke flow:
    `ring-brand`. `Save to library` stays disabled until the queue is empty;
    vitals and patient demographics must be typed by hand (never defaulted).
 3. After saving, `/editor?id=<slug>` opens with the `imported` tag; running
-   it and ending the session gives a debrief that reads
-   **Faculty-scored rubric — no automatic score** (all actions have 0 points).
+   it and ending the session gives a session record whose action table has a
+   **Rubric descriptors** column (all actions have 0 points) under a count
+   line (`[data-action-counts]`, "N of M expected actions done…"). No score
+   appears anywhere in the studio.
+
+## Debrief walkthrough
+
+After `Confirm end → debrief` the session record opens (`/debrief/<id>`).
+`getByRole('button', { name: 'Start debrief' })` opens the walkthrough: a
+`[data-debrief-deck]` overlay portalled to `<body>`, with the rest of the
+page `inert`. The current card is `[data-card]` (its id; `data-card-kind` is
+`scene`, `prompt`, `timeline`, `list`, `plusDelta`, `doneWell`, `gap`,
+`otherGaps`, `question`, `takeaways` or `end`). Keys go to `window`:
+`ArrowRight`/`ArrowLeft`/`PageDown`/`PageUp`/`Home`/`End` move, `n` toggles
+`[data-deck-cue]`, `Escape` closes. One `gap` card exists per critical action
+not marked done — amend a status on the record and reopen to see it go. On
+the `takeaways` card, `getByLabel('Add a take-away')` + `Add` saves a
+post-hoc faculty note prefixed `Take-away: `.
 
 ## Gotchas
 

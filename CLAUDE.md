@@ -2,7 +2,7 @@
 
 Capno is an anesthesia simulation lab PWA: a faculty controller drives a
 simulated patient monitor in real time; students watch a mirrored monitor;
-sessions end in a scored, printable debrief. Read `README.md` for
+sessions end in a card-by-card debrief walkthrough with a printable record. Read `README.md` for
 architecture. This file is the working contract for changing the code:
 prefer extending the existing patterns (zustand stores, adapter
 interfaces, zod at the boundaries) over inventing new ones.

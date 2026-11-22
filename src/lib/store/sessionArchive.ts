@@ -36,7 +36,7 @@ export function quotaFallbacks(sessions: ArchivedSession[]): ArchivedSession[][]
   return [
     capped,
     // History (10-second vitals samples) is the bulk of a record — drop it
-    // from older sessions first; recent debriefs keep their trend strips.
+    // from older sessions first; recent debriefs keep it for their turning points.
     stripHistory(capped, 10),
     stripHistory(capped.slice(0, 25), 1),
   ];
