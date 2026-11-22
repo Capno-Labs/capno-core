@@ -8,11 +8,18 @@ import { crumbFor } from './nav';
 import { SyncPill } from './SyncPill';
 
 /** Sticky workspace topbar: breadcrumb, sync state, theme toggle. On phones
- *  (no sidebar) it also carries the brand mark. */
+ *  (no sidebar) it also carries the brand mark. In the viewport-fit cockpit
+ *  (the `fit` variants) the live controller gives this bar's height to the
+ *  monitor and carries the sync pill and theme toggle in its own command bar. */
 export function TopBar() {
   const pathname = usePathname();
+  const runFocus = pathname.startsWith('/faculty/run/');
   return (
-    <header className="no-print sticky top-0 z-30 flex h-[var(--topbar-h)] items-center justify-between gap-4 border-b border-line bg-surface/85 px-4 backdrop-blur-md md:px-7">
+    <header
+      className={`no-print sticky top-0 z-30 flex h-[var(--topbar-h)] items-center justify-between gap-4 border-b border-line bg-surface/85 px-4 backdrop-blur-md md:px-7 ${
+        runFocus ? 'fit:hidden' : ''
+      }`}
+    >
       <div className="flex min-w-0 items-center gap-3">
         <Link href="/" aria-label="CAPNO Studio home" className="md:hidden">
           <BrandMark size="sm" />

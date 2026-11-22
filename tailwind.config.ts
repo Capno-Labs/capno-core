@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 // Semantic theme colors route through the CSS variables in globals.css
 // (dark default, [data-theme='light'] override). RGB-triple vars keep
@@ -178,7 +179,25 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Viewport-fit cockpit (the live controller only). When the window has
+    // room, the run page stops scrolling and each zone scrolls on its own, so
+    // the monitor preview and the next event never leave the screen. `fit3`
+    // is the three-zone `desk` layout, `fit2` the two-column layout (it needs
+    // more height: the monitor and the vitals share a column); `fit` is
+    // either. Anything smaller — short windows, 10–11" iPads, phones — and
+    // print keep ordinary page scroll. These sort BEFORE the screen variants:
+    // to override `md:`/`desk:` on the same element, stack them
+    // (`desk:fit3:self-stretch`).
+    plugin(({ addVariant }) => {
+      const three = 'screen and (min-width: 1440px) and (min-height: 700px)';
+      const two =
+        'screen and (min-width: 1024px) and (max-width: 1439.98px) and (min-height: 900px)';
+      addVariant('fit', `@media ${three}, ${two}`);
+      addVariant('fit2', `@media ${two}`);
+      addVariant('fit3', `@media ${three}`);
+    }),
+  ],
 };
 
 export default config;

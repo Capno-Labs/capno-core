@@ -49,9 +49,9 @@ export const DEMO_TOUR_STEPS: readonly DemoTourStep[] = [
     anchor: '[data-tour="flow"]',
     title: 'Pace the case from the Flow panel',
     body:
-      'Scenario events in narrative order, each with its linked learner actions. ' +
-      'The highlighted card is next up — fire it with its button or the N key, pin ' +
-      'a different card to make it next, or add an ad-hoc event.',
+      'Scenario events in narrative order. The large card is next up — fire it ' +
+      'with a tap or the N key. Tap any other event to fire it out of order, or ⤒ ' +
+      'to make it next; fired events fold to one line. + Add event improvises one.',
   },
   {
     id: 'vitals',
@@ -66,8 +66,9 @@ export const DEMO_TOUR_STEPS: readonly DemoTourStep[] = [
     anchor: '[data-tour="flow"]',
     title: 'Mark learner actions as you observe them',
     body:
-      'Each event card lists its expected actions — one tap marks Observed, ' +
-      'Delayed, Incorrect, or Missed. Any mark can be amended later in the debrief.',
+      'Expected actions sit under their event — one tap marks Observed, Delayed, ' +
+      'Incorrect, or Missed, and a marked action folds to one line (tap it to ' +
+      'change it). Any mark can be amended later in the debrief.',
   },
   {
     id: 'end',

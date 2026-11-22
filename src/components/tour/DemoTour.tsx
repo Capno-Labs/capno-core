@@ -77,22 +77,34 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
   const back = () => setIdx((i) => Math.max(0, i - 1));
 
   // Below `sm` the card is a bottom sheet; anchored cards sit under their
-  // target (flipped above when there's no room), clamped to the viewport.
+  // target (flipped above when there's no room), clamped to the viewport. An
+  // anchor with room neither below nor above — a cockpit rail that runs the
+  // height of the viewport — gets the card beside it instead.
   const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
   let cardClass = 'fixed z-50';
   let cardStyle: CSSProperties | undefined;
   if (narrow) {
     cardClass += ' inset-x-0 bottom-0 rounded-t-xl';
   } else if (rect) {
-    const flip = rect.bottom + GAP + CARD_H_ESTIMATE > window.innerHeight;
+    const roomBelow = rect.bottom + GAP + CARD_H_ESTIMATE <= window.innerHeight;
+    const roomAbove = rect.top - GAP - CARD_H_ESTIMATE >= 0;
     cardClass += ' rounded-xl';
-    cardStyle = {
-      width: CARD_W,
-      left: Math.max(GAP, Math.min(rect.left, window.innerWidth - CARD_W - GAP)),
-      ...(flip
-        ? { bottom: Math.max(GAP, window.innerHeight - rect.top + GAP) }
-        : { top: rect.bottom + GAP }),
-    };
+    if (roomBelow || roomAbove) {
+      cardStyle = {
+        width: CARD_W,
+        left: Math.max(GAP, Math.min(rect.left, window.innerWidth - CARD_W - GAP)),
+        ...(roomBelow
+          ? { top: rect.bottom + GAP }
+          : { bottom: Math.max(GAP, window.innerHeight - rect.top + GAP) }),
+      };
+    } else {
+      const fitsRight = rect.right + GAP + CARD_W + GAP <= window.innerWidth;
+      cardStyle = {
+        width: CARD_W,
+        left: fitsRight ? rect.right + GAP : Math.max(GAP, rect.left - GAP - CARD_W),
+        top: Math.max(GAP, Math.min(rect.top + GAP, window.innerHeight - CARD_H_ESTIMATE - GAP)),
+      };
+    }
   } else {
     cardClass += ' left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl';
     cardStyle = { width: CARD_W, maxWidth: 'calc(100vw - 24px)' };
