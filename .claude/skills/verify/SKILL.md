@@ -27,7 +27,8 @@ The canonical smoke flow:
 
 1. Faculty page: `goto /faculty/run/anaphylaxis` (or `/faculty/run/quick-start`
    for a no-events session). The 4-char session code is in the
-   `.font-mono.text-xl` element. Click the button matching `/start/i`.
+   `.font-mono.text-xl` element. Click `[data-tour="start"]` (event labels
+   can contain "start" too, so a `/start/i` button match is ambiguous).
 2. Student page: **same browser context** (BroadcastChannel only spans one
    profile), `goto /student`, fill `getByLabel('Session code')`, click
    `/join/i`. Assert monitor content via `document.body.innerText`.
@@ -50,6 +51,20 @@ The canonical smoke flow:
    `getByLabel('Count target')`, `Ratio target` (only at count 4) and
    `PTC target` (only at count 0). The TOF tile changes at the next
    measurement — click `Stimulate now` rather than waiting 15 s.
+7. Flow rail: each event is `[data-flow-card="<event id>"]` with
+   `data-flow-state` = `next | upcoming | watching | done`. An unfired
+   event's fire button is the one whose `title` is the event description
+   (`button[title="…"]`); a fired event's header is a toggle
+   (`aria-expanded`), and re-firing is `Fire again` inside it. Action rows
+   render only in open cards — press `Show all` (`aria-pressed`) to render
+   every `getByLabel('<action>: Observed')`; a marked row folds after ~2 s
+   into a `Change mark — <action>` button. `N` fires the next event from
+   anywhere except a text field or an open dialog (no need to blur a button
+   first).
+8. Layout: at ≥1440×700 (or ≥1024×900) the controller fits the window — the
+   page does not scroll (`document.documentElement.scrollHeight <=
+   innerHeight`) and the Flow list, the vitals rail and the Notes/Log lists
+   scroll on their own. Smaller windows scroll the page as before.
 
 ## Run-sheet import flow
 

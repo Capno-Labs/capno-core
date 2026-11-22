@@ -37,7 +37,7 @@ export function SessionControls() {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 fit3:flex-nowrap">
       <div className="mr-2 flex items-center gap-2.5 rounded-ctl bg-panel-2 px-3 py-1 ring-1 ring-line">
         <span className="flex flex-col text-[9px] font-semibold uppercase leading-tight tracking-wider text-muted">
           Session

@@ -9,6 +9,25 @@ const CARD_H_ESTIMATE = 220;
 const GAP = 12;
 
 /**
+ * The part of `el` that is actually on screen: its box clipped by every
+ * scrolling or clipping ancestor. The cockpit's rails live inside scroll
+ * boxes, so an anchor's own rect can run past what the user can see.
+ */
+function visibleRect(el: Element): DOMRect {
+  let { top, left, right, bottom } = el.getBoundingClientRect();
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const style = getComputedStyle(p);
+    if (style.overflowX === 'visible' && style.overflowY === 'visible') continue;
+    const r = p.getBoundingClientRect();
+    top = Math.max(top, r.top);
+    left = Math.max(left, r.left);
+    right = Math.min(right, r.right);
+    bottom = Math.min(bottom, r.bottom);
+  }
+  return new DOMRect(left, top, Math.max(0, right - left), Math.max(0, bottom - top));
+}
+
+/**
  * Hand-rolled coach marks for the guided demo (no tour library — invariant
  * 6). The page stays fully interactive: no backdrop, and the highlight ring
  * is pointer-events-none. Closing by any route (Finish, Skip, Esc) persists
@@ -41,7 +60,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
     let raf = 0;
     const measure = () => {
       raf = 0;
-      setRect(el.getBoundingClientRect());
+      setRect(visibleRect(el));
     };
     measure();
     const onMove = () => {
@@ -129,6 +148,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
         aria-label={`Demo tour: ${step.title}`}
         tabIndex={-1}
         className={`${cardClass} border border-brand/30 bg-panel p-4 shadow-2xl outline-none`}
+        style={cardStyle}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === 'ArrowRight') {
             e.preventDefault();
