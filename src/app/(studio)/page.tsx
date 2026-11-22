@@ -19,7 +19,7 @@ const SECONDARY = [
   {
     href: '/debrief',
     title: 'Review debriefs',
-    desc: 'Timelines, scores, and printable reports from completed sessions.',
+    desc: 'Card-by-card debrief walkthroughs and printable records from completed sessions.',
   },
   {
     href: '/editor',

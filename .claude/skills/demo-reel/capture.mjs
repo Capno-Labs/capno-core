@@ -41,8 +41,9 @@ const DEMO_SEEN_VALUE = JSON.stringify({ seenAtIso: '2026-01-01T00:00:00.000Z' }
 
 // Expected-action labels from src/scenarios/laryngospasm-lma.json, marked
 // via the ActionMarkRow buttons (aria-label = `${label}: Observed`). The six
-// critical actions plus three supporting ones → debrief scores 86% (125/145); the two
-// left unmarked read as missed, which keeps the report honest-looking.
+// critical actions plus three supporting ones are marked; the two left
+// unmarked read as missed, which keeps the record honest-looking (they are
+// not critical, so the walkthrough has no gap cards for them).
 const OBSERVED_ACTIONS = [
   'Identify elevated laryngospasm risk (recent URI, smoker) and verbalize a plan',
   'Confirm LMA placement with capnography and chest rise',
@@ -226,8 +227,21 @@ async function main() {
     await wait(3);
     await shot(faculty, '08-debrief.png');
 
-    // Beat 13: scroll the scored report for the video tail, then the archive.
-    for (let i = 0; i < 8; i++) {
+    // Beat 13: the debrief walkthrough — open it and step through the first
+    // cards for the video (keys go to window), then close it.
+    await faculty.getByRole('button', { name: 'Start debrief' }).click();
+    await faculty.waitForSelector('[data-debrief-deck]');
+    await wait(2);
+    await shot(faculty, '08b-debrief-walkthrough.png');
+    for (let i = 0; i < 7; i++) {
+      await faculty.keyboard.press('ArrowRight');
+      await wait(1.5);
+    }
+    await faculty.keyboard.press('Escape');
+    await wait(1);
+
+    // Beat 14: scroll the written record for the video tail, then the archive.
+    for (let i = 0; i < 6; i++) {
       await faculty.mouse.wheel(0, 400);
       await wait(0.7);
     }
@@ -269,6 +283,7 @@ async function main() {
     '06-student-monitor.png',
     '07-controller-recovery.png',
     '08-debrief.png',
+    '08b-debrief-walkthrough.png',
     '09-debrief-archive.png',
     '10-demo-tour.png',
   ];

@@ -403,14 +403,14 @@ actions** below, grouped by phase. ● marks a critical action, and the
 the action rows to the critical ones with bigger tap targets. As the team
 works, tap a status on each action:
 
-- **✓ done** — full credit
-- **◐ delayed** — half credit
-- **✗ incorrect** — no credit
-- **— missed** — no credit
+- **✓ done**
+- **◐ delayed** — done, but later than it should have been
+- **✗ incorrect** — attempted, but not correctly
+- **— missed**
 
 Tap the active status again to clear it. Marks are timestamped into the
 timeline. **Don't stress about perfect live marking** — every status can be
-amended on the debrief report afterwards and the score recalculates.
+amended on the session record afterwards, before you start the debrief.
 
 **Faculty notes**: type an observation and press **Add** — it's timestamped and
 appears in the debrief report. The **Log** panel shows everything as it
@@ -419,19 +419,50 @@ happens, newest first.
 ## 8. Ending the session and debriefing
 
 Press **■ End session → Confirm end → debrief**. The session is archived on
-this device and the report opens, organized as a narrative: session header
-(add **Learners** names via *edit* — comma-separated), **Outcome summary**
-(overall and per-category score), **What happened** (vitals trend strip with
-event markers plus the full timeline), **Key clinical turning points** (a
-derived list of fired events, phase and rhythm changes, alarm-threshold
-crossings, and recoveries — in cuff mode BP points follow the NIBP readings
-the monitor actually showed), **What the learner did** (actions by status,
-with amend dropdowns — changes rescore and save immediately), **Missed or
-delayed critical actions**, your **Faculty notes** (editable here: fix or
-remove a note, or **+ Add note** — additions are chipped "added at debrief"
-so the record stays honest), the scenario's **Debrief guide** (discussion
-points and suggested questions), and a **Reference** section (correct
-management, common errors).
+this device and the session record opens. Take a minute here before the
+learners look at the screen: fix any marks you could not make live, then
+press **Start debrief**.
+
+**The walkthrough.** **Start debrief** opens the debrief as full-screen cards,
+one at a time, for you to click through with the room. The order is the
+PEARLS debriefing framework (Eppich & Cheng, 2015):
+
+1. **Setting the scene** — what the debrief is for and how it will run.
+2. **Reactions** — "How are you feeling?" Let everyone speak before any
+   teaching.
+3. **Description** — the learners summarise the case, then a **Key moments**
+   card lists the fired events, rhythm changes, alarms and recoveries from
+   the log to settle the facts (in cuff mode BP points follow the NIBP
+   readings the monitor actually showed).
+4. **Analysis** — the case's learning objectives; "What went well? What would
+   you change?"; the critical actions that were done; **one card for each
+   critical action that was missed, delayed or incorrect**, showing when the
+   event that called for it fired and when it was marked, with the question
+   "What were you seeing at this point? What was going through your mind?";
+   the scenario's own discussion questions, one per card; its key teaching
+   points; correct management and common errors for reference.
+5. **Summary** — take-aways. Type them as the learners say them: each is
+   saved to the record under faculty notes.
+
+Move with **→ / ←** (Space, Enter and a presenter clicker's Page keys also
+work), jump with the phase names along the top, **F** for full screen, **Esc**
+to close. **N** shows a short **facilitator cue** for the current card — it
+stays hidden otherwise, since the room is reading the same screen. Skip
+freely: the cards are a guide, not a script. Everything on them comes from
+the case you authored and what you marked; the app writes no clinical
+content of its own and shows no score — the debrief is a conversation about
+the case, not a grade.
+
+**The record.** Under the walkthrough is the written record, organized as a
+narrative: session header (add **Learners** names via *edit* —
+comma-separated), learning objectives, **What happened** (the full
+timeline), **Key clinical turning points**, **What the learner did** (actions
+by status, with amend dropdowns — changes save immediately and carry into
+the walkthrough), **Missed or delayed critical actions**, your **Faculty
+notes** (editable here: fix or remove a note, or **+ Add note** — additions
+are chipped "added at debrief" so the record stays honest), the scenario's
+**Debrief guide** (discussion points and suggested questions), and a
+**Reference** section (correct management, common errors).
 
 **🖨 Export PDF** opens the browser's print dialog — choose "Save as PDF". The
 amend controls are hidden in print.
@@ -444,9 +475,13 @@ tab (a normal click): running two controller tabs on one code would have both
 drive the student displays at once.
 
 Past sessions live under **Debrief** (or the **Past sessions** button
-in the library). Scoring policy: done = full points, delayed = half,
-incorrect/missed = zero; critical actions are surfaced separately and never
-buried in the percentage.
+in the library).
+
+The studio does not show a score. Actions still carry point values, and a
+score is still calculated and saved with each session (done = full points,
+delayed = half, incorrect/missed = zero) so that JSON exports and the
+institution archive keep the same shape; it is simply not part of the
+debrief.
 
 > **Sessions are stored in the browser** (localStorage) on the faculty device
 > — clearing browser data deletes them. The Debrief page has **⬇ Export all
@@ -512,9 +547,8 @@ teach from into a scenario draft — without rewriting it.
    scenario lands in the library tagged `imported`, opens in the editor,
    and follows the normal save / version / approval path.
 
-Imported rubric rows keep their wording and carry no point values, so the
-debrief shows a **faculty-scored rubric** (your marks and the row
-descriptors) instead of a percentage.
+Imported rubric rows keep their wording and carry no point values; the
+session record shows your marks beside each row's descriptors.
 
 ## 10. Troubleshooting
 

@@ -297,16 +297,20 @@ saving is never blocked:
 `{ id, label, description?, phase?, critical, points }` — the checklist the
 faculty marks during the run. `critical: true` actions are highlighted, and
 any critical action not marked **done** appears in the debrief's
-"Critical actions not completed" list. Scoring: done = full points,
-delayed = half, missed/incorrect = 0.
+"Missed or delayed critical actions" list and gets its own card in the
+debrief walkthrough. Scoring: done = full points, delayed = half,
+missed/incorrect = 0 — the score is stored with the session but not shown in
+the studio.
 
 ## `rubric`
 
-Categories `{ id, label, actionIds[] }` grouping actions for the score
+Categories `{ id, label, actionIds[] }` grouping actions for the stored score
 breakdown (e.g. recognition / management / communication). Every `actionId`
 must exist; uncategorized actions still count in an "Other actions" bucket.
 
 ## Teaching content
 
 `expectedProgression`, `correctManagement`, `commonErrors` (string arrays)
-and `debrief: { points[], questions[] }` all render in the debrief report.
+and `debrief: { points[], questions[] }` all render in the debrief: as cards
+in the walkthrough (each question gets its own card) and in the written
+record.

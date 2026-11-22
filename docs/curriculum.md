@@ -422,6 +422,22 @@ Only burst timing and spectrum follow the standard. Sound level, the rest of
 the standard, and Amendment 2's auditory icons are not addressed: this is a
 teaching simulator, not an alarm system.
 
+## Debrief structure sources
+
+The debrief walkthrough (`src/lib/debrief/`, `src/components/debrief/DebriefDeck.tsx`)
+follows a published debriefing framework. Its wording is our own and it adds
+no clinical content: clinical text on the cards comes from the scenario and
+the session log.
+
+| Design choice | Source |
+| --- | --- |
+| Card order — setting the scene, reactions, description, analysis, application/summary — and the three analysis approaches (learner self-assessment such as plus/delta, focused facilitation, direct teaching) | Eppich W, Cheng A. Promoting Excellence and Reflective Learning in Simulation (PEARLS). *Simul Healthc* 2015;10(2):106–115. doi:10.1097/SIH.0000000000000072 |
+| A scripted aid per phase, kept as optional facilitator cues | Bajaj K, Meguerdichian M, Thoma B, Huang S, Eppich W, Cheng A. The PEARLS Healthcare Debriefing Tool. *Acad Med* 2018;93(2):336. doi:10.1097/ACM.0000000000002035 |
+| The gap cards ask for the learner's reasoning before any teaching | Rudolph JW, Simon R, Dufresne RL, Raemer DB. There's no such thing as "nonjudgmental" debriefing: a theory and method for debriefing with good judgment. *Simul Healthc* 2006;1(1):49–55 |
+| PEARLS is chosen for its structure, not because it outperforms other frameworks — none has been shown to | Sawyer T, Eppich W, Brett-Fleegler M, Grant V, Cheng A. More than one way to debrief. *Simul Healthc* 2016;11(3):209–217; Cheng A, et al. Debriefing for technology-enhanced simulation: a systematic review and meta-analysis. *Med Educ* 2014;48(7):657–666. doi:10.1111/medu.12432 |
+| No vitals graph or playback in the debrief: adding video to an oral debrief did not improve outcomes | Cheng 2014 (above); Savoldelli GL, et al. Value of debriefing during simulated crisis management: oral versus video-assisted oral feedback. *Anesthesiology* 2006;105(2):279–285 (anesthesia residents) |
+| No score in the debrief | An inference, not a tested result: no simulation study was found that tests showing a score in a formative debrief. Feedback that draws attention to the self rather than the task tends to work less well (Kluger AN, DeNisi A. *Psychol Bull* 1996;119(2):254–284), and grades lowered interest compared with comments (Butler R. *Br J Educ Psychol* 1988;58(1):1–14) |
+
 ## Adding scenarios to the curriculum
 
 Pick the crisis from the catalog above first (it fixes the domain for

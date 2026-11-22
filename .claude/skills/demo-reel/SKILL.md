@@ -1,6 +1,6 @@
 ---
 name: demo-reel
-description: Launch Capno and capture a demo reel — storyboarded 1200×750 PNG screenshots plus Playwright-recorded WebM video of a scripted laryngospasm-lma session (case library → faculty controller → student monitor → scored debrief). Use when asked for demo media, marketing screenshots, or a walkthrough video.
+description: Launch Capno and capture a demo reel — storyboarded 1200×750 PNG screenshots plus Playwright-recorded WebM video of a scripted laryngospasm-lma session (case library → faculty controller → student monitor → debrief walkthrough and record). Use when asked for demo media, marketing screenshots, or a walkthrough video.
 ---
 
 # Producing a Capno demo reel
@@ -28,7 +28,9 @@ component source — don't work around it inline. Outputs land in
 
 Four stills feed the capno-www marketing set: `02-case-library`,
 `05-controller-obstruction` (→ `faculty-controller`),
-`06-student-monitor`, `08-debrief`. www's committed copies are
+`06-student-monitor`, `08-debrief` (the session record;
+`08b-debrief-walkthrough` is the first card of the full-screen walkthrough).
+www's committed copies are
 palette-quantized downstream — not this skill's job, and no ffmpeg here
 (no new dependencies).
 

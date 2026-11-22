@@ -150,3 +150,9 @@ The policy (done=full, delayed=half, missed/incorrect=0, critical actions
 surfaced separately) is documented in `src/lib/engine/scoring.ts` and
 covered by its tests. Change the tests and `docs/scenario.schema.md` in
 the same commit, and call the policy change out loudly in the PR.
+
+The score is computed and stored (`ArchivedSession.score`: the JSON export,
+the cloud `sessions.score` column, the hosted layer's cohort analytics) but
+**not shown anywhere in the studio** — the debrief walkthrough and the
+session record report marks, not points. Don't add a score back to the
+debrief UI, and don't stop storing it: both are maintainer decisions.

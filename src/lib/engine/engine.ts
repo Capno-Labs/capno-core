@@ -236,7 +236,7 @@ export class SimulationEngine {
   private artLine: boolean;
   /** Last cuff reading (null while an arterial line is in place). */
   private lastNibp: NibpReading | null = null;
-  /** Low-frequency vitals record for the debrief trend strip (archive-only). */
+  /** Low-frequency vitals record the debrief derives its turning points from (archive-only). */
   private history: VitalsHistorySample[] = [];
   private lastHistorySec = Number.NEGATIVE_INFINITY;
 

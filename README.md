@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Capno-Labs/capno-core/actions/workflows/ci.yml/badge.svg)](https://github.com/Capno-Labs/capno-core/actions/workflows/ci.yml)
 
-CAPNO Studio is an open, installable web app for running realistic anesthesia scenarios in a simulation lab. Faculty drive a simulated patient monitor in real time — vitals, rhythms, and prebuilt clinical events — while students follow on a full-screen OR-style **student monitor** on a projector, wall display, or iPad. Scenarios come from the built-in **case library and editor**, and every session ends in a structured, printable **debrief report** with a timeline, action assessment, scoring rubric, and suggested debrief questions.
+CAPNO Studio is an open, installable web app for running realistic anesthesia scenarios in a simulation lab. Faculty drive a simulated patient monitor in real time — vitals, rhythms, and prebuilt clinical events — while students follow on a full-screen OR-style **student monitor** on a projector, wall display, or iPad. Scenarios come from the built-in **case library and editor**, and every session ends in a **debrief walkthrough** — full-screen cards in PEARLS order, built from the case and what was marked — with a printable record behind it.
 
 > ⚠️ **For simulation and education only. Not a medical device. Never use for clinical care.**
 
@@ -14,7 +14,7 @@ CAPNO Studio is an open, installable web app for running realistic anesthesia sc
 - 📚 **Starter library** — twelve polished scenarios organized as a curriculum modeled on how leading programs structure simulation training (see [docs/curriculum.md](docs/curriculum.md)): post-induction hypotension (hemodynamics), laryngospasm after LMA and cannot-intubate-cannot-oxygenate (airway), severe bronchospasm and unexplained hypoxemia (respiratory), unstable bradycardia→asystole and myocardial ischemia (cardiac), postpartum hemorrhage (hemorrhage/obstetric), venous air embolism (embolic), intraoperative anaphylaxis (hypersensitivity), LAST after a peripheral nerve block (toxicity), and malignant hyperthermia (temperature/metabolic). Each includes objectives, setup, patient background, progression, triggers, correct management, common errors, a debrief guide, and a rubric.
 - ✏️ **Scenario editor** — form-based editing of everything including phases, events with vital effects, expected actions, and the grading rubric, plus a live JSON pane for power users, zod validation, import/export of scenario files, version history, and tags by topic/difficulty/training level.
 - 🗂 **Collections** — build a library that matches your syllabus: named, ordered collections of built-in and custom scenarios ("CA-1 fall block", "oral boards prep") shown as the library's primary sections, with one-file bundle export/import that carries a collection and its custom scenarios between machines.
-- 📋 **Debrief & assessment** — timeline of everything that happened, a vitals trend strip (10-second samples with event markers — "SpO₂ began falling here, the team responded here"), actions taken vs. missed critical actions, category scores, faculty notes, suggested questions, and one-click PDF export. Action statuses can be amended post-hoc with automatic rescoring — marking reliably mid-crisis is unrealistic — and learner names can be added to the printed report. Faculty can also skip uneventful scenario time (+1/+5 min). Session archives export/import as JSON for backup or moving between machines.
+- 📋 **Debrief** — **Start debrief** opens a full-screen walkthrough faculty click through with the room, one card at a time, in the order of the PEARLS debriefing framework: setting the scene, reactions, what happened (the key moments from the log), analysis (what went well and what to change, one card per critical action that was missed or delayed, the case's own discussion questions and teaching points), and take-aways, which are saved to the record. Facilitator cues stay hidden until asked for. Behind it is the written record — timeline, turning points, actions taken vs. missed critical actions, faculty notes, the debrief guide — with one-click PDF export. No score and no vitals graph: the debrief is a conversation about the case, not a grade ([sources](docs/curriculum.md#debrief-structure-sources)). Action statuses can be amended post-hoc — marking reliably mid-crisis is unrealistic — and learner names can be added to the printed report. Faculty can also skip uneventful scenario time (+1/+5 min). Session archives export/import as JSON for backup or moving between machines.
 - 📱 **PWA** — installable on iPad/laptop, offline-capable: bundled scenarios and previously-visited views work with no connectivity.
 - 🔌 **Realtime sync** — works with zero configuration on one device (controller window + student window/projector), with a join timeout, a stale-connection watchdog on the student display, and a Local/Cloud sync-health indicator. Add Supabase for cross-device sync (iPad controller → projector PC).
 - 🏫 **Institutional layer (optional)** — with Supabase configured, faculty sign in at `/account` (email/password); custom scenarios and session debriefs then sync to institution-wide storage through an offline-first outbox (local saves always succeed; pushes queue and drain when online). Synced scenarios carry a review state (draft / review / published); faculty **Approve & publish** a saved version from the editor, sessions pin to the approved version, and editing a published scenario returns it to draft. The debrief page gains a read-only institution archive across devices.
@@ -32,7 +32,7 @@ Typical lab flow:
 1. Open **Faculty Controller** → pick a scenario → **Run**. Note the 4-character session code.
 2. On the projector/student device, open **Student Display** and enter the code.
 3. **Start** the scenario. Drive vitals with the sliders, fire events, mark learner actions, add notes.
-4. **End session** → the debrief report opens. **Export PDF** uses the browser print dialog.
+4. **End session** → the session record opens. **Start debrief** walks the room through it card by card; **Export PDF** uses the browser print dialog.
 
 With no backend configured, the student display must be a second window/tab of the same browser on the same machine (BroadcastChannel transport) — which covers the common "laptop + projector" lab setup. For separate devices, configure Supabase (below).
 
@@ -112,7 +112,7 @@ src/
   components/
     monitor/         # waveform canvas, vital tiles, alarms, full monitor
     controller/      # session, vitals, events, actions, phases, notes, log panels
-    debrief/         # printable report
+    debrief/         # card-by-card walkthrough + printable record
     editor/          # scenario editor
   app/               # Next.js routes: /, /student, /scenarios, /faculty/run/[id],
                      # /debrief, /debrief/[id], /debrief/cloud/[id], /editor, /account

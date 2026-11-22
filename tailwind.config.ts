@@ -150,10 +150,6 @@ const config: Config = {
           '60%': { opacity: '1' },
           '100%': { opacity: '0', visibility: 'hidden' },
         },
-        'bar-grow': {
-          '0%': { transform: 'scaleX(0)' },
-          '100%': { transform: 'scaleX(1)' },
-        },
         'pop-in': {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '70%': { transform: 'scale(1.04)', opacity: '1' },
@@ -176,7 +172,6 @@ const config: Config = {
         shake: 'shake 350ms ease-in-out',
         'crt-line': 'crt-line 450ms ease-out both',
         'crt-fade': 'crt-fade 450ms ease-in 750ms both',
-        'bar-grow': 'bar-grow 600ms ease-out both',
         'pop-in': 'pop-in 400ms ease-out both',
         'event-fire': 'event-fire 350ms ease-out',
         'poster-rise': 'poster-rise 380ms cubic-bezier(0.215, 0.61, 0.355, 1) both',

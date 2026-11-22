@@ -259,7 +259,6 @@ body {
   .animate-shake,
   .animate-crt-line,
   .animate-crt-fade,
-  .animate-bar-grow,
   .animate-pop-in,
   .animate-event-fire,
   .animate-poster-rise {
@@ -307,14 +306,9 @@ body {
   .print-report .keep-badge-bg {
     background: #e5e7eb !important;
   }
-  /* Print always gets final static values: kill any reveal animation and the
-     scaleX(0) start state it would otherwise freeze at. */
+  /* Print always gets final static values: kill any reveal animation. */
   .print-report [class*='animate-'] {
     animation: none !important;
-  }
-  .print-report .anim-bar {
-    animation: none !important;
-    transform: none !important;
   }
   @page {
     margin: 14mm;
