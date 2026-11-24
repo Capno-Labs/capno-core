@@ -116,6 +116,16 @@ const ALARM_LIMIT_LOG_MERGE_SEC = 5;
 export type AlarmSetupSource = 'faculty' | 'display';
 const LEARNER_DETAIL = 'on a student display';
 
+/** What `SimulationEngine.drive` can write: any subset of the numeric vitals,
+ *  the machine readings, the neuromuscular block and the inspired CO2. */
+export interface DrivePatch {
+  vitals?: Partial<NumericVitals>;
+  vent?: Partial<Ventilation>;
+  nmb?: Partial<NeuromuscularBlock>;
+  /** Inspired CO2, mmHg. */
+  fico2?: number;
+}
+
 function clampFico2(value: number): number {
   return Math.min(FICO2_MAX, Math.max(0, value));
 }
@@ -1074,6 +1084,54 @@ export class SimulationEngine {
       this.pendingEffects.push({ atSec: this.elapsedSec + delay, effect, sourceLabel: label });
     } else {
       this.applyEffectNow(effect);
+    }
+  }
+
+  /**
+   * Write values straight into the session, for an embedder whose own model
+   * computes them every step (the faculty setters are for a person's
+   * occasional, deliberate changes). Each value in the patch is clamped to its
+   * range and takes effect at once; a ramp in progress on that value is
+   * dropped; values not in the patch are left alone, ramps included. Nothing
+   * is logged — a caller writing many times a second would bury the session
+   * log, so it records what matters itself (applyNamedEffect, addNote).
+   *
+   * The couplings a person's change implies are not applied: driving `sbp`
+   * does not retarget `dbp`, and driving `agentEt` does not move `agentFi` —
+   * the model supplies both. What a session always guarantees still holds:
+   * diastolic stays a full pulse pressure below systolic, and fewer than four
+   * twitches means no ratio. Non-finite numbers are ignored.
+   */
+  drive(patch: DrivePatch): void {
+    if (patch.vitals) {
+      for (const key of NUMERIC_VITAL_KEYS) {
+        const value = patch.vitals[key];
+        if (value === undefined || !Number.isFinite(value)) continue;
+        this.ramps.delete(key);
+        this.current[key] = clampVital(key, value);
+      }
+      this.current.dbp = Math.min(this.current.dbp, maxDbpFor(this.current.sbp));
+    }
+    if (patch.vent) {
+      for (const key of VENT_KEYS) {
+        const value = patch.vent[key];
+        if (value === undefined || !Number.isFinite(value)) continue;
+        delete this.ventRamps[key];
+        this.vent[key] = clampVent(key, value);
+      }
+    }
+    if (patch.nmb) {
+      const asked = withRatioFollowingCount(patch.nmb);
+      for (const key of NMB_KEYS) {
+        const value = asked[key];
+        if (value === undefined || !Number.isFinite(value)) continue;
+        delete this.nmbRamps[key];
+        this.nmb[key] = clampNmb(key, value);
+      }
+    }
+    if (patch.fico2 !== undefined && Number.isFinite(patch.fico2)) {
+      this.fico2Ramp = null;
+      this.fico2 = clampFico2(patch.fico2);
     }
   }
 
