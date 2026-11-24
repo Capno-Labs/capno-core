@@ -2132,3 +2132,106 @@ describe('SimulationEngine.applyNamedEffect', () => {
     expect(e.getVitals().spo2).toBe(91);
   });
 });
+
+describe('SimulationEngine.drive', () => {
+  it('writes values at once and logs nothing, however often it is called', () => {
+    const e = newEngine();
+    e.start();
+    const logBefore = e.getFullLog().length;
+    for (let i = 0; i < 100; i++) {
+      e.drive({ vitals: { spo2: 99 - i * 0.1, temp: 36 + i * 0.01 } });
+      e.tick(0.1);
+    }
+    // The readout rounds as the monitor does: SpO2 to a whole number, temperature to a tenth.
+    expect(e.getVitals().spo2).toBe(89);
+    expect(e.getVitals().temp).toBe(37);
+    expect(e.getFullLog().length).toBe(logBefore);
+  });
+
+  it('drops a ramp on a driven value and leaves the other ramps running', () => {
+    const e = newEngine();
+    e.start();
+    const startHr = e.getVitals().hr;
+    e.setVital('spo2', 80, 20);
+    e.setVital('hr', startHr + 40, 20);
+    e.drive({ vitals: { spo2: 95 } });
+    e.tick(10);
+    expect(e.getVitals().spo2).toBe(95);
+    expect(e.getVitals().hr).toBeCloseTo(startHr + 20, 5);
+  });
+
+  it('clamps to each range and ignores numbers that are not finite', () => {
+    const e = newEngine();
+    e.setVentShown(true);
+    e.drive({ vitals: { spo2: 140, rr: -3 }, vent: { fio2: 250 }, fico2: 99 });
+    expect(e.getVitals().spo2).toBe(clampVital('spo2', 140));
+    expect(e.getVitals().rr).toBe(0);
+    expect(e.getVitals().vent?.fio2).toBe(100);
+    expect(e.getVitals().fico2).toBe(30);
+    e.drive({ vitals: { spo2: Number.NaN, hr: Number.POSITIVE_INFINITY }, vent: { vt: Number.NaN }, fico2: Number.NaN });
+    expect(e.getVitals().spo2).toBe(100);
+    expect(e.getVitals().hr).toBe(scenario().baselineVitals.hr);
+    expect(Number.isFinite(e.getVitals().vent?.vt)).toBe(true);
+    expect(e.getVitals().fico2).toBe(30);
+  });
+
+  it('keeps diastolic a full pulse pressure below systolic', () => {
+    const e = newEngine();
+    e.drive({ vitals: { sbp: 70, dbp: 65 } });
+    expect(e.getVitals().sbp).toBe(70);
+    expect(e.getVitals().dbp).toBe(50);
+    // Systolic alone, driven under the diastolic in place.
+    e.drive({ vitals: { sbp: 60 } });
+    expect(e.getVitals().dbp).toBe(40);
+  });
+
+  it('does not move inspired agent when end-tidal is driven', () => {
+    const e = newEngine();
+    const fiBefore = e.getVitals().agentFi;
+    e.drive({ vitals: { agentEt: 1.4 } });
+    expect(e.getVitals().agentEt).toBe(1.4);
+    expect(e.getVitals().agentFi).toBe(fiBefore);
+  });
+
+  it('drives the machine readings, the block and inspired CO2 without a log line', () => {
+    const e = newEngine();
+    e.start();
+    e.setVentShown(true);
+    e.setTofAttached(true);
+    e.setVent({ vt: 600 }, 30);
+    e.setNmb({ tofCount: 4, tofRatio: 100 });
+    e.setFico2(10, 30);
+    const logBefore = e.getFullLog().length;
+    e.drive({ vent: { vt: 380, pip: 17 }, nmb: { tofCount: 2 }, fico2: 2 });
+    e.tick(10);
+    expect(e.getVitals().vent?.vt).toBe(380);
+    expect(e.getVitals().vent?.pip).toBe(17);
+    // Fewer than four twitches means no ratio, as with setNmb.
+    expect(e.getVitals().nmb).toMatchObject({ tofCount: 2, tofRatio: 0 });
+    expect(e.getVitals().fico2).toBe(2);
+    expect(e.getFullLog().length).toBe(logBefore);
+  });
+
+  it('feeds everything downstream: measured EtCO2, the cuff, history and alarms', () => {
+    const e = newEngine();
+    e.start();
+    e.drive({ vitals: { rr: 0, etco2: 48, sbp: 82, dbp: 44, spo2: 84 } });
+    const snap = e.snapshot();
+    // No breath to sample at apnea, whatever the true value.
+    expect(snap.vitals.etco2).toBe(0);
+    e.cycleNibp();
+    expect(e.snapshot().nibp).toMatchObject({ sbp: 82, dbp: 44 });
+    e.tick(10);
+    expect(e.getHistory().at(-1)).toMatchObject({ spo2: 84, sbp: 82 });
+    expect(e.snapshot().alarms.some((a) => a.vital === 'spo2')).toBe(true);
+  });
+
+  it('works while idle and survives a JSON round trip of the snapshot', () => {
+    const e = newEngine();
+    e.drive({ vitals: { spo2: 97.4, temp: 36.44 }, vent: { fio2: 100 } });
+    const snap = e.snapshot();
+    expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    expect(snap.vitals.spo2).toBe(97);
+    expect(snap.vitals.temp).toBe(36.4);
+  });
+});
