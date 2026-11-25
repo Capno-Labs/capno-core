@@ -49,7 +49,7 @@ import { SECTIONS, sectionOfHash, sectionOfIssue, sectionOfPath, type SectionId 
 import { BasicsSection } from './sections/BasicsSection';
 import { DebriefSection } from './sections/DebriefSection';
 import { PatientSection } from './sections/PatientSection';
-import { ProgressionSection } from './sections/ProgressionSection';
+import { ProgressionSection, noFreshIds } from './sections/ProgressionSection';
 import { ReviewExtras } from './sections/ReviewExtras';
 import { StartSection } from './sections/StartSection';
 
@@ -145,6 +145,8 @@ export function ScenarioEditor({
   const [formDirty, setFormDirty] = useState(Boolean(restored));
   const [savedId, setSavedId] = useState<string | null>(initialSavedId);
   const draftKey = useRef(initialDraftKey);
+  /** Phase, event and action ids created since the last save (see ProgressionSection). */
+  const freshIds = useRef(noFreshIds());
   /** False once a draft write has failed — then leaving really loses work. */
   const [draftStored, setDraftStored] = useState(true);
   const [restoredNotice, setRestoredNotice] = useState(restored ?? null);
@@ -389,6 +391,8 @@ export function ScenarioEditor({
     draftKey.current = doc.id;
     setDraftStored(true);
     setRestoredNotice(null);
+    // What was new is now saved: its ids stay as they are from here on.
+    freshIds.current = noFreshIds();
     if (doc.id !== savedId) {
       setSavedId(doc.id);
       onSavedAs?.(doc.id);
@@ -598,7 +602,12 @@ export function ScenarioEditor({
     return counts;
   }, [issues]);
 
-  const activeIssues = issues.bySection.get(activeSection);
+  const sectionIssues = issues.bySection.get(activeSection);
+  // Progression shows each event's warnings on the event itself.
+  const activeIssues =
+    sectionIssues && activeSection === 'progression'
+      ? { ...sectionIssues, warnings: sectionIssues.warnings.filter((w) => !w.path.startsWith('events.')) }
+      : sectionIssues;
   const globalErrors = [...errors, ...issues.globalErrors];
 
   const renderSection = () => {
@@ -610,7 +619,12 @@ export function ScenarioEditor({
       case 'start':
         return <StartSection scenario={scenario} update={update} />;
       case 'progression':
-        return <ProgressionSection scenario={scenario} update={update} warnings={warnings} />;
+        return <ProgressionSection
+            scenario={scenario}
+            update={update}
+            warnings={warnings}
+            fresh={freshIds.current}
+          />;
       case 'debrief':
         return <DebriefSection scenario={scenario} update={update} />;
       case 'review':

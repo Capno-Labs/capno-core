@@ -25,7 +25,7 @@ export function SegmentedControl<T extends string>({
 }) {
   const name = useId();
   return (
-    <fieldset className={className}>
+    <fieldset className={`min-w-0 ${className}`}>
       <legend className="label">{label}</legend>
       <div className="inline-flex max-w-full flex-wrap gap-1 rounded-ctl bg-panel-2 p-1 ring-1 ring-line">
         {options.map((o) => (
