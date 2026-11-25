@@ -153,9 +153,9 @@ export function PatientSection({
           </div>
         </div>
       </div>
-      <ListEditor label="Allergies" items={scenario.patient.allergies} onChange={(allergies) => updatePatient({ allergies })} />
-      <ListEditor label="Medications" items={scenario.patient.medications} onChange={(medications) => updatePatient({ medications })} />
-      <ListEditor label="Past medical history" items={scenario.patient.pmh} onChange={(pmh) => updatePatient({ pmh })} />
+      <ListEditor label="Allergies" ordered={false} items={scenario.patient.allergies} onChange={(allergies) => updatePatient({ allergies })} />
+      <ListEditor label="Medications" ordered={false} items={scenario.patient.medications} onChange={(medications) => updatePatient({ medications })} />
+      <ListEditor label="Past medical history" ordered={false} items={scenario.patient.pmh} onChange={(pmh) => updatePatient({ pmh })} />
     </section>
   );
 }
