@@ -14,6 +14,7 @@ export function TimeField({
   valueSec,
   onChange,
   required = false,
+  minSec,
   maxSec,
   placeholder = 'm:ss',
   hint,
@@ -24,6 +25,7 @@ export function TimeField({
   /** Seconds, or undefined when emptied (never when `required`). */
   onChange: (valueSec: number | undefined) => void;
   required?: boolean;
+  minSec?: number;
   maxSec?: number;
   placeholder?: string;
   hint?: ReactNode;
@@ -53,6 +55,10 @@ export function TimeField({
     const sec = parseTime(next);
     if (sec === null) {
       setProblem('Enter minutes:seconds, like 1:30.');
+      return;
+    }
+    if (minSec !== undefined && sec < minSec) {
+      setProblem(`Use ${formatTime(minSec)} or more.`);
       return;
     }
     if (maxSec !== undefined && sec > maxSec) {
