@@ -20,6 +20,8 @@ const PATHS = {
   pause: <path d="M8 5v14M16 5v14" />,
   stop: <rect x="6" y="6" width="12" height="12" rx="1.5" />,
   reset: <path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5" />,
+  undo: <path d="M9 5 4 10l5 5M4 10h10a5 5 0 0 1 0 10h-3" />,
+  redo: <path d="M15 5l5 5-5 5M20 10H10a5 5 0 0 0 0 10h3" />,
   debrief: (
     <>
       <rect x="5" y="4" width="14" height="17" rx="2" />
