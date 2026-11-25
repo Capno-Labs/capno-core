@@ -534,7 +534,20 @@ library) edits scenarios as forms with a live JSON pane:
   "unchanged"** — only type a number for vitals the event should move. Rubric
   membership is checkboxes over your expected actions, so broken references
   can't happen from the forms.
-- **💾 Save version** stores the scenario on this device with version history.
+- **Your edits are kept as you work.** Every change is stored as a draft on
+  this device a moment later, and the editor picks it up again if you reload,
+  close the tab or come back another day (with a **Discard them** button). A
+  draft is not in the library, a session or the cloud until you save a
+  version; the library marks such cases **unsaved edits**. **Undo / Redo**
+  (toolbar, or Ctrl/⌘ Z and Ctrl/⌘ Shift Z) step back through this visit's
+  changes, including an import, a restored version or a loaded AI draft.
+- **New cases get their own ID.** The ID is created from the title the first
+  time you save, so two new cases never overwrite each other. **New case** in
+  the library starts blank or from a copy of any case; **Duplicate** in a
+  case's menu makes a copy with its own ID and history. Typing an ID that
+  already belongs to another case asks before saving over it.
+- **💾 Save version** (or Ctrl/⌘ S) stores the scenario on this device with
+  version history.
   Signed-in faculty also see a cloud status after saving ("syncing… / synced
   to cloud / cloud sync pending"), and the library badges each custom
   scenario **cloud / sync pending / local only**. The **History** section
@@ -544,8 +557,8 @@ library) edits scenarios as forms with a live JSON pane:
   on are recorded against that exact version. Saving an edit over a
   published scenario returns it to draft until it is approved again.
 - **⬇ Export JSON / ⬆ Import JSON** move scenario files between machines.
-- **▶ Test run** opens the controller on your draft (enabled once it's valid
-  and saved).
+- **▶ Test run** saves a version if you have unsaved changes, then opens the
+  controller on it (enabled once the case is valid).
 - The JSON pane only takes effect when you press **Apply JSON**; form edits
   regenerate the JSON text.
 
