@@ -1,4 +1,3 @@
-import type { SectionId } from '@/components/editor/sections';
 import type { DraftField, DraftFields } from '@/lib/import';
 
 /**
@@ -8,6 +7,22 @@ import type { DraftField, DraftFields } from '@/lib/import';
  * Enum options mirror `src/lib/engine/schema.ts`; keep them in step when
  * the scenario schema changes (CLAUDE.md invariant 2).
  */
+
+/**
+ * How the review screen groups an imported draft's fields. Its own list, not
+ * the case editor's rail: the review is a field-by-field check against the
+ * source document, laid out in the document's order.
+ */
+export type SectionId = 'overview' | 'patient' | 'vitals' | 'timeline' | 'assessment' | 'teaching';
+
+export const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'patient', label: 'Patient' },
+  { id: 'vitals', label: 'Vitals & monitoring' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'assessment', label: 'Assessment' },
+  { id: 'teaching', label: 'Teaching & debrief' },
+];
 
 export type FieldKind = 'string' | 'number' | 'enum' | 'stringList' | 'json';
 

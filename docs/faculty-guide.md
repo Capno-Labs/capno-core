@@ -528,12 +528,21 @@ debrief.
 The **Scenario Editor** (home page, or **✏️ New scenario** / **Edit** in the
 library) edits scenarios as forms with a live JSON pane:
 
-- Everything is editable as forms — basics, patient, teaching content, and
-  collapsible **Phases**, **Events**, **Expected actions**, and **Rubric**
-  sections. In an event's vital-effect grid, a **blank field means
-  "unchanged"** — only type a number for vitals the event should move. Rubric
-  membership is checkboxes over your expected actions, so broken references
-  can't happen from the forms.
+- The editor is six steps, in the order a case is written: **Basics** (title,
+  who it is for, objectives, room setup), **Patient**, **Starting state**
+  (the vitals at time zero, with a preview of the monitor), **Progression**
+  (phases, what happens, what learners should do, faculty notes), **Debrief**
+  and **Review & publish** (saved versions, publishing, scoring, case ID).
+  Each step shows a count of things to fix or worth a look.
+- In **Starting state** the numbers every case sets come first; depth and
+  agent, the CO₂ waveform, the anesthesia machine, the twitch monitor, ECG
+  detail and alarm limits are in closed groups that say whether anything in
+  them is set. A number outside its range is reported under the field and is
+  not stored.
+- In an event's vital-effect grid, a **blank field means "unchanged"** — only
+  type a number for vitals the event should move. Rubric membership (under
+  **Review & publish → Scoring**) is checkboxes over your expected actions,
+  so broken references can't happen from the forms.
 - **Your edits are kept as you work.** Every change is stored as a draft on
   this device a moment later, and the editor picks it up again if you reload,
   close the tab or come back another day (with a **Discard them** button). A
@@ -550,7 +559,7 @@ library) edits scenarios as forms with a live JSON pane:
   version history.
   Signed-in faculty also see a cloud status after saving ("syncing… / synced
   to cloud / cloud sync pending"), and the library badges each custom
-  scenario **cloud / sync pending / local only**. The **History** section
+  scenario **cloud / sync pending / local only**. **Review & publish**
   shows the institution copy's review state (**draft / review / published**)
   and, for faculty who may approve, an **Approve & publish** button: it
   publishes the saved version as the approved one, and sessions run from then

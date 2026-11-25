@@ -1,9 +1,8 @@
 'use client';
 
-import { SECTIONS } from '@/components/editor/sections';
 import type { DraftField, DraftFields as Fields } from '@/lib/import';
 import { FieldRow } from './FieldRow';
-import { FIELD_SPECS, ITEM_LISTS, getField, setField } from './fieldRegistry';
+import { FIELD_SPECS, ITEM_LISTS, SECTIONS, getField, setField } from './fieldRegistry';
 import { ItemList } from './ItemList';
 
 /** Right column: every draft field, grouped the way the case editor is. */

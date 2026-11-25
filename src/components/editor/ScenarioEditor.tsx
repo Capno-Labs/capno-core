@@ -45,20 +45,20 @@ import { toast } from '@/lib/store/toastStore';
 import { DraftPreviewCard } from './DraftPreviewCard';
 import { EditorRail, type SectionIssueCounts } from './EditorRail';
 import { JsonPanel } from './JsonPanel';
-import { SECTIONS, sectionOfIssue, sectionOfPath, type SectionId, type SectionMeta } from './sections';
-import { AssessmentSection } from './sections/AssessmentSection';
-import { OverviewSection } from './sections/OverviewSection';
+import { SECTIONS, sectionOfHash, sectionOfIssue, sectionOfPath, type SectionId } from './sections';
+import { BasicsSection } from './sections/BasicsSection';
+import { DebriefSection } from './sections/DebriefSection';
 import { PatientSection } from './sections/PatientSection';
-import { TeachingSection } from './sections/TeachingSection';
-import { TimelineSection } from './sections/TimelineSection';
-import { VitalsSection } from './sections/VitalsSection';
+import { ProgressionSection } from './sections/ProgressionSection';
+import { ReviewExtras } from './sections/ReviewExtras';
+import { StartSection } from './sections/StartSection';
 
 /**
  * Faculty case editor.
  *
  * The form is the primary authoring surface: the scenario document is split
- * into instructor-facing sections (Overview → Patient → Vitals → Timeline →
- * Assessment → Teaching) behind a navigation rail with per-section
+ * into instructor-facing sections (Basics → Patient → Starting state → Progression →
+ * Debrief → Review & publish; see sections.ts) behind a navigation rail with per-section
  * validation badges, and the form covers the entire schema. Raw JSON is an
  * opt-in advanced surface (the toolbar's "Edit JSON" toggle) that *replaces*
  * the form while open — the two never edit the document at the same time,
@@ -110,8 +110,6 @@ export function blankScenario(): Scenario {
     estimatedMinutes: 15,
   };
 }
-
-const RAIL_IDS: SectionId[] = [...SECTIONS.map((s) => s.id), 'history'];
 
 const STATUS_TONE: Record<CloudScenarioStatus, PillTone> = {
   draft: 'neutral',
@@ -165,7 +163,7 @@ export function ScenarioEditor({
   const canApprove = cloudEligible();
   const fileInput = useRef<HTMLInputElement | null>(null);
 
-  const [activeSection, setActiveSection] = useState<SectionId>('overview');
+  const [activeSection, setActiveSection] = useState<SectionId>('basics');
 
   // Advanced JSON surface. Text is regenerated from the scenario each time
   // the panel opens, so the form never has to keep it in sync per keystroke.
@@ -247,8 +245,8 @@ export function ScenarioEditor({
 
   // Deep links / reloads restore the section from the URL hash.
   useEffect(() => {
-    const h = window.location.hash.replace('#', '');
-    if ((RAIL_IDS as string[]).includes(h)) setActiveSection(h as SectionId);
+    const section = sectionOfHash(window.location.hash);
+    if (section) setActiveSection(section);
   }, []);
 
   const update = (patch: Partial<Scenario>) => {
@@ -363,7 +361,7 @@ export function ScenarioEditor({
       if (other) {
         const ok = await confirmDialog({
           title: `Save over “${other.title}”?`,
-          body: `The ID “${doc.id}” already belongs to that case. Saving here replaces it in your library with this one. To keep both, cancel and change the ID in Overview.`,
+          body: `The ID “${doc.id}” already belongs to that case. Saving here replaces it in your library with this one. To keep both, cancel and change the ID under Review & publish, Advanced.`,
           confirmLabel: 'Save over it',
           tone: 'danger',
         });
@@ -600,35 +598,35 @@ export function ScenarioEditor({
     return counts;
   }, [issues]);
 
-  const railSections: SectionMeta[] = [
-    ...SECTIONS,
-    { id: 'history', label: history.length > 0 ? `History (${history.length})` : 'History' },
-  ];
-
   const activeIssues = issues.bySection.get(activeSection);
   const globalErrors = [...errors, ...issues.globalErrors];
 
   const renderSection = () => {
     switch (activeSection) {
-      case 'overview':
-        return <OverviewSection scenario={scenario} update={update} />;
+      case 'basics':
+        return <BasicsSection scenario={scenario} update={update} />;
       case 'patient':
         return <PatientSection scenario={scenario} update={update} />;
-      case 'vitals':
-        return <VitalsSection scenario={scenario} update={update} />;
-      case 'timeline':
-        return <TimelineSection scenario={scenario} update={update} warnings={warnings} />;
-      case 'assessment':
-        return <AssessmentSection scenario={scenario} update={update} />;
-      case 'teaching':
-        return <TeachingSection scenario={scenario} update={update} />;
-      case 'history':
+      case 'start':
+        return <StartSection scenario={scenario} update={update} />;
+      case 'progression':
+        return <ProgressionSection scenario={scenario} update={update} warnings={warnings} />;
+      case 'debrief':
+        return <DebriefSection scenario={scenario} update={update} />;
+      case 'review':
         return (
+          <div className="space-y-4">
+          <header>
+            <h2 className="text-xl font-bold tracking-tight text-ink">Review &amp; publish</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">
+              Saved versions, publishing, and the settings most cases never need.
+            </p>
+          </header>
           <section className="card">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
-                Version history ({savedId ?? 'not saved yet'})
-              </h2>
+              <h3 className="text-sm font-bold text-ink">
+                Saved versions{history.length > 0 ? ` (${history.length})` : ''}
+              </h3>
               {cloudStatus && (
                 <Pill
                   tone={STATUS_TONE[cloudStatus]}
@@ -680,6 +678,8 @@ export function ScenarioEditor({
               </ul>
             )}
           </section>
+          <ReviewExtras scenario={scenario} update={update} saved={savedId !== null} />
+          </div>
         );
     }
   };
@@ -875,7 +875,7 @@ export function ScenarioEditor({
 
       <div className="desk:flex desk:items-start desk:gap-5">
         <EditorRail
-          sections={railSections}
+          sections={SECTIONS}
           active={activeSection}
           issueCounts={issueCounts}
           onSelect={selectSection}
