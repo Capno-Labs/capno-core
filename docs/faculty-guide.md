@@ -525,8 +525,9 @@ debrief.
 
 ## 9. Authoring scenarios (brief)
 
-The **Scenario Editor** (home page, or **✏️ New scenario** / **Edit** in the
-library) edits scenarios as forms with a live JSON pane:
+The **case editor** (**Build a case** on the home page, or **New case** /
+**Edit** in the library) is a set of forms; you never need to read or write
+JSON:
 
 - The editor is six steps, in the order a case is written: **Basics** (title,
   who it is for, objectives, room setup), **Patient**, **Starting state**
