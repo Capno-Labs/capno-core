@@ -2,7 +2,7 @@
 
 Capno is an anesthesia simulation lab PWA: a faculty controller drives a
 simulated patient monitor in real time; students watch a mirrored monitor;
-sessions end in a scored, printable debrief. Read `README.md` for
+sessions end in a card-by-card debrief walkthrough with a printable record. Read `README.md` for
 architecture. This file is the working contract for changing the code:
 prefer extending the existing patterns (zustand stores, adapter
 interfaces, zod at the boundaries) over inventing new ones.
@@ -45,8 +45,15 @@ maintainer instead of working around it.
    `SCHEMA_REFERENCE` prompt constant in `src/lib/llm/generator.ts`.
 3. **One authority per session.** Exactly one authoritative engine instance
    drives a session (today: the browser `controllerStore`) — never a second
-   tick loop. Student displays render broadcast snapshots and send nothing
-   except `hello` — no student→faculty mutations of simulation state.
+   tick loop. Student displays render broadcast snapshots and never change
+   simulation state themselves. They send two things: `hello`, and `monitor`
+   requests to operate the monitor's alarms (step an alarm limit, switch one
+   vital's alarms on or off, press Silence). A request is untrusted input: the
+   controller parses it (`src/lib/sync/monitorRequest.ts`), drops anything
+   else, and applies it to its own engine, so there is still one authority.
+   Requests stay relative and narrow — no vitals, events, session control or
+   absolute values. Widening what a display can ask for is a maintainer
+   decision, not an incremental change.
 4. **Snapshots stay JSON-serializable.** No Dates, Maps, functions, or class
    instances in `SimSnapshot` — a test enforces round-tripping, and both the
    sync channel and localStorage archive depend on it.
@@ -123,8 +130,10 @@ instead of guessing in either direction.
 - All pages are client components (`'use client'`) — the app is
   local-first and stateful. Don't convert to server components.
 - Housekeeping: caching changes require bumping `VERSION` in
-  `public/sw.js`; icons are generated (`npm run icons`), never hand-edit
-  the PNGs; vitest runs in Node, so tests must not touch DOM.
+  `public/sw.js`; the logo, app icons and share card are exports of the
+  brand asset pack (`docs/brand.md`) — replace them from the pack, never
+  redraw or hand-edit them; vitest runs in Node, so tests must not touch
+  DOM.
 - Nothing unbounded goes into `SimSnapshot` — it's rebroadcast in full
   twice a second, so wire size must not grow with session length. Vitals
   history (`engine.getHistory()`) is archive-only (that's why
@@ -134,10 +143,31 @@ instead of guessing in either direction.
   capped or absent in the snapshot, full copy archive-side. (Faculty
   `notes` are the accepted exception — human-rate-bounded and archived
   whole via the snapshot, so don't cap them.)
+- `snapshot.preBrief` is what students see before Start. It exists only while
+  the session is idle and faculty have turned the pre-brief on (off by
+  default — some patient blocks hold faculty notes), and it carries
+  the scenario's `patient` and nothing else. Never add the title, summary,
+  objectives or events to it (or to any other snapshot field) — the snapshot
+  is broadcast to learners, and those give the case away.
 - In NIBP cuff mode (the default), displayed BP and BP alarms come from
   `snapshot.nibp` (last measured), not live values. Only artLine scenarios
   show live pressure. Don't "fix" a stale NIBP tile — the staleness is the
   teaching point.
+- The TOF tile shows `snapshot.tof` — what the twitch monitor last measured —
+  not `vitals.nmb`, the true block. It refreshes every 15 s or on "Stimulate
+  now", so a block change appears late by design, like the cuff.
+- The monitor shows *measured* values, not always the snapshot's. The HR tile
+  is `vitals.hr × clock.measuredRate()` (counted from the beats the shared
+  `BeatClock` drew, so it can sit a beat off the slider and wanders in AF);
+  SpO₂ shows `--` whenever `hasPulse(vitals)` is false and NIBP `--/--` after a cuff cycle
+  below 30 mmHg systolic (`src/components/monitor/readouts.ts`); a capnogram breath can
+  peak up to 4% under the EtCO₂ number. All of it is display
+  only — alarm levels, the log, history and the debrief use engine values.
+  Don't "fix" these by pushing them into the engine or the snapshot.
+- The monitor's drawing and sound constants are sourced: each cites its
+  reference in a comment, `docs/curriculum.md` ("Clinical sources for the
+  monitor display") lists them, and tests assert the published ranges. Change
+  a constant only with a source, and update all three.
 
 ## Extending
 

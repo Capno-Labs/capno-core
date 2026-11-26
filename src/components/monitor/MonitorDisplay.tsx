@@ -1,11 +1,27 @@
 'use client';
 
-import type { SimSnapshot } from '@/lib/engine/types';
-import { map, RHYTHM_LABELS } from '@/lib/engine/types';
+import { useEffect, useRef, useState } from 'react';
+import type { AlarmParam, SimSnapshot } from '@/lib/engine/types';
+import {
+  AGENT_TAGS,
+  formatStMm,
+  map,
+  minuteVentilation,
+  PVC_FREQUENCY_EVERY_N,
+  RHYTHM_LABELS,
+} from '@/lib/engine/types';
 import { AlarmBanner } from './AlarmBanner';
-import { MonitorAudio, useMonitorSoundPref } from './MonitorAudio';
+import { AlarmSetup, type AlarmSetupActions } from './AlarmSetup';
+import { BeatClock } from './beatClock';
+import { MonitorAudio, useSoundLevel } from './MonitorAudio';
+import { unlockMonitorAudio, useMonitorAudioRunning } from './monitorAudioContext';
+import { nextSoundLevel, type SoundLevel, type SoundRole } from './soundPref';
+import { TofTile } from './TofTile';
 import { VitalTile } from './VitalTile';
 import { Waveform } from './Waveform';
+import { cuffReadingFailed, displayAlarms,
+  alarmDismissed, limitsText, NO_READING, oximeterHasSignal, stIsMeasurable } from './readouts';
+import { capnoScaleMax } from './waveforms';
 
 interface MonitorDisplayProps {
   snapshot: SimSnapshot;
@@ -13,7 +29,26 @@ interface MonitorDisplayProps {
   compact?: boolean;
   /** Hidden on the student monitor — learners read the rhythm from the trace. */
   showRhythmLabel?: boolean;
+  /**
+   * Which monitor this is, for the sound default: the student `display`
+   * starts with sound on, the faculty `preview` (the default) with it off.
+   */
+  soundRole?: SoundRole;
+  /**
+   * Makes the monitor operable: a Silence key, and selecting a number opens
+   * its alarm setup (limits, alarms on/off). Absent = a display only. The faculty preview
+   * passes actions on the session; a student display passes ones that send
+   * requests, while faculty allow learners to operate it.
+   */
+  alarmSetup?: AlarmSetupActions;
 }
+
+const SOUND_ICON: Record<SoundLevel, string> = { off: '🔇', low: '🔉', full: '🔊' };
+const SOUND_TITLE: Record<SoundLevel, string> = {
+  off: 'Sound off — tap to turn on',
+  low: 'Sound low (pulse tone + alarms) — tap to turn off',
+  full: 'Sound on (pulse tone + alarms) — tap to turn down',
+};
 
 function formatClock(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -26,26 +61,126 @@ function formatClock(totalSec: number): string {
  * whether driven locally (faculty preview) or over the sync channel (student
  * display / projector).
  */
-export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = true }: MonitorDisplayProps) {
+export function MonitorDisplay({
+  snapshot,
+  compact = false,
+  showRhythmLabel = true,
+  soundRole = 'preview',
+  alarmSetup,
+}: MonitorDisplayProps) {
+  // Which numeric's alarm setup is open (the vitals that tile alarms on).
+  const [setupVitals, setSetupVitals] = useState<AlarmParam[] | null>(null);
+  const setupFor = (...vitals: AlarmParam[]) => (alarmSetup ? () => setSetupVitals(vitals) : undefined);
   const v = snapshot.vitals;
   const frozen = snapshot.status !== 'running';
-  const [soundOn, setSoundOn] = useMonitorSoundPref();
-  const alarmFor = (vital: string) =>
-    snapshot.alarms.find((a) => a.vital === vital)?.level;
+  const [soundLevel, setSoundLevel] = useSoundLevel(soundRole);
+  // Sound is wanted but the browser has not been allowed to play it yet (a
+  // monitor opened from a link, or reloaded): the first tap or key press
+  // anywhere unlocks it, and the button says so meanwhile.
+  const audioRunning = useMonitorAudioRunning();
+  const soundLocked = soundLevel !== 'off' && !audioRunning;
+  useEffect(() => {
+    if (!soundLocked) return;
+    window.addEventListener('pointerdown', unlockMonitorAudio);
+    window.addEventListener('keydown', unlockMonitorAudio);
+    return () => {
+      window.removeEventListener('pointerdown', unlockMonitorAudio);
+      window.removeEventListener('keydown', unlockMonitorAudio);
+    };
+  }, [soundLocked]);
+
+  // One heartbeat clock per monitor: the ECG, pleth, arterial trace and the
+  // pulse tone all read the same beats, so they stay locked together.
+  const clockRef = useRef<BeatClock | null>(null);
+  clockRef.current ??= new BeatClock(Date.now());
+  const clock = clockRef.current;
+  clock.setInput({
+    hr: v.hr,
+    rr: v.rr,
+    rhythm: v.rhythm,
+    pvcEveryN: PVC_FREQUENCY_EVERY_N[v.pvcFrequency ?? 'occasional'],
+    frozen,
+  });
+
+  // A tile's alarm state: the highest priority among its alarms that nobody
+  // has silenced — or, if all are silenced, their colour without the flash.
+  // A silenced cuff-pressure alarm is gone altogether (see alarmDismissed).
+  const tileAlarm = (
+    ...vitals: string[]
+  ): { alarm?: 'warning' | 'critical'; alarmAcknowledged?: boolean } => {
+    const hits = snapshot.alarms.filter(
+      (a) => vitals.includes(a.vital) && !alarmDismissed(a, snapshot.nibp),
+    );
+    if (hits.length === 0) return {};
+    const live = hits.filter((a) => !a.acknowledged);
+    const pool = live.length > 0 ? live : hits;
+    return {
+      alarm: pool.some((a) => a.level === 'critical') ? 'critical' : 'warning',
+      alarmAcknowledged: live.length === 0,
+    };
+  };
+  // Silence has something to act on.
+  const canSilence = snapshot.alarms.some((a) => !a.acknowledged);
+  // The limits in force, printed beside each number as a monitor does.
+  // Absent in snapshots from before limits could vary: print nothing.
+  const lim = snapshot.alarmLimits;
+  const isOff = (vital: AlarmParam) => snapshot.alarmsOff?.includes(vital) ?? false;
+  // The VT tile alarms on minute volume, so its limits say so.
+  const mvLimits = limitsText(lim?.mv, 'mv');
+
+  // A monitor counts heart rate from the beats it detects, so the number
+  // wanders by a beat or so in sinus rhythm and more in AF. Display only:
+  // alarms and the trend arrow still follow the instructor's value.
+  const shownHr = Math.round(v.hr * clock.measuredRate());
+
+  // ST-segment level, as a monitor's ST analysis prints it under the heart
+  // rate — only while there are complexes it could measure one on.
+  const stReadable = stIsMeasurable(v.rhythm);
+  const stSub = stReadable ? `ST II ${formatStMm(v.ecg?.stMm ?? 0)}` : `ST II ${NO_READING}`;
+  const stV5 = stReadable ? formatStMm(v.ecg?.stV5Mm ?? 0) : NO_READING;
+
+  // With no pulse there is nothing for the oximeter to read: the tile shows
+  // dashes rather than whatever saturation the scenario holds underneath.
+  const noPulse = !oximeterHasSignal(v);
 
   // NIBP cuff mode: show the last measured reading and how stale it is.
   // nibp === null means an arterial line is in place (continuous BP + trace).
   const cuff = snapshot.nibp;
   const art = !cuff;
   const cuffAgeSec = cuff ? Math.max(0, snapshot.elapsedSec - cuff.atSec) : 0;
-  const bpValue = cuff ? `${cuff.sbp}/${cuff.dbp}` : `${Math.round(v.sbp)}/${Math.round(v.dbp)}`;
+  // A cuff cycle with no pressure to find is a failed reading, not 0/0.
+  const cuffFailed = cuffReadingFailed(cuff);
+  const bpValue = cuffFailed
+    ? `${NO_READING}/${NO_READING}`
+    : cuff
+      ? `${cuff.sbp}/${cuff.dbp}`
+      : `${Math.round(v.sbp)}/${Math.round(v.dbp)}`;
   const bpMap = cuff ? map(cuff) : map(v);
-  const bpSub = cuff
-    ? `MAP ${bpMap} · ${formatClock(cuffAgeSec)} ago`
-    : `MAP ${bpMap}`;
+  const bpSub = cuffFailed
+    ? `no reading · ${formatClock(cuffAgeSec)} ago`
+    : cuff
+      ? `MAP ${bpMap} · ${formatClock(cuffAgeSec)} ago`
+      : `MAP ${bpMap}`;
 
-  // Slightly shorter traces when the ART row makes it four waveforms.
-  const waveH = compact ? (art ? 'h-11' : 'h-14') : art ? 'h-16 md:h-24' : 'h-20 md:h-28';
+  // The banner names the lost signal instead of quoting a number the tile
+  // no longer shows. Levels are untouched.
+  const shownAlarms = displayAlarms(snapshot.alarms, v, cuff);
+
+  // Anesthesia-machine readings, when the monitor shows them: the engine
+  // sends every field, already rounded and in order.
+  const vent =
+    v.vent && v.vent.pip !== undefined ? (v.vent as Required<NonNullable<typeof v.vent>>) : null;
+  const agent = snapshot.gas?.agent ?? v.agent ?? 'sevoflurane';
+  const mac = snapshot.gas?.mac;
+
+  // A second ECG lead, when the monitor has one.
+  const v5 = snapshot.v5Lead === true;
+  // Traces get shorter as rows are added: ECG, pleth and CO₂ always, plus the
+  // arterial line and the V5 lead when present.
+  const traceRows = 3 + (art ? 1 : 0) + (v5 ? 1 : 0);
+  const waveH = compact
+    ? ['h-14', 'h-11', 'h-9'][traceRows - 3]
+    : ['h-20 md:h-28', 'h-16 md:h-24', 'h-14 md:h-20'][traceRows - 3];
   // Waveform + paired numeric per row; the tile column stays narrow so the
   // trace keeps most of the width.
   const traceRowCols = compact
@@ -53,19 +188,56 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
     : 'grid-cols-[1fr_minmax(128px,168px)] md:grid-cols-[1fr_minmax(168px,224px)]';
 
   return (
-    <div className="flex h-full flex-col gap-2 bg-monitor-bg p-2 md:p-3">
-      <MonitorAudio snapshot={snapshot} enabled={soundOn} />
+    <div className="relative flex h-full flex-col gap-2 bg-monitor-bg p-2 md:p-3">
+      <MonitorAudio snapshot={snapshot} level={soundLevel} clock={clock} />
+      {alarmSetup && setupVitals && (
+        <AlarmSetup
+          vitals={setupVitals}
+          snapshot={snapshot}
+          actions={alarmSetup}
+          onClose={() => setSetupVitals(null)}
+        />
+      )}
       {/* Header: alarms + sound + status + clock */}
       <div className="flex items-center justify-between gap-3">
-        <AlarmBanner alarms={snapshot.alarms} silenced={snapshot.alarmsSilenced} />
+        <AlarmBanner alarms={shownAlarms} silenced={snapshot.alarmsSilenced} />
         <div className="flex items-center gap-3 whitespace-nowrap font-mono text-[#dce3d9]">
+          {alarmSetup && (
+            // The monitor's Silence key: acknowledges whatever is alarming
+            // now. Those alarms stop sounding and flashing but stay listed;
+            // a new alarm sounds as usual.
+            <button
+              onClick={alarmSetup.silence}
+              disabled={!canSilence}
+              className="rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wider ring-1 ring-monitor-grid hover:bg-monitor-panel disabled:opacity-40"
+              title={
+                canSilence
+                  ? 'Silence the alarms sounding now — a new alarm will still sound'
+                  : 'Nothing to silence'
+              }
+              aria-label="Silence alarms"
+            >
+              🔕 Silence
+            </button>
+          )}
           <button
-            onClick={() => setSoundOn(!soundOn)}
-            className="rounded px-1.5 py-0.5 text-base ring-1 ring-monitor-grid hover:bg-monitor-panel"
-            title={soundOn ? 'Sound on (pulse tone + alarms)' : 'Sound off'}
-            aria-label={soundOn ? 'Turn monitor sound off' : 'Turn monitor sound on'}
+            onClick={() => {
+              // While locked, the tap that reaches this button is the unlock
+              // itself — don't also change the level out from under it.
+              if (soundLocked) unlockMonitorAudio();
+              else setSoundLevel(nextSoundLevel(soundLevel));
+            }}
+            className={`rounded px-1.5 py-0.5 text-base ring-1 ring-monitor-grid hover:bg-monitor-panel ${
+              soundLocked ? 'motion-safe:animate-pulse' : ''
+            }`}
+            title={soundLocked ? 'Tap anywhere to start sound' : SOUND_TITLE[soundLevel]}
+            aria-label={soundLocked ? 'Start monitor sound' : `Monitor ${SOUND_TITLE[soundLevel].toLowerCase()}`}
           >
-            {soundOn ? '🔊' : '🔇'}
+            {soundLocked ? (
+              <span className="text-xs font-bold uppercase tracking-wider">🔈 tap for sound</span>
+            ) : (
+              SOUND_ICON[soundLevel]
+            )}
           </button>
           {frozen && (
             <span className="rounded bg-[#293027] px-2 py-0.5 text-xs uppercase tracking-widest">
@@ -96,10 +268,21 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
                 <span className="text-xs font-mono text-vital-ecg/80">{RHYTHM_LABELS[v.rhythm]}</span>
               )}
             </div>
-            <Waveform kind="ecg" color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="ecg" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} ecg={v.ecg} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="HR" value={String(Math.round(v.hr))} unit="bpm" color="text-vital-ecg" alarm={alarmFor('hr') ?? alarmFor('rhythm')} trendValue={v.hr} large={!compact} />
+          <VitalTile label="HR" value={String(shownHr)} unit="bpm" limits={limitsText(lim?.hr)} alarmsOff={isOff('hr')} onSetup={setupFor('hr')} sub={stSub} color="text-vital-ecg" {...tileAlarm('hr', 'rhythm')} trendValue={v.hr} large={!compact} />
         </div>
+        {v5 && (
+          <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
+            <div className="min-w-0">
+              <span className="px-1 text-xs font-bold uppercase tracking-wider text-vital-ecg">
+                ECG V5
+              </span>
+              <Waveform kind="ecg" lead="V5" clock={clock} color="#73ef82" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} pvcFrequency={v.pvcFrequency} ecg={v.ecg} frozen={frozen} heightClass={waveH} />
+            </div>
+            <VitalTile label="ST V5" value={stV5} unit="mm" color="text-vital-ecg" />
+          </div>
+        )}
         {art && (
           <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
             <div className="min-w-0">
@@ -109,15 +292,18 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
                 </span>
                 <span className="text-xs font-mono text-vital-nibp/80">0–170</span>
               </div>
-              <Waveform kind="art" color="#f87171" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} sbp={v.sbp} dbp={v.dbp} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
+              <Waveform kind="art" clock={clock} pulseless={noPulse} color="#f87171" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} sbp={v.sbp} dbp={v.dbp} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
             </div>
             <VitalTile
               label="ART"
               value={bpValue}
               unit="mmHg"
+              limits={limitsText(lim?.sbp)}
+              alarmsOff={isOff('sbp')}
+              onSetup={setupFor('sbp')}
               sub={bpSub}
               color="text-vital-nibp"
-              alarm={alarmFor('sbp') ?? alarmFor('dbp')}
+              {...tileAlarm('sbp', 'dbp')}
               trendValue={v.sbp}
             />
           </div>
@@ -127,50 +313,102 @@ export function MonitorDisplay({ snapshot, compact = false, showRhythmLabel = tr
             <span className="px-1 text-xs font-bold uppercase tracking-wider text-vital-spo2">
               Pleth
             </span>
-            <Waveform kind="pleth" color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
+            <Waveform kind="pleth" clock={clock} pulseless={noPulse} color="#38bdf8" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} frozen={frozen} heightClass={waveH} />
           </div>
-          <VitalTile label="SpO₂" value={String(Math.round(v.spo2))} unit="%" color="text-vital-spo2" alarm={alarmFor('spo2')} trendValue={v.spo2} large={!compact} />
+          <VitalTile label="SpO₂" value={noPulse ? NO_READING : String(Math.round(v.spo2))} unit="%" limits={limitsText(lim?.spo2)} alarmsOff={isOff('spo2')} onSetup={setupFor('spo2')} color="text-vital-spo2" {...tileAlarm('spo2')} trendValue={noPulse ? undefined : v.spo2} large={!compact} />
         </div>
         <div className={`grid items-stretch gap-2 ${traceRowCols}`}>
           <div className="min-w-0">
-            <span className="px-1 text-xs font-bold uppercase tracking-wider text-vital-etco2">
-              CO₂
-            </span>
-            <Waveform kind="capno" color="#facc15" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} capnoShape={v.capnoShape} frozen={frozen} heightClass={waveH} />
+            <div className="flex items-baseline justify-between px-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-vital-etco2">
+                CO₂
+              </span>
+              <span className="text-xs font-mono text-vital-etco2/80">0–{capnoScaleMax(v.etco2)}</span>
+            </div>
+            <Waveform kind="capno" color="#facc15" hr={v.hr} rr={v.rr} spo2={v.spo2} etco2={v.etco2} rhythm={v.rhythm} capnoShape={v.capnoShape} fico2={v.fico2} frozen={frozen} heightClass={waveH} />
           </div>
           <VitalTile
             label="EtCO₂"
             value={String(Math.round(v.etco2))}
             unit="mmHg"
-            sub={`RR ${Math.round(v.rr)}/min`}
+            limits={limitsText(lim?.etco2)}
+            alarmsOff={isOff('etco2')}
+            onSetup={setupFor('etco2', 'rr')}
+            sub={`RR ${Math.round(v.rr)}/min · Fi\u00a0${Math.round(v.fico2 ?? 0)}`}
             color="text-vital-etco2"
-            alarm={alarmFor('etco2') ?? alarmFor('rr')}
+            {...tileAlarm('etco2', 'rr')}
             trendValue={v.etco2}
           />
         </div>
 
-        {/* Parameters without a trace (BP moves up beside its waveform in art mode) */}
-        <div className={`grid gap-2 ${art ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        {/* Parameters without a trace (BP moves up beside its waveform in art
+            mode). The strip fits as many tiles per row as it has room for —
+            each wide enough for a blood pressure — so the machine readings
+            wrap to a second row on a narrow display instead of squeezing it. */}
+        <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
           {cuff && (
             <VitalTile
               label="NIBP"
               value={bpValue}
               unit="mmHg"
+              limits={limitsText(lim?.sbp)}
+              alarmsOff={isOff('sbp')}
+              onSetup={setupFor('sbp')}
               sub={bpSub}
               color="text-vital-nibp"
-              alarm={alarmFor('sbp') ?? alarmFor('dbp')}
-              trendValue={cuff.sbp}
+              {...tileAlarm('sbp', 'dbp')}
+              trendValue={cuffFailed ? undefined : cuff.sbp}
             />
           )}
-          <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" color="text-vital-temp" alarm={alarmFor('temp')} trendValue={v.temp} />
+          <VitalTile label="Temp" value={v.temp.toFixed(1)} unit="°C" limits={limitsText(lim?.temp)} alarmsOff={isOff('temp')} onSetup={setupFor('temp')} color="text-vital-temp" {...tileAlarm('temp')} trendValue={v.temp} />
           <VitalTile
-            label="SEV"
+            label={AGENT_TAGS[agent]}
             value={v.agentEt.toFixed(1)}
             unit="% Et"
-            sub={`Fi ${v.agentFi.toFixed(1)} · Depth ${Math.round(v.depth)}`}
+            sub={`Fi ${v.agentFi.toFixed(1)}${mac === undefined ? '' : ` · MAC ${mac.toFixed(1)}`} · Depth ${Math.round(v.depth)}`}
             color="text-vital-agent"
             trendValue={v.agentEt}
           />
+          {vent && (
+            <>
+              <VitalTile
+                label="Paw"
+                value={String(vent.pip)}
+                unit="cmH₂O"
+                limits={limitsText(lim?.paw, 'paw')}
+                alarmsOff={isOff('paw')}
+                onSetup={setupFor('paw')}
+                sub={`Pplat ${vent.pplat} · PEEP ${vent.peep}`}
+                color="text-monitor-ink"
+                {...tileAlarm('paw')}
+                trendValue={vent.pip}
+              />
+              <VitalTile
+                label="VT"
+                value={String(vent.vt)}
+                unit="mL"
+                limits={mvLimits && `MV ${mvLimits}`}
+                alarmsOff={isOff('mv')}
+                onSetup={setupFor('mv')}
+                sub={`MV ${minuteVentilation(vent.vt, v.rr).toFixed(1)} L/min`}
+                color="text-monitor-ink"
+                {...tileAlarm('vt')}
+                trendValue={vent.vt}
+              />
+              <VitalTile
+                label="O₂"
+                value={String(vent.fio2)}
+                unit="% Fi"
+                limits={limitsText(lim?.fio2, 'fio2')}
+                alarmsOff={isOff('fio2')}
+                onSetup={setupFor('fio2')}
+                color="text-monitor-ink"
+                {...tileAlarm('fio2')}
+                trendValue={vent.fio2}
+              />
+            </>
+          )}
+          {snapshot.tof && <TofTile reading={snapshot.tof} />}
         </div>
       </div>
     </div>

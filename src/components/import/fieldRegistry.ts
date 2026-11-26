@@ -1,4 +1,3 @@
-import type { SectionId } from '@/components/editor/sections';
 import type { DraftField, DraftFields } from '@/lib/import';
 
 /**
@@ -8,6 +7,22 @@ import type { DraftField, DraftFields } from '@/lib/import';
  * Enum options mirror `src/lib/engine/schema.ts`; keep them in step when
  * the scenario schema changes (CLAUDE.md invariant 2).
  */
+
+/**
+ * How the review screen groups an imported draft's fields. Its own list, not
+ * the case editor's rail: the review is a field-by-field check against the
+ * source document, laid out in the document's order.
+ */
+export type SectionId = 'overview' | 'patient' | 'vitals' | 'timeline' | 'assessment' | 'teaching';
+
+export const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'patient', label: 'Patient' },
+  { id: 'vitals', label: 'Vitals & monitoring' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'assessment', label: 'Assessment' },
+  { id: 'teaching', label: 'Teaching & debrief' },
+];
 
 export type FieldKind = 'string' | 'number' | 'enum' | 'stringList' | 'json';
 
@@ -23,6 +38,8 @@ export interface FieldSpec {
 
 export const RHYTHMS = [
   'sinus', 'sinus_brady', 'sinus_tach', 'pvc', 'pac', 'afib', 'svt', 'vtach', 'vfib', 'pea', 'asystole',
+  'av_block_1', 'av_block_mobitz1', 'av_block_mobitz2', 'av_block_3', 'junctional', 'aflutter', 'torsades',
+  'paced', 'idioventricular',
 ] as const;
 export const TRAINING_LEVELS = [
   'medical_student', 'srna', 'saa', 'resident_junior', 'resident_senior', 'crna', 'caa', 'attending',
@@ -67,7 +84,7 @@ export const FIELD_SPECS: FieldSpec[] = [
   { path: 'baselineVitals.agentEt', label: 'Agent Et (%)', section: 'vitals', kind: 'number' },
   { path: 'baselineVitals.agentFi', label: 'Agent Fi (%)', section: 'vitals', kind: 'number' },
   { path: 'baselineVitals.rhythm', label: 'Rhythm', section: 'vitals', kind: 'enum', options: RHYTHMS },
-  { path: 'baselineVitals.capnoShape', label: 'Capnograph shape', section: 'vitals', kind: 'enum', options: ['normal', 'bronchospasm', 'curare_cleft'], optional: true },
+  { path: 'baselineVitals.capnoShape', label: 'Capnograph shape', section: 'vitals', kind: 'enum', options: ['normal', 'bronchospasm', 'curare_cleft', 'cardiogenic', 'leak', 'esophageal'], optional: true },
   { path: 'baselineVitals.pvcFrequency', label: 'PVC frequency', section: 'vitals', kind: 'enum', options: ['rare', 'occasional', 'trigeminy', 'bigeminy'], optional: true },
   { path: 'monitoring', label: 'Monitoring', section: 'vitals', kind: 'json', optional: true, hint: '{ "artLine": true } or { "nibpIntervalSec": 180 }' },
 

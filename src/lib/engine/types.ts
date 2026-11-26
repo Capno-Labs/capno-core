@@ -23,7 +23,16 @@ export type Rhythm =
   | 'vtach'
   | 'vfib'
   | 'pea'
-  | 'asystole';
+  | 'asystole'
+  | 'av_block_1'
+  | 'av_block_mobitz1'
+  | 'av_block_mobitz2'
+  | 'av_block_3'
+  | 'junctional'
+  | 'aflutter'
+  | 'torsades'
+  | 'paced'
+  | 'idioventricular';
 
 export const RHYTHM_LABELS: Record<Rhythm, string> = {
   sinus: 'Sinus Rhythm',
@@ -37,22 +46,187 @@ export const RHYTHM_LABELS: Record<Rhythm, string> = {
   vfib: 'Ventricular Fibrillation',
   pea: 'PEA',
   asystole: 'Asystole',
+  av_block_1: 'First-degree AV Block',
+  av_block_mobitz1: 'AV Block — Mobitz I',
+  av_block_mobitz2: 'AV Block — Mobitz II',
+  av_block_3: 'Complete Heart Block',
+  junctional: 'Junctional Rhythm',
+  aflutter: 'Atrial Flutter',
+  torsades: 'Torsades de Pointes',
+  paced: 'Ventricular Paced',
+  idioventricular: 'Idioventricular Rhythm',
 };
+
+/**
+ * Rhythms with no ventricular ejection at all — the patient is pulseless
+ * whatever the `pulseless` flag says. (`pea` is the legacy wide-complex PEA
+ * rhythm; PEA with any other organized rhythm is that rhythm plus
+ * `pulseless: true`.)
+ */
+const NON_PERFUSING_RHYTHMS: ReadonlySet<Rhythm> = new Set(['vfib', 'pea', 'asystole', 'torsades']);
+
+/** Whether the rhythm can produce a pulse at all. */
+export function rhythmPerfuses(rhythm: Rhythm): boolean {
+  return !NON_PERFUSING_RHYTHMS.has(rhythm);
+}
+
+/**
+ * Whether the patient has a pulse: the rhythm can perfuse, and the pulse has
+ * not been taken away (PEA, pulseless VT). Everything pulse-dependent on the
+ * monitor — pleth, arterial trace, SpO₂, the pulse tone, a cuff reading —
+ * follows this, not the rhythm alone.
+ */
+export function hasPulse(vitals: Pick<Vitals, 'rhythm' | 'pulseless'>): boolean {
+  return rhythmPerfuses(vitals.rhythm) && !vitals.pulseless;
+}
 
 /**
  * Capnograph trace morphology. `normal` is the square expiratory plateau;
  * `bronchospasm` is the slurred, upsloping "shark fin" of obstructed
  * expiration; `curare_cleft` is a normal plateau interrupted by a transient
  * notch — spontaneous respiratory effort during partial neuromuscular
- * blockade. Display-only: the EtCO2 number is unaffected.
+ * blockade; `cardiogenic` adds heartbeat-synchronous ripples to the end of
+ * expiration; `leak` is a plateau that sags early (cuff or circuit leak).
+ * Those are display-only: the EtCO2 number is unaffected.
+ *
+ * `esophageal` is different: the tube is in the esophagus, so the measured
+ * CO2 itself dies away over the first few breaths — the engine lowers the
+ * EtCO2 number the monitor reports (see measuredEtco2), and the trace with it.
+ *
+ * Rebreathing is not a shape: it is an inspired CO2 above zero (`fico2`),
+ * which raises the trace's baseline.
  */
-export type CapnoShape = 'normal' | 'bronchospasm' | 'curare_cleft';
+export type CapnoShape =
+  | 'normal'
+  | 'bronchospasm'
+  | 'curare_cleft'
+  | 'cardiogenic'
+  | 'leak'
+  | 'esophageal';
 
 export const CAPNO_SHAPE_LABELS: Record<CapnoShape, string> = {
   normal: 'Normal',
   bronchospasm: 'Bronchospasm (shark fin)',
   curare_cleft: 'Curare cleft',
+  cardiogenic: 'Cardiogenic oscillations',
+  leak: 'Cuff / circuit leak',
+  esophageal: 'Esophageal intubation',
 };
+
+// ── Anesthesia machine ───────────────────────────────────────────────────────
+
+/** The volatile agent in use. Absent on vitals = sevoflurane. */
+export type AnestheticAgent = 'sevoflurane' | 'isoflurane' | 'desflurane';
+
+export const AGENT_LABELS: Record<AnestheticAgent, string> = {
+  sevoflurane: 'Sevoflurane',
+  isoflurane: 'Isoflurane',
+  desflurane: 'Desflurane',
+};
+
+/** Three-letter tags, as an agent analyzer prints them. */
+export const AGENT_TAGS: Record<AnestheticAgent, string> = {
+  sevoflurane: 'SEV',
+  isoflurane: 'ISO',
+  desflurane: 'DES',
+};
+
+/**
+ * Ventilator and gas readings from the anesthesia machine. Like the vitals,
+ * these are authored or instructor-set targets, not a lung model: a scenario
+ * says what the machine reads (a peak pressure of 45 in bronchospasm, a tidal
+ * volume of 0 after a disconnection) and the monitor shows it.
+ */
+export interface Ventilation {
+  /** Inspired oxygen, %. */
+  fio2: number;
+  /** Peak inspiratory pressure, cmH2O. */
+  pip: number;
+  /** Plateau (end-inspiratory pause) pressure, cmH2O. */
+  pplat: number;
+  /** Positive end-expiratory pressure, cmH2O. */
+  peep: number;
+  /** Exhaled tidal volume, mL. */
+  vt: number;
+}
+
+export const VENT_KEYS = ['fio2', 'pip', 'pplat', 'peep', 'vt'] as const satisfies readonly (keyof Ventilation)[];
+export type VentKey = (typeof VENT_KEYS)[number];
+
+export interface VentMeta {
+  label: string;
+  unit: string;
+  min: number;
+  max: number;
+  step: number;
+}
+
+export const VENT_META: Record<VentKey, VentMeta> = {
+  // Down to 0, not 21: a pipeline crossover delivers a hypoxic mixture.
+  fio2: { label: 'FiO₂', unit: '%', min: 0, max: 100, step: 5 },
+  pip: { label: 'PIP', unit: 'cmH₂O', min: 0, max: 80, step: 1 },
+  pplat: { label: 'Pplat', unit: 'cmH₂O', min: 0, max: 60, step: 1 },
+  peep: { label: 'PEEP', unit: 'cmH₂O', min: 0, max: 25, step: 1 },
+  vt: { label: 'VT', unit: 'mL', min: 0, max: 1500, step: 25 },
+};
+
+/** Minute ventilation, L/min, from exhaled tidal volume and respiratory rate. */
+export function minuteVentilation(vtMl: number, rr: number): number {
+  return (vtMl * rr) / 1000;
+}
+
+// ── Neuromuscular monitoring ─────────────────────────────────────────────────
+
+/**
+ * The patient's neuromuscular block, as a twitch monitor would find it. Like
+ * the vitals, these are authored or instructor-set targets: a scenario says
+ * what the monitor would count, not which drug was given.
+ */
+export interface NeuromuscularBlock {
+  /** Train-of-four count: twitches present after four stimuli, 0–4. */
+  tofCount: number;
+  /** Train-of-four ratio: the fourth twitch as a percentage of the first,
+   *  0–100. Read only while all four twitches are present. Capped at 100, as
+   *  a normalised or electromyographic reading is; a raw acceleromyograph
+   *  can read higher (Thilen et al., Anesthesiology 2023;138:13). */
+  tofRatio: number;
+  /** Post-tetanic count: twitches after a tetanic stimulus, 0–PTC_MAX. Read
+   *  only while the train-of-four count is 0. */
+  ptc: number;
+}
+
+export const NMB_KEYS = ['tofCount', 'tofRatio', 'ptc'] as const satisfies readonly (keyof NeuromuscularBlock)[];
+export type NmbKey = (typeof NMB_KEYS)[number];
+
+/** Highest post-tetanic count the sim will hold: 15, the most a Blink
+ *  TwitchView or an Organon TOF-Watch SX counts (a Philips IntelliVue NMT
+ *  counts to 20, an IDMED TOFscan to 10). */
+export const PTC_MAX = 15;
+
+export const NMB_META: Record<NmbKey, VentMeta> = {
+  tofCount: { label: 'TOF count', unit: 'of 4', min: 0, max: 4, step: 1 },
+  tofRatio: { label: 'TOF ratio', unit: '%', min: 0, max: 100, step: 5 },
+  ptc: { label: 'PTC', unit: 'twitches', min: 0, max: PTC_MAX, step: 1 },
+};
+
+/** No neuromuscular blocker on board: four equal twitches. */
+export const UNBLOCKED: NeuromuscularBlock = { tofCount: 4, tofRatio: 100, ptc: 0 };
+
+/**
+ * What the twitch monitor last measured. The ratio is null unless all four
+ * twitches were present, and the post-tetanic count is null unless none was.
+ */
+export interface TofReading {
+  count: number;
+  ratio: number | null;
+  ptc: number | null;
+  /** Elapsed scenario seconds when the monitor stimulated. */
+  atSec: number;
+}
+
+/** Highest inspired CO2 the sim will hold, mmHg. Reported cases of a stuck
+ *  expiratory valve reach 30 (Lee et al., Korean J Anesthesiol 2013;65:337). */
+export const FICO2_MAX = 30;
 
 /**
  * How often an ectopic complex replaces a sinus beat when the rhythm is
@@ -75,6 +249,101 @@ export const PVC_FREQUENCY_EVERY_N: Record<PvcFrequency, number> = {
   trigeminy: 3,
   bigeminy: 2,
 };
+
+/**
+ * ECG morphology — how each complex is drawn, independent of the rhythm.
+ * Applies to beats with a normal conduction pattern (the sinus rhythms, AF,
+ * SVT, PACs and the normal beats between PVCs); wide ectopic complexes, VT,
+ * VF, PEA and asystole are drawn as before.
+ *
+ * Display-only: none of it changes HR, pressures or alarms. Every field is
+ * optional; absent = normal.
+ */
+export type TWave = 'normal' | 'peaked' | 'flat' | 'inverted';
+export type QrsWidth = 'normal' | 'wide';
+export type QtInterval = 'normal' | 'long';
+
+export interface EcgMorphology {
+  /**
+   * ST-segment deviation in lead II, in millimetres at standard gain
+   * (1 mm = 0.1 mV): negative = depression, positive = elevation. −5 to +5.
+   * The one field that ramps — it follows the effect's `overSec`.
+   */
+  stMm?: number;
+  /**
+   * ST-segment deviation in lead V5, same units and range. Independent of
+   * lead II: ischemia often shows in one lead and not the other. Drawn only
+   * when the monitor has a V5 lead (see MonitoringConfig.v5).
+   */
+  stV5Mm?: number;
+  tWave?: TWave;
+  qrs?: QrsWidth;
+  qt?: QtInterval;
+}
+
+export const ST_MM_MIN = -5;
+export const ST_MM_MAX = 5;
+
+export const T_WAVE_LABELS: Record<TWave, string> = {
+  normal: 'Normal',
+  peaked: 'Peaked',
+  flat: 'Flattened',
+  inverted: 'Inverted',
+};
+
+export const QRS_WIDTH_LABELS: Record<QrsWidth, string> = {
+  normal: 'Narrow',
+  wide: 'Wide',
+};
+
+export const QT_INTERVAL_LABELS: Record<QtInterval, string> = {
+  normal: 'Normal',
+  long: 'Prolonged',
+};
+
+const MORPHOLOGY_RHYTHMS: ReadonlySet<Rhythm> = new Set([
+  'sinus',
+  'sinus_brady',
+  'sinus_tach',
+  'pvc',
+  'pac',
+  'afib',
+  'svt',
+  'av_block_1',
+  'av_block_mobitz1',
+  'av_block_mobitz2',
+  'av_block_3',
+  'junctional',
+]);
+
+/**
+ * Whether the rhythm has normal-pattern complexes that ECG morphology
+ * reshapes and an ST level can be read from — not VT, VF, torsades, PEA,
+ * asystole, flutter, or the wide paced and idioventricular complexes.
+ */
+export function ecgMorphologyApplies(rhythm: Rhythm): boolean {
+  return MORPHOLOGY_RHYTHMS.has(rhythm);
+}
+
+/** The ECG leads the monitor can show, and the ST field each one reads. */
+export type EcgLead = 'II' | 'V5';
+export const ST_FIELD: Record<EcgLead, 'stMm' | 'stV5Mm'> = { II: 'stMm', V5: 'stV5Mm' };
+
+/** Every field at its default — a normal complex. */
+export const NORMAL_ECG: Required<EcgMorphology> = {
+  stMm: 0,
+  stV5Mm: 0,
+  tWave: 'normal',
+  qrs: 'normal',
+  qt: 'normal',
+};
+
+/** "−2.0", "+1.5", "0.0" — signed, one decimal, as monitors print ST. */
+export function formatStMm(stMm: number): string {
+  const rounded = Math.round(stMm * 10) / 10;
+  if (rounded === 0) return '0.0';
+  return `${rounded > 0 ? '+' : '−'}${Math.abs(rounded).toFixed(1)}`;
+}
 
 /** Numeric (continuously interpolated) vital signs. */
 export interface NumericVitals {
@@ -120,8 +389,39 @@ export interface Vitals extends NumericVitals {
   rhythm: Rhythm;
   /** Capnograph morphology. Absent = 'normal'. */
   capnoShape?: CapnoShape;
+  /**
+   * Inspired CO2, mmHg — the capnogram's baseline. Normally 0; above zero is
+   * rebreathing (exhausted absorbent, a stuck valve). Absent = 0. 0–30.
+   */
+  fico2?: number;
   /** PVC coupling rate; only meaningful while rhythm is 'pvc'. Absent = 'occasional'. */
   pvcFrequency?: PvcFrequency;
+  /** ECG complex morphology (ST, T wave, QRS width, QT). Absent = normal. */
+  ecg?: EcgMorphology;
+  /**
+   * Anesthesia-machine readings. In a scenario's baseline, its presence (even
+   * as `{}`) puts the machine tiles on the monitor from the start; fields
+   * left out take the defaults for the patient. In a snapshot it is present,
+   * with every field, while the tiles are shown.
+   */
+  vent?: Partial<Ventilation>;
+  /** Volatile agent in use. Absent = sevoflurane. */
+  agent?: AnestheticAgent;
+  /**
+   * Neuromuscular block. In a scenario's baseline, its presence (even as
+   * `{}`) attaches a twitch monitor from the start; fields left out mean no
+   * block (four twitches, ratio 100%). In a snapshot it is present, with every
+   * field, while the twitch monitor is attached — the true state, where
+   * `snapshot.tof` is what the monitor last measured.
+   */
+  nmb?: Partial<NeuromuscularBlock>;
+  /**
+   * No pulse despite an organized rhythm: pulseless electrical activity
+   * (any organized rhythm) or pulseless VT. Absent = false. VF, torsades,
+   * asystole and the legacy `pea` rhythm are pulseless regardless — see
+   * hasPulse().
+   */
+  pulseless?: boolean;
 }
 
 /** Mean arterial pressure derived from SBP/DBP. */
@@ -198,15 +498,32 @@ export interface Phase {
 
 /**
  * A change applied to the patient's vitals. Numeric vitals ramp linearly to
- * `vitals` over `overSec` seconds (0 = instant). Rhythm changes are immediate.
+ * `vitals` over `overSec` seconds (0 = instant), and so does the ST level in
+ * `ecg`. Rhythm, capnogram shape and the other ECG changes are immediate.
  */
 export interface VitalEffect {
   vitals?: Partial<NumericVitals>;
   rhythm?: Rhythm;
   /** Capnograph morphology change. Like rhythm, applied immediately. */
   capnoShape?: CapnoShape;
+  /** Inspired CO2 target, mmHg. Ramps over `overSec`, like a numeric vital. */
+  fico2?: number;
   /** PVC coupling-rate change. Like rhythm, applied immediately. */
   pvcFrequency?: PvcFrequency;
+  /** ECG morphology change: only the fields listed change. `stMm` ramps over
+   *  `overSec`; T wave, QRS width and QT apply immediately. */
+  ecg?: EcgMorphology;
+  /** Take the pulse away (true) or give it back (false), independent of the
+   *  rhythm. Applied immediately. */
+  pulseless?: boolean;
+  /** Anesthesia-machine reading targets: only the fields listed change, and
+   *  each ramps over `overSec`, like a numeric vital. */
+  vent?: Partial<Ventilation>;
+  /** Switch the volatile agent. Applied immediately. */
+  agent?: AnestheticAgent;
+  /** Neuromuscular block targets: only the fields listed change, and each
+   *  ramps over `overSec`. The monitor shows them at its next measurement. */
+  nmb?: Partial<NeuromuscularBlock>;
   /** Seconds over which numeric targets are reached. Default 0 (instant). */
   overSec?: number;
   /** Seconds to wait after the trigger before this effect begins. Default 0. */
@@ -273,6 +590,51 @@ export interface DebriefGuide {
   questions: string[];
 }
 
+// ── Alarm limits ─────────────────────────────────────────────────────────────
+
+/** The monitor's patient category: which set of alarm limits it starts from. */
+export type AlarmProfile = 'adult' | 'pediatric' | 'neonatal';
+
+export const ALARM_PROFILE_LABELS: Record<AlarmProfile, string> = {
+  adult: 'Adult',
+  pediatric: 'Pediatric',
+  neonatal: 'Neonatal',
+};
+
+/** The vitals that have alarm limits, in the order alarms are listed. */
+export const ALARM_VITALS = ['hr', 'sbp', 'spo2', 'etco2', 'rr', 'temp'] as const satisfies readonly (keyof NumericVitals)[];
+export type AlarmVital = (typeof ALARM_VITALS)[number];
+
+/** The anesthesia-machine readings that have alarm limits: airway pressure,
+ *  minute volume and inspired oxygen. */
+export const MACHINE_ALARM_PARAMS = ['paw', 'mv', 'fio2'] as const;
+export type MachineAlarmParam = (typeof MACHINE_ALARM_PARAMS)[number];
+
+/** Everything with settable alarm limits: the vitals, then the machine readings. */
+export const ALARM_PARAMS = [...ALARM_VITALS, ...MACHINE_ALARM_PARAMS] as const;
+export type AlarmParam = (typeof ALARM_PARAMS)[number];
+
+export const ALARM_BAND_KEYS = ['critLow', 'warnLow', 'warnHigh', 'critHigh'] as const;
+export type AlarmBandKey = (typeof ALARM_BAND_KEYS)[number];
+
+/**
+ * One vital's limits. Below `warnLow` or above `warnHigh` is a warning; below
+ * `critLow` or above `critHigh` is critical. A limit left out does not alarm.
+ */
+export type AlarmBand = Partial<Record<AlarmBandKey, number>>;
+
+/** The limits in force: one band per vital and per machine reading. */
+export type AlarmLimits = Record<AlarmParam, AlarmBand>;
+
+/**
+ * A scenario's changes to its profile's limits. Only the limits listed
+ * change; `null` switches a limit off.
+ */
+export type AlarmLimitOverrides = Partial<Record<AlarmParam, Partial<Record<AlarmBandKey, number | null>>>>;
+
+/** The two limits a clinician sets on a monitor: the low and the high warning limit. */
+export type AlarmSide = 'low' | 'high';
+
 export interface MonitoringConfig {
   /**
    * True = arterial line: BP displays continuously.
@@ -281,6 +643,29 @@ export interface MonitoringConfig {
   artLine?: boolean;
   /** Automatic cuff cycle interval in seconds (default 180). */
   nibpIntervalSec?: number;
+  /**
+   * True = the monitor shows a second ECG trace, lead V5, under lead II, with
+   * its own ST readout. Absent/false = lead II only. Faculty can add or
+   * remove it during a session.
+   */
+  v5?: boolean;
+  /**
+   * Which set of alarm limits the monitor starts from — its patient category.
+   * Absent = adult. Faculty can switch it during a session.
+   */
+  alarmProfile?: AlarmProfile;
+  /**
+   * Changes to that profile's limits for this case (a parturient's heart
+   * rate, a deliberately hypotensive technique). Only the limits listed
+   * change; `null` switches one off.
+   */
+  alarmLimits?: AlarmLimitOverrides;
+  /**
+   * Vitals and machine readings whose limit alarms start switched off — the
+   * monitor someone left with an alarm disabled. Each can be switched on or
+   * off during a session.
+   */
+  alarmsOff?: AlarmParam[];
 }
 
 export interface Scenario {
@@ -346,9 +731,18 @@ export interface ActionRecord {
 }
 
 export interface AlarmState {
-  vital: keyof NumericVitals | 'rhythm';
+  /** What the alarm is about: a numeric vital, the rhythm, or a machine
+   *  reading (airway pressure, tidal volume, inspired oxygen). */
+  vital: keyof NumericVitals | 'rhythm' | 'paw' | 'vt' | 'fio2';
   level: 'warning' | 'critical';
   message: string;
+  /**
+   * Someone pressed Silence while this alarm was active: it no longer sounds
+   * or flashes, but stays listed while its cause persists. It clears when
+   * the cause does, so the same alarm coming back is a new one. Absent =
+   * not acknowledged.
+   */
+  acknowledged?: boolean;
 }
 
 /** Last measured NIBP reading (cuff mode). */
@@ -371,17 +765,51 @@ export interface SimSnapshot {
   status: SimStatus;
   elapsedSec: number;
   phaseId: string;
-  /** Elapsed time at the last phase change (phases move via setPhase — today
-   *  only the co-pilot's set_phase command calls it). Kept in the snapshot
-   *  for archives and time-in-phase consumers.
+  /** Elapsed time at the last phase change (phases move via setPhase — the
+   *  run screen's phase stepper, or the co-pilot's set_phase command). Kept
+   *  in the snapshot for archives and time-in-phase consumers.
    *  Optional: absent in snapshots archived before phase timers existed. */
   phaseChangedAtSec?: number;
   vitals: Vitals;
   /** Last cuff reading; null when the scenario uses an arterial line. */
   nibp: NibpReading | null;
+  /**
+   * The agent analyzer's derived reading: which agent, and the end-tidal
+   * concentration as a multiple of the patient's age-adjusted MAC. Computed
+   * by the engine (the display does not know the patient's age). Optional:
+   * absent in snapshots archived before it existed.
+   */
+  gas?: { agent: AnestheticAgent; mac: number };
+  /**
+   * The twitch monitor's last measurement. Present only while a twitch
+   * monitor is attached; like the cuff, it updates when the monitor
+   * stimulates, not when the block changes.
+   */
+  tof?: TofReading;
+  /** True while the monitor shows a V5 lead under lead II. Optional: absent
+   *  (= lead II only) in snapshots archived before the V5 lead existed. */
+  v5Lead?: boolean;
   alarms: AlarmState[];
   /** True while faculty has silenced audible/visual alarm emphasis. */
   alarmsSilenced: boolean;
+  /**
+   * The alarm limits in force and the profile they came from, so a display
+   * can print them beside the numbers and the debrief can re-read the vitals
+   * history against them. Optional: absent (= the adult profile) in
+   * snapshots archived before limits could vary.
+   */
+  alarmLimits?: AlarmLimits;
+  alarmProfile?: AlarmProfile;
+  /** Vitals whose limit alarms are switched off: the monitor shows an
+   *  alarms-off mark beside the number in place of its limits. Optional:
+   *  absent (= none) in older snapshots. */
+  alarmsOff?: AlarmParam[];
+  /**
+   * True while learners may operate the monitor's alarm setup from their
+   * display (the display then offers it and sends requests; the session
+   * applies them). Optional: absent (= no) in older snapshots.
+   */
+  learnerAlarmSetup?: boolean;
   actions: ActionRecord[];
   /** In live broadcast snapshots this is a capped tail of the newest entries
    *  (snapshots go out twice a second — an uncapped log would grow every
@@ -390,9 +818,25 @@ export interface SimSnapshot {
   log: LogEntry[];
   notes: FacultyNote[];
   firedEventIds: string[];
+  /**
+   * What the student display shows before the scenario starts: the patient's
+   * pre-operative details. Present only while the session is idle and faculty
+   * have turned the pre-brief on — absent once the scenario runs, so it adds
+   * nothing to the twice-a-second broadcasts of a live session, and never
+   * archived (archives are taken at the end).
+   */
+  preBrief?: PreBrief;
   /** Whether autoAtSec events fire on their own timeline this session.
    *  Optional: absent in snapshots archived before the toggle existed. */
   autoEventsEnabled?: boolean;
+}
+
+/**
+ * The learner-facing pre-brief. Deliberately the patient only: the scenario's
+ * title, summary, objectives and events would give the case away.
+ */
+export interface PreBrief {
+  patient: Patient;
 }
 
 export interface FacultyNote {

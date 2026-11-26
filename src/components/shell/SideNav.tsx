@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogoTile } from '@/components/brand/LogoTile';
+import { BrandMark } from '@/components/brand/BrandMark';
+import { CapnoWordmark } from '@/components/brand/CapnoWordmark';
 import { Icon } from '@/components/ui/Icon';
 import { MAIN_NAV, WORKSPACE_NAV, isNavActive, type NavItem } from './nav';
 import { OfflineCard } from './OfflineCard';
@@ -51,10 +52,13 @@ export function SideNav({ rail }: { rail: boolean }) {
           rail ? 'justify-center px-0' : 'justify-center px-0 lg:justify-start lg:px-2'
         }`}
       >
-        <LogoTile />
+        <BrandMark />
         <span className={`min-w-0 leading-tight ${labelClass(rail)}`}>
-          <span className="block truncate text-sm font-bold tracking-tight text-ink">
-            CAPNO Studio
+          {/* The name is the logo's own lettering, then the product word in
+              type; the link's label carries "CAPNO Studio" for readers. */}
+          <span className="flex items-center gap-1.5 text-sm font-semibold tracking-tight text-ink">
+            <CapnoWordmark className="h-[13px] w-auto shrink-0 text-logo" />
+            Studio
           </span>
           <span className="block font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-faint">
             Faculty workspace

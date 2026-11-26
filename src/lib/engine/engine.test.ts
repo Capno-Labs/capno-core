@@ -1,9 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { generateSessionId, isValidSessionCode, SimulationEngine } from './engine';
 import { parseScenario } from './schema';
-import { clampVital } from './vitals';
+import {
+  ageAdjustedMac,
+  ALARM_LIMIT_STEP,
+  ALARM_PROFILES,
+  alarmLimitProblems,
+  evaluateAlarms,
+  MACHINE_ALARM_LIMITS,
+  blockDepth,
+  clampVital,
+  defaultVentilation,
+  MAC_AT_40,
+  predictedBodyWeightKg,
+  TOF_INTERVAL_SEC,
+} from './vitals';
+import { ALARM_VITALS, PTC_MAX } from './types';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
-import type { NumericVitals, Scenario, ScenarioEvent } from './types';
+import type { NumericVitals, Scenario, ScenarioEvent, Ventilation } from './types';
 
 const scenario = (): Scenario => BUILT_IN_SCENARIOS[0];
 
@@ -470,6 +484,1328 @@ describe('SimulationEngine', () => {
     const roundTripped = JSON.parse(JSON.stringify(snap));
     expect(roundTripped).toEqual(snap);
   });
+
+  describe('anesthesia machine: ventilator readings, agent and MAC', () => {
+    const withVent = (vent: Scenario['baselineVitals']['vent'] = {}): Scenario => ({
+      ...scenario(),
+      baselineVitals: { ...scenario().baselineVitals, vent },
+    });
+
+    it('shows no machine readings unless the scenario or the instructor asks', () => {
+      const e = newEngine();
+      expect(e.getVentShown()).toBe(false);
+      expect('vent' in e.getVitals()).toBe(false);
+      e.start();
+      e.setVentShown(true);
+      expect(e.getVitals().vent).toBeDefined();
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Machine readings shown' });
+      e.setVentShown(false);
+      expect('vent' in e.getVitals()).toBe(false);
+    });
+
+    it('starts from defaults sized to the patient when the scenario states none', () => {
+      const s = withVent({});
+      const e = new SimulationEngine(s, 'TEST');
+      const vent = e.getVitals().vent as Ventilation;
+      expect(vent).toEqual(defaultVentilation(s.patient));
+      // Tidal volume follows predicted body weight, not actual weight: 6–8 mL/kg.
+      expect(vent.vt).toBe(Math.round((7 * predictedBodyWeightKg(s.patient)) / 10) * 10);
+      const perKg = vent.vt / predictedBodyWeightKg(s.patient);
+      expect(perKg).toBeGreaterThanOrEqual(6);
+      expect(perKg).toBeLessThanOrEqual(8);
+      // Pressures inside the interquartile ranges of a large surgical cohort.
+      expect(vent.pip).toBeGreaterThanOrEqual(15);
+      expect(vent.pip).toBeLessThanOrEqual(21);
+      expect(vent.pplat).toBeGreaterThanOrEqual(13);
+      expect(vent.pplat).toBeLessThanOrEqual(18.5);
+      expect(vent.pplat - vent.peep).toBeLessThan(15); // driving pressure
+      expect(vent.peep).toBe(5);
+      expect(vent.pip).toBeGreaterThan(vent.pplat);
+    });
+
+    it('lays the scenario\'s stated readings over the defaults', () => {
+      const e = new SimulationEngine(withVent({ pip: 34, fio2: 100 }), 'TEST');
+      const vent = e.getVitals().vent!;
+      expect(vent.pip).toBe(34);
+      expect(vent.fio2).toBe(100);
+      expect(vent.peep).toBe(defaultVentilation(scenario().patient).peep);
+    });
+
+    it('ramps each reading like a numeric vital, changing only what is asked', () => {
+      const e = new SimulationEngine(withVent({ pip: 20, pplat: 16 }), 'TEST');
+      e.start();
+      e.setVent({ pip: 44 }, 60);
+      expect(e.getVentTarget('pip')).toBe(44);
+      e.tick(30);
+      expect(e.getVitals().vent).toMatchObject({ pip: 32, pplat: 16 });
+      e.tick(30);
+      expect(e.getVitals().vent).toMatchObject({ pip: 44, pplat: 16 });
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'PIP → 44 cmH₂O', detail: 'over 60s' });
+    });
+
+    it('clamps readings to their ranges', () => {
+      const e = new SimulationEngine(withVent(), 'TEST');
+      e.start();
+      e.setVent({ fio2: -5, pip: 500, vt: -20 });
+      expect(e.getVitals().vent).toMatchObject({ fio2: 0, pip: 80, vt: 0 });
+      e.setVent({ fio2: 140 });
+      expect(e.getVitals().vent?.fio2).toBe(100);
+    });
+
+    it('never shows a plateau above the peak, or PEEP above the plateau', () => {
+      const e = new SimulationEngine(withVent({ pip: 20, pplat: 16, peep: 5 }), 'TEST');
+      e.start();
+      e.setVent({ pip: 0, vt: 0 }); // disconnection: pressure and volume are lost
+      expect(e.getVitals().vent).toMatchObject({ pip: 0, pplat: 0, peep: 0, vt: 0 });
+      e.setVent({ pip: 20 }); // reconnected: the plateau and PEEP it had come back
+      expect(e.getVitals().vent).toMatchObject({ pip: 20, pplat: 16, peep: 5 });
+    });
+
+    it('is driven by authored effects and returns to baseline on reset', () => {
+      const e = new SimulationEngine(withVent({ pip: 18 }), 'TEST');
+      e.start();
+      e.applyNamedEffect('Bronchospasm', { vent: { pip: 42 }, overSec: 20 });
+      e.tick(10);
+      expect(e.getVitals().vent?.pip).toBe(30);
+      e.setVentShown(false);
+      e.reset();
+      expect(e.getVitals().vent?.pip).toBe(18);
+      expect(e.getVentShown()).toBe(true);
+    });
+
+    describe('machine alarms (Dräger factory defaults)', () => {
+      const machine = () => {
+        const e = new SimulationEngine(withVent(), 'TEST');
+        e.start();
+        return e;
+      };
+      const machineAlarms = (e: SimulationEngine) =>
+        e.snapshot().alarms.filter((a) => a.vital === 'paw' || a.vital === 'vt' || a.vital === 'fio2');
+
+      it('is quiet on the default readings', () => {
+        expect(machineAlarms(machine())).toEqual([]);
+      });
+
+      it('alarms on airway pressure above 40 cmH2O', () => {
+        const e = machine();
+        e.setVent({ pip: 40 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVent({ pip: 45 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'Paw HIGH 45' }]);
+      });
+
+      it('alarms when no pressure is being generated — a disconnection', () => {
+        const e = machine();
+        e.setVent({ pip: 3, vt: 0 });
+        expect(machineAlarms(e)).toEqual([
+          { vital: 'paw', level: 'critical', message: 'APNEA PRESSURE' },
+          { vital: 'vt', level: 'warning', message: 'MV low 0.0' },
+        ]);
+      });
+
+      it('alarms on minute volume under 3 or over 12 L/min, from tidal volume and rate', () => {
+        const e = machine();
+        e.setVital('rr', 12);
+        e.setVent({ vt: 240 }); // 2.9 L/min
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV low 2.9' }]);
+        e.setVent({ vt: 500 }); // 6.0 L/min
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVital('rr', 26); // 13.0 L/min
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV high 13.0' }]);
+      });
+
+      it('alarms on inspired oxygen under 20% — a failed or crossed supply', () => {
+        const e = machine();
+        e.setVent({ fio2: 21 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVent({ fio2: 12 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'fio2', level: 'critical', message: 'FiO₂ LOW 12' }]);
+      });
+
+      it('raises none of them while the machine readings are hidden', () => {
+        const e = machine();
+        e.setVent({ pip: 60, fio2: 10 });
+        expect(machineAlarms(e).length).toBe(2);
+        e.setVentShown(false);
+        expect(machineAlarms(e)).toEqual([]);
+      });
+    });
+
+    it('defaults to sevoflurane and switches agent on request or by effect', () => {
+      const e = newEngine();
+      expect(e.getVitals().agent).toBe('sevoflurane');
+      expect(e.snapshot().gas?.agent).toBe('sevoflurane');
+      e.start();
+      e.setAgent('desflurane');
+      expect(e.snapshot().gas?.agent).toBe('desflurane');
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Agent → Desflurane' });
+      e.applyNamedEffect('Switch', { agent: 'isoflurane' });
+      expect(e.getVitals().agent).toBe('isoflurane');
+      e.reset();
+      expect(e.getVitals().agent).toBe('sevoflurane');
+    });
+
+    it('reports end-tidal agent as a multiple of the patient\'s age-adjusted MAC', () => {
+      const age = (years: number): Scenario => ({ ...scenario(), patient: { ...scenario().patient, age: years } });
+      const macAt = (years: number, agent: 'sevoflurane' | 'isoflurane' | 'desflurane', et: number) => {
+        const e = new SimulationEngine(age(years), 'TEST');
+        e.start();
+        e.setAgent(agent);
+        e.setVital('agentEt', et);
+        return e.snapshot().gas!.mac;
+      };
+      // One MAC at 40 for each agent's MAC value…
+      expect(macAt(40, 'sevoflurane', MAC_AT_40.sevoflurane)).toBeCloseTo(1, 2);
+      expect(macAt(40, 'isoflurane', MAC_AT_40.isoflurane)).toBeCloseTo(1, 1);
+      expect(macAt(40, 'desflurane', MAC_AT_40.desflurane)).toBeCloseTo(1, 2);
+      // …the same concentration is more MAC in an older patient, less in a younger one…
+      expect(macAt(80, 'sevoflurane', 1.8)).toBeGreaterThan(macAt(40, 'sevoflurane', 1.8));
+      expect(macAt(20, 'sevoflurane', 1.8)).toBeLessThan(macAt(40, 'sevoflurane', 1.8));
+      // …and nothing is nothing.
+      expect(macAt(40, 'sevoflurane', 0)).toBe(0);
+    });
+
+    it('computes predicted body weight by the ARDS Network formula', () => {
+      expect(predictedBodyWeightKg({ sex: 'male', heightCm: 152.4 })).toBeCloseTo(50, 6);
+      expect(predictedBodyWeightKg({ sex: 'female', heightCm: 152.4 })).toBeCloseTo(45.5, 6);
+      expect(predictedBodyWeightKg({ sex: 'male', heightCm: 180 })).toBeCloseTo(50 + 0.91 * 27.6, 6);
+      expect(predictedBodyWeightKg({ sex: 'female', heightCm: 165 })).toBeCloseTo(45.5 + 0.91 * 12.6, 6);
+    });
+
+    it('lowers MAC by about 6% per decade of age', () => {
+      expect(ageAdjustedMac('sevoflurane', 40)).toBeCloseTo(1.8, 6);
+      expect(ageAdjustedMac('isoflurane', 40)).toBeCloseTo(1.17, 6);
+      expect(ageAdjustedMac('desflurane', 40)).toBeCloseTo(6.6, 6);
+      const perDecade = ageAdjustedMac('sevoflurane', 50) / ageAdjustedMac('sevoflurane', 40);
+      expect(perDecade).toBeGreaterThan(0.93);
+      expect(perDecade).toBeLessThan(0.95);
+    });
+
+    it('keeps the snapshot serializable with machine readings on', () => {
+      const e = new SimulationEngine(withVent({ pip: 22 }), 'TEST');
+      e.start();
+      e.setVent({ vt: 380 }, 10);
+      e.tick(3);
+      const snap = e.snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
+  });
+
+  describe('alarm limits: patient category and per-case changes', () => {
+    const withMonitoring = (monitoring: Scenario['monitoring']): Scenario => ({ ...scenario(), monitoring });
+    const running = (monitoring?: Scenario['monitoring']) => {
+      const e = new SimulationEngine(withMonitoring(monitoring), 'TEST');
+      e.start();
+      return e;
+    };
+    const alarmOn = (e: SimulationEngine, vital: string) => e.snapshot().alarms.find((a) => a.vital === vital);
+
+    it('uses the adult limits unless the scenario says otherwise, and reports them', () => {
+      const snap = running().snapshot();
+      expect(snap.alarmProfile).toBe('adult');
+      expect(snap.alarmLimits).toEqual(ALARM_PROFILES.adult);
+    });
+
+    it('keeps the adult set as it has always been', () => {
+      expect(ALARM_PROFILES.adult).toMatchObject({
+        hr: { warnLow: 50, warnHigh: 110, critLow: 40, critHigh: 140 },
+        sbp: { warnLow: 90, warnHigh: 160, critLow: 70, critHigh: 200 },
+        spo2: { warnLow: 92, critLow: 85 },
+        etco2: { warnLow: 25, warnHigh: 50, critLow: 15, critHigh: 60 },
+        rr: { warnLow: 8, warnHigh: 24, critLow: 4, critHigh: 35 },
+        temp: { warnLow: 35.0, warnHigh: 38.0, critHigh: 39.5 },
+      });
+      // Exactly, for the vitals: no limit has crept in or out.
+      for (const vital of ALARM_VITALS) {
+        expect(Object.keys(ALARM_PROFILES.adult[vital]).length, vital).toBe(
+          { hr: 4, sbp: 4, spo2: 2, etco2: 4, rr: 4, temp: 3 }[vital],
+        );
+      }
+    });
+
+    it('starts the machine\'s alarms from the Dräger factory defaults in every category', () => {
+      for (const profile of Object.values(ALARM_PROFILES)) {
+        expect(profile.paw).toEqual({ critLow: MACHINE_ALARM_LIMITS.pawLow, critHigh: MACHINE_ALARM_LIMITS.pawHigh });
+        expect(profile.mv).toEqual({ warnLow: MACHINE_ALARM_LIMITS.mvLow, warnHigh: MACHINE_ALARM_LIMITS.mvHigh });
+        expect(profile.fio2).toEqual({ critLow: MACHINE_ALARM_LIMITS.fio2Low });
+      }
+      expect(ALARM_PROFILES.adult.paw).toEqual({ critLow: 8, critHigh: 40 });
+      expect(ALARM_PROFILES.adult.mv).toEqual({ warnLow: 3, warnHigh: 12 });
+      expect(ALARM_PROFILES.adult.fio2).toEqual({ critLow: 20 });
+      // Each category has its own copy: editing one cannot leak into another.
+      expect(ALARM_PROFILES.adult.paw).not.toBe(ALARM_PROFILES.pediatric.paw);
+    });
+
+    it('takes pediatric and neonatal limits from the monitor\'s factory defaults', () => {
+      // Philips IntelliVue MX750/MX850 IFU, default settings by patient category.
+      const { pediatric, neonatal } = ALARM_PROFILES;
+      expect([pediatric.hr.warnLow, pediatric.hr.warnHigh]).toEqual([75, 160]);
+      expect([neonatal.hr.warnLow, neonatal.hr.warnHigh]).toEqual([100, 200]);
+      // Extreme bradycardia and tachycardia: 20 bpm beyond each limit.
+      expect([pediatric.hr.critLow, pediatric.hr.critHigh]).toEqual([55, 180]);
+      expect([neonatal.hr.critLow, neonatal.hr.critHigh]).toEqual([80, 220]);
+      expect([pediatric.sbp.warnLow, pediatric.sbp.warnHigh]).toEqual([70, 120]);
+      expect([neonatal.sbp.warnLow, neonatal.sbp.warnHigh]).toEqual([40, 90]);
+      expect([pediatric.rr.warnLow, pediatric.rr.warnHigh]).toEqual([8, 30]);
+      expect([neonatal.rr.warnLow, neonatal.rr.warnHigh]).toEqual([30, 100]);
+      expect([neonatal.spo2.warnLow, neonatal.spo2.critLow]).toEqual([85, 80]);
+      // The same on every category on that monitor: left as the adult set.
+      for (const profile of [pediatric, neonatal]) {
+        expect(profile.etco2).toEqual(ALARM_PROFILES.adult.etco2);
+        expect(profile.temp).toEqual(ALARM_PROFILES.adult.temp);
+      }
+    });
+
+    it('has no profile whose limits contradict each other', () => {
+      for (const profile of Object.values(ALARM_PROFILES)) {
+        expect(alarmLimitProblems(profile)).toEqual([]);
+      }
+    });
+
+    it('does not alarm on a child\'s normal vitals under the pediatric profile', () => {
+      const adult = running();
+      adult.setVital('hr', 130);
+      adult.setVital('sbp', 85);
+      adult.cycleNibp();
+      expect(alarmOn(adult, 'hr')).toMatchObject({ level: 'warning' });
+      expect(alarmOn(adult, 'sbp')).toMatchObject({ level: 'warning' });
+
+      const child = running({ alarmProfile: 'pediatric' });
+      child.setVital('hr', 130);
+      child.setVital('sbp', 85);
+      child.cycleNibp();
+      expect(child.snapshot().alarms).toEqual([]);
+      child.setVital('hr', 70);
+      expect(alarmOn(child, 'hr')).toEqual({ vital: 'hr', level: 'warning', message: 'HR low 70' });
+      child.setVital('hr', 50);
+      expect(alarmOn(child, 'hr')).toEqual({ vital: 'hr', level: 'critical', message: 'HR LOW 50' });
+    });
+
+    it('lays a scenario\'s own limits over its profile, and null switches one off', () => {
+      const e = running({ alarmLimits: { hr: { warnHigh: 125 }, temp: { warnLow: null } } });
+      const limits = e.snapshot().alarmLimits!;
+      expect(limits.hr).toEqual({ warnLow: 50, warnHigh: 125, critLow: 40, critHigh: 140 });
+      expect(limits.temp).toEqual({ warnHigh: 38.0, critHigh: 39.5 });
+      expect(limits.sbp).toEqual(ALARM_PROFILES.adult.sbp);
+      e.setVital('hr', 120);
+      e.setVital('temp', 34);
+      expect(e.snapshot().alarms).toEqual([]);
+      e.setVital('hr', 126);
+      expect(alarmOn(e, 'hr')).toMatchObject({ level: 'warning' });
+    });
+
+    it('lets faculty switch category during a session and brings the scenario\'s changes back with its own', () => {
+      const e = running({ alarmProfile: 'pediatric', alarmLimits: { hr: { warnHigh: 170 } } });
+      expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(170);
+      e.setAlarmProfile('neonatal');
+      expect(e.getAlarmProfile()).toBe('neonatal');
+      expect(e.snapshot().alarmLimits).toEqual(ALARM_PROFILES.neonatal);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Alarm limits → Neonatal' });
+      e.setAlarmProfile('pediatric');
+      expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(170);
+      e.setAlarmProfile('adult');
+      e.reset();
+      expect(e.snapshot().alarmProfile).toBe('pediatric');
+      expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(170);
+    });
+
+    describe('set on the monitor during a session', () => {
+      it('sets the low and the high limit of one vital and leaves the rest alone', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'high', 125);
+        e.setAlarmLimit('hr', 'low', 45);
+        const limits = e.snapshot().alarmLimits!;
+        expect(limits.hr).toEqual({ warnLow: 45, warnHigh: 125, critLow: 40, critHigh: 140 });
+        expect(limits.sbp).toEqual(ALARM_PROFILES.adult.sbp);
+        e.setVital('hr', 120);
+        expect(e.snapshot().alarms).toEqual([]);
+        e.setVital('hr', 126);
+        expect(alarmOn(e, 'hr')).toEqual({ vital: 'hr', level: 'warning', message: 'HR high 126' });
+        expect(e.getFullLog().map((l) => l.label)).toEqual(
+          expect.arrayContaining(['HR high alarm limit → 125', 'HR low alarm limit → 45']),
+        );
+        // The shared profile object is never edited in place.
+        expect(ALARM_PROFILES.adult.hr.warnHigh).toBe(110);
+      });
+
+      it('logs a run of presses on one limit as one adjustment', () => {
+        const e = running();
+        const limitLog = () => e.getFullLog().map((l) => l.label).filter((l) => l.includes('alarm limit'));
+        e.setAlarmLimit('hr', 'high', 115);
+        e.tick(1);
+        e.setAlarmLimit('hr', 'high', 120);
+        e.setAlarmLimit('hr', 'high', 125);
+        expect(limitLog()).toEqual(['HR high alarm limit → 125']);
+        // Another limit, or the same one much later, is a new line.
+        e.setAlarmLimit('hr', 'low', 45);
+        e.tick(30);
+        e.setAlarmLimit('hr', 'low', 40);
+        expect(limitLog()).toEqual(['HR high alarm limit → 125', 'HR low alarm limit → 45', 'HR low alarm limit → 40']);
+      });
+
+      it('steps a limit one press at a time, and a press inward switches an off limit on', () => {
+        const e = running();
+        e.stepAlarmLimit('hr', 'high', 1);
+        expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(110 + ALARM_LIMIT_STEP.hr);
+        e.stepAlarmLimit('hr', 'high', -1);
+        expect(e.snapshot().alarmLimits!.hr.warnHigh).toBe(110);
+        // SpO2 has no high limit: it sits at 100, so one press down turns it on.
+        expect(e.snapshot().alarmLimits!.spo2.warnHigh).toBeUndefined();
+        e.stepAlarmLimit('spo2', 'high', -1);
+        expect(e.snapshot().alarmLimits!.spo2.warnHigh).toBe(99);
+        e.stepAlarmLimit('spo2', 'high', 1);
+        expect(e.snapshot().alarmLimits!.spo2.warnHigh).toBeUndefined();
+      });
+
+      it('lets learners operate the alarm setup by default, and keeps the instructor\'s choice across reset', () => {
+        const e = running();
+        expect(e.snapshot().learnerAlarmSetup).toBe(true);
+        e.setLearnerAlarmSetup(false);
+        expect(e.snapshot().log.at(-1)).toMatchObject({ kind: 'session', label: 'Learner alarm setup off' });
+        e.reset();
+        expect(e.snapshot().learnerAlarmSetup).toBe(false);
+        expect(new SimulationEngine(scenario(), 'T', { learnerAlarmSetup: false }).getLearnerAlarmSetup()).toBe(false);
+      });
+
+      it('does not merge a learner\'s presses into the instructor\'s log line', () => {
+        const e = running();
+        e.stepAlarmLimit('hr', 'high', 1);
+        e.stepAlarmLimit('hr', 'high', 1, 'display');
+        e.stepAlarmLimit('hr', 'high', 1, 'display');
+        const lines = e.getFullLog().filter((l) => l.label.includes('alarm limit'));
+        expect(lines.map((l) => [l.label, l.detail])).toEqual([
+          ['HR high alarm limit → 115', undefined],
+          ['HR high alarm limit → 125', 'on a student display'],
+        ]);
+      });
+
+      it('moves the critical limit only when the limit passes it', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'high', 150); // past the critical 140
+        expect(e.snapshot().alarmLimits!.hr).toMatchObject({ warnHigh: 150, critHigh: 150 });
+        e.setAlarmLimit('hr', 'low', 35); // past the critical 40
+        expect(e.snapshot().alarmLimits!.hr).toMatchObject({ warnLow: 35, critLow: 35 });
+        e.setAlarmLimit('sbp', 'low', 80); // not past 70
+        expect(e.snapshot().alarmLimits!.sbp).toMatchObject({ warnLow: 80, critLow: 70 });
+      });
+
+      it('switches a limit off at the end of the range, or with null', () => {
+        const e = running();
+        e.setAlarmLimit('spo2', 'low', 0);
+        expect(e.snapshot().alarmLimits!.spo2.warnLow).toBeUndefined();
+        e.setAlarmLimit('hr', 'high', null);
+        expect(e.snapshot().alarmLimits!.hr.warnHigh).toBeUndefined();
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'HR high alarm limit → off' });
+        // The critical tier is untouched: it is not the clinician's to set.
+        expect(e.snapshot().alarmLimits!.hr.critHigh).toBe(140);
+        e.setVital('hr', 130);
+        expect(e.snapshot().alarms).toEqual([]);
+        e.setVital('hr', 145);
+        expect(alarmOn(e, 'hr')).toMatchObject({ level: 'critical' });
+      });
+
+      it('keeps the low limit below the high one and inside the vital\'s range', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'low', 200);
+        const hr = e.snapshot().alarmLimits!.hr;
+        expect(hr.warnLow).toBe(hr.warnHigh! - ALARM_LIMIT_STEP.hr);
+        e.setAlarmLimit('etco2', 'high', -5);
+        const etco2 = e.snapshot().alarmLimits!.etco2;
+        expect(etco2.warnHigh).toBe(etco2.warnLow! + ALARM_LIMIT_STEP.etco2);
+        expect(alarmLimitProblems(e.snapshot().alarmLimits!)).toEqual([]);
+      });
+
+      it('switches one vital\'s alarms off and on without touching the others', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.setVital('spo2', 80);
+        expect(alarmOn(e, 'hr')).toBeDefined();
+        e.setAlarmOff('hr', true);
+        expect(e.snapshot().alarmsOff).toEqual(['hr']);
+        expect(alarmOn(e, 'hr')).toBeUndefined();
+        expect(alarmOn(e, 'spo2')).toMatchObject({ level: 'critical' });
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'HR alarms off' });
+        e.setAlarmOff('hr', false);
+        expect(e.snapshot().alarmsOff).toEqual([]);
+        expect(alarmOn(e, 'hr')).toMatchObject({ level: 'critical' });
+      });
+
+      it('still raises the lost-signal and rhythm alarms with the limit alarms off', () => {
+        const e = running();
+        e.setAlarmOff('spo2', true);
+        e.setAlarmOff('hr', true);
+        e.setRhythm('vfib');
+        const alarms = e.snapshot().alarms.map((a) => a.message);
+        expect(alarms).toContain('SpO₂ NO PULSE');
+        expect(alarms.some((m) => m.startsWith('RHYTHM'))).toBe(true);
+      });
+
+      it('starts with the alarms a scenario leaves off, and reset restores limits and switches', () => {
+        const e = running({ alarmsOff: ['spo2'] });
+        expect(e.snapshot().alarmsOff).toEqual(['spo2']);
+        e.setVital('spo2', 70);
+        expect(alarmOn(e, 'spo2')).toBeUndefined();
+        e.setAlarmOff('spo2', false);
+        e.setAlarmOff('temp', true);
+        e.setAlarmLimit('hr', 'high', 130);
+        e.reset();
+        expect(e.snapshot().alarmsOff).toEqual(['spo2']);
+        expect(e.snapshot().alarmLimits).toEqual(ALARM_PROFILES.adult);
+      });
+
+      it('goes back to the category\'s limits when the category is switched', () => {
+        const e = running();
+        e.setAlarmLimit('hr', 'high', 130);
+        e.setAlarmProfile('pediatric');
+        e.setAlarmProfile('adult');
+        expect(e.snapshot().alarmLimits).toEqual(ALARM_PROFILES.adult);
+      });
+    });
+
+    describe('the machine\'s alarms, set like any other', () => {
+      // A ventilated patient with the machine readings on the monitor.
+      const machine = (monitoring?: Scenario['monitoring']) => {
+        const base = scenario();
+        const e = new SimulationEngine(
+          { ...base, baselineVitals: { ...base.baselineVitals, rr: 12, vent: { vt: 500 } }, monitoring },
+          'TEST',
+        );
+        e.start();
+        return e;
+      };
+      const machineAlarms = (e: SimulationEngine) =>
+        e.snapshot().alarms.filter((a) => a.vital === 'paw' || a.vital === 'vt' || a.vital === 'fio2');
+
+      it('raises the airway-pressure limit so a pressure that alarmed no longer does', () => {
+        const e = machine();
+        e.setVent({ pip: 44 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'Paw HIGH 44' }]);
+        for (let i = 0; i < 5; i++) e.stepAlarmLimit('paw', 'high', 1);
+        expect(e.snapshot().alarmLimits!.paw).toEqual({ critLow: 8, critHigh: 45 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setVent({ pip: 46 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'Paw HIGH 46' }]);
+        expect(e.getFullLog().map((l) => l.label)).toContain('Paw high alarm limit → 45');
+      });
+
+      it('moves the apnea-pressure threshold and the minute-volume limits', () => {
+        const e = machine();
+        e.setVent({ pip: 9 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.stepAlarmLimit('paw', 'low', 1);
+        e.stepAlarmLimit('paw', 'low', 1);
+        expect(machineAlarms(e)).toEqual([{ vital: 'paw', level: 'critical', message: 'APNEA PRESSURE' }]);
+        e.setVent({ pip: 18 });
+
+        // 500 mL × 12 = 6.0 L/min: inside 3–12. Lower the high limit under it.
+        e.setAlarmLimit('mv', 'high', 5.5);
+        expect(e.snapshot().alarmLimits!.mv).toEqual({ warnLow: 3, warnHigh: 5.5 });
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV high 6.0' }]);
+        e.stepAlarmLimit('mv', 'high', 1); // 0.5 L/min a press
+        expect(e.snapshot().alarmLimits!.mv.warnHigh).toBe(6);
+        expect(machineAlarms(e)).toEqual([]);
+      });
+
+      it('lowers the minute-volume limit for a small patient', () => {
+        const e = machine();
+        e.setVent({ vt: 60 });
+        e.setVital('rr', 30); // 1.8 L/min
+        expect(machineAlarms(e)).toEqual([{ vital: 'vt', level: 'warning', message: 'MV low 1.8' }]);
+        e.setAlarmLimit('mv', 'low', 1.5);
+        expect(machineAlarms(e)).toEqual([]);
+      });
+
+      it('gives inspired oxygen a low limit only', () => {
+        const e = machine();
+        e.stepAlarmLimit('fio2', 'low', 1);
+        expect(e.snapshot().alarmLimits!.fio2).toEqual({ critLow: 21 });
+        const before = e.getFullLog().length;
+        e.stepAlarmLimit('fio2', 'high', -1);
+        e.setAlarmLimit('fio2', 'high', 60);
+        expect(e.snapshot().alarmLimits!.fio2).toEqual({ critLow: 21 });
+        expect(e.getFullLog().length).toBe(before);
+      });
+
+      it('switches a limit off at the end of its range and keeps low below high', () => {
+        const e = machine();
+        e.setAlarmLimit('paw', 'low', 0);
+        expect(e.snapshot().alarmLimits!.paw).toEqual({ critHigh: 40 });
+        e.setVent({ pip: 0, vt: 0 }); // a disconnection: no apnea-pressure alarm now
+        expect(machineAlarms(e).map((a) => a.message)).toEqual(['MV low 0.0']);
+        e.setAlarmLimit('fio2', 'low', null);
+        expect(e.snapshot().alarmLimits!.fio2).toEqual({});
+        e.setVent({ fio2: 10 });
+        expect(machineAlarms(e).some((a) => a.vital === 'fio2')).toBe(false);
+
+        e.setAlarmLimit('mv', 'low', 20);
+        const mv = e.snapshot().alarmLimits!.mv;
+        expect(mv.warnLow).toBe(mv.warnHigh! - ALARM_LIMIT_STEP.mv);
+        expect(alarmLimitProblems(e.snapshot().alarmLimits!)).toEqual([]);
+      });
+
+      it('switches each machine alarm off on its own', () => {
+        const e = machine();
+        e.setVent({ pip: 50, vt: 100, fio2: 15 });
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['paw', 'vt', 'fio2']);
+        e.setAlarmOff('paw', true);
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['vt', 'fio2']);
+        e.setAlarmOff('mv', true);
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['fio2']);
+        e.setAlarmOff('fio2', true);
+        expect(machineAlarms(e)).toEqual([]);
+        expect(e.snapshot().alarmsOff).toEqual(['paw', 'mv', 'fio2']);
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'FiO₂ alarms off' });
+        e.setAlarmOff('mv', false);
+        expect(machineAlarms(e).map((a) => a.message)).toEqual(['MV low 1.2']);
+      });
+
+      it('takes a scenario\'s machine limits and switched-off alarms, and reset restores them', () => {
+        const e = machine({ alarmLimits: { paw: { critHigh: 50 }, mv: { warnLow: 1 } }, alarmsOff: ['fio2'] });
+        expect(e.snapshot().alarmLimits!.paw).toEqual({ critLow: 8, critHigh: 50 });
+        expect(e.snapshot().alarmLimits!.mv).toEqual({ warnLow: 1, warnHigh: 12 });
+        e.setVent({ pip: 45, fio2: 10 });
+        expect(machineAlarms(e)).toEqual([]);
+        e.setAlarmLimit('paw', 'high', 40);
+        e.setAlarmOff('fio2', false);
+        expect(machineAlarms(e).map((a) => a.vital)).toEqual(['paw', 'fio2']);
+        e.reset();
+        expect(e.snapshot().alarmLimits!.paw.critHigh).toBe(50);
+        expect(e.snapshot().alarmsOff).toEqual(['fio2']);
+      });
+
+      it('still judges the machine by its defaults when archived limits carry none', () => {
+        // Limits saved before the machine's were adjustable have only the vitals.
+        const { paw: _paw, mv: _mv, fio2: _fio2, ...vitalsOnly } = ALARM_PROFILES.adult;
+        const alarms = evaluateAlarms(
+          { ...machine().getVitals(), vent: { fio2: 15, pip: 45, pplat: 20, peep: 5, vt: 500 } },
+          vitalsOnly as typeof ALARM_PROFILES.adult,
+        );
+        expect(alarms.map((a) => a.message)).toEqual(['Paw HIGH 45', 'FiO₂ LOW 15']);
+        expect(alarmLimitProblems(vitalsOnly as typeof ALARM_PROFILES.adult)).toEqual([]);
+      });
+    });
+
+    describe('the Silence key', () => {
+      const messages = (e: SimulationEngine) => e.snapshot().alarms.map((a) => [a.message, a.acknowledged ?? false]);
+
+      it('acknowledges the alarms active now and leaves them listed', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.setVital('spo2', 88);
+        e.acknowledgeAlarms();
+        expect(messages(e)).toEqual([
+          ['HR HIGH 150', true],
+          ['SpO₂ low 88', true],
+        ]);
+        expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Alarms silenced: HR HIGH 150, SpO₂ low 88' });
+      });
+
+      it('does nothing, and logs nothing, when there is nothing to silence', () => {
+        const e = running();
+        const before = e.getFullLog().length;
+        e.acknowledgeAlarms();
+        e.setVital('hr', 150);
+        e.acknowledgeAlarms();
+        e.acknowledgeAlarms(); // already silenced
+        expect(e.getFullLog().length).toBe(before + 2); // the vital change and one silence
+      });
+
+      it('stays silenced while the number drifts, but a new alarm sounds', () => {
+        const e = running();
+        e.setVital('hr', 120);
+        e.acknowledgeAlarms();
+        e.setVital('hr', 125);
+        expect(messages(e)).toEqual([['HR high 125', true]]);
+        // Another vital: a new alarm.
+        e.setVital('spo2', 88);
+        expect(messages(e)).toEqual([
+          ['HR high 125', true],
+          ['SpO₂ low 88', false],
+        ]);
+        // The same vital, now critical: a new alarm too.
+        e.setVital('hr', 150);
+        expect(messages(e)[0]).toEqual(['HR HIGH 150', false]);
+      });
+
+      it('resets when the cause clears, so the same alarm coming back sounds again', () => {
+        const e = running();
+        e.setVital('hr', 120);
+        e.acknowledgeAlarms();
+        e.setVital('hr', 80);
+        expect(e.snapshot().alarms).toEqual([]);
+        e.setVital('hr', 120);
+        expect(messages(e)).toEqual([['HR high 120', false]]);
+      });
+
+      it('treats a different rhythm as a new alarm', () => {
+        const e = running();
+        e.setRhythm('vtach', false);
+        e.acknowledgeAlarms();
+        expect(e.snapshot().alarms.find((a) => a.vital === 'rhythm')?.acknowledged).toBe(true);
+        e.setRhythm('vfib', false);
+        expect(e.snapshot().alarms.find((a) => a.vital === 'rhythm')?.acknowledged).toBeUndefined();
+      });
+
+      it('silences a cuff pressure only until the next reading', () => {
+        const e = running();
+        e.setVital('sbp', 80);
+        e.cycleNibp();
+        e.acknowledgeAlarms();
+        expect(alarmOn(e, 'sbp')).toMatchObject({ acknowledged: true });
+        e.tick(60);
+        expect(alarmOn(e, 'sbp')).toMatchObject({ acknowledged: true }); // no new reading yet
+        e.cycleNibp(); // still 80: an intermittent measurement alarms afresh
+        expect(alarmOn(e, 'sbp')?.acknowledged).toBeUndefined();
+      });
+
+      it('is separate from the instructor\'s pause, and reset clears it', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.acknowledgeAlarms();
+        expect(e.snapshot().alarmsSilenced).toBe(false);
+        e.reset();
+        e.start();
+        e.setVital('hr', 150);
+        expect(alarmOn(e, 'hr')?.acknowledged).toBeUndefined();
+      });
+
+      it('keeps the snapshot serializable with silenced alarms', () => {
+        const e = running();
+        e.setVital('hr', 150);
+        e.acknowledgeAlarms();
+        const snap = e.snapshot();
+        expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+      });
+    });
+
+    it('keeps the snapshot serializable with its limits', () => {
+      const snap = running({ alarmProfile: 'neonatal', alarmLimits: { spo2: { warnLow: 88 } } }).snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
+  });
+
+  describe('twitch monitor: train-of-four', () => {
+    const withNmb = (nmb: Scenario['baselineVitals']['nmb'] = {}): Scenario => ({
+      ...scenario(),
+      baselineVitals: { ...scenario().baselineVitals, nmb },
+    });
+    const attached = (nmb?: Scenario['baselineVitals']['nmb']) => {
+      const e = new SimulationEngine(withNmb(nmb), 'TEST');
+      e.start();
+      return e;
+    };
+
+    it('has no twitch monitor unless the scenario or the instructor attaches one', () => {
+      const e = newEngine();
+      expect(e.getTofAttached()).toBe(false);
+      expect('tof' in e.snapshot()).toBe(false);
+      expect('nmb' in e.getVitals()).toBe(false);
+      e.start();
+      e.setTofAttached(true);
+      // Attaching measures at once: an unblocked patient, four equal twitches.
+      expect(e.snapshot().tof).toEqual({ count: 4, ratio: 100, ptc: null, atSec: 0 });
+      expect(e.getVitals().nmb).toEqual({ tofCount: 4, tofRatio: 100, ptc: 0 });
+      e.setTofAttached(false);
+      expect('tof' in e.snapshot()).toBe(false);
+    });
+
+    it('starts from the block the scenario states', () => {
+      expect(attached({ tofCount: 2 }).snapshot().tof).toMatchObject({ count: 2, ratio: null, ptc: null });
+      expect(attached({ tofCount: 0, ptc: 3 }).snapshot().tof).toMatchObject({ count: 0, ratio: null, ptc: 3 });
+      expect(attached({ tofRatio: 60 }).snapshot().tof).toMatchObject({ count: 4, ratio: 60, ptc: null });
+    });
+
+    it('shows a change only when the monitor next stimulates, like the cuff', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 0, ptc: 2 });
+      expect(e.getVitals().nmb).toMatchObject({ tofCount: 0, ptc: 2 });
+      expect(e.snapshot().tof).toMatchObject({ count: 4, ratio: 100 });
+      e.tick(TOF_INTERVAL_SEC - 1);
+      expect(e.snapshot().tof).toMatchObject({ count: 4 });
+      e.tick(1);
+      expect(e.snapshot().tof).toEqual({ count: 0, ratio: null, ptc: 2, atSec: TOF_INTERVAL_SEC });
+    });
+
+    it('stimulates on request without waiting for the interval', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 1 });
+      e.tick(2);
+      e.measureTof();
+      expect(e.snapshot().tof).toEqual({ count: 1, ratio: null, ptc: null, atSec: 2 });
+    });
+
+    it('measures no more often than trains may be repeated', () => {
+      // At least 12 s between trains (Fuchs-Buder 2023, Table 3).
+      expect(TOF_INTERVAL_SEC).toBeGreaterThanOrEqual(12);
+    });
+
+    it('ramps the count and the ratio over time', () => {
+      const e = attached({ tofCount: 0 });
+      e.setNmb({ tofCount: 4 }, 80);
+      const counts: number[] = [];
+      for (let i = 0; i < 4; i++) {
+        e.tick(20);
+        e.measureTof();
+        counts.push(e.snapshot().tof!.count);
+      }
+      expect(counts).toEqual([1, 2, 3, 4]);
+      e.setNmb({ tofRatio: 90 }, 90);
+      e.tick(45);
+      e.measureTof();
+      expect(e.snapshot().tof!.ratio).toBe(45);
+      e.tick(45);
+      e.measureTof();
+      expect(e.snapshot().tof!.ratio).toBe(90);
+    });
+
+    it('takes the ratio to zero when the fourth twitch goes, so it climbs from there on recovery', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 2 });
+      expect(e.getNmbTarget('tofRatio')).toBe(0);
+      e.setNmb({ tofCount: 4 });
+      e.measureTof();
+      expect(e.snapshot().tof).toMatchObject({ count: 4, ratio: 0 });
+      // Only the count was a decision: the ratio following it is not logged.
+      expect(e.getFullLog().filter((l) => l.label.startsWith('TOF ratio'))).toEqual([]);
+    });
+
+    it('clamps to four twitches, 100% and the highest post-tetanic count', () => {
+      const e = attached();
+      e.setNmb({ tofCount: 9, tofRatio: 140 });
+      expect(e.getVitals().nmb).toMatchObject({ tofCount: 4, tofRatio: 100 });
+      e.setNmb({ tofCount: -1, ptc: 99 });
+      expect(e.getVitals().nmb).toMatchObject({ tofCount: 0, ptc: PTC_MAX });
+    });
+
+    it('applies event effects and resets to the baseline block', () => {
+      const s = withNmb({ tofCount: 2 });
+      const ev: ScenarioEvent = {
+        id: 'reversal',
+        label: 'Reversal given',
+        description: '',
+        category: 'drug',
+        effects: [{ nmb: { tofCount: 4, tofRatio: 95 } }],
+      };
+      const e = new SimulationEngine({ ...s, events: [...s.events, ev] }, 'TEST');
+      e.start();
+      e.triggerEvent('reversal');
+      e.measureTof();
+      expect(e.snapshot().tof).toMatchObject({ count: 4, ratio: 95 });
+      e.reset();
+      expect(e.snapshot().tof).toEqual({ count: 2, ratio: null, ptc: null, atSec: 0 });
+    });
+
+    it('logs a measurement only when the reading changes', () => {
+      const e = attached();
+      const readings = () => e.getFullLog().filter((l) => l.detail === 'twitch monitor').map((l) => l.label);
+      e.tick(TOF_INTERVAL_SEC * 4);
+      expect(readings()).toEqual([]);
+      e.setNmb({ tofCount: 0, ptc: 1 });
+      e.tick(TOF_INTERVAL_SEC * 3);
+      expect(readings()).toEqual(['TOF count 0, PTC 1']);
+      e.setNmb({ tofCount: 3 });
+      e.tick(TOF_INTERVAL_SEC);
+      e.setNmb({ tofCount: 4, tofRatio: 70 });
+      e.tick(TOF_INTERVAL_SEC);
+      expect(readings()).toEqual(['TOF count 0, PTC 1', 'TOF count 3', 'TOF 70%']);
+    });
+
+    it('grades depth of block by the ASA scheme', () => {
+      const depth = (count: number, ratio: number | null, ptc: number | null) => blockDepth({ count, ratio, ptc });
+      expect(depth(0, null, 0)).toBe('complete');
+      expect(depth(0, null, 1)).toBe('deep');
+      expect(depth(1, null, null)).toBe('moderate');
+      expect(depth(3, null, null)).toBe('moderate');
+      expect(depth(4, 39, null)).toBe('shallow');
+      expect(depth(4, 40, null)).toBe('minimal');
+      expect(depth(4, 89, null)).toBe('minimal');
+      expect(depth(4, 90, null)).toBe('recovered');
+      expect(depth(4, 100, null)).toBe('recovered');
+    });
+
+    it('keeps the snapshot serializable with the twitch monitor attached', () => {
+      const e = attached({ tofCount: 0, ptc: 4 });
+      e.setNmb({ tofCount: 4, tofRatio: 80 }, 60);
+      e.tick(20);
+      const snap = e.snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
+  });
+
+  describe('capnography: inspired CO2 and the esophageal tube', () => {
+    it('starts with no inspired CO2 and reports it in the vitals', () => {
+      expect(newEngine().getVitals().fico2).toBe(0);
+    });
+
+    it('starts from the scenario baseline when it sets one', () => {
+      const s: Scenario = { ...scenario(), baselineVitals: { ...scenario().baselineVitals, fico2: 6 } };
+      expect(new SimulationEngine(s, 'TEST').getVitals().fico2).toBe(6);
+    });
+
+    it('ramps inspired CO2 like a numeric vital, clamped to 0–30 mmHg', () => {
+      const e = newEngine();
+      e.start();
+      e.setFico2(8, 40);
+      expect(e.getFico2Target()).toBe(8);
+      e.tick(10);
+      expect(e.getVitals().fico2).toBeCloseTo(2, 5);
+      e.tick(40);
+      expect(e.getVitals().fico2).toBe(8);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'FiCO₂ → 8 mmHg', detail: 'over 40s' });
+      e.setFico2(99);
+      expect(e.getVitals().fico2).toBe(30);
+      e.setFico2(-5);
+      expect(e.getVitals().fico2).toBe(0);
+    });
+
+    it('is driven by authored effects and returns to baseline on reset', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('Absorbent exhausted', { fico2: 10, overSec: 20 });
+      e.tick(10);
+      expect(e.getVitals().fico2).toBeCloseTo(5, 5);
+      e.reset();
+      expect(e.getVitals().fico2).toBe(0);
+    });
+
+    it('leaves EtCO2 alone, and alarms once inspired CO2 passes 4 mmHg', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.snapshot();
+      e.setFico2(4);
+      expect(e.snapshot().alarms).toEqual(before.alarms); // at the limit: quiet
+      e.setFico2(8);
+      const after = e.snapshot();
+      expect(after.vitals.etco2).toBe(before.vitals.etco2);
+      expect(after.alarms).toEqual([{ vital: 'etco2', level: 'warning', message: 'FiCO₂ high 8' }]);
+      e.setFico2(0);
+      expect(e.snapshot().alarms).toEqual(before.alarms);
+    });
+
+    it('caps the first esophageal reading at what the patient would really show', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('etco2', 4);
+      e.setCapnoShape('esophageal');
+      expect(e.snapshot().vitals.etco2).toBe(4);
+    });
+
+    it('shows a little CO2 that dies away over six breaths with a tube in the esophagus', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('rr', 12); // one breath every 5 s
+      e.setVital('etco2', 40);
+      e.setCapnoShape('esophageal');
+      const measured = () => e.snapshot().vitals.etco2;
+      const readings = [measured()];
+      for (let breath = 1; breath < 6; breath++) {
+        e.tick(5);
+        readings.push(measured());
+      }
+      // Starts under 10 mmHg and under the 7.5 mmHg a tracheal trace must clear…
+      expect(readings[0]).toBeLessThan(7.5);
+      expect(readings[0]).toBeGreaterThan(0);
+      // …and falls with every breath — never the sustained trace of a tracheal tube.
+      for (let i = 1; i < readings.length; i++) expect(readings[i]).toBeLessThanOrEqual(readings[i - 1]);
+      expect(readings[5]).toBeLessThan(readings[0] / 3);
+      e.tick(5);
+      expect(measured()).toBe(0); // nothing from the seventh breath on
+      e.tick(60);
+      expect(measured()).toBe(0);
+      // What the patient would show from the trachea is untouched…
+      expect(e.getVitals().etco2).toBe(40);
+      // …and the monitor alarms on what it measures.
+      expect(e.snapshot().alarms.some((a) => a.vital === 'etco2' && a.level === 'critical')).toBe(true);
+    });
+
+    it('reads normally again as soon as the tube is back in the trachea', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('etco2', 38);
+      e.setCapnoShape('esophageal');
+      e.tick(120);
+      expect(e.snapshot().vitals.etco2).toBe(0);
+      e.setCapnoShape('normal');
+      expect(e.snapshot().vitals.etco2).toBe(38);
+      // A second misplacement starts its own decay from the top.
+      e.setCapnoShape('esophageal');
+      expect(e.snapshot().vitals.etco2).toBe(7);
+    });
+
+    it('leaves the EtCO2 number alone for the display-only shapes', () => {
+      for (const shape of ['bronchospasm', 'curare_cleft', 'cardiogenic', 'leak'] as const) {
+        const e = newEngine();
+        e.start();
+        const etco2 = e.snapshot().vitals.etco2;
+        e.setCapnoShape(shape);
+        e.tick(60);
+        expect(e.snapshot().vitals.etco2).toBe(etco2);
+      }
+    });
+  });
+
+  describe('pulse, separate from the rhythm', () => {
+    const cuffScenario = (): Scenario => ({ ...scenario(), monitoring: { nibpIntervalSec: 120 } });
+    const engineWithCuff = () => new SimulationEngine(cuffScenario(), 'TEST');
+    const spo2Alarm = (e: SimulationEngine) => e.snapshot().alarms.find((a) => a.vital === 'spo2');
+
+    it('starts with a pulse, and reports the flag in the vitals', () => {
+      const e = newEngine();
+      expect(e.getVitals().pulseless).toBe(false);
+    });
+
+    it('can start pulseless from the scenario baseline', () => {
+      const s: Scenario = { ...scenario(), baselineVitals: { ...scenario().baselineVitals, pulseless: true } };
+      expect(new SimulationEngine(s, 'TEST').getVitals().pulseless).toBe(true);
+    });
+
+    it('takes the pulse away without touching the rhythm or any number (PEA)', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.getVitals();
+      e.setPulseless(true);
+      const after = e.getVitals();
+      expect(after).toEqual({ ...before, pulseless: true });
+      expect(e.snapshot().log.at(-1)).toMatchObject({ kind: 'vital_change', label: 'Pulse → absent' });
+    });
+
+    it('raises only an oximeter no-pulse warning for PEA — no rhythm alarm, the heart rate looks fine', () => {
+      const e = newEngine();
+      e.start();
+      expect(e.snapshot().alarms).toEqual([]);
+      e.setPulseless(true);
+      const alarms = e.snapshot().alarms;
+      expect(alarms).toEqual([{ vital: 'spo2', level: 'warning', message: 'SpO₂ NO PULSE' }]);
+    });
+
+    it('names the lost pulse rather than a saturation, at the level the saturation would alarm', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('spo2', 60);
+      expect(spo2Alarm(e)).toMatchObject({ level: 'critical', message: 'SpO₂ LOW 60' });
+      e.setPulseless(true);
+      expect(spo2Alarm(e)).toEqual({ vital: 'spo2', level: 'critical', message: 'SpO₂ NO PULSE' });
+      e.setPulseless(false);
+      expect(spo2Alarm(e)).toMatchObject({ message: 'SpO₂ LOW 60' });
+    });
+
+    it('raises the no-pulse alarm in every rhythm that cannot perfuse', () => {
+      for (const rhythm of ['vfib', 'asystole', 'pea', 'torsades'] as const) {
+        const e = newEngine();
+        e.start();
+        e.setRhythm(rhythm);
+        expect(spo2Alarm(e)?.message).toBe('SpO₂ NO PULSE');
+        expect(e.snapshot().alarms.some((a) => a.vital === 'rhythm' && a.level === 'critical')).toBe(true);
+      }
+    });
+
+    it('keeps the flag when the rhythm changes, until it is given back', () => {
+      const e = newEngine();
+      e.start();
+      e.setRhythm('vtach');
+      e.setPulseless(true); // pulseless VT
+      e.setRhythm('sinus'); // an organized rhythm returns — still no pulse: PEA
+      expect(e.getVitals().pulseless).toBe(true);
+      e.setPulseless(false); // return of circulation
+      expect(e.getVitals().pulseless).toBe(false);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'Pulse → present' });
+    });
+
+    it('is driven by authored effects', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('PEA arrest', { rhythm: 'sinus_tach', pulseless: true });
+      expect(e.getVitals()).toMatchObject({ rhythm: 'sinus_tach', pulseless: true });
+      e.applyNamedEffect('ROSC', { pulseless: false });
+      expect(e.getVitals().pulseless).toBe(false);
+    });
+
+    it('fails the cuff with no pulse, whatever pressure the scenario holds', () => {
+      const e = engineWithCuff();
+      e.start();
+      const pressure = e.getVitals().sbp;
+      expect(pressure).toBeGreaterThan(60);
+      e.setPulseless(true);
+      e.cycleNibp();
+      expect(e.snapshot().nibp).toMatchObject({ sbp: 0, dbp: 0 });
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'NIBP — no reading' });
+      // The same in a rhythm that cannot perfuse.
+      e.setPulseless(false);
+      e.setRhythm('vfib');
+      e.cycleNibp();
+      expect(e.snapshot().nibp).toMatchObject({ sbp: 0, dbp: 0 });
+      // With a pulse back, the cuff reads again.
+      e.setRhythm('sinus');
+      e.cycleNibp();
+      expect(e.snapshot().nibp?.sbp).toBe(Math.round(pressure));
+    });
+
+    it('logs nothing when the pulse is already as asked', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.getFullLog().length;
+      e.setPulseless(false);
+      expect(e.getFullLog().length).toBe(before);
+    });
+
+    it('returns to the baseline on reset', () => {
+      const e = newEngine();
+      e.start();
+      e.setPulseless(true);
+      e.reset();
+      expect(e.getVitals().pulseless).toBe(false);
+    });
+  });
+
+  describe('escape rhythms', () => {
+    it('bring a faster heart rate into their range once, on selection', () => {
+      for (const [rhythm, hr] of [
+        ['junctional', 50],
+        ['av_block_3', 45],
+        ['idioventricular', 35],
+      ] as const) {
+        const e = newEngine();
+        e.start();
+        e.setVital('hr', 80);
+        e.setRhythm(rhythm);
+        e.tick(6);
+        expect(e.getVitals().hr).toBe(hr);
+        // The instructor stays free to re-dial it (accelerated variants).
+        e.setVital('hr', 80);
+        expect(e.getVitals().hr).toBe(80);
+      }
+    });
+
+    it('leave a rate already in range alone', () => {
+      const e = newEngine();
+      e.start();
+      e.setVital('hr', 44);
+      e.setRhythm('junctional');
+      e.tick(6);
+      expect(e.getVitals().hr).toBe(44);
+    });
+
+    it('do not override a rate the same authored effect sets', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('Accelerated junctional', { rhythm: 'junctional', vitals: { hr: 85 } });
+      e.tick(6);
+      expect(e.getVitals().hr).toBe(85);
+    });
+  });
+
+  describe('ECG morphology', () => {
+    const lastLog = (e: SimulationEngine) => e.snapshot().log.at(-1);
+
+    it('starts normal when the scenario sets none', () => {
+      const e = newEngine();
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      expect(e.getStTarget()).toBe(0);
+    });
+
+    it('starts from the scenario baseline, filling in what it leaves out', () => {
+      const s: Scenario = {
+        ...scenario(),
+        baselineVitals: { ...scenario().baselineVitals, ecg: { stMm: -1, tWave: 'inverted' } },
+      };
+      const e = new SimulationEngine(s, 'TEST');
+      expect(e.getVitals().ecg).toEqual({ stMm: -1, stV5Mm: 0, tWave: 'inverted', qrs: 'normal', qt: 'normal' });
+    });
+
+    it('sets the ST level instantly by default and logs it', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -2 });
+      expect(e.getVitals().ecg?.stMm).toBe(-2);
+      expect(lastLog(e)).toMatchObject({ kind: 'vital_change', label: 'ST II → −2.0 mm' });
+    });
+
+    it('ramps the ST level linearly, like a numeric vital', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -2 }, 60);
+      expect(e.getStTarget()).toBe(-2);
+      expect(e.getVitals().ecg?.stMm).toBe(0);
+      e.tick(15);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(-0.5, 5);
+      e.tick(30);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(-1.5, 5);
+      e.tick(60);
+      expect(e.getVitals().ecg?.stMm).toBe(-2);
+      expect(lastLog(e)).toMatchObject({ label: 'ST II → −2.0 mm', detail: 'over 60s' });
+    });
+
+    it('can be redirected mid-ramp, back towards baseline', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: 3 }, 30);
+      e.tick(10); // at +1
+      e.setEcg({ stMm: 0 }, 10);
+      e.tick(5);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(0.5, 5);
+      e.tick(10);
+      expect(e.getVitals().ecg?.stMm).toBe(0);
+    });
+
+    it('clamps the ST level to ±5 mm', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: 9 });
+      expect(e.getVitals().ecg?.stMm).toBe(5);
+      e.setEcg({ stMm: -9 });
+      expect(e.getVitals().ecg?.stMm).toBe(-5);
+    });
+
+    it('switches T wave, QRS width and QT at once, changing only what is listed', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ tWave: 'peaked', qrs: 'wide' }, 60); // the ramp does not apply to these
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'peaked', qrs: 'wide', qt: 'normal' });
+      e.setEcg({ qt: 'long' });
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'peaked', qrs: 'wide', qt: 'long' });
+      expect(lastLog(e)).toMatchObject({ label: 'QT → Prolonged' });
+    });
+
+    it('logs nothing when nothing changes', () => {
+      const e = newEngine();
+      e.start();
+      const before = e.getFullLog().length;
+      e.setEcg({ stMm: 0, stV5Mm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      e.setEcg({});
+      expect(e.getFullLog().length).toBe(before);
+    });
+
+    it('is driven by authored effects, with the ST level following overSec', () => {
+      const e = newEngine();
+      e.start();
+      e.applyNamedEffect('ST depression', { ecg: { stMm: -2, tWave: 'flat' }, overSec: 40 });
+      expect(e.getVitals().ecg?.tWave).toBe('flat');
+      e.tick(20);
+      expect(e.getVitals().ecg?.stMm).toBeCloseTo(-1, 5);
+      e.tick(20);
+      expect(e.getVitals().ecg?.stMm).toBe(-2);
+    });
+
+    it('changes no number and raises no alarm', () => {
+      const e = newEngine();
+      e.start();
+      const { ecg: _before, ...numbers } = e.getVitals();
+      const alarms = e.snapshot().alarms;
+      e.setEcg({ stMm: -4, tWave: 'inverted', qrs: 'wide', qt: 'long' });
+      const { ecg: _after, ...after } = e.getVitals();
+      expect(after).toEqual(numbers);
+      expect(e.snapshot().alarms).toEqual(alarms);
+    });
+
+    it('returns to the baseline on reset, dropping any ramp', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -3, qrs: 'wide' }, 60);
+      e.tick(10);
+      e.reset();
+      expect(e.getVitals().ecg).toEqual({ stMm: 0, stV5Mm: 0, tWave: 'normal', qrs: 'normal', qt: 'normal' });
+      e.start();
+      e.tick(30);
+      expect(e.getVitals().ecg?.stMm).toBe(0);
+    });
+
+    it('ramps the V5 ST level separately from lead II', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stV5Mm: -3 }, 60);
+      e.setEcg({ stMm: -1 }, 10);
+      expect(e.getStTarget('V5')).toBe(-3);
+      expect(e.getStTarget('II')).toBe(-1);
+      e.tick(10);
+      expect(e.getVitals().ecg).toMatchObject({ stMm: -1, stV5Mm: -0.5 });
+      e.tick(50);
+      expect(e.getVitals().ecg).toMatchObject({ stMm: -1, stV5Mm: -3 });
+      const labels = e.getFullLog().map((l) => l.label);
+      expect(labels).toContain('ST V5 → −3.0 mm');
+      expect(labels).toContain('ST II → −1.0 mm');
+    });
+
+    it('shows a V5 lead when the scenario asks for one, and lets faculty add or remove it', () => {
+      expect(newEngine().snapshot().v5Lead).toBe(false);
+      const withV5: Scenario = { ...scenario(), monitoring: { ...scenario().monitoring, v5: true } };
+      const e = new SimulationEngine(withV5, 'TEST');
+      expect(e.snapshot().v5Lead).toBe(true);
+      e.start();
+      e.setV5Lead(false);
+      expect(e.snapshot().v5Lead).toBe(false);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'V5 lead removed' });
+      e.setV5Lead(true);
+      expect(e.snapshot().log.at(-1)).toMatchObject({ label: 'V5 lead added' });
+      e.setV5Lead(false);
+      e.reset();
+      expect(e.snapshot().v5Lead).toBe(true); // back to the scenario's setting
+    });
+
+    it('stays serializable in the snapshot', () => {
+      const e = newEngine();
+      e.start();
+      e.setEcg({ stMm: -1.5, tWave: 'inverted' }, 20);
+      e.tick(7);
+      const snap = e.snapshot();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+      expect(snap.vitals.ecg?.tWave).toBe('inverted');
+    });
+  });
+
+  describe('pre-brief (what student displays show before the start)', () => {
+    const withBrief = (s: Scenario = scenario()) => new SimulationEngine(s, 'TEST', { preBrief: true });
+
+    it('is off unless the instructor turns it on', () => {
+      const e = newEngine();
+      expect(e.getPreBriefEnabled()).toBe(false);
+      expect('preBrief' in e.snapshot()).toBe(false);
+      e.setPreBrief(true);
+      expect(e.snapshot().preBrief).toEqual({ patient: scenario().patient });
+    });
+
+    it('carries the patient and nothing that gives the case away, for every built-in scenario', () => {
+      for (const s of BUILT_IN_SCENARIOS) {
+        const idle = withBrief(s).snapshot();
+        expect(Object.keys(idle.preBrief ?? {})).toEqual(['patient']);
+        // Nothing in an idle snapshot holds the case's title, summary,
+        // objectives or event labels — the snapshot is broadcast to learners.
+        const wire = JSON.stringify(idle);
+        for (const secret of [s.title, s.summary, ...s.learningObjectives, ...s.events.map((ev) => ev.label)]) {
+          expect(wire, `${s.id}: "${secret}"`).not.toContain(secret);
+        }
+      }
+    });
+
+    it('is gone once the scenario runs, pauses or ends', () => {
+      const e = withBrief();
+      expect(e.snapshot().preBrief).toBeDefined();
+      e.start();
+      expect('preBrief' in e.snapshot()).toBe(false);
+      e.tick(5);
+      e.pause();
+      expect('preBrief' in e.snapshot()).toBe(false);
+      e.end();
+      expect('preBrief' in e.snapshot()).toBe(false);
+    });
+
+    it('returns after a reset, and the choice survives it either way', () => {
+      const e = withBrief();
+      e.start();
+      e.tick(5);
+      e.reset();
+      expect(e.snapshot().preBrief).toEqual({ patient: scenario().patient });
+      e.setPreBrief(false);
+      e.start();
+      e.reset();
+      expect('preBrief' in e.snapshot()).toBe(false);
+    });
+
+    it('keeps the idle snapshot serializable', () => {
+      const snap = withBrief().snapshot();
+      expect(snap.preBrief).toBeDefined();
+      expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    });
+  });
 });
 
 describe('NIBP cycling', () => {
@@ -794,5 +2130,108 @@ describe('SimulationEngine.applyNamedEffect', () => {
     const e = newEngine();
     e.applyNamedEffect('pre-start', { vitals: { spo2: 91 } });
     expect(e.getVitals().spo2).toBe(91);
+  });
+});
+
+describe('SimulationEngine.drive', () => {
+  it('writes values at once and logs nothing, however often it is called', () => {
+    const e = newEngine();
+    e.start();
+    const logBefore = e.getFullLog().length;
+    for (let i = 0; i < 100; i++) {
+      e.drive({ vitals: { spo2: 99 - i * 0.1, temp: 36 + i * 0.01 } });
+      e.tick(0.1);
+    }
+    // The readout rounds as the monitor does: SpO2 to a whole number, temperature to a tenth.
+    expect(e.getVitals().spo2).toBe(89);
+    expect(e.getVitals().temp).toBe(37);
+    expect(e.getFullLog().length).toBe(logBefore);
+  });
+
+  it('drops a ramp on a driven value and leaves the other ramps running', () => {
+    const e = newEngine();
+    e.start();
+    const startHr = e.getVitals().hr;
+    e.setVital('spo2', 80, 20);
+    e.setVital('hr', startHr + 40, 20);
+    e.drive({ vitals: { spo2: 95 } });
+    e.tick(10);
+    expect(e.getVitals().spo2).toBe(95);
+    expect(e.getVitals().hr).toBeCloseTo(startHr + 20, 5);
+  });
+
+  it('clamps to each range and ignores numbers that are not finite', () => {
+    const e = newEngine();
+    e.setVentShown(true);
+    e.drive({ vitals: { spo2: 140, rr: -3 }, vent: { fio2: 250 }, fico2: 99 });
+    expect(e.getVitals().spo2).toBe(clampVital('spo2', 140));
+    expect(e.getVitals().rr).toBe(0);
+    expect(e.getVitals().vent?.fio2).toBe(100);
+    expect(e.getVitals().fico2).toBe(30);
+    e.drive({ vitals: { spo2: Number.NaN, hr: Number.POSITIVE_INFINITY }, vent: { vt: Number.NaN }, fico2: Number.NaN });
+    expect(e.getVitals().spo2).toBe(100);
+    expect(e.getVitals().hr).toBe(scenario().baselineVitals.hr);
+    expect(Number.isFinite(e.getVitals().vent?.vt)).toBe(true);
+    expect(e.getVitals().fico2).toBe(30);
+  });
+
+  it('keeps diastolic a full pulse pressure below systolic', () => {
+    const e = newEngine();
+    e.drive({ vitals: { sbp: 70, dbp: 65 } });
+    expect(e.getVitals().sbp).toBe(70);
+    expect(e.getVitals().dbp).toBe(50);
+    // Systolic alone, driven under the diastolic in place.
+    e.drive({ vitals: { sbp: 60 } });
+    expect(e.getVitals().dbp).toBe(40);
+  });
+
+  it('does not move inspired agent when end-tidal is driven', () => {
+    const e = newEngine();
+    const fiBefore = e.getVitals().agentFi;
+    e.drive({ vitals: { agentEt: 1.4 } });
+    expect(e.getVitals().agentEt).toBe(1.4);
+    expect(e.getVitals().agentFi).toBe(fiBefore);
+  });
+
+  it('drives the machine readings, the block and inspired CO2 without a log line', () => {
+    const e = newEngine();
+    e.start();
+    e.setVentShown(true);
+    e.setTofAttached(true);
+    e.setVent({ vt: 600 }, 30);
+    e.setNmb({ tofCount: 4, tofRatio: 100 });
+    e.setFico2(10, 30);
+    const logBefore = e.getFullLog().length;
+    e.drive({ vent: { vt: 380, pip: 17 }, nmb: { tofCount: 2 }, fico2: 2 });
+    e.tick(10);
+    expect(e.getVitals().vent?.vt).toBe(380);
+    expect(e.getVitals().vent?.pip).toBe(17);
+    // Fewer than four twitches means no ratio, as with setNmb.
+    expect(e.getVitals().nmb).toMatchObject({ tofCount: 2, tofRatio: 0 });
+    expect(e.getVitals().fico2).toBe(2);
+    expect(e.getFullLog().length).toBe(logBefore);
+  });
+
+  it('feeds everything downstream: measured EtCO2, the cuff, history and alarms', () => {
+    const e = newEngine();
+    e.start();
+    e.drive({ vitals: { rr: 0, etco2: 48, sbp: 82, dbp: 44, spo2: 84 } });
+    const snap = e.snapshot();
+    // No breath to sample at apnea, whatever the true value.
+    expect(snap.vitals.etco2).toBe(0);
+    e.cycleNibp();
+    expect(e.snapshot().nibp).toMatchObject({ sbp: 82, dbp: 44 });
+    e.tick(10);
+    expect(e.getHistory().at(-1)).toMatchObject({ spo2: 84, sbp: 82 });
+    expect(e.snapshot().alarms.some((a) => a.vital === 'spo2')).toBe(true);
+  });
+
+  it('works while idle and survives a JSON round trip of the snapshot', () => {
+    const e = newEngine();
+    e.drive({ vitals: { spo2: 97.4, temp: 36.44 }, vent: { fio2: 100 } });
+    const snap = e.snapshot();
+    expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+    expect(snap.vitals.spo2).toBe(97);
+    expect(snap.vitals.temp).toBe(36.4);
   });
 });

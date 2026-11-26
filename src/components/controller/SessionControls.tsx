@@ -37,29 +37,28 @@ export function SessionControls() {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="mr-2 flex items-center gap-2 rounded-ctl bg-panel-2 px-3 py-1.5 ring-1 ring-line">
-        <div>
-          <span className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-muted">
-            Session code
-            <SyncHealthBadge health={syncHealth} />
-          </span>
-          <div className="flex items-center gap-2 font-mono text-xl font-bold tracking-[0.3em] text-ink">
-            {sessionCode}
-            {status === 'running' && (
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-green motion-safe:animate-pulse"
-                title="Session running"
-              />
-            )}
-            {status === 'paused' && (
-              <span className="h-1.5 w-1.5 rounded-full bg-warn" title="Session paused" />
-            )}
-          </div>
+    <div className="flex flex-wrap items-center gap-2 fit3:flex-nowrap">
+      <div className="mr-2 flex items-center gap-2.5 rounded-ctl bg-panel-2 px-3 py-1 ring-1 ring-line">
+        <span className="flex flex-col text-[9px] font-semibold uppercase leading-tight tracking-wider text-muted">
+          Session
+          <span>code</span>
+        </span>
+        <div className="flex items-center gap-2 font-mono text-xl font-bold tracking-[0.3em] text-ink">
+          {sessionCode}
+          {status === 'running' && (
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-green motion-safe:animate-pulse"
+              title="Session running"
+            />
+          )}
+          {status === 'paused' && (
+            <span className="h-1.5 w-1.5 rounded-full bg-warn" title="Session paused" />
+          )}
         </div>
-        <div className="flex flex-col gap-0.5">
+        <SyncHealthBadge health={syncHealth} />
+        <div className="flex gap-1">
           <button
-            className="rounded-ctl px-1.5 py-0.5 text-[11px] text-ink-2 ring-1 ring-line-2 hover:bg-panel-3"
+            className="rounded-ctl px-1.5 py-1 text-[11px] text-ink-2 ring-1 ring-line-2 hover:bg-panel-3"
             title="Copy session code"
             onClick={async () =>
               (await copyText(sessionCode))
@@ -70,7 +69,7 @@ export function SessionControls() {
             ⧉ code
           </button>
           <button
-            className="rounded-ctl px-1.5 py-0.5 text-[11px] text-ink-2 ring-1 ring-line-2 hover:bg-panel-3"
+            className="inline-flex items-center gap-1 rounded-ctl px-1.5 py-1 text-[11px] text-ink-2 ring-1 ring-line-2 hover:bg-panel-3"
             title="Copy a link that joins the student display directly"
             onClick={async () =>
               (await copyText(joinUrl(sessionCode)))

@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { CapnoShape, PvcFrequency, Rhythm } from '@/lib/engine/types';
-import { PVC_FREQUENCY_EVERY_N } from '@/lib/engine/types';
-import { artSample, capnoSample, ecgSample, isPulseless, plethSample } from './waveforms';
+import type { CapnoShape, EcgLead, EcgMorphology, PvcFrequency, Rhythm } from '@/lib/engine/types';
+import { PVC_FREQUENCY_EVERY_N, rhythmPerfuses } from '@/lib/engine/types';
+import { BeatClock } from './beatClock';
+import { artValue, capnoSample, capnoScaleMax, ecgValue, plethValue, SUBSTEP_SEC } from './waveforms';
 
 export type TraceKind = 'ecg' | 'pleth' | 'capno' | 'art';
 
@@ -24,17 +25,40 @@ interface WaveformProps {
   rhythm: Rhythm;
   /** Capnograph morphology (capno traces only). Absent = normal. */
   capnoShape?: CapnoShape;
+  /** Inspired CO2, mmHg — the capnogram's baseline (capno traces only). */
+  fico2?: number;
   /** PVC coupling rate (ecg traces only). Absent = occasional (1 in 4). */
   pvcFrequency?: PvcFrequency;
+  /** Complex morphology — ST, T wave, QRS width, QT (ecg traces only). */
+  ecg?: EcgMorphology;
+  /** Which ECG lead to draw (ecg traces only). Default lead II. */
+  lead?: EcgLead;
+  /** No pulse (pleth and art traces go flat). Defaults to what the rhythm
+   *  alone implies; pass `!hasPulse(vitals)` to honour PEA and pulseless VT. */
+  pulseless?: boolean;
   /** Freeze the trace (scenario paused / not started). */
   frozen?: boolean;
+  /**
+   * The monitor's shared beat/breath clock. The owner keeps its input
+   * current. Omit it and the trace runs a private clock — correct on its
+   * own, but not locked to any other trace.
+   */
+  clock?: BeatClock;
   heightClass?: string;
 }
+
+/** Longest stretch of trace drawn in one frame; a longer gap (a stalled or
+ *  hidden tab) is skipped rather than drawn as one long catch-up stroke. */
+const MAX_FRAME_SEC = 0.05;
+/** Erase gap ahead of the write bar, CSS px (wide enough to clear the glow). */
+const ERASE_AHEAD_PX = 18;
 
 /**
  * Sweep-style waveform, like a real OR monitor: a write bar moves left to
  * right redrawing the trace in place, with a small erase gap ahead of it.
- * Rendering is wall-clock driven; beat/breath phase advances by live HR/RR.
+ * Cardiac traces plot the beats of a shared BeatClock and the capnogram its
+ * breath phase. Each frame is plotted in several short sub-steps so narrow
+ * features (the R wave) keep their full height.
  */
 export function Waveform({
   kind,
@@ -47,13 +71,33 @@ export function Waveform({
   dbp = 0,
   rhythm,
   capnoShape = 'normal',
+  fico2 = 0,
   pvcFrequency = 'occasional',
+  ecg,
+  lead = 'II',
+  pulseless = !rhythmPerfuses(rhythm),
   frozen = false,
+  clock,
   heightClass = 'h-20 md:h-24',
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen });
-  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, pvcFrequency, frozen };
+  const live = useRef({ hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, fico2, pvcFrequency, ecg, lead, pulseless, frozen });
+  live.current = { hr, rr, spo2, etco2, sbp, dbp, rhythm, capnoShape, fico2, pvcFrequency, ecg, lead, pulseless, frozen };
+
+  // A trace without a shared clock keeps a private one fed from props.
+  const ownClock = useRef<BeatClock | null>(null);
+  if (!clock) {
+    ownClock.current ??= new BeatClock(Date.now());
+    ownClock.current.setInput({
+      hr,
+      rr,
+      rhythm,
+      pvcEveryN: PVC_FREQUENCY_EVERY_N[pvcFrequency],
+      frozen,
+    });
+  }
+  const clockRef = useRef<BeatClock | null>(null);
+  clockRef.current = clock ?? ownClock.current;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -62,11 +106,9 @@ export function Waveform({
     if (!ctx) return;
 
     let raf = 0;
-    let lastTime = performance.now();
-    let beatPhase = 0; // 0..1 within current beat/breath
-    let beatCount = 0; // completed cycles (drives ectopy in pvc/pac)
+    let lastClockT: number | null = null; // clock time already drawn
     let x = 0; // sweep position in CSS px
-    let absT = 0; // absolute seconds (for vfib noise)
+    let prevY: number | null = null;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -79,6 +121,7 @@ export function Waveform({
       // background, so cleared areas reveal the grid.
       ctx.clearRect(0, 0, rect.width, rect.height);
       x = 0;
+      prevY = null;
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -90,90 +133,102 @@ export function Waveform({
     // the capnogram morphology legible.
     const SWEEP_SPEED = kind === 'capno' ? 45 : 90;
 
-    const sample = (): number => {
+    /** Trace value at clock time `t`. */
+    const sample = (beatClock: BeatClock, t: number): number => {
       const v = live.current;
+      const beats = beatClock.recent();
       switch (kind) {
         case 'ecg':
-          return ecgSample(v.rhythm, beatPhase, absT, beatCount, PVC_FREQUENCY_EVERY_N[v.pvcFrequency]);
+          return ecgValue(beats, v.rhythm, t, v.ecg, v.lead);
         case 'pleth':
-          return plethSample(v.rhythm, beatPhase, v.spo2);
+          return plethValue(beats, v.pulseless, t, v.spo2);
         case 'capno':
-          return capnoSample(beatPhase, v.rr, v.etco2, v.capnoShape);
+          // Each breath's plateau peaks at or just under the EtCO2 number.
+          return (
+            capnoSample(beatClock.breathPhaseAt(t), v.rr, v.etco2, v.capnoShape, {
+              fico2: v.fico2,
+              heartbeats: (t * Math.max(0, v.hr)) / 60,
+            }) * beatClock.breathHeight
+          );
         case 'art':
-          return Math.min(ART_SCALE_MAX * 1.05, artSample(v.rhythm, beatPhase, v.sbp, v.dbp));
+          return Math.min(ART_SCALE_MAX * 1.05, artValue(beats, v.pulseless, t, v.sbp, v.dbp));
       }
+    };
+
+    // Phosphor glow: the same short path stroked wide-and-faint to
+    // narrow-and-solid. Layered strokes rasterize a few hundred device
+    // pixels per frame — unlike shadowBlur, which would gaussian-blur
+    // every segment and drops frames on tablets.
+    const strokeGlow = (points: number[]) => {
+      if (points.length < 4) return;
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const [width, alpha] of [
+        [7, 0.1],
+        [3.5, 0.28],
+        [2, 1],
+      ] as const) {
+        ctx.lineWidth = width;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(points[0], points[1]);
+        for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i], points[i + 1]);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     };
 
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
-      const dt = Math.min(0.05, (now - lastTime) / 1000);
-      lastTime = now;
       const v = live.current;
-      if (v.frozen) return;
 
-      absT += dt;
+      // How much trace time to draw this frame, and where it ends. The clock
+      // stands still while frozen, so dt is 0 and nothing draws.
+      const beatClock = clockRef.current;
+      if (!beatClock) return;
+      beatClock.tick(now);
+      const endT = beatClock.t;
+      const dt = lastClockT === null ? 0 : Math.min(MAX_FRAME_SEC, endT - lastClockT);
+      lastClockT = endT;
+      if (dt <= 0) return;
+
       const rect = canvas.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
       if (w < 4) return;
 
-      // Advance cycle phase from live rate.
-      const cyclesPerSec =
-        kind === 'capno'
-          ? Math.max(0, v.rr) / 60
-          : v.rhythm === 'vfib' || v.rhythm === 'asystole'
-            ? 1 // phase unused; ecgSample uses absT
-            : Math.max(0, v.hr) / 60;
-      beatPhase += cyclesPerSec * dt;
-      if (beatPhase >= 1) {
-        beatCount += Math.floor(beatPhase);
-        beatPhase %= 1;
-      }
-
-      const dx = SWEEP_SPEED * dt;
-      const newX = x + dx;
-
-      // Erase gap ahead of the write bar (wide enough to clear the glow).
-      ctx.clearRect(x, 0, Math.min(dx + 18, w - x), h);
-      if (newX >= w) ctx.clearRect(0, 0, 18, h);
-
-      // Plot the segment.
-      const value = sample();
       const mid = kind === 'capno' || kind === 'art' ? h * 0.94 : h * 0.55;
       const scale =
         kind === 'capno'
-          ? (h * 0.79 * Math.min(1.15, Math.max(0, v.etco2) / 50)) // taller plateau at higher EtCO2, peak kept inside the canvas
+          ? ((h * 0.9) / capnoScaleMax(v.etco2)) * Math.min(capnoScaleMax(v.etco2), Math.max(0, v.etco2)) // mmHg scale from the baseline (0–50, or 0–75 above 50); clips at the top of the scale
           : kind === 'art'
             ? (h * 0.9) / ART_SCALE_MAX // fixed mmHg scale: 0 at baseline, 170 near the top
             : h * 0.36;
-      const y = mid - value * scale;
 
-      const prevY = (canvas as unknown as { _prevY?: number })._prevY ?? y;
-      // Phosphor glow: the same tiny segment stroked wide-and-faint to
-      // narrow-and-solid. Layered strokes rasterize a few hundred device
-      // pixels per frame — unlike shadowBlur, which would gaussian-blur
-      // every segment and drops frames on tablets.
-      const strokeSegment = (width: number, alpha: number) => {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.lineCap = 'round';
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        if (newX >= w) {
-          ctx.moveTo(0, y);
-          ctx.lineTo(0.01, y);
-        } else {
-          ctx.moveTo(x, prevY);
-          ctx.lineTo(newX, y);
+      // Erase gap ahead of the write bar, wrapping past the right edge.
+      const ahead = SWEEP_SPEED * dt + ERASE_AHEAD_PX;
+      ctx.clearRect(x, 0, Math.min(ahead, w - x), h);
+      if (x + ahead > w) ctx.clearRect(0, 0, x + ahead - w, h);
+
+      // Plot the frame as a run of short sub-steps.
+      const steps = Math.max(1, Math.ceil(dt / SUBSTEP_SEC));
+      const stepSec = dt / steps;
+      let points: number[] = prevY === null ? [] : [x, prevY];
+      for (let i = 1; i <= steps; i++) {
+        const y = mid - sample(beatClock, endT - dt + i * stepSec) * scale;
+        x += SWEEP_SPEED * stepSec;
+        if (x >= w) {
+          // Sweep wrapped: finish the stroke at the right edge, restart at the left.
+          points.push(w, y);
+          strokeGlow(points);
+          x -= w;
+          points = [0, y];
         }
-        ctx.stroke();
-      };
-      strokeSegment(7, 0.1);
-      strokeSegment(3.5, 0.28);
-      strokeSegment(2, 1);
-      ctx.globalAlpha = 1;
-      x = newX >= w ? 0 : newX;
-      (canvas as unknown as { _prevY?: number })._prevY = y;
+        points.push(x, y);
+        prevY = y;
+      }
+      strokeGlow(points);
     };
 
     raf = requestAnimationFrame(draw);
@@ -184,7 +239,7 @@ export function Waveform({
   }, [kind, color]);
 
   const flat =
-    (kind === 'pleth' && isPulseless(rhythm)) || (kind === 'capno' && (rr <= 0 || etco2 <= 0));
+    (kind === 'pleth' && pulseless) || (kind === 'capno' && (rr <= 0 || etco2 <= 0));
 
   return (
     <div className={`wave-graticule relative w-full ${heightClass}`}>

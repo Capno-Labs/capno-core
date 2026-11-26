@@ -1,20 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CapnoGlyph } from '@/components/brand/CapnoGlyph';
+import { CapnoSymbol } from '@/components/brand/CapnoSymbol';
+import { deriveActionOutcomes } from '@/lib/debrief/actionOutcomes';
 import { deriveTurningPoints, type TurningPoint } from '@/lib/debrief/turningPoints';
-import { earnedPoints } from '@/lib/engine/scoring';
 import type { ActionStatus, ArchivedSession, FacultyNote, LogEntry } from '@/lib/engine/types';
-import { useCountUp } from '@/lib/hooks/useCountUp';
-import { TrendStrip } from './TrendStrip';
-
-/** Performance-tier color for the score reveal (screen only; print is black). */
-function tierClasses(percent: number): { text: string; band: string } {
-  if (percent >= 90) return { text: 'text-green', band: 'bg-green' };
-  if (percent >= 75) return { text: 'text-brand-strong', band: 'bg-brand' };
-  if (percent >= 60) return { text: 'text-warn-strong', band: 'bg-warn' };
-  return { text: 'text-red', band: 'bg-red' };
-}
 
 function fmt(t: number): string {
   return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -54,7 +44,12 @@ const KIND_LABEL: Record<LogEntry['kind'], string> = {
 };
 
 /**
- * Printable debrief report. On screen it uses the app theme; the
+ * The written debrief record: where faculty check the marks and notes before
+ * the walkthrough (DebriefDeck), and what prints. It reports what happened
+ * and what was marked — no score and no vitals graph; the walkthrough is
+ * where the debrief itself happens.
+ *
+ * On screen it uses the app theme; the
  * `.print-report` styles in globals.css convert it to a clean black-on-white
  * document for the browser's Print → Save as PDF flow.
  */
@@ -65,7 +60,7 @@ export function DebriefReport({
   session: ArchivedSession;
   amend?: DebriefAmend;
 }) {
-  const { scenario, snapshot, score } = session;
+  const { scenario, snapshot } = session;
   const [learnersDraft, setLearnersDraft] = useState<string | null>(null);
   // Note editing: which note is being edited ('new' = adding) and its draft text.
   const [noteDraft, setNoteDraft] = useState<{ idx: number | 'new'; text: string } | null>(null);
@@ -83,27 +78,26 @@ export function DebriefReport({
     }
     setNoteDraft(null);
   };
-  const shownPercent = useCountUp(score.percent);
-  const tier = tierClasses(score.percent);
   const turningPoints = useMemo(() => deriveTurningPoints(session), [session]);
+  const outcomes = useMemo(() => deriveActionOutcomes(session), [session]);
 
-  const recordByActionId = new Map(snapshot.actions.map((r) => [r.actionId, r]));
-  const phaseLabelById = new Map(scenario.phases.map((p) => [p.id, p.label]));
-  // No points anywhere ⇒ an imported checklist scored by faculty, not the app.
-  const manualRubric = score.possible === 0;
-  const statusCount = (status: ActionStatus) =>
-    snapshot.actions.filter((r) => r.status === status).length;
+  // No points anywhere ⇒ an imported checklist: its rows carry the program's
+  // own rubric descriptors, which the action table shows in place of nothing.
+  const importedRubric = scenario.expectedActions.every((a) => a.points === 0);
+  const statusCount = (status: ActionStatus) => outcomes.filter((o) => o.status === status).length;
   const doneCount = statusCount('done');
   const delayedCount = statusCount('delayed');
   const incorrectCount = statusCount('incorrect');
-  const unmarkedCount = scenario.expectedActions.length - doneCount - delayedCount - incorrectCount;
+  const notDoneCount = statusCount('missed');
+  const criticalDone = outcomes.filter((o) => o.action.critical && o.status === 'done');
+  const criticalMissed = outcomes.filter((o) => o.action.critical && o.status !== 'done');
 
   return (
     <article className="print-report card space-y-8 !p-6 md:!p-8">
       {/* Header */}
       <header className="border-b border-line pb-4">
         <p className="flex items-center gap-2 text-xs uppercase tracking-widest text-faint">
-          <CapnoGlyph className="h-4 w-auto shrink-0" />
+          <CapnoSymbol className="h-4 w-4 shrink-0" />
           CAPNO Studio debrief report · simulation only — not a clinical record
         </p>
         <h1 className="mt-1 text-2xl font-bold">{scenario.title}</h1>
@@ -151,74 +145,21 @@ export function DebriefReport({
         )}
       </header>
 
-      {/* Outcome summary */}
-      <section>
-        <h2 className="mb-3 text-lg font-bold">Outcome summary</h2>
-        {manualRubric ? (
-          // An imported checklist carries no point values: the record is
-          // what faculty marked, not a percentage the app made up.
-          <div className="rounded-ctl bg-panel-2 px-4 py-3 text-sm">
-            <p className="font-semibold text-ink">Faculty-scored rubric — no automatic score</p>
-            <p className="mt-1 text-ink-2">
-              {doneCount} of {scenario.expectedActions.length} rubric items observed
-              {delayedCount > 0 ? `, ${delayedCount} delayed` : ''}
-              {incorrectCount > 0 ? `, ${incorrectCount} incorrect` : ''}
-              {unmarkedCount > 0 ? `, ${unmarkedCount} not marked` : ''}. Use the program&apos;s own
-              scoring rule with the marks below.
-            </p>
-          </div>
-        ) : (
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="text-center motion-safe:animate-pop-in">
-            <div className={`text-5xl font-bold tabular-nums ${tier.text}`}>
-              {/* Count-up is screen-only; print always gets the true value. */}
-              <span className="print:hidden">{shownPercent}%</span>
-              <span className="hidden print:inline">{score.percent}%</span>
-            </div>
-            <div
-              className={`keep-badge-bg mx-auto mt-1 h-1 rounded-ctl ${tier.band}`}
-              style={{ width: `${Math.max(8, score.percent)}%` }}
-            />
-            <div className="mt-1 text-xs text-faint">
-              {score.earned} / {score.possible} pts
-            </div>
-          </div>
-          <table className="text-sm">
-            <tbody>
-              {score.categories.map((c, i) => (
-                <tr key={c.categoryId}>
-                  <td className="pr-6 py-0.5">{c.label}</td>
-                  <td className="py-0.5 font-mono tabular-nums">
-                    {c.earned}/{c.possible}
-                  </td>
-                  <td className="pl-3 py-0.5 w-40">
-                    <div className="keep-badge-bg h-2 w-full rounded-ctl bg-panel-3">
-                      <div
-                        className="anim-bar h-2 origin-left rounded-ctl bg-green motion-safe:animate-bar-grow"
-                        style={{
-                          width: `${c.possible ? (c.earned / c.possible) * 100 : 0}%`,
-                          animationDelay: `${150 + i * 90}ms`,
-                        }}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        )}
-      </section>
+      {/* What the case set out to teach — the frame for everything below. */}
+      {scenario.learningObjectives.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-bold">Learning objectives</h2>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {scenario.learningObjectives.map((o, i) => (
+              <li key={i}>{o}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      {/* What happened: vitals trends + timeline */}
+      {/* What happened: the timeline */}
       <section>
         <h2 className="mb-2 text-lg font-bold">What happened</h2>
-        {session.history && session.history.length >= 2 && (
-          <div className="mb-4">
-            <h3 className="label mb-2">Vitals trends</h3>
-            <TrendStrip history={session.history} log={snapshot.log} />
-          </div>
-        )}
         <h3 className="label mb-1">Timeline</h3>
         <table className="w-full text-sm">
           <tbody>
@@ -261,10 +202,16 @@ export function DebriefReport({
       {/* Actions taken */}
       <section>
         <h2 className="mb-2 text-lg font-bold">What the learner did</h2>
+        <p className="mb-2 text-sm text-ink-2" data-action-counts>
+          {doneCount} of {scenario.expectedActions.length} expected actions done
+          {delayedCount > 0 ? `, ${delayedCount} delayed` : ''}
+          {incorrectCount > 0 ? `, ${incorrectCount} incorrect` : ''}
+          {notDoneCount > 0 ? `, ${notDoneCount} not done` : ''}.
+        </p>
         {amend && (
           <p className="no-print mb-2 text-xs text-faint">
-            Live marking is hard mid-scenario — amend any status below; the score updates and is
-            saved immediately.
+            Live marking is hard mid-scenario — amend any status below; changes save immediately
+            and carry into the walkthrough.
           </p>
         )}
         <div className="overflow-x-auto">
@@ -275,16 +222,11 @@ export function DebriefReport({
                 <th className="py-1.5 pr-3 font-semibold">Phase</th>
                 <th className="py-1.5 pr-3 font-semibold">Marked</th>
                 <th className="py-1.5 pr-3 font-semibold">Status</th>
-                <th className={manualRubric ? 'py-1.5 font-semibold' : 'py-1.5 text-right font-semibold'}>
-                  {manualRubric ? 'Rubric descriptors' : 'Points'}
-                </th>
+                {importedRubric && <th className="py-1.5 font-semibold">Rubric descriptors</th>}
               </tr>
             </thead>
             <tbody>
-              {scenario.expectedActions.map((a) => {
-                const r = recordByActionId.get(a.id);
-                const shown: Exclude<ActionStatus, 'pending'> =
-                  !r || r.status === 'pending' ? 'missed' : r.status;
+              {outcomes.map(({ action: a, status: shown, markedAtSec, phaseLabel }) => {
                 return (
                   <tr key={a.id} className="border-b border-line align-top">
                     <td className="py-1.5 pr-3" title={a.description}>
@@ -296,10 +238,10 @@ export function DebriefReport({
                       {a.label}
                     </td>
                     <td className="py-1.5 pr-3 text-xs text-faint">
-                      {(a.phase && phaseLabelById.get(a.phase)) ?? '—'}
+                      {phaseLabel ?? '—'}
                     </td>
                     <td className="py-1.5 pr-3 font-mono tabular-nums text-faint">
-                      {r?.markedAtSec !== undefined ? fmt(r.markedAtSec) : '—'}
+                      {markedAtSec !== undefined ? fmt(markedAtSec) : '—'}
                     </td>
                     <td className="py-1.5 pr-3">
                       <span className={`font-semibold uppercase ${ACTION_STATUS_CLASS[shown]}`}>
@@ -320,13 +262,9 @@ export function DebriefReport({
                         </select>
                       )}
                     </td>
-                    {manualRubric ? (
+                    {importedRubric && (
                       <td className="max-w-md whitespace-pre-wrap py-1.5 text-xs text-ink-2">
                         {a.description ?? '—'}
-                      </td>
-                    ) : (
-                      <td className="py-1.5 text-right font-mono tabular-nums">
-                        {earnedPoints(a, r)}/{a.points}
                       </td>
                     )}
                   </tr>
@@ -339,17 +277,17 @@ export function DebriefReport({
 
       {/* Critical actions, promoted (an imported checklist with no critical
           rows has nothing to promote — and "all 0 completed" would mislead). */}
-      {!(manualRubric && score.criticalDone.length + score.criticalMissed.length === 0) && (
+      {criticalDone.length + criticalMissed.length > 0 && (
       <section>
         <h2 className="mb-2 text-lg font-bold">Missed or delayed critical actions</h2>
-        {score.criticalMissed.length > 0 ? (
+        {criticalMissed.length > 0 ? (
           <ul className="list-disc space-y-1 pl-5 text-sm">
-            {score.criticalMissed.map((a) => (
+            {criticalMissed.map(({ action: a, status }) => (
               <li key={a.id} className="text-red">
-                <strong>Not completed:</strong> {a.label}
+                <strong>{status === 'delayed' ? 'Delayed' : 'Not completed'}:</strong> {a.label}
               </li>
             ))}
-            {score.criticalDone.map((a) => (
+            {criticalDone.map(({ action: a }) => (
               <li key={a.id} className="text-green">
                 Completed: {a.label}
               </li>
@@ -357,10 +295,9 @@ export function DebriefReport({
           </ul>
         ) : (
           <p
-            className="keep-badge-bg inline-block rounded-lg bg-green-soft px-3 py-1.5 text-sm text-green ring-1 ring-green/40 motion-safe:animate-pop-in"
-            style={{ animationDelay: '700ms' }}
+            className="keep-badge-bg inline-block rounded-lg bg-green-soft px-3 py-1.5 text-sm text-green ring-1 ring-green/40"
           >
-            All {score.criticalDone.length} critical actions completed. ✓
+            All {criticalDone.length} critical actions completed. ✓
           </p>
         )}
       </section>
@@ -496,9 +433,19 @@ export function DebriefReport({
         </div>
       </section>
 
-      {/* Reference: correct management & common errors */}
+      {/* Reference: expected progression, correct management & common errors */}
       <section>
         <h2 className="mb-2 text-lg font-bold">Reference</h2>
+        {scenario.expectedProgression.length > 0 && (
+          <div className="mb-4">
+            <h3 className="label">Expected progression</h3>
+            <ol className="list-decimal space-y-1 pl-5 text-sm">
+              {scenario.expectedProgression.map((m, i) => (
+                <li key={i}>{m}</li>
+              ))}
+            </ol>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <h3 className="label">Correct management</h3>

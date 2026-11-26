@@ -7,18 +7,26 @@ import { eventSchema } from '../engine/schema';
 import { scoreSession } from '../engine/scoring';
 import type {
   ActionStatus,
+  AlarmProfile,
+  AlarmParam,
+  AlarmSide,
+  AnestheticAgent,
   CapnoShape,
   NumericVitals,
+  EcgMorphology,
+  NeuromuscularBlock,
   PvcFrequency,
   Rhythm,
   Scenario,
   ScenarioEvent,
   SimSnapshot,
+  Ventilation,
 } from '../engine/types';
 import { cloudEligible, drain, enqueue, pinnedVersionId } from '../cloud/outbox';
 import '../cloud/sessionCloud'; // registers the session push handler
 import { getVersionHistory } from '../scenarios/customStore';
 import { createSyncChannels, type SyncChannel, type TransportHealth } from '../sync';
+import { applyMonitorRequest, createRequestGate } from '../sync/monitorRequest';
 import { archiveSession } from './sessionArchive';
 
 /**
@@ -55,6 +63,31 @@ interface ControllerState {
   setRhythm: (rhythm: Rhythm) => void;
   setCapnoShape: (shape: CapnoShape) => void;
   setPvcFrequency: (freq: PvcFrequency) => void;
+  /** Set anesthesia-machine readings; each ramps over `overSec`. */
+  setVent: (patch: Partial<Ventilation>, overSec?: number) => void;
+  /** Show or hide the machine tiles on the monitor. */
+  setVentShown: (on: boolean) => void;
+  setAgent: (agent: AnestheticAgent) => void;
+  /** Set the neuromuscular block; each field ramps over `overSec`. */
+  setNmb: (patch: Partial<NeuromuscularBlock>, overSec?: number) => void;
+  /** Switch the monitor's patient category and its alarm limits. */
+  setAlarmProfile: (profile: AlarmProfile) => void;
+  /** One press of − or + on a vital's low or high alarm limit. */
+  stepAlarmLimit: (vital: AlarmParam, side: AlarmSide, direction: -1 | 1) => void;
+  /** Switch one vital's limit alarms off or back on. */
+  setAlarmOff: (vital: AlarmParam, off: boolean) => void;
+  /** Let learners operate the alarm setup from their display, or not. */
+  setLearnerAlarmSetup: (on: boolean) => void;
+  /** Attach or remove the twitch monitor. */
+  setTofAttached: (on: boolean) => void;
+  /** Have the twitch monitor stimulate now. */
+  measureTof: () => void;
+  /** Set the inspired CO2 (rebreathing), ramping over `overSec`. */
+  setFico2: (target: number, overSec?: number) => void;
+  /** Take the pulse away (PEA, pulseless VT) or give it back. */
+  setPulseless: (on: boolean) => void;
+  /** Change ECG morphology; the ST level ramps over `overSec`. */
+  setEcg: (patch: EcgMorphology, overSec?: number) => void;
   triggerEvent: (eventId: string) => void;
   /**
    * Add an instructor-improvised event to the running session. Ad-hoc events
@@ -69,10 +102,16 @@ interface ControllerState {
   markAction: (actionId: string, status: ActionStatus) => void;
   addNote: (text: string) => void;
   setAlarmsSilenced: (silenced: boolean) => void;
+  /** The monitor's Silence key: acknowledge the alarms active now. */
+  acknowledgeAlarms: () => void;
   setAutoEvents: (on: boolean) => void;
+  /** Show or hide the patient pre-brief on student displays before the start. */
+  setPreBrief: (on: boolean) => void;
   skipAhead: (sec: number) => void;
   cycleNibp: () => void;
   setArtLine: (on: boolean) => void;
+  /** Add or remove the V5 lead on the monitor. */
+  setV5Lead: (on: boolean) => void;
 
   teardown: () => void;
 }
@@ -117,11 +156,20 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       // so it carries over from the previous engine (scenario switches and
       // "Run next student" turnovers keep the instructor's choice).
       const autoEvents = get().engine?.getAutoEventsEnabled() ?? false;
-      const engine = new SimulationEngine(scenario, sessionId, { autoEvents });
+      // The pre-brief choice carries over the same way (default: not shown).
+      const preBrief = get().engine?.getPreBriefEnabled() ?? false;
+      // So does whether learners may operate the alarm setup (default: yes).
+      const learnerAlarmSetup = get().engine?.getLearnerAlarmSetup() ?? true;
+      const engine = new SimulationEngine(scenario, sessionId, { autoEvents, preBrief, learnerAlarmSetup });
       channel = createSyncChannels(sessionCode);
+      const freshRequest = createRequestGate();
       // Late-joining student displays send 'hello' to get an immediate snapshot.
       channel.onMessage((m) => {
         if (m.type === 'hello') publish();
+        // A learner operating the monitor's alarm setup on a display: the
+        // only thing a display can change, checked and applied here so this
+        // engine stays the single authority.
+        if (m.type === 'monitor' && freshRequest(m.id) && applyMonitorRequest(engine, m.request)) publish();
       });
       channel.onStatus(() => set({ syncHealth: channel ? channel.getHealth() : [] }));
       set({ engine, sessionId, sessionCode, syncHealth: channel.getHealth() });
@@ -180,6 +228,19 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     setRhythm: (rhythm) => withEngine((e) => e.setRhythm(rhythm)),
     setCapnoShape: (shape) => withEngine((e) => e.setCapnoShape(shape)),
     setPvcFrequency: (freq) => withEngine((e) => e.setPvcFrequency(freq)),
+    setEcg: (patch, overSec = 0) => withEngine((e) => e.setEcg(patch, overSec)),
+    setPulseless: (on) => withEngine((e) => e.setPulseless(on)),
+    setFico2: (target, overSec = 0) => withEngine((e) => e.setFico2(target, overSec)),
+    setVent: (patch, overSec = 0) => withEngine((e) => e.setVent(patch, overSec)),
+    setVentShown: (on) => withEngine((e) => e.setVentShown(on)),
+    setAgent: (agent) => withEngine((e) => e.setAgent(agent)),
+    setNmb: (patch, overSec = 0) => withEngine((e) => e.setNmb(patch, overSec)),
+    setAlarmProfile: (profile) => withEngine((e) => e.setAlarmProfile(profile)),
+    stepAlarmLimit: (vital, side, direction) => withEngine((e) => e.stepAlarmLimit(vital, side, direction)),
+    setLearnerAlarmSetup: (on) => withEngine((e) => e.setLearnerAlarmSetup(on)),
+    setAlarmOff: (vital, off) => withEngine((e) => e.setAlarmOff(vital, off)),
+    setTofAttached: (on) => withEngine((e) => e.setTofAttached(on)),
+    measureTof: () => withEngine((e) => e.measureTof()),
     // Firing an event or marking an action is live-session work: if the
     // session hasn't started (or is paused), the tap also starts/resumes it —
     // faculty shouldn't need a separate Start press to react to the room.
@@ -214,10 +275,13 @@ export const useControllerStore = create<ControllerState>((set, get) => {
       }),
     addNote: (text) => withEngine((e) => e.addNote(text)),
     setAlarmsSilenced: (silenced) => withEngine((e) => e.setAlarmsSilenced(silenced)),
+    acknowledgeAlarms: () => withEngine((e) => e.acknowledgeAlarms()),
     setAutoEvents: (on) => withEngine((e) => e.setAutoEvents(on)),
+    setPreBrief: (on) => withEngine((e) => e.setPreBrief(on)),
     skipAhead: (sec) => withEngine((e) => e.skipAhead(sec)),
     cycleNibp: () => withEngine((e) => e.cycleNibp()),
     setArtLine: (on) => withEngine((e) => e.setArtLine(on)),
+    setV5Lead: (on) => withEngine((e) => e.setV5Lead(on)),
 
     teardown: () => {
       if (tickHandle) {

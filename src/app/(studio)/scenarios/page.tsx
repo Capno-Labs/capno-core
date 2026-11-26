@@ -48,6 +48,8 @@ import {
   serializeCollectionBundle,
   swapInCollection,
 } from '@/lib/scenarios';
+import { clearDraft, listDraftCaseIds } from '@/lib/scenarios/draftStore';
+import { duplicateScenario } from '@/lib/scenarios/scenarioId';
 import { confirmDialog } from '@/lib/store/dialogStore';
 import { toast } from '@/lib/store/toastStore';
 
@@ -78,6 +80,10 @@ export default function ScenarioLibraryPage() {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  /** Cases with unsaved edits waiting in the editor (draftStore.ts). */
+  const [draftIds, setDraftIds] = useState<Set<string>>(new Set());
+  const [newCaseOpen, setNewCaseOpen] = useState(false);
+  const [startFrom, setStartFrom] = useState('');
   const [newTitle, setNewTitle] = useState('');
   // Scenario waiting to be added when "New collection…" was picked on a card.
   const [pendingAddId, setPendingAddId] = useState<string | null>(null);
@@ -89,6 +95,31 @@ export default function ScenarioLibraryPage() {
     setScenarios(listAllScenarios());
     setCustomIds(new Set(listCustomScenarios().map((s) => s.id)));
     setCollections(listCollections());
+    setDraftIds(new Set(listDraftCaseIds()));
+  };
+
+  /** A copy with its own id and history — the original is untouched. */
+  const duplicate = (source: Scenario) => {
+    const all = listAllScenarios();
+    const copy = duplicateScenario(
+      source,
+      new Set(all.map((s) => s.id)),
+      new Set(all.map((s) => s.title)),
+    );
+    const saved = saveCustomScenario(copy);
+    if (!saved.ok) {
+      toast(saved.error, 'error');
+      return;
+    }
+    if (cloudEligible()) {
+      enqueue('scenario', copy.id);
+      void drain();
+    }
+    refresh();
+    toast(`Duplicated as “${copy.title}”`, 'success', {
+      label: 'Edit',
+      onClick: () => router.push(`/editor?id=${copy.id}`),
+    });
   };
 
   useEffect(() => {
@@ -333,7 +364,7 @@ export default function ScenarioLibraryPage() {
           lede="Reviewed cases, your drafts, and collections in one place."
           actions={
             <>
-              <Button variant="primary" href="/editor" icon="plus">
+              <Button variant="primary" icon="plus" onClick={() => setNewCaseOpen(true)}>
                 New case
               </Button>
               <Menu label="Import" icon="upload" showLabel triggerClassName="btn-secondary">
@@ -374,6 +405,48 @@ export default function ScenarioLibraryPage() {
 
         {/* Renders nothing unless AI settings are configured. */}
         <SyllabusImportPanel onChanged={refresh} />
+
+        <Dialog open={newCaseOpen} onClose={() => setNewCaseOpen(false)} title="New case">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p>Start with an empty case and fill it in.</p>
+              <Button variant="primary" href="/editor" icon="plus" data-autofocus>
+                Blank case
+              </Button>
+            </div>
+            <form
+              className="space-y-2 border-t border-line pt-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (startFrom) router.push(`/editor?from=${encodeURIComponent(startFrom)}`);
+              }}
+            >
+              <label className="label" htmlFor="new-case-from">
+                Or start from a copy of an existing case
+              </label>
+              <select
+                id="new-case-from"
+                className="input"
+                value={startFrom}
+                onChange={(e) => setStartFrom(e.target.value)}
+              >
+                <option value="">Choose a case…</option>
+                {scenarios.map((sc) => (
+                  <option key={sc.id} value={sc.id}>
+                    {sc.title}
+                    {customIds.has(sc.id) ? ' (yours)' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-faint">
+                The original is not changed. The copy gets its own name and history when you save it.
+              </p>
+              <Button variant="secondary" type="submit" disabled={!startFrom}>
+                Start from this case
+              </Button>
+            </form>
+          </div>
+        </Dialog>
 
         <Dialog
           open={createOpen}
@@ -599,6 +672,11 @@ export default function ScenarioLibraryPage() {
             <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
               <Pill tone={DIFFICULTY_TONE[s.tags.difficulty]}>{s.tags.difficulty}</Pill>
               {customIds.has(s.id) && <Pill tone="brand">custom</Pill>}
+              {draftIds.has(s.id) && (
+                <Pill tone="warn" title="Edits made in the editor that are not saved as a version yet">
+                  unsaved edits
+                </Pill>
+              )}
               {s.tags.topics.map((t) => (
                 <span
                   key={t}
@@ -629,6 +707,9 @@ export default function ScenarioLibraryPage() {
                 onSelect={() => downloadJson(`${s.id}.json`, JSON.stringify(s, null, 2))}
               >
                 Export JSON
+              </MenuItem>
+              <MenuItem icon="copy" onSelect={() => duplicate(s)}>
+                Duplicate
               </MenuItem>
               {collections.map((c) => (
                 <MenuItem
@@ -667,6 +748,7 @@ export default function ScenarioLibraryPage() {
                     }).then((ok) => {
                       if (!ok) return;
                       deleteCustomScenario(s.id);
+                      clearDraft(s.id);
                       refresh();
                       toast('Case deleted', 'success');
                     });

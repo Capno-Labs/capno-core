@@ -67,9 +67,15 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "baselineVitals": {
     "hr": 0-300, "sbp": n, "dbp": n (dbp must be at least 20 below sbp; 0/0 only for cardiac arrest), "spo2": 0-100, "etco2": n, "rr": n,
     "temp": 25-45 (Celsius), "depth": 0-100, "agentEt": %, "agentFi": %,
-    "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole",
-    "capnoShape"?: "normal|bronchospasm|curare_cleft",   // capnograph morphology; default normal
-    "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy"   // PVC coupling rate (pvc rhythm only); default occasional
+    "rhythm": "sinus|sinus_brady|sinus_tach|pvc|pac|afib|svt|vtach|vfib|pea|asystole|av_block_1|av_block_mobitz1|av_block_mobitz2|av_block_3|junctional|aflutter|torsades|paced|idioventricular",
+    "pulseless"?: true,   // no pulse despite an organized rhythm (PEA, pulseless VT); omit when the patient has a pulse
+    "vent"?: { "fio2"?: 0-100, "pip"?: 0-80, "pplat"?: 0-60, "peep"?: 0-25, "vt"?: 0-1500 },   // anesthesia-machine readings (%, cmH2O, cmH2O, cmH2O, mL). Present (even as {}) = the monitor shows machine tiles; omitted fields take defaults for the patient. Omit entirely for a case with no ventilator
+    "agent"?: "sevoflurane|isoflurane|desflurane",   // volatile agent; default sevoflurane
+    "nmb"?: { "tofCount"?: 0-4, "tofRatio"?: 0-100, "ptc"?: 0-15 },   // neuromuscular block as a twitch monitor finds it: train-of-four count, ratio in % (read only at count 4), post-tetanic count (read only at count 0). Present (even as {}) = a twitch monitor is attached; fields left out = no block. Omit unless the case is about neuromuscular block or its reversal
+    "capnoShape"?: "normal|bronchospasm|curare_cleft|cardiogenic|leak|esophageal",   // capnograph morphology; default normal. esophageal makes the measured EtCO2 read under 10 mmHg and die away within six breaths
+    "fico2"?: 0-30,   // inspired CO2 in mmHg (the capnogram baseline); above 0 = rebreathing; omit when 0
+    "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",   // PVC coupling rate (pvc rhythm only); default occasional
+    "ecg"?: { "stMm"?: -5..5, "stV5Mm"?: -5..5, "tWave"?: "normal|peaked|flat|inverted", "qrs"?: "normal|wide", "qt"?: "normal|long" }   // ECG complex morphology; omit entirely for a normal ECG. stMm = ST level in lead II, stV5Mm = in lead V5 (needs monitoring.v5): negative = ST depression, positive = elevation
   },
   "phases": [{ "id": "...", "label": "...", "description"?: "...", "targetDurationSec"?: n }],   // ordered phases of care, at least 1; target = optional pacing budget in seconds
   "events": [{
@@ -78,7 +84,12 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
     "autoAtSec"?: n,               // ONLY for scripted deterioration; omit for faculty-triggered responses
     "actionIds"?: ["<existing expectedActions ids this event embodies or responds to>"],
     "effects": [{ "vitals"?: { partial numeric vitals }, "rhythm"?: "...",
-                  "capnoShape"?: "normal|bronchospasm|curare_cleft", "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",
+                  "capnoShape"?: "normal|bronchospasm|curare_cleft|cardiogenic|leak|esophageal", "fico2"?: 0-30, "pvcFrequency"?: "rare|occasional|trigeminy|bigeminy",
+                  "ecg"?: { "stMm"?: -5..5, "stV5Mm"?: -5..5, "tWave"?: "...", "qrs"?: "...", "qt"?: "..." },   // only the fields listed change; stMm ramps over overSec. Set it only when the source states the ECG change.
+                  "vent"?: { "fio2"?: n, "pip"?: n, "pplat"?: n, "peep"?: n, "vt"?: n },   // machine reading targets; only the fields listed change, each ramps over overSec
+                  "agent"?: "sevoflurane|isoflurane|desflurane",
+                  "nmb"?: { "tofCount"?: n, "tofRatio"?: n, "ptc"?: n },   // block targets; only the fields listed change, each ramps over overSec. Set them only from values the source states
+                  "pulseless"?: true|false,   // take the pulse away or give it back, whatever the rhythm (PEA = organized rhythm + pulseless true; pulseless VT = vtach + pulseless true). vfib, torsades, asystole and "pea" never have a pulse.
                   "overSec"?: rampSeconds, "afterSec"?: delaySeconds }]
   }],
   "expectedActions": [{ "id": "...", "label": "...", "description"?: "...",
@@ -90,7 +101,7 @@ const SCHEMA_REFERENCE = `Scenario JSON structure (all fields required unless ma
   "rubric": [{ "id": "...", "label": "...", "actionIds": ["<existing expectedAction ids>"] }],
   "estimatedMinutes": n,
   "targetDurationSec"?: n,           // optional hard time budget for a scheduled lab slot (pacing display)
-  "monitoring"?: { "artLine"?: bool, "nibpIntervalSec"?: 15-1800 }   // absent = NIBP cuff every 180 s
+  "monitoring"?: { "artLine"?: bool, "nibpIntervalSec"?: 15-1800, "v5"?: bool, "alarmProfile"?: "adult|pediatric|neonatal", "alarmLimits"?: { "hr|sbp|spo2|etco2|rr|temp|paw|mv|fio2"?: { "critLow"?: n|null, "warnLow"?: n|null, "warnHigh"?: n|null, "critHigh"?: n|null } }, "alarmsOff"?: ["hr|sbp|spo2|etco2|rr|temp|paw|mv|fio2"] }   // absent = NIBP cuff every 180 s, lead II only; v5 adds a second ECG trace alarmProfile = the monitor's patient category (default adult; set pediatric or neonatal for a child so normal vitals do not alarm). alarmLimits changes single limits of that profile (null = off); set them only when the source states limits. The machine's alarms use paw (airway pressure, cmH2O: critLow = apnea pressure, critHigh), mv (minute volume, L/min: warnLow, warnHigh) and fio2 (%: critLow only). alarmsOff = vitals whose alarms start switched off (only when the case is about an alarm found disabled)
 }`;
 
 const GENERATOR_RULES = `You author training scenarios for Capno, an anesthesia patient-simulator (manikin) teaching tool. This is simulation authoring for education — no real patient exists. Output ONLY one JSON document matching the structure below. No prose, no markdown fences.

@@ -1,6 +1,6 @@
 {
   "id": "malignant-hyperthermia",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Malignant Hyperthermia",
   "summary": "A 19-year-old male undergoing general anesthesia with sevoflurane and succinylcholine for tibial ORIF develops rising end-tidal CO2, tachycardia, rigidity, and hyperthermia. Learners must recognize fulminant malignant hyperthermia, discontinue triggering agents, and treat with dantrolene and supportive measures.",
   "tags": {
@@ -345,14 +345,14 @@
     {
       "id": "charcoal-filters",
       "label": "Apply activated charcoal filters",
-      "description": "Places activated charcoal filters on inspiratory and expiratory limbs (or changes machine/circuit if unavailable) to scrub residual volatile agent.",
+      "description": "Places activated charcoal filters on inspiratory and expiratory limbs to scrub residual volatile agent; does not spend time changing the circuit or machine.",
       "phase": "treatment",
       "critical": false,
       "points": 6
     },
     {
       "id": "active-cooling",
-      "label": "Begin active cooling for temp above 38.5",
+      "label": "Begin active cooling for temp above 39, or sooner if rising rapidly",
       "description": "Starts cold IV saline, surface cooling with ice to axillae/groin/neck, and exposes the patient; plans to stop cooling at 38 degrees C.",
       "phase": "treatment",
       "critical": false,
@@ -361,7 +361,7 @@
     {
       "id": "treat-hyperkalemia",
       "label": "Treat hyperkalemia",
-      "description": "Gives IV calcium (chloride 10 mg/kg or gluconate 30 mg/kg), regular insulin 10 units with dextrose 50 g, and sodium bicarbonate for the acidosis; anticipates dysrhythmias.",
+      "description": "Gives IV calcium (chloride 10 mg/kg or gluconate 30 mg/kg), regular insulin 10 units with 50 mL of 50% dextrose, and sodium bicarbonate for the acidosis; anticipates dysrhythmias.",
       "phase": "treatment",
       "critical": true,
       "points": 15
@@ -423,11 +423,11 @@
     "Hyperventilate with 100% oxygen at fresh gas flows of 10 L/min or more, increasing minute ventilation 2-3 times normal; apply activated charcoal filters to the circuit.",
     "Administer dantrolene 2.5 mg/kg IV as a rapid push, delegating reconstitution (20 mg vials in 60 mL sterile water each, or a 250 mg nanocrystalline formulation); repeat every 5-10 minutes to effect, up to about 10 mg/kg.",
     "Treat hyperkalemia aggressively with IV calcium, insulin with dextrose, and bicarbonate; treat ventricular dysrhythmias with standard ACLS drugs (amiodarone, lidocaine) and never with calcium channel blockers.",
-    "Begin active cooling for core temperature above 38.5-39 degrees C with cold IV saline and surface cooling, stopping at 38 to avoid hypothermic overshoot.",
+    "Begin active cooling for core temperature above 39 degrees C (or lower if it is rising rapidly) with cold IV saline and surface cooling, stopping at 38 to avoid hypothermic overshoot.",
     "Place an arterial line and urinary catheter; send ABG, potassium, CK, lactate, coagulation studies, and urine myoglobin; maintain urine output above 1-2 mL/kg/h to protect against myoglobinuric renal injury.",
     "Ask the surgical team to abort or rapidly conclude the operation.",
     "Call the MHAUS hotline (1-800-644-9737) for expert support and report the case to the North American MH Registry.",
-    "Admit to the ICU for at least 24 hours with continued dantrolene (about 1 mg/kg every 4-6 hours) and monitoring for recrudescence (occurs in roughly a quarter of cases) and for DIC.",
+    "Admit to the ICU for at least 24 hours with continued dantrolene (about 1 mg/kg every 4-6 hours) and monitoring for recrudescence (occurs in about 20% of cases) and for DIC.",
     "Counsel the patient and family on MH susceptibility, document the event prominently, and refer for contracture or RYR1/CACNA1S genetic testing."
   ],
   "commonErrors": [

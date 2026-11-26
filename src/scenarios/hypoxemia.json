@@ -1,6 +1,6 @@
 {
   "id": "hypoxemia",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Unexplained Intraoperative Hypoxemia",
   "summary": "A 54-year-old woman under general anesthesia for a laparoscopic hysterectomy desaturates after the abdomen is insufflated and she is placed in steep Trendelenburg. Learners must run the systematic hypoxemia drill — 100% oxygen and hand ventilation, exclude the machine and circuit, work through the tube and lung differential — and discover that pneumoperitoneum and head-down positioning have migrated the endotracheal tube into the right mainstem bronchus, then correct it and re-expand the collapsed lung.",
   "tags": {
@@ -21,7 +21,7 @@
     "OR mid-case for a laparoscopic hysterectomy: general endotracheal anesthesia, mechanical ventilation, abdomen about to be insufflated and the table about to go steep head-down.",
     "The ETT was taped at 21 cm at the lip after an uncomplicated intubation with initially equal breath sounds — set this up so the depth is 'correct' before positioning.",
     "Labeled props: a suction catheter for the ETT, a stethoscope, a self-inflating (Ambu) bag with a separate E-cylinder, and an oxygen analyzer readout the faculty can quote.",
-    "The simulated monitor does not display airway pressure — faculty should report peak inspiratory pressure ('rising to 34 cmH2O') and breath sounds ('absent on the left, present on the right') when learners auscultate.",
+    "The monitor shows airway pressure, tidal volume and inspired oxygen, and they change with the events: peak and plateau pressure both climb (peak to 34 cmH2O) as the tube migrates, and inspired oxygen reads 100% once the team turns it up. Breath sounds are not simulated — report 'absent on the left, present on the right' when learners auscultate.",
     "Confederate surgeon who can confirm the insufflation pressure and Trendelenburg angle and can desufflate or level the table when asked.",
     "Preop note: BMI 34, otherwise healthy; no cardiopulmonary disease — the point is that the cause is mechanical, not the patient."
   ],
@@ -64,7 +64,8 @@
     "depth": 50,
     "agentEt": 0.9,
     "agentFi": 2.0,
-    "rhythm": "sinus"
+    "rhythm": "sinus",
+    "vent": {}
   },
   "phases": [
     { "id": "stable", "label": "Stable Maintenance", "description": "Uncomplicated laparoscopic case before positioning; equal breath sounds, SpO2 99%." },
@@ -81,7 +82,7 @@
       "description": "The abdomen is insufflated to 15 mmHg and the table goes steep head-down. The diaphragm and carina move cephalad toward the fixed tube tip; peak pressures rise a little and compliance falls.",
       "category": "surgical",
       "effects": [
-        { "vitals": { "etco2": 38, "hr": 80 }, "overSec": 60 }
+        { "vitals": { "etco2": 38, "hr": 80 }, "vent": { "pip": 24, "pplat": 23 }, "overSec": 60 }
       ],
       "autoAtSec": 120,
       "phaseHint": "positioning"
@@ -89,10 +90,10 @@
     {
       "id": "gradual-desaturation",
       "label": "Gradual unexplained desaturation",
-      "description": "SpO2 drifts from 99% into the low 90s over a couple of minutes with the ETT now in the right mainstem — the left lung is no longer ventilated. Faculty: 'peak pressure up to 34 cmH2O.' EtCO2 rises as dead space and shunt grow.",
+      "description": "SpO2 drifts from 99% into the low 90s over a couple of minutes with the ETT now in the right mainstem — the left lung is no longer ventilated. Peak pressure climbs to 34 cmH2O on the monitor, the plateau with it. EtCO2 rises as dead space and shunt grow.",
       "category": "physiology",
       "effects": [
-        { "vitals": { "spo2": 91, "etco2": 44, "hr": 88 }, "overSec": 150 }
+        { "vitals": { "spo2": 91, "etco2": 44, "hr": 88 }, "vent": { "pip": 34, "pplat": 30 }, "overSec": 150 }
       ],
       "autoAtSec": 240,
       "phaseHint": "desaturation"
@@ -114,7 +115,7 @@
       "category": "drug",
       "actionIds": ["increase-fio2", "hand-ventilate"],
       "effects": [
-        { "vitals": { "spo2": 90 }, "overSec": 45 }
+        { "vitals": { "spo2": 90 }, "vent": { "fio2": 100 }, "overSec": 45 }
       ],
       "phaseHint": "diagnosis"
     },
@@ -143,7 +144,7 @@
       "category": "airway",
       "actionIds": ["identify-mainstem", "withdraw-tube"],
       "effects": [
-        { "vitals": { "spo2": 95, "etco2": 39, "hr": 88 }, "overSec": 60 }
+        { "vitals": { "spo2": 95, "etco2": 39, "hr": 88 }, "vent": { "pip": 24, "pplat": 23 }, "overSec": 60 }
       ],
       "phaseHint": "treatment"
     },
@@ -154,7 +155,7 @@
       "category": "equipment",
       "actionIds": ["recruit-lung"],
       "effects": [
-        { "vitals": { "spo2": 98, "etco2": 36, "hr": 80, "sbp": 124 }, "overSec": 90 }
+        { "vitals": { "spo2": 98, "etco2": 36, "hr": 80, "sbp": 124 }, "vent": { "pip": 18, "pplat": 16 }, "overSec": 90 }
       ],
       "phaseHint": "treatment"
     },
@@ -165,7 +166,7 @@
       "category": "resolution",
       "actionIds": ["prevent-recurrence"],
       "effects": [
-        { "vitals": { "spo2": 99, "etco2": 35, "hr": 74, "sbp": 122, "dbp": 70, "rr": 12, "agentFi": 2.0 }, "rhythm": "sinus", "overSec": 180 }
+        { "vitals": { "spo2": 99, "etco2": 35, "hr": 74, "sbp": 122, "dbp": 70, "rr": 12, "agentFi": 2.0 }, "rhythm": "sinus", "vent": { "pip": 18, "pplat": 16, "fio2": 50 }, "overSec": 180 }
       ],
       "phaseHint": "resolution"
     }

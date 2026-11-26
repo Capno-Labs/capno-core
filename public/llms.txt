@@ -1,7 +1,7 @@
 # CAPNO Studio
 
 > Open-source anesthesia simulation lab that runs in a browser: a
-> faculty-controlled patient monitor, scenario engine, and structured scored
+> faculty-controlled patient monitor, scenario engine, and structured
 > debriefing for anesthesia education. Offline-first PWA, Apache-2.0 core by
 > Capno Labs LLC. For simulation and education only — not a medical device,
 > never for clinical use.
@@ -12,7 +12,7 @@ Key facts:
 - Students join with a 4-character session code — no accounts, no installs.
 - Works fully offline by default (same-device sync via BroadcastChannel); an optional Supabase backend enables realtime cross-device sync and institution accounts.
 - Twelve reviewed starter scenarios plus a form-based scenario editor with a live JSON pane, validation, version history, and import/export.
-- Every session ends in a scored, printable debrief with a timeline, vitals trends, and action assessment.
+- Every session ends in a debrief walkthrough: full-screen cards faculty click through with the room, in the order of the PEARLS debriefing framework. Behind it is a printable written record with the timeline, key turning points, action assessment, and faculty notes. There is no score.
 - Optional AI assistance (scenario drafting, sim co-pilot) is bring-your-own-key; unconfigured, there are zero AI features and zero network calls.
 - This repository is the complete, self-hostable simulator. Capno Labs' hosted deployment runs at https://studio.capno.app; self-hosted instances run on their own domains.
 
@@ -28,4 +28,4 @@ Key facts:
 ## Links
 
 - [Source code](https://github.com/Capno-Labs/capno-core): Apache-2.0
-- [Product site](https://capno.app): hosted product, pricing, FAQ
+- [Product site](https://capno.app): hosted product, FAQ

@@ -2,19 +2,19 @@
 
 [![CI](https://github.com/Capno-Labs/capno-core/actions/workflows/ci.yml/badge.svg)](https://github.com/Capno-Labs/capno-core/actions/workflows/ci.yml)
 
-CAPNO Studio is an open, installable web app for running realistic anesthesia scenarios in a simulation lab. Faculty drive a simulated patient monitor in real time — vitals, rhythms, and prebuilt clinical events — while students follow on a full-screen OR-style **student monitor** on a projector, wall display, or iPad. Scenarios come from the built-in **case library and editor**, and every session ends in a structured, printable **debrief report** with a timeline, action assessment, scoring rubric, and suggested debrief questions.
+CAPNO Studio is an open, installable web app for running realistic anesthesia scenarios in a simulation lab. Faculty drive a simulated patient monitor in real time — vitals, rhythms, and prebuilt clinical events — while students follow on a full-screen OR-style **student monitor** on a projector, wall display, or iPad. Scenarios come from the built-in **case library and editor**, and every session ends in a **debrief walkthrough** — full-screen cards in PEARLS order, built from the case and what was marked — with a printable record behind it.
 
 > ⚠️ **For simulation and education only. Not a medical device. Never use for clinical care.**
 
 ## Highlights
 
-- 🎛️ **Faculty controller** — start/pause/reset, live sliders for HR, BP, SpO₂, EtCO₂, RR, temperature, anesthetic depth and agent, rhythm selection, phase-of-care stepper, and timestamped notes. A **Flow panel** drives the case: every event as a one-tap card in narrative order with its linked learner actions (done / delayed / missed / incorrect) right underneath, and the next unfired event highlighted. Scripted deteriorations are manual by default — a toggle restores the authored auto-fire timeline with live countdowns.
+- 🎛️ **Faculty controller** — start/pause/reset, live sliders for HR, BP, SpO₂, EtCO₂, RR, temperature, anesthetic depth and agent, rhythm selection, phase-of-care stepper, and timestamped notes. The controller fits the window — the monitor preview, the next event and your notes stay on screen while each zone scrolls on its own. A **Flow panel** drives the case: events in narrative order with their linked learner actions (observed / delayed / incorrect / missed), the next unfired event as the large card, upcoming events one tap away, and finished events collecting under a single Done line so what's in play stays at the top. Scripted deteriorations are manual by default — a toggle restores the authored auto-fire timeline with live countdowns.
 - 🫀 **Student monitor** — sweep-style ECG, plethysmograph and capnograph waveforms rendered on canvas, numeric tiles with trend arrows, and conventional alarm limits with warning/critical states. Optional monitor audio (Web Audio, no deps): per-beat pulse tone whose pitch falls with SpO₂, plus a critical-alarm tone that respects faculty silencing. NIBP behaves like a real cuff — readings update on a cycle interval (with on-demand "cycle now"), and BP alarms judge the last *measured* value; scenarios can opt into an arterial line for continuous pressure.
 - 🧠 **Scenario engine** — a framework-free, tick-driven state machine with linear vital ramps, delayed/automatic events, phases, expected actions, and scoring. Fully unit-tested.
 - 📚 **Starter library** — twelve polished scenarios organized as a curriculum modeled on how leading programs structure simulation training (see [docs/curriculum.md](docs/curriculum.md)): post-induction hypotension (hemodynamics), laryngospasm after LMA and cannot-intubate-cannot-oxygenate (airway), severe bronchospasm and unexplained hypoxemia (respiratory), unstable bradycardia→asystole and myocardial ischemia (cardiac), postpartum hemorrhage (hemorrhage/obstetric), venous air embolism (embolic), intraoperative anaphylaxis (hypersensitivity), LAST after a peripheral nerve block (toxicity), and malignant hyperthermia (temperature/metabolic). Each includes objectives, setup, patient background, progression, triggers, correct management, common errors, a debrief guide, and a rubric.
 - ✏️ **Scenario editor** — form-based editing of everything including phases, events with vital effects, expected actions, and the grading rubric, plus a live JSON pane for power users, zod validation, import/export of scenario files, version history, and tags by topic/difficulty/training level.
 - 🗂 **Collections** — build a library that matches your syllabus: named, ordered collections of built-in and custom scenarios ("CA-1 fall block", "oral boards prep") shown as the library's primary sections, with one-file bundle export/import that carries a collection and its custom scenarios between machines.
-- 📋 **Debrief & assessment** — timeline of everything that happened, a vitals trend strip (10-second samples with event markers — "SpO₂ began falling here, the team responded here"), actions taken vs. missed critical actions, category scores, faculty notes, suggested questions, and one-click PDF export. Action statuses can be amended post-hoc with automatic rescoring — marking reliably mid-crisis is unrealistic — and learner names can be added to the printed report. Faculty can also skip uneventful scenario time (+1/+5 min). Session archives export/import as JSON for backup or moving between machines.
+- 📋 **Debrief** — **Start debrief** opens a full-screen walkthrough faculty click through with the room, one card at a time, in the order of the PEARLS debriefing framework: setting the scene, reactions, what happened (the key moments from the log), analysis (what went well and what to change, one card per critical action that was missed or delayed, the case's own discussion questions and teaching points), and take-aways, which are saved to the record. Facilitator cues stay hidden until asked for. Behind it is the written record — timeline, turning points, actions taken vs. missed critical actions, faculty notes, the debrief guide — with one-click PDF export. No score and no vitals graph: the debrief is a conversation about the case, not a grade ([sources](docs/curriculum.md#debrief-structure-sources)). Action statuses can be amended post-hoc — marking reliably mid-crisis is unrealistic — and learner names can be added to the printed report. Faculty can also skip uneventful scenario time (+1/+5 min). Session archives export/import as JSON for backup or moving between machines.
 - 📱 **PWA** — installable on iPad/laptop, offline-capable: bundled scenarios and previously-visited views work with no connectivity.
 - 🔌 **Realtime sync** — works with zero configuration on one device (controller window + student window/projector), with a join timeout, a stale-connection watchdog on the student display, and a Local/Cloud sync-health indicator. Add Supabase for cross-device sync (iPad controller → projector PC).
 - 🏫 **Institutional layer (optional)** — with Supabase configured, faculty sign in at `/account` (email/password); custom scenarios and session debriefs then sync to institution-wide storage through an offline-first outbox (local saves always succeed; pushes queue and drain when online). Synced scenarios carry a review state (draft / review / published); faculty **Approve & publish** a saved version from the editor, sessions pin to the approved version, and editing a published scenario returns it to draft. The debrief page gains a read-only institution archive across devices.
@@ -32,7 +32,7 @@ Typical lab flow:
 1. Open **Faculty Controller** → pick a scenario → **Run**. Note the 4-character session code.
 2. On the projector/student device, open **Student Display** and enter the code.
 3. **Start** the scenario. Drive vitals with the sliders, fire events, mark learner actions, add notes.
-4. **End session** → the debrief report opens. **Export PDF** uses the browser print dialog.
+4. **End session** → the session record opens. **Start debrief** walks the room through it card by card; **Export PDF** uses the browser print dialog.
 
 With no backend configured, the student display must be a second window/tab of the same browser on the same machine (BroadcastChannel transport) — which covers the common "laptop + projector" lab setup. For separate devices, configure Supabase (below).
 
@@ -54,7 +54,8 @@ Copy `.env.example` to `.env.local`. Everything is optional:
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Enables cross-device realtime sync (Supabase Realtime broadcast), institution sign-in at `/account`, and cloud persistence of custom scenarios and session debriefs for faculty accounts. Run `db/schema.sql` in your Supabase project and enable the Email auth provider (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)). Existing projects apply `db/migrations/` in order; builds with scenario approval require `0004_scenario_review.sql`. |
 | `NEXT_PUBLIC_FACULTY_PIN` | Advisory PIN gate on faculty views for shared lab machines. Not a security boundary (it is a public client value) — use Supabase auth + RLS for real access control. Signed-in faculty/admin accounts bypass the PIN. |
-| `NEXT_PUBLIC_SITE_URL` | Public origin of this deployment (e.g. `https://capno.your-school.edu`). Enables absolute URLs in Open Graph share metadata, robots.txt, and sitemap.xml. Purely cosmetic for discoverability — offline labs can ignore it. |
+| `NEXT_PUBLIC_SITE_URL` | Public origin of this deployment (e.g. `https://capno.your-school.edu`). Enables absolute URLs in Open Graph share metadata, canonical links, robots.txt, and sitemap.xml. Purely cosmetic for discoverability — offline labs can ignore it. |
+| `ROBOTS_NOINDEX` | Set to `1` to keep the whole deployment out of search engines (every response carries `X-Robots-Tag: noindex, nofollow`; no sitemap). Use it for staging, demo, and private lab instances that are reachable from the internet. Unset, only the home page is indexable — the tool views (`/student`, `/scenarios`, `/editor`, `/debrief`, `/faculty`, `/account`, `/settings`) are always `noindex`. Read at build time. |
 
 ### Optional AI assistance (bring your own key)
 
@@ -102,7 +103,7 @@ src/
       supabase.ts    #   Supabase Realtime broadcast (cross-device, optional)
     store/           # zustand stores
       controllerStore.ts  # faculty side: owns the engine, ticks, broadcasts snapshots
-      studentStore.ts     # student side: read-only snapshot mirror + liveness watchdog
+      studentStore.ts     # student side: snapshot mirror + liveness watchdog + alarm-setup requests
       sessionArchive.ts   # completed sessions in localStorage (debrief input)
       sessionExport.ts    # JSON export/import of session archives
     cloud/           # optional Supabase layer (auth, offline-first outbox,
@@ -112,7 +113,7 @@ src/
   components/
     monitor/         # waveform canvas, vital tiles, alarms, full monitor
     controller/      # session, vitals, events, actions, phases, notes, log panels
-    debrief/         # printable report
+    debrief/         # card-by-card walkthrough + printable record
     editor/          # scenario editor
   app/               # Next.js routes: /, /student, /scenarios, /faculty/run/[id],
                      # /debrief, /debrief/[id], /debrief/cloud/[id], /editor, /account
@@ -122,7 +123,7 @@ public/sw.js         # offline service worker
 
 ### Key design decisions
 
-- **The faculty controller is authoritative.** The engine runs only on the faculty device; student displays are dumb mirrors of broadcast snapshots. Full-state replication (a few KB, twice a second) makes late joins, refreshes, and dropped messages self-healing — a display is always correct within one tick.
+- **The faculty controller is authoritative.** The engine runs only on the faculty device; student displays are mirrors of broadcast snapshots, and the only thing one can send back is a request to operate the monitor's alarm setup, which the controller validates and applies. Full-state replication (a few KB, twice a second) makes late joins, refreshes, and dropped messages self-healing — a display is always correct within one tick.
 - **Realtime is an adapter, not a dependency.** `SyncChannel` has two implementations: BroadcastChannel (free, offline, same device) and Supabase Realtime broadcast (cross-device). A WebSocket server adapter can be added without touching UI code.
 - **Scenarios are data.** Plain JSON validated by one zod schema shared by the registry, the editor, and file import. Built-ins are statically bundled — which is what makes them available offline with zero fetches.
 - **PDF export is the browser's print engine.** The debrief report has dedicated print CSS; "Export PDF" opens the native dialog. Zero heavy dependencies, works offline, and produces clean, paginated documents.
@@ -164,7 +165,6 @@ npm test           # vitest unit tests (engine, scoring, schema + scenario valid
 npm run typecheck  # tsc --noEmit
 npm run lint       # next lint (ESLint)
 npm run build      # production build
-npm run icons      # regenerate PWA icons (scripts/gen-icons.mjs, no deps)
 ```
 
 ## Deployment

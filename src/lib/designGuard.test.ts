@@ -37,7 +37,7 @@ function offenders(pattern: RegExp, skip: (file: string) => boolean = () => fals
 }
 
 describe('palette rules', () => {
-  it('uses no amber or blue utility classes (amber is the mark + EtCO2 only; UI accent is brand, caution is warn)', () => {
+  it('uses no amber or blue utility classes (amber is EtCO2 only; UI accent is brand, caution is warn)', () => {
     // `amber` / `blue` carry no DEFAULT in tailwind.config.ts, so these
     // classes would render as nothing. vital-etco2 is the sanctioned amber.
     const retired =

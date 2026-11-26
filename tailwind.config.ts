@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 // Semantic theme colors route through the CSS variables in globals.css
 // (dark default, [data-theme='light'] override). RGB-triple vars keep
@@ -37,8 +38,11 @@ const config: Config = {
         'on-brand': '#ffffff',
         'on-brand-hover': v('on-brand-hover'),
         focus: v('focus'),
+        // The logo's colour on the app surface: white in the dark theme,
+        // cobalt in the light one (docs/brand.md). On blue posters use white.
+        logo: v('logo'),
         // Caution states (orange). Amber is deliberately NOT a UI colour: it
-        // is reserved for the logo mark and EtCO2 (`vital-etco2`). The guard
+        // is reserved for EtCO2 (`vital-etco2`). The guard
         // in src/lib/designGuard.test.ts fails on any `*-amber` class, because
         // with no DEFAULT here a stray `bg-amber` would compile to nothing.
         warn: { DEFAULT: v('warn'), strong: v('warn-strong'), soft: v('warn-soft') },
@@ -119,6 +123,11 @@ const config: Config = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.35' },
         },
+        // One twitch of a train-of-four: the bar jumps up from the baseline.
+        twitch: {
+          '0%': { transform: 'scaleY(0)' },
+          '100%': { transform: 'scaleY(1)' },
+        },
         'char-pop': {
           '0%': { transform: 'scale(0.7)', opacity: '0' },
           '60%': { transform: 'scale(1.12)', opacity: '1' },
@@ -142,10 +151,6 @@ const config: Config = {
           '60%': { opacity: '1' },
           '100%': { opacity: '0', visibility: 'hidden' },
         },
-        'bar-grow': {
-          '0%': { transform: 'scaleX(0)' },
-          '100%': { transform: 'scaleX(1)' },
-        },
         'pop-in': {
           '0%': { transform: 'scale(0.9)', opacity: '0' },
           '70%': { transform: 'scale(1.04)', opacity: '1' },
@@ -163,18 +168,36 @@ const config: Config = {
       },
       animation: {
         'alarm-flash': 'alarm-flash 1s ease-in-out infinite',
+        twitch: 'twitch 120ms ease-out backwards',
         'char-pop': 'char-pop 180ms ease-out',
         shake: 'shake 350ms ease-in-out',
         'crt-line': 'crt-line 450ms ease-out both',
         'crt-fade': 'crt-fade 450ms ease-in 750ms both',
-        'bar-grow': 'bar-grow 600ms ease-out both',
         'pop-in': 'pop-in 400ms ease-out both',
         'event-fire': 'event-fire 350ms ease-out',
         'poster-rise': 'poster-rise 380ms cubic-bezier(0.215, 0.61, 0.355, 1) both',
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Viewport-fit cockpit (the live controller only). When the window has
+    // room, the run page stops scrolling and each zone scrolls on its own, so
+    // the monitor preview and the next event never leave the screen. `fit3`
+    // is the three-zone `desk` layout, `fit2` the two-column layout (it needs
+    // more height: the monitor and the vitals share a column); `fit` is
+    // either. Anything smaller — short windows, 10–11" iPads, phones — and
+    // print keep ordinary page scroll. These sort BEFORE the screen variants:
+    // to override `md:`/`desk:` on the same element, stack them
+    // (`desk:fit3:self-stretch`).
+    plugin(({ addVariant }) => {
+      const three = 'screen and (min-width: 1440px) and (min-height: 700px)';
+      const two =
+        'screen and (min-width: 1024px) and (max-width: 1439.98px) and (min-height: 900px)';
+      addVariant('fit', `@media ${three}, ${two}`);
+      addVariant('fit2', `@media ${two}`);
+      addVariant('fit3', `@media ${three}`);
+    }),
+  ],
 };
 
 export default config;

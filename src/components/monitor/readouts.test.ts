@@ -1,0 +1,169 @@
+import { describe, expect, it } from 'vitest';
+import type { AlarmState } from '@/lib/engine/types';
+import { formatStMm } from '@/lib/engine/types';
+import {
+  alarmDismissed,
+  cuffReadingFailed,
+  displayAlarms,
+  oximeterHasSignal,
+  stIsMeasurable,
+  limitsText,
+  TOF_PULSE_INTERVAL_MS,
+  twitchHeights,
+} from './readouts';
+
+const alarm = (vital: AlarmState['vital'], message: string, level: AlarmState['level'] = 'critical'): AlarmState => ({
+  vital,
+  level,
+  message,
+});
+
+describe('lost-signal readouts', () => {
+  it('loses the oximeter signal whenever there is no pulse', () => {
+    for (const rhythm of ['vfib', 'pea', 'asystole', 'torsades'] as const) {
+      expect(oximeterHasSignal({ rhythm })).toBe(false);
+    }
+    for (const rhythm of ['sinus', 'afib', 'pvc', 'svt', 'vtach', 'paced', 'av_block_3'] as const) {
+      expect(oximeterHasSignal({ rhythm })).toBe(true);
+      // PEA / pulseless VT: an organized rhythm with the pulse taken away.
+      expect(oximeterHasSignal({ rhythm, pulseless: true })).toBe(false);
+    }
+  });
+
+  it('treats a cuff cycle below the measurable range as a failed reading', () => {
+    expect(cuffReadingFailed({ sbp: 0, dbp: 0, atSec: 60 })).toBe(true);
+    // The oscillometric range starts at 30 mmHg systolic.
+    expect(cuffReadingFailed({ sbp: 29, dbp: 9, atSec: 60 })).toBe(true);
+    expect(cuffReadingFailed({ sbp: 30, dbp: 10, atSec: 60 })).toBe(false);
+    expect(cuffReadingFailed({ sbp: 62, dbp: 34, atSec: 60 })).toBe(false);
+    expect(cuffReadingFailed(null)).toBe(false); // arterial line: no cuff at all
+  });
+
+  it('names the lost signal in the banner and leaves everything else alone', () => {
+    const alarms = [
+      alarm('rhythm', 'RHYTHM: VFIB'),
+      alarm('spo2', 'SpO₂ LOW 0'),
+      alarm('sbp', 'SBP LOW 0'),
+      alarm('etco2', 'EtCO₂ LOW 10'),
+    ];
+    const shown = displayAlarms(alarms, { rhythm: 'vfib' }, { sbp: 0, dbp: 0, atSec: 60 });
+    expect(shown.map((a) => a.message)).toEqual([
+      'RHYTHM: VFIB',
+      'SpO₂ NO PULSE',
+      'NIBP NO READING',
+      'EtCO₂ LOW 10',
+    ]);
+    expect(shown.map((a) => a.level)).toEqual(alarms.map((a) => a.level));
+    expect(shown.map((a) => a.vital)).toEqual(alarms.map((a) => a.vital));
+    // The engine's alarm objects are not mutated.
+    expect(alarms[1].message).toBe('SpO₂ LOW 0');
+  });
+
+  it('quotes the numbers as usual while there is a signal', () => {
+    const alarms = [alarm('spo2', 'SpO₂ LOW 84'), alarm('sbp', 'SBP LOW 62')];
+    expect(displayAlarms(alarms, { rhythm: 'sinus_tach' }, { sbp: 62, dbp: 34, atSec: 60 })).toEqual(alarms);
+    // Arterial line in a perfusing rhythm: nothing to relabel either.
+    expect(displayAlarms(alarms, { rhythm: 'afib' }, null)).toEqual(alarms);
+  });
+
+  it('keeps a low arterial-line pressure as a number even in arrest', () => {
+    const alarms = [alarm('sbp', 'SBP LOW 0')];
+    expect(displayAlarms(alarms, { rhythm: 'asystole' }, null)).toEqual(alarms);
+  });
+
+  it('reads an ST level only where there are complexes to measure it on', () => {
+    for (const rhythm of ['sinus', 'sinus_brady', 'sinus_tach', 'pvc', 'pac', 'afib', 'svt'] as const) {
+      expect(stIsMeasurable(rhythm)).toBe(true);
+    }
+    for (const rhythm of ['vtach', 'vfib', 'pea', 'asystole'] as const) {
+      expect(stIsMeasurable(rhythm)).toBe(false);
+    }
+  });
+
+  it('prints the ST level signed, to one decimal', () => {
+    expect(formatStMm(0)).toBe('0.0');
+    expect(formatStMm(-2)).toBe('−2.0');
+    expect(formatStMm(1.5)).toBe('+1.5');
+    expect(formatStMm(-0.04)).toBe('0.0'); // no "−0.0" while ramping through zero
+    expect(formatStMm(0.26)).toBe('+0.3');
+  });
+});
+
+describe('twitch bars', () => {
+  it('stimulates at 2 Hz', () => {
+    expect(1000 / TOF_PULSE_INTERVAL_MS).toBe(2);
+  });
+
+  it('draws four equal twitches with no block', () => {
+    expect(twitchHeights({ count: 4, ratio: 100 })).toEqual([1, 1, 1, 1]);
+  });
+
+  it('slopes from the first twitch down to the ratio', () => {
+    const h = twitchHeights({ count: 4, ratio: 40 });
+    expect(h[0]).toBe(1);
+    expect(h[3]).toBeCloseTo(0.4);
+    // Fade runs down the train: each twitch no taller than the one before.
+    expect(h[1]).toBeLessThan(h[0]);
+    expect(h[2]).toBeLessThan(h[1]);
+    expect(h[3]).toBeLessThan(h[2]);
+  });
+
+  it('loses the fourth twitch first, then the third, the second and the first', () => {
+    const present = (count: number) => twitchHeights({ count, ratio: null }).map((h) => h > 0);
+    expect(present(3)).toEqual([true, true, true, false]);
+    expect(present(2)).toEqual([true, true, false, false]);
+    expect(present(1)).toEqual([true, false, false, false]);
+    expect(present(0)).toEqual([false, false, false, false]);
+  });
+
+  it('does not jump as the fourth twitch returns', () => {
+    const three = twitchHeights({ count: 3, ratio: null });
+    const four = twitchHeights({ count: 4, ratio: 0 });
+    three.forEach((h, i) => expect(four[i]).toBeCloseTo(h));
+  });
+});
+
+describe('silenced alarms on the display', () => {
+  const cuffReading = { sbp: 80, dbp: 50, atSec: 60 };
+  const sbp = (acknowledged?: boolean): AlarmState => ({ ...alarm('sbp', 'SBP low 80', 'warning'), acknowledged });
+
+  it('drops a silenced cuff-pressure alarm until the next reading', () => {
+    expect(alarmDismissed(sbp(true), cuffReading)).toBe(true);
+    expect(displayAlarms([sbp(true)], { rhythm: 'sinus' }, cuffReading)).toEqual([]);
+  });
+
+  it('keeps it while it has not been silenced, and always on an arterial line', () => {
+    expect(alarmDismissed(sbp(), cuffReading)).toBe(false);
+    expect(alarmDismissed(sbp(true), null)).toBe(false);
+  });
+
+  it('keeps other silenced alarms listed', () => {
+    const hr: AlarmState = { ...alarm('hr', 'HR HIGH 150'), acknowledged: true };
+    expect(alarmDismissed(hr, cuffReading)).toBe(false);
+    expect(displayAlarms([hr], { rhythm: 'sinus' }, cuffReading)).toEqual([hr]);
+  });
+});
+
+describe('alarm limits beside the numbers', () => {
+  it('prints the warning limits, or the one that exists', () => {
+    expect(limitsText({ warnLow: 50, warnHigh: 110, critLow: 40, critHigh: 140 })).toBe('50–110');
+    expect(limitsText({ warnLow: 92, critLow: 85 })).toBe('min 92');
+    expect(limitsText({ warnHigh: 38, critHigh: 39.5 })).toBe('max 38');
+  });
+
+  it('prints a machine reading\'s own limits, whatever band they sit in', () => {
+    expect(limitsText({ critLow: 8, critHigh: 40 }, 'paw')).toBe('8–40');
+    expect(limitsText({ warnLow: 3, warnHigh: 12 }, 'mv')).toBe('3–12');
+    expect(limitsText({ critLow: 20 }, 'fio2')).toBe('min 20');
+    expect(limitsText({ critHigh: 40 }, 'paw')).toBe('max 40');
+    expect(limitsText({}, 'fio2')).toBeUndefined();
+    // A vital named explicitly reads as it does by default.
+    expect(limitsText({ warnLow: 50, warnHigh: 110, critLow: 40 }, 'hr')).toBe('50–110');
+  });
+
+  it('prints nothing when there are no warning limits or no limits were sent', () => {
+    expect(limitsText({ critHigh: 39.5 })).toBeUndefined();
+    expect(limitsText({})).toBeUndefined();
+    expect(limitsText(undefined)).toBeUndefined();
+  });
+});

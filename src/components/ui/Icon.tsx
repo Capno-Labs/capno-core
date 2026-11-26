@@ -20,6 +20,8 @@ const PATHS = {
   pause: <path d="M8 5v14M16 5v14" />,
   stop: <rect x="6" y="6" width="12" height="12" rx="1.5" />,
   reset: <path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5" />,
+  undo: <path d="M9 5 4 10l5 5M4 10h10a5 5 0 0 1 0 10h-3" />,
+  redo: <path d="M15 5l5 5-5 5M20 10H10a5 5 0 0 0 0 10h3" />,
   debrief: (
     <>
       <rect x="5" y="4" width="14" height="17" rx="2" />
@@ -57,6 +59,8 @@ const PATHS = {
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   'arrow-right': <path d="M5 12h14M13 6l6 6-6 6" />,
   'chevron-down': <path d="M6 9l6 6 6-6" />,
+  'arrow-up': <path d="M12 19V5M6 11l6-6 6 6" />,
+  'arrow-down': <path d="M12 5v14M6 13l6 6 6-6" />,
   external: <path d="M14 5h5v5M19 5l-8 8M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5" />,
   upload: <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />,
   download: <path d="M12 4v12M7 11l5 5 5-5M5 20h14" />,

@@ -11,4 +11,13 @@ export const DISPLAY_COPY = {
   studentJoin: ['Join a', 'session.'],
   notFound: ['Page not', 'found.'],
   error: ['Something', 'went wrong.'],
+  // Debrief walkthrough card headlines (src/lib/debrief/deckCopy.ts).
+  debriefScene: ['Debrief.'],
+  debriefReactions: ['How are you', 'feeling?'],
+  debriefDescription: ['What', 'happened?'],
+  debriefPlus: ['What went', 'well?'],
+  debriefDelta: ['What would', 'you change?'],
+  debriefOutstanding: ['Anything', 'outstanding?'],
+  debriefTakeaways: ['Take-aways.'],
+  debriefEnd: ['Debrief', 'complete.'],
 } as const satisfies Record<string, readonly string[]>;

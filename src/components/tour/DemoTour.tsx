@@ -9,6 +9,25 @@ const CARD_H_ESTIMATE = 220;
 const GAP = 12;
 
 /**
+ * The part of `el` that is actually on screen: its box clipped by every
+ * scrolling or clipping ancestor. The cockpit's rails live inside scroll
+ * boxes, so an anchor's own rect can run past what the user can see.
+ */
+function visibleRect(el: Element): DOMRect {
+  let { top, left, right, bottom } = el.getBoundingClientRect();
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const style = getComputedStyle(p);
+    if (style.overflowX === 'visible' && style.overflowY === 'visible') continue;
+    const r = p.getBoundingClientRect();
+    top = Math.max(top, r.top);
+    left = Math.max(left, r.left);
+    right = Math.min(right, r.right);
+    bottom = Math.min(bottom, r.bottom);
+  }
+  return new DOMRect(left, top, Math.max(0, right - left), Math.max(0, bottom - top));
+}
+
+/**
  * Hand-rolled coach marks for the guided demo (no tour library — invariant
  * 6). The page stays fully interactive: no backdrop, and the highlight ring
  * is pointer-events-none. Closing by any route (Finish, Skip, Esc) persists
@@ -41,7 +60,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
     let raf = 0;
     const measure = () => {
       raf = 0;
-      setRect(el.getBoundingClientRect());
+      setRect(visibleRect(el));
     };
     measure();
     const onMove = () => {
@@ -77,22 +96,34 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
   const back = () => setIdx((i) => Math.max(0, i - 1));
 
   // Below `sm` the card is a bottom sheet; anchored cards sit under their
-  // target (flipped above when there's no room), clamped to the viewport.
+  // target (flipped above when there's no room), clamped to the viewport. An
+  // anchor with room neither below nor above — a cockpit rail that runs the
+  // height of the viewport — gets the card beside it instead.
   const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
   let cardClass = 'fixed z-50';
   let cardStyle: CSSProperties | undefined;
   if (narrow) {
     cardClass += ' inset-x-0 bottom-0 rounded-t-xl';
   } else if (rect) {
-    const flip = rect.bottom + GAP + CARD_H_ESTIMATE > window.innerHeight;
+    const roomBelow = rect.bottom + GAP + CARD_H_ESTIMATE <= window.innerHeight;
+    const roomAbove = rect.top - GAP - CARD_H_ESTIMATE >= 0;
     cardClass += ' rounded-xl';
-    cardStyle = {
-      width: CARD_W,
-      left: Math.max(GAP, Math.min(rect.left, window.innerWidth - CARD_W - GAP)),
-      ...(flip
-        ? { bottom: Math.max(GAP, window.innerHeight - rect.top + GAP) }
-        : { top: rect.bottom + GAP }),
-    };
+    if (roomBelow || roomAbove) {
+      cardStyle = {
+        width: CARD_W,
+        left: Math.max(GAP, Math.min(rect.left, window.innerWidth - CARD_W - GAP)),
+        ...(roomBelow
+          ? { top: rect.bottom + GAP }
+          : { bottom: Math.max(GAP, window.innerHeight - rect.top + GAP) }),
+      };
+    } else {
+      const fitsRight = rect.right + GAP + CARD_W + GAP <= window.innerWidth;
+      cardStyle = {
+        width: CARD_W,
+        left: fitsRight ? rect.right + GAP : Math.max(GAP, rect.left - GAP - CARD_W),
+        top: Math.max(GAP, Math.min(rect.top + GAP, window.innerHeight - CARD_H_ESTIMATE - GAP)),
+      };
+    }
   } else {
     cardClass += ' left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl';
     cardStyle = { width: CARD_W, maxWidth: 'calc(100vw - 24px)' };
@@ -117,6 +148,7 @@ export function DemoTour({ onClose }: { onClose: () => void }) {
         aria-label={`Demo tour: ${step.title}`}
         tabIndex={-1}
         className={`${cardClass} border border-brand/30 bg-panel p-4 shadow-2xl outline-none`}
+        style={cardStyle}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === 'ArrowRight') {
             e.preventDefault();

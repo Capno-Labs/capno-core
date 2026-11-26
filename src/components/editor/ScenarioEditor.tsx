@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GeneratePanel } from '@/components/editor/GeneratePanel';
 import { useAuthStore } from '@/lib/cloud/authStore';
@@ -22,40 +22,62 @@ import { validateScenario, parseScenario } from '@/lib/engine/schema';
 import type { Scenario } from '@/lib/engine/types';
 import { DEFAULT_VITALS } from '@/lib/engine/vitals';
 import { AI_GENERATED_TAG, type GenerateResult } from '@/lib/llm/generator';
-import { useBeforeUnload } from '@/lib/hooks/useBeforeUnload';
+import { useLeaveGuard } from '@/lib/hooks/useBeforeUnload';
+import { getScenario, listAllScenarios } from '@/lib/scenarios';
 import {
   getVersionHistory,
   saveCustomScenario,
   type ScenarioVersion,
 } from '@/lib/scenarios/customStore';
+import { clearDraft, saveDraft } from '@/lib/scenarios/draftStore';
+import {
+  amendPresent,
+  canRedo,
+  canUndo,
+  createHistory,
+  pushEdit,
+  redo as redoEdit,
+  undo as undoEdit,
+} from '@/lib/scenarios/editHistory';
+import { NEW_SCENARIO_ID, scenarioIdFromTitle } from '@/lib/scenarios/scenarioId';
+import { confirmDialog } from '@/lib/store/dialogStore';
 import { toast } from '@/lib/store/toastStore';
 import { DraftPreviewCard } from './DraftPreviewCard';
 import { EditorRail, type SectionIssueCounts } from './EditorRail';
 import { JsonPanel } from './JsonPanel';
-import { SECTIONS, sectionOfIssue, sectionOfPath, type SectionId, type SectionMeta } from './sections';
-import { AssessmentSection } from './sections/AssessmentSection';
-import { OverviewSection } from './sections/OverviewSection';
+import { SECTIONS, sectionOfHash, sectionOfIssue, sectionOfPath, type SectionId } from './sections';
+import { BasicsSection } from './sections/BasicsSection';
+import { DebriefSection } from './sections/DebriefSection';
 import { PatientSection } from './sections/PatientSection';
-import { TeachingSection } from './sections/TeachingSection';
-import { TimelineSection } from './sections/TimelineSection';
-import { VitalsSection } from './sections/VitalsSection';
+import { ProgressionSection, noFreshIds } from './sections/ProgressionSection';
+import { ReviewExtras } from './sections/ReviewExtras';
+import { StartSection } from './sections/StartSection';
 
 /**
  * Faculty case editor.
  *
  * The form is the primary authoring surface: the scenario document is split
- * into instructor-facing sections (Overview → Patient → Vitals → Timeline →
- * Assessment → Teaching) behind a navigation rail with per-section
+ * into instructor-facing sections (Basics → Patient → Starting state → Progression →
+ * Debrief → Review & publish; see sections.ts) behind a navigation rail with per-section
  * validation badges, and the form covers the entire schema. Raw JSON is an
  * opt-in advanced surface (the toolbar's "Edit JSON" toggle) that *replaces*
  * the form while open — the two never edit the document at the same time,
  * and JSON text becomes the source of truth only after "Apply JSON",
  * validated with the same zod schema used at runtime.
+ *
+ * Three layers of "saved", in order of permanence:
+ *  - undo history: this visit only (toolbar, Cmd/Ctrl+Z);
+ *  - the working draft: every edit, written to this device a moment later
+ *    (draftStore.ts) and restored on the next visit;
+ *  - versions: "Save version" — what the library, sessions and the cloud see.
  */
 
-function blankScenario(): Scenario {
+/** Delay before an edit is written to the working draft. */
+const DRAFT_DEBOUNCE_MS = 400;
+
+export function blankScenario(): Scenario {
   return {
-    id: 'my-new-scenario',
+    id: NEW_SCENARIO_ID,
     version: '1.0.0',
     title: 'New scenario',
     summary: 'Describe the scenario in one or two sentences.',
@@ -89,18 +111,45 @@ function blankScenario(): Scenario {
   };
 }
 
-const RAIL_IDS: SectionId[] = [...SECTIONS.map((s) => s.id), 'history'];
-
 const STATUS_TONE: Record<CloudScenarioStatus, PillTone> = {
   draft: 'neutral',
   review: 'warn',
   published: 'green',
 };
 
-export function ScenarioEditor({ initial }: { initial?: Scenario }) {
+export interface ScenarioEditorProps {
+  /** Document to open; omitted for a blank new case. */
+  initial?: Scenario;
+  /** Where this document's working draft is kept (draftStore.ts). */
+  draftKey: string;
+  /** The id this document is saved under; null until its first save. */
+  savedId: string | null;
+  /** Set when `initial` is a restored draft: when it was written, and what
+   *  "Discard" goes back to (the saved case, or the template it started from). */
+  restored?: { savedAtIso: string; baseline?: Scenario };
+  /** The document was saved under `id` (first save, or a changed ID). */
+  onSavedAs?: (id: string) => void;
+}
+
+export function ScenarioEditor({
+  initial,
+  draftKey: initialDraftKey,
+  savedId: initialSavedId,
+  restored,
+  onSavedAs,
+}: ScenarioEditorProps) {
   const router = useRouter();
-  const [scenario, setScenario] = useState<Scenario>(initial ?? blankScenario());
-  const [formDirty, setFormDirty] = useState(false);
+  const [edits, setEdits] = useState(() => createHistory<Scenario>(initial ?? blankScenario()));
+  const scenario = edits.present;
+  /** Edits since the last saved version (a restored draft starts dirty). */
+  const [formDirty, setFormDirty] = useState(Boolean(restored));
+  const [savedId, setSavedId] = useState<string | null>(initialSavedId);
+  const draftKey = useRef(initialDraftKey);
+  /** Phase, event and action ids created since the last save (see ProgressionSection). */
+  const freshIds = useRef(noFreshIds());
+  /** False once a draft write has failed — then leaving really loses work. */
+  const [draftStored, setDraftStored] = useState(true);
+  const [restoredNotice, setRestoredNotice] = useState(restored ?? null);
   /** Pathless/transient errors (save failures, bad imports, cloud drops).
    *  Schema errors with a field path surface on their owning section instead. */
   const [errors, setErrors] = useState<string[]>([]);
@@ -116,7 +165,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   const canApprove = cloudEligible();
   const fileInput = useRef<HTMLInputElement | null>(null);
 
-  const [activeSection, setActiveSection] = useState<SectionId>('overview');
+  const [activeSection, setActiveSection] = useState<SectionId>('basics');
 
   // Advanced JSON surface. Text is regenerated from the scenario each time
   // the panel opens, so the form never has to keep it in sync per keystroke.
@@ -129,12 +178,52 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
   const [draftError, setDraftError] = useState<{ errors: string[]; rawText: string } | null>(null);
   const [undoScenario, setUndoScenario] = useState<Scenario | null>(null);
 
-  // Unsaved content (form edits or unapplied JSON) → warn before leaving.
-  useBeforeUnload(formDirty || jsonDirty);
+  // Form edits are safe in the working draft; only what is NOT in it needs a
+  // warning before leaving: unapplied JSON text, or a draft that failed to store.
+  useLeaveGuard(jsonDirty || (formDirty && !draftStored), {
+    title: 'Leave without saving?',
+    body: jsonDirty
+      ? 'Your JSON edits have not been applied and will be lost.'
+      : 'This device could not store your draft, so unsaved changes will be lost. Save a version or export the JSON first.',
+    confirmLabel: 'Leave',
+    cancelLabel: 'Stay',
+    tone: 'danger',
+  });
+
+  // Working draft: written shortly after each edit, and at once when the
+  // editor closes or the tab is hidden (iPads rarely fire unload).
+  const pendingDraft = useRef<Scenario | null>(null);
+  // A restored draft is already stored; rewriting it would only reset its time.
+  const alreadyStored = useRef<Scenario | null>(restored ? scenario : null);
+  const flushDraft = useCallback(() => {
+    if (!pendingDraft.current) return;
+    const ok = saveDraft(draftKey.current, pendingDraft.current);
+    pendingDraft.current = null;
+    setDraftStored(ok);
+  }, []);
+  useEffect(() => {
+    if (!formDirty || scenario === alreadyStored.current) return;
+    alreadyStored.current = null;
+    pendingDraft.current = scenario;
+    const timer = window.setTimeout(flushDraft, DRAFT_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [scenario, formDirty, flushDraft]);
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flushDraft();
+    };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', flushDraft);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', flushDraft);
+      flushDraft();
+    };
+  }, [flushDraft]);
 
   useEffect(() => {
-    setHistory(getVersionHistory(scenario.id));
-  }, [scenario.id, savedAt]);
+    setHistory(savedId ? getVersionHistory(savedId) : []);
+  }, [savedId, savedAt]);
 
   // Review state: what the last sync remembered, refreshed from the cloud for
   // saved scenarios when a faculty account is available (one small select;
@@ -158,26 +247,40 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
 
   // Deep links / reloads restore the section from the URL hash.
   useEffect(() => {
-    const h = window.location.hash.replace('#', '');
-    if ((RAIL_IDS as string[]).includes(h)) setActiveSection(h as SectionId);
+    const section = sectionOfHash(window.location.hash);
+    if (section) setActiveSection(section);
   }, []);
 
   const update = (patch: Partial<Scenario>) => {
     // Only reachable from the form surface — the JSON panel replaces it, so
     // the two can never race for the document.
-    setScenario({ ...scenario, ...patch });
+    const now = Date.now();
+    setEdits((h) => pushEdit(h, { ...h.present, ...patch }, now));
     setFormDirty(true);
     setErrors([]);
   };
 
-  /** Wholesale document replacement (Apply JSON, import, restore, AI load). */
+  /** Wholesale document replacement (Apply JSON, import, restore, AI load).
+   *  Always its own undo step. */
   const replaceScenario = (next: Scenario) => {
-    setScenario(next);
+    setEdits((h) => pushEdit(h, next, Date.now(), false));
     setFormDirty(true);
     setJsonText(JSON.stringify(next, null, 2));
     setJsonDirty(false);
     setErrors([]);
   };
+
+  const stepHistory = (step: typeof undoEdit) => {
+    // The JSON surface has its own text undo; the form's history waits.
+    if (jsonOpen) return;
+    // Functional update: "Undo" buttons inside toasts call this from an
+    // older render and must still act on the current history.
+    setEdits((h) => step(h));
+    setFormDirty(true);
+    setErrors([]);
+  };
+  const undo = () => stepHistory(undoEdit);
+  const redo = () => stepHistory(redoEdit);
 
   const selectSection = (id: SectionId) => {
     if (jsonDirty) {
@@ -223,12 +326,22 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
     }
   };
 
-  const save = () => {
+  /** Saves a version. Resolves to the id it was saved under, or null. */
+  const save = async (): Promise<string | null> => {
     if (jsonDirty) {
       toast('Apply or discard your JSON edits before saving', 'error');
-      return;
+      return null;
     }
-    const check = validateScenario(scenario);
+    // A never-saved case gets its own id from its title, so two new cases can
+    // never land on the same record.
+    const doc: Scenario =
+      savedId === null && scenario.id === NEW_SCENARIO_ID
+        ? {
+            ...scenario,
+            id: scenarioIdFromTitle(scenario.title, new Set(listAllScenarios().map((s) => s.id))),
+          }
+        : scenario;
+    const check = validateScenario(doc);
     if (!check.ok) {
       const sections = [
         ...new Set(check.errors.map(sectionOfIssue).filter((s): s is SectionId => s !== null)),
@@ -241,12 +354,48 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
         selectSection(sections[0]);
       }
       setErrors(check.errors.filter((e) => sectionOfIssue(e) === null));
-      return;
+      return null;
     }
-    const result = saveCustomScenario(scenario);
+    // A hand-typed ID that belongs to another case would add this document to
+    // that case's history — never do that silently.
+    if (doc.id === scenario.id && doc.id !== savedId) {
+      const other = getScenario(doc.id);
+      if (other) {
+        const ok = await confirmDialog({
+          title: `Save over “${other.title}”?`,
+          body: `The ID “${doc.id}” already belongs to that case. Saving here replaces it in your library with this one. To keep both, cancel and change the ID under Review & publish, Advanced.`,
+          confirmLabel: 'Save over it',
+          tone: 'danger',
+        });
+        if (!ok) return null;
+      }
+    }
+    const result = saveCustomScenario(doc);
     if (!result.ok) {
       setErrors([result.error]);
-      return;
+      return null;
+    }
+    if (doc.id !== scenario.id) {
+      // Every undo step carries the new id too — undoing must never bring the
+      // placeholder back and save the case under it.
+      const withId = (sc: Scenario): Scenario => ({ ...sc, id: doc.id });
+      setEdits((h) => ({
+        ...amendPresent(h, withId(h.present)),
+        past: h.past.map(withId),
+        future: h.future.map(withId),
+      }));
+    }
+    // The draft is now a version: drop it, and key later drafts by the id.
+    pendingDraft.current = null;
+    clearDraft(draftKey.current);
+    draftKey.current = doc.id;
+    setDraftStored(true);
+    setRestoredNotice(null);
+    // What was new is now saved: its ids stay as they are from here on.
+    freshIds.current = noFreshIds();
+    if (doc.id !== savedId) {
+      setSavedId(doc.id);
+      onSavedAs?.(doc.id);
     }
     setSavedAt(new Date().toLocaleTimeString());
     setFormDirty(false);
@@ -254,15 +403,32 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
     toast('Version saved', 'success');
     // Cloud is additive: local save already succeeded, push in the background.
     if (cloudEligible()) {
-      enqueue('scenario', scenario.id);
+      enqueue('scenario', doc.id);
       setCloudState('syncing');
-      const id = scenario.id;
+      const id = doc.id;
       void drain().then((r) => {
         if (r.dropped.length > 0) setErrors((prev) => [...prev, ...r.dropped]);
         setCloudState(getPushedAt('scenario', id) ? 'synced' : 'failed');
         setCloudStatus(getSyncMeta('scenario', id)?.cloudStatus ?? null);
       });
     }
+    return doc.id;
+  };
+
+  /** Test run always runs what is on screen: unsaved edits are saved first. */
+  const testRun = async () => {
+    const id = formDirty || savedId === null ? await save() : savedId;
+    if (id) router.push(`/faculty/run/${id}`);
+  };
+
+  /** Throw away the restored draft and return to the saved case. */
+  const discardRestored = () => {
+    replaceScenario(restoredNotice?.baseline ?? blankScenario());
+    pendingDraft.current = null;
+    clearDraft(draftKey.current);
+    setFormDirty(false);
+    setRestoredNotice(null);
+    toast('Unsaved changes discarded', 'info', { label: 'Undo', onClick: undo });
   };
 
   /**
@@ -320,6 +486,10 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
 
   const restoreVersion = (v: ScenarioVersion) => {
     replaceScenario(v.scenario);
+    toast(`Restored the version from ${new Date(v.savedAtIso).toLocaleString()}`, 'info', {
+      label: 'Undo',
+      onClick: undo,
+    });
   };
 
   /**
@@ -368,6 +538,29 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
     setDraftError(null);
   };
 
+  // Ctrl/⌘ S saves; Ctrl/⌘ Z and Shift+Z (or Ctrl Y) step the form's history.
+  // Modifier combos, so they work while a field has focus; a modal keeps them.
+  const keys = useRef({ save, undo, redo, jsonOpen, edits });
+  keys.current = { save, undo, redo, jsonOpen, edits };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.repeat) return;
+      if (document.querySelector('dialog[open]')) return;
+      const key = e.key.toLowerCase();
+      if (key === 's') {
+        e.preventDefault();
+        void keys.current.save();
+      } else if ((key === 'z' || key === 'y') && !keys.current.jsonOpen) {
+        e.preventDefault();
+        const forward = key === 'y' || e.shiftKey;
+        if (forward && canRedo(keys.current.edits)) keys.current.redo();
+        if (!forward && canUndo(keys.current.edits)) keys.current.undo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const validation = useMemo(() => validateScenario(scenario), [scenario]);
   // Lint runs even while the scenario has validation errors: the editor's
   // state is always a structurally complete Scenario, and a half-built event
@@ -409,35 +602,45 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
     return counts;
   }, [issues]);
 
-  const railSections: SectionMeta[] = [
-    ...SECTIONS,
-    { id: 'history', label: history.length > 0 ? `History (${history.length})` : 'History' },
-  ];
-
-  const activeIssues = issues.bySection.get(activeSection);
+  const sectionIssues = issues.bySection.get(activeSection);
+  // Progression shows each event's warnings on the event itself.
+  const activeIssues =
+    sectionIssues && activeSection === 'progression'
+      ? { ...sectionIssues, warnings: sectionIssues.warnings.filter((w) => !w.path.startsWith('events.')) }
+      : sectionIssues;
   const globalErrors = [...errors, ...issues.globalErrors];
 
   const renderSection = () => {
     switch (activeSection) {
-      case 'overview':
-        return <OverviewSection scenario={scenario} update={update} />;
+      case 'basics':
+        return <BasicsSection scenario={scenario} update={update} />;
       case 'patient':
         return <PatientSection scenario={scenario} update={update} />;
-      case 'vitals':
-        return <VitalsSection scenario={scenario} update={update} />;
-      case 'timeline':
-        return <TimelineSection scenario={scenario} update={update} warnings={warnings} />;
-      case 'assessment':
-        return <AssessmentSection scenario={scenario} update={update} />;
-      case 'teaching':
-        return <TeachingSection scenario={scenario} update={update} />;
-      case 'history':
+      case 'start':
+        return <StartSection scenario={scenario} update={update} />;
+      case 'progression':
+        return <ProgressionSection
+            scenario={scenario}
+            update={update}
+            warnings={warnings}
+            fresh={freshIds.current}
+          />;
+      case 'debrief':
+        return <DebriefSection scenario={scenario} update={update} />;
+      case 'review':
         return (
+          <div className="space-y-4">
+          <header>
+            <h2 className="text-xl font-bold tracking-tight text-ink">Review &amp; publish</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">
+              Saved versions, publishing, and the settings most cases never need.
+            </p>
+          </header>
           <section className="card">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
-                Version history ({scenario.id})
-              </h2>
+              <h3 className="text-sm font-bold text-ink">
+                Saved versions{history.length > 0 ? ` (${history.length})` : ''}
+              </h3>
               {cloudStatus && (
                 <Pill
                   tone={STATUS_TONE[cloudStatus]}
@@ -489,6 +692,8 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
               </ul>
             )}
           </section>
+          <ReviewExtras scenario={scenario} update={update} saved={savedId !== null} />
+          </div>
         );
     }
   };
@@ -500,7 +705,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
       <div className="sticky top-[var(--topbar-h)] z-20 -mx-4 flex flex-wrap items-center gap-2 border-b border-line bg-surface/95 px-4 py-2 backdrop-blur md:-mx-7 md:px-7">
         <button
           className="btn-primary"
-          onClick={save}
+          onClick={() => void save()}
           disabled={jsonDirty}
           title={jsonDirty ? 'Apply or discard your JSON edits first' : undefined}
         >
@@ -508,12 +713,38 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
         </button>
         <button
           className="btn-ghost"
-          onClick={() => router.push(`/faculty/run/${scenario.id}`)}
+          onClick={() => void testRun()}
           disabled={!validation.ok || jsonDirty}
-          title={validation.ok ? 'Save first to run the latest edits' : 'Fix validation errors first'}
+          title={
+            !validation.ok
+              ? 'Fix validation errors first'
+              : formDirty || savedId === null
+                ? 'Saves a version, then opens the run screen'
+                : 'Opens the run screen with this case'
+          }
         >
           <Icon name="play" size={16} /> Test run
         </button>
+        <span className="flex items-center">
+          <button
+            className="btn-ghost btn-icon"
+            onClick={undo}
+            disabled={jsonOpen || !canUndo(edits)}
+            aria-label="Undo"
+            title="Undo (Ctrl/⌘ Z)"
+          >
+            <Icon name="undo" size={16} />
+          </button>
+          <button
+            className="btn-ghost btn-icon"
+            onClick={redo}
+            disabled={jsonOpen || !canRedo(edits)}
+            aria-label="Redo"
+            title="Redo (Ctrl/⌘ Shift Z)"
+          >
+            <Icon name="redo" size={16} />
+          </button>
+        </span>
         <button className="btn-secondary" onClick={exportFile}>
           <Icon name="download" size={16} /> Export JSON
         </button>
@@ -539,7 +770,14 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
         >
           <Icon name="code" size={16} /> Edit JSON
         </button>
-        {savedAt && (
+        {formDirty && (
+          <span className={`text-xs ${draftStored ? 'text-muted' : 'text-warn-strong'}`} data-draft-status>
+            {draftStored
+              ? 'Unsaved changes — kept as a draft on this device'
+              : 'Unsaved changes — this device could not store a draft'}
+          </span>
+        )}
+        {!formDirty && savedAt && (
           <span className="text-xs text-green">
             Saved {savedAt}
             {cloudState === 'syncing' && <span className="text-muted"> · syncing…</span>}
@@ -558,6 +796,25 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
           </span>
         )}
       </div>
+
+      {restoredNotice && (
+        <Callout
+          tone="info"
+          title={`Picked up your unsaved changes from ${new Date(restoredNotice.savedAtIso).toLocaleString()}.`}
+          actions={
+            <>
+              <button className="btn-secondary btn-sm" onClick={discardRestored}>
+                Discard them
+              </button>
+              <button className="btn-ghost btn-sm" onClick={() => setRestoredNotice(null)}>
+                Keep editing
+              </button>
+            </>
+          }
+        >
+          They are not in the library until you save a version.
+        </Callout>
+      )}
 
       <GeneratePanel onResult={handleGenerated} />
 
@@ -632,7 +889,7 @@ export function ScenarioEditor({ initial }: { initial?: Scenario }) {
 
       <div className="desk:flex desk:items-start desk:gap-5">
         <EditorRail
-          sections={railSections}
+          sections={SECTIONS}
           active={activeSection}
           issueCounts={issueCounts}
           onSelect={selectSection}

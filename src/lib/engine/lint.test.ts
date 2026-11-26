@@ -70,6 +70,18 @@ describe('lintScenario', () => {
     }
   });
 
+  it('notes a patient under 18 left on the adult alarm limits, as info', () => {
+    const s = clone();
+    const finding = (sc: typeof s) => lintScenario(sc).find((w) => w.path === 'monitoring.alarmProfile');
+    expect(finding(s)).toBeUndefined(); // an adult
+    s.patient.age = 6;
+    expect(finding(s)).toMatchObject({ severity: 'info' });
+    // Choosing a profile, or setting limits by hand, is a decision: no note.
+    expect(finding({ ...s, monitoring: { alarmProfile: 'pediatric' } })).toBeUndefined();
+    expect(finding({ ...s, monitoring: { alarmProfile: 'adult' } })).toBeUndefined();
+    expect(finding({ ...s, monitoring: { alarmLimits: { hr: { warnHigh: 150 } } } })).toBeUndefined();
+  });
+
   it('notes topics without a curriculum domain as info', () => {
     const s = clone();
     s.tags.topics = ['general', 'my-custom-case'];

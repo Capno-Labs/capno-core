@@ -3,9 +3,11 @@
 import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { LogoTile } from '@/components/brand/LogoTile';
+import { BrandMark } from '@/components/brand/BrandMark';
 import { BootOverlay } from '@/components/monitor/BootOverlay';
 import { MonitorDisplay } from '@/components/monitor/MonitorDisplay';
+import { PreBrief } from '@/components/monitor/PreBrief';
+import { unlockMonitorAudio } from '@/components/monitor/monitorAudioContext';
 import { SyncHealthBadge } from '@/components/SyncHealthBadge';
 import { CodeInput } from '@/components/ui/CodeInput';
 import { Icon } from '@/components/ui/Icon';
@@ -19,7 +21,7 @@ import { useStudentStore } from '@/lib/store/studentStore';
  * A ?code=XXXX link (copied from the faculty controller) joins directly.
  */
 function StudentContent() {
-  const { sessionId, snapshot, phase, syncHealth, join, leave } = useStudentStore();
+  const { sessionId, snapshot, phase, syncHealth, join, leave, requestMonitor } = useStudentStore();
   const [code, setCode] = useState('');
   const search = useSearchParams();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -55,6 +57,9 @@ function StudentContent() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    // The Join click is the gesture browsers require before audio may play,
+    // so the monitor has its pulse tone and alarms from the first beat.
+    unlockMonitorAudio();
     join(code);
   };
 
@@ -62,7 +67,7 @@ function StudentContent() {
     return (
       <main className="surface-blue flex min-h-screen items-center justify-center px-6 py-10">
         <div className="relative w-full max-w-md">
-          <LogoTile size="lg" />
+          <BrandMark size="lg" tone="white" />
           <h1 className="display mt-6 text-[clamp(2.75rem,12vw,4.5rem)]">
             {DISPLAY_COPY.studentJoin.map((line, i) => (
               <span
@@ -106,7 +111,13 @@ function StudentContent() {
             Supabase realtime backend on both sides.
           </p>
           <div className="flex justify-center gap-2">
-            <button className="btn-primary" onClick={() => join(sessionId)}>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                unlockMonitorAudio();
+                join(sessionId);
+              }}
+            >
               Retry
             </button>
             <button className="btn-ghost" onClick={leave}>
@@ -132,7 +143,7 @@ function StudentContent() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <div className="motion-safe:animate-pulse">
-          <LogoTile size="lg" />
+          <BrandMark size="lg" />
         </div>
         <div className="flex gap-2" aria-hidden>
           {sessionId.split('').map((char, i) => (
@@ -191,8 +202,33 @@ function StudentContent() {
           <Icon name="fullscreen" size={16} />
         </button>
       )}
-      {!booted && <BootOverlay onDone={() => setBooted(true)} />}
-      <MonitorDisplay snapshot={snapshot} showRhythmLabel={false} />
+      {snapshot.status === 'idle' && snapshot.preBrief ? (
+        // Before the start: the patient's pre-op details, if faculty left
+        // them on. The monitor powers on (boot overlay) when the scenario runs.
+        <PreBrief brief={snapshot.preBrief} />
+      ) : (
+        <>
+          {!booted && <BootOverlay onDone={() => setBooted(true)} />}
+          <MonitorDisplay
+            snapshot={snapshot}
+            showRhythmLabel={false}
+            soundRole="display"
+            // Learners operate the alarms (setup and Silence) when faculty allow it. The
+            // display changes nothing itself: each press is a request, and
+            // the session's next snapshot shows the result.
+            alarmSetup={
+              snapshot.learnerAlarmSetup
+                ? {
+                    stepLimit: (vital, side, direction) =>
+                      requestMonitor({ kind: 'alarmLimitStep', vital, side, direction }),
+                    setOff: (vital, off) => requestMonitor({ kind: 'alarmOff', vital, off }),
+                    silence: () => requestMonitor({ kind: 'silence' }),
+                  }
+                : undefined
+            }
+          />
+        </>
+      )}
     </main>
   );
 }

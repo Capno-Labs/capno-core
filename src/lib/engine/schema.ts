@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import type { Scenario } from './types';
-import { MIN_PULSE_PRESSURE, maxDbpFor } from './vitals';
+import type { AlarmParam, NmbKey, VentKey } from './types';
+import { ALARM_PARAMS, FICO2_MAX, NMB_META, ST_MM_MAX, ST_MM_MIN, VENT_META } from './types';
+import { ALARM_PARAM_META, alarmLimitProblems, MIN_PULSE_PRESSURE, maxDbpFor, resolveAlarmLimits } from './vitals';
 
 /**
  * Zod schema mirroring the Scenario type. This is the single source of truth
@@ -21,11 +23,87 @@ const rhythmSchema = z.enum([
   'vfib',
   'pea',
   'asystole',
+  'av_block_1',
+  'av_block_mobitz1',
+  'av_block_mobitz2',
+  'av_block_3',
+  'junctional',
+  'aflutter',
+  'torsades',
+  'paced',
+  'idioventricular',
 ]);
 
-const capnoShapeSchema = z.enum(['normal', 'bronchospasm', 'curare_cleft']);
+const capnoShapeSchema = z.enum([
+  'normal',
+  'bronchospasm',
+  'curare_cleft',
+  'cardiogenic',
+  'leak',
+  'esophageal',
+]);
+
+const fico2Schema = z.number().min(0).max(FICO2_MAX);
+
+const ventRange = (key: VentKey) => z.number().min(VENT_META[key].min).max(VENT_META[key].max);
+const ventSchema = z
+  .object({
+    fio2: ventRange('fio2'),
+    pip: ventRange('pip'),
+    pplat: ventRange('pplat'),
+    peep: ventRange('peep'),
+    vt: ventRange('vt'),
+  })
+  .partial()
+  .strict();
+
+const nmbRange = (key: NmbKey) => z.number().min(NMB_META[key].min).max(NMB_META[key].max);
+const nmbSchema = z
+  .object({
+    tofCount: nmbRange('tofCount').int(),
+    tofRatio: nmbRange('tofRatio'),
+    ptc: nmbRange('ptc').int(),
+  })
+  .partial()
+  .strict();
+
+/** Alarm-limit changes for one vital or machine reading: each limit a number
+ *  in its range, or null to switch it off. */
+const alarmBandSchema = (param: AlarmParam) => {
+  const { min, max } = ALARM_PARAM_META[param];
+  const limit = z.number().min(min).max(max).nullable().optional();
+  return z.object({ critLow: limit, warnLow: limit, warnHigh: limit, critHigh: limit }).strict();
+};
+
+const alarmLimitsSchema = z
+  .object({
+    hr: alarmBandSchema('hr'),
+    sbp: alarmBandSchema('sbp'),
+    spo2: alarmBandSchema('spo2'),
+    etco2: alarmBandSchema('etco2'),
+    rr: alarmBandSchema('rr'),
+    temp: alarmBandSchema('temp'),
+    paw: alarmBandSchema('paw'),
+    mv: alarmBandSchema('mv'),
+    fio2: alarmBandSchema('fio2'),
+  })
+  .partial()
+  .strict();
+
+const agentSchema = z.enum(['sevoflurane', 'isoflurane', 'desflurane']);
 
 const pvcFrequencySchema = z.enum(['rare', 'occasional', 'trigeminy', 'bigeminy']);
+
+const ecgSchema = z
+  .object({
+    stMm: z.number().min(ST_MM_MIN).max(ST_MM_MAX),
+    stV5Mm: z.number().min(ST_MM_MIN).max(ST_MM_MAX),
+    tWave: z.enum(['normal', 'peaked', 'flat', 'inverted']),
+    qrs: z.enum(['normal', 'wide']),
+    qt: z.enum(['normal', 'long']),
+  })
+  .partial()
+  .strict();
 
 const numericVitalsPartial = z
   .object({
@@ -37,8 +115,8 @@ const numericVitalsPartial = z
     rr: z.number().min(0).max(80),
     temp: z.number().min(25).max(45),
     depth: z.number().min(0).max(100),
-    agentEt: z.number().min(0).max(10),
-    agentFi: z.number().min(0).max(10),
+    agentEt: z.number().min(0).max(18),
+    agentFi: z.number().min(0).max(18),
   })
   .partial();
 
@@ -54,7 +132,13 @@ const vitalsSchema = numericVitalsPartial
   .extend({
     rhythm: rhythmSchema,
     capnoShape: capnoShapeSchema.optional(),
+    fico2: fico2Schema.optional(),
     pvcFrequency: pvcFrequencySchema.optional(),
+    ecg: ecgSchema.optional(),
+    pulseless: z.boolean().optional(),
+    vent: ventSchema.optional(),
+    agent: agentSchema.optional(),
+    nmb: nmbSchema.optional(),
   })
   .refine(pulsePressureOk, { message: PULSE_PRESSURE_MSG, path: ['dbp'] });
 
@@ -68,7 +152,13 @@ export const vitalEffectSchema = z.object({
     .optional(),
   rhythm: rhythmSchema.optional(),
   capnoShape: capnoShapeSchema.optional(),
+  fico2: fico2Schema.optional(),
   pvcFrequency: pvcFrequencySchema.optional(),
+  ecg: ecgSchema.optional(),
+  pulseless: z.boolean().optional(),
+  vent: ventSchema.optional(),
+  agent: agentSchema.optional(),
+  nmb: nmbSchema.optional(),
   overSec: z.number().min(0).optional(),
   afterSec: z.number().min(0).optional(),
 });
@@ -196,10 +286,24 @@ export const scenarioSchema = z
       .object({
         artLine: z.boolean().optional(),
         nibpIntervalSec: z.number().min(15).max(1800).optional(),
+        v5: z.boolean().optional(),
+        alarmProfile: z.enum(['adult', 'pediatric', 'neonatal']).optional(),
+        alarmLimits: alarmLimitsSchema.optional(),
+        alarmsOff: z.array(z.enum(ALARM_PARAMS)).optional(),
       })
       .optional(),
   })
   .superRefine((s, ctx) => {
+    // Alarm limits must still make sense once laid over their profile.
+    if (s.monitoring?.alarmLimits) {
+      for (const problem of alarmLimitProblems(resolveAlarmLimits(s.monitoring))) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['monitoring', 'alarmLimits', problem.vital],
+          message: problem.message,
+        });
+      }
+    }
     // Referential integrity: rubric action ids and action phases must exist.
     const actionIds = new Set(s.expectedActions.map((a) => a.id));
     const phaseIds = new Set(s.phases.map((p) => p.id));

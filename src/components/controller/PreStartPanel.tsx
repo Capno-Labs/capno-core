@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { SyncHealthBadge } from '@/components/SyncHealthBadge';
 import { CopyJoinLinkButton, joinUrl } from '@/components/controller/JoinLink';
 import { cloudEligible } from '@/lib/cloud/outbox';
+import { ALARM_PROFILE_LABELS } from '@/lib/engine/types';
+import { ALARM_PARAM_META } from '@/lib/engine/vitals';
 import { useControllerStore } from '@/lib/store/controllerStore';
 
 /**
@@ -15,12 +17,15 @@ import { useControllerStore } from '@/lib/store/controllerStore';
  * scenario.
  */
 export function PreStartPanel() {
-  const { engine, snapshot, sessionCode, syncHealth } = useControllerStore();
+  const { engine, snapshot, sessionCode, syncHealth, setPreBrief } = useControllerStore();
   const [dismissed, setDismissed] = useState(false);
 
   if (!engine || !snapshot || dismissed || snapshot.status !== 'idle') return null;
 
   const scenario = engine.scenario;
+  // The pre-brief rides in the snapshot only while idle, which is the only
+  // time this panel shows — so its presence is the toggle's state.
+  const preBriefOn = Boolean(snapshot.preBrief);
   const crossDevice = syncHealth.some((h) => h.kind === 'supabase');
   const nibpMin = Math.round((scenario.monitoring?.nibpIntervalSec ?? 180) / 60);
   const actionCount = scenario.expectedActions.length;
@@ -39,7 +44,10 @@ export function PreStartPanel() {
       };
 
   return (
-    <section className="card space-y-3 ring-1 !ring-brand/30" data-tour="connect">
+    <section
+      className="card space-y-3 ring-1 !ring-brand/30 fit:max-h-[38dvh] fit:shrink-0 fit:overflow-y-auto"
+      data-tour="connect"
+    >
       <div className="flex items-start justify-between gap-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-brand-strong">
           Before you start
@@ -78,6 +86,22 @@ export function PreStartPanel() {
               ? 'Cross-device sync is on — displays can join from any device with the link or code.'
               : 'Displays join from this device or another tab of this browser. Joining from a different device needs the cloud realtime backend on both sides.'}
           </p>
+          <label className="flex cursor-pointer items-start gap-2 rounded-ctl bg-panel-2 p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-brand"
+              checked={preBriefOn}
+              onChange={(e) => setPreBrief(e.target.checked)}
+            />
+            <span>
+              <span className="font-semibold text-ink">Show the patient pre-brief until Start</span>
+              <span className="block text-xs text-faint">
+                {preBriefOn
+                  ? 'Displays now show the patient’s history, allergies, medications, airway exam and plan, exactly as written in the scenario — never its title or events. The monitor takes over when you start.'
+                  : 'Off: displays show the monitor on standby. Turn on to put the patient’s history, allergies, medications, airway exam and plan on the displays — check the Patient tab below first, since learners see it exactly as written.'}
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="space-y-2">
@@ -89,7 +113,17 @@ export function PreStartPanel() {
                 : `NIBP cuff every ${nibpMin} min — the monitor shows the last reading, not live pressure.`}
             </li>
             <li>
-              Alarms {snapshot.alarmsSilenced ? 'silenced' : 'on'} — toggle on the monitor preview.
+              Alarms {snapshot.alarmsSilenced ? 'paused' : 'on'} — toggle above the monitor preview.
+              {snapshot.alarmProfile && snapshot.alarmProfile !== 'adult'
+                ? ` ${ALARM_PROFILE_LABELS[snapshot.alarmProfile]} alarm limits.`
+                : ''}
+              {scenario.monitoring?.alarmLimits ? ' This case sets some limits of its own.' : ''}
+              {snapshot.learnerAlarmSetup
+                ? ' Learners can silence alarms, set limits and switch alarms off on their display.'
+                : ' Only you can change alarm limits.'}
+              {snapshot.alarmsOff && snapshot.alarmsOff.length > 0
+                ? ` Switched off: ${snapshot.alarmsOff.map((v) => ALARM_PARAM_META[v].label).join(', ')}.`
+                : ''}
             </li>
             <li>
               {actionCount} expected learner actions ({criticalCount} critical) — mark them in the

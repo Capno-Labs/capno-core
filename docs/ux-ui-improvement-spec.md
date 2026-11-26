@@ -325,8 +325,8 @@ Keep the dark clinical monitor aesthetic; make it more deliberate.
   hand-rolled, no icon-library dependency.
 - Improve spacing, hierarchy, and typography within the existing Tailwind
   setup.
-- PWA icon: icons are generated — change `scripts/gen-icons.mjs` and run
-  `npm run icons`; never hand-edit the PNGs. Verify the mark reads at
+- PWA icon: the icons are exports of the brand asset pack (`docs/brand.md`)
+  — replace them from the pack; never hand-edit the PNGs. Verify the mark reads at
   192 px and 512 px, and remember `public/sw.js` `VERSION` must be bumped
   if cached assets change.
 

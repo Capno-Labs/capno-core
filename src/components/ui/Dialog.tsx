@@ -17,6 +17,7 @@ export function Dialog({
   children,
   footer,
   variant = 'modal',
+  size = 'md',
 }: {
   open: boolean;
   onClose: () => void;
@@ -24,6 +25,8 @@ export function Dialog({
   children?: ReactNode;
   footer?: ReactNode;
   variant?: 'modal' | 'sheet';
+  /** `lg` for dialogs that hold a list to pick from. */
+  size?: 'md' | 'lg';
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -54,7 +57,9 @@ export function Dialog({
       className={`bg-transparent p-0 text-ink backdrop:bg-poster-ink/70 backdrop:backdrop-blur-sm ${
         variant === 'sheet'
           ? 'mx-0 mb-0 mt-auto w-full max-w-none'
-          : 'm-auto w-[min(92vw,30rem)]'
+          : size === 'lg'
+            ? 'm-auto w-[min(92vw,44rem)]'
+            : 'm-auto w-[min(92vw,30rem)]'
       }`}
     >
       {open && (

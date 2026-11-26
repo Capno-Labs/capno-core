@@ -92,7 +92,7 @@ const SYSTEM_PROMPT = `You translate an anesthesia instructor's natural-language
 
 Command shapes:
 {"type":"set_vital","key":"hr|sbp|dbp|spo2|etco2|rr|temp|depth|agentEt","target":<number>,"overSec":<seconds>}
-{"type":"set_rhythm","rhythm":"sinus|sinus_brady|sinus_tach|afib|svt|vtach|vfib|pea|asystole"}
+{"type":"set_rhythm","rhythm":"sinus|sinus_brady|sinus_tach|afib|svt|vtach|vfib|pea|asystole|av_block_1|av_block_mobitz1|av_block_mobitz2|av_block_3|junctional|aflutter|torsades|paced|idioventricular"}
 {"type":"trigger_event","eventId":"<id from CONTEXT.events>"}
 {"type":"set_phase","phaseId":"<id from CONTEXT.phases>"}
 {"type":"mark_action","actionId":"<id from CONTEXT.actions>","status":"done|delayed|missed|incorrect|pending"}

@@ -17,11 +17,10 @@ import { confirmDialog } from '@/lib/store/dialogStore';
 import { toast } from '@/lib/store/toastStore';
 import { mergeImported, parseSessionExport, serializeSessions } from '@/lib/store/sessionExport';
 
-type SortKey = 'date' | 'score' | 'duration';
+type SortKey = 'date' | 'duration';
 
 const SORTERS: Record<SortKey, (a: ArchivedSession, b: ArchivedSession) => number> = {
   date: (a, b) => b.endedAtIso.localeCompare(a.endedAtIso),
-  score: (a, b) => b.score.percent - a.score.percent,
   duration: (a, b) => b.snapshot.elapsedSec - a.snapshot.elapsedSec,
 };
 
@@ -90,7 +89,7 @@ export default function DebriefListPage() {
         <PageHead
           eyebrow="Debriefs"
           title="Debrief while it's fresh."
-          lede="Sessions are stored on this device. Open one for the full timeline, scores, and PDF export. Use JSON export to back up session history or move it to another machine."
+          lede="Sessions are stored on this device. Open one to walk the room through the debrief, check the record, or export a PDF. Use JSON export to back up session history or move it to another machine."
           actions={
             <>
               <Button
@@ -137,7 +136,7 @@ export default function DebriefListPage() {
           <EmptyState
             icon="debrief"
             title="No debriefs yet."
-            body="Run a case and end the session — the scored, printable debrief appears here."
+            body="Run a case and end the session — the debrief walkthrough and its printable record appear here."
             action={
               <Button variant="primary" href="/scenarios" arrow>
                 Open the case library
@@ -167,7 +166,6 @@ export default function DebriefListPage() {
               aria-label="Sort sessions"
             >
               <option value="date">Newest first</option>
-              <option value="score">Highest score</option>
               <option value="duration">Longest</option>
             </select>
           </div>
@@ -180,13 +178,12 @@ export default function DebriefListPage() {
                 <h2 className="font-bold">{s.scenario.title}</h2>
                 <p className="font-mono text-[11px] text-faint">
                   {new Date(s.endedAtIso).toLocaleString()} · session {s.sessionId} ·{' '}
-                  {Math.floor(s.snapshot.elapsedSec / 60)} min ·{' '}
-                  {s.score.possible > 0 ? `score ${s.score.percent}%` : 'faculty-scored'}
+                  {Math.floor(s.snapshot.elapsedSec / 60)} min
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="primary" href={`/debrief/${s.sessionId}`} arrow>
-                  Open report
+                  Open debrief
                 </Button>
                 <Menu label={`More actions for session ${s.sessionId}`}>
                   <MenuItem
@@ -241,8 +238,7 @@ export default function DebriefListPage() {
                   <div>
                     <h3 className="font-bold">{s.title}</h3>
                     <p className="text-xs text-faint">
-                      {s.endedAtIso ? new Date(s.endedAtIso).toLocaleString() : ''} ·{' '}
-                      {s.possible > 0 ? `score ${s.percent}%` : 'faculty-scored'}
+                      {s.endedAtIso ? new Date(s.endedAtIso).toLocaleString() : ''}
                       {s.learnerNames.length > 0 ? ` · ${s.learnerNames.join(', ')}` : ''}
                     </p>
                   </div>
@@ -251,7 +247,7 @@ export default function DebriefListPage() {
                     href={`/debrief/cloud/${encodeURIComponent(s.cloudId)}`}
                     arrow
                   >
-                    Open report
+                    Open debrief
                   </Button>
                 </li>
               ))}

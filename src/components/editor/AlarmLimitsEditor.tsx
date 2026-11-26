@@ -1,0 +1,221 @@
+'use client';
+
+import { useState } from 'react';
+import type {
+  AlarmBandKey,
+  AlarmLimitOverrides,
+  AlarmParam,
+  AlarmProfile,
+  MonitoringConfig,
+} from '@/lib/engine/types';
+import { ALARM_BAND_KEYS, ALARM_PARAMS, ALARM_PROFILE_LABELS, MACHINE_ALARM_PARAMS } from '@/lib/engine/types';
+import {
+  ALARM_PARAM_META,
+  ALARM_PROFILES,
+  ALARM_SET_KEYS,
+  alarmLimitProblems,
+  resolveAlarmLimits,
+} from '@/lib/engine/vitals';
+
+/**
+ * A vital has all four limits. A machine reading has one a side, in the
+ * column of its priority (airway pressure and inspired oxygen alarm as
+ * critical, minute volume as a warning): its other cells are not limits.
+ */
+function hasLimit(param: AlarmParam, key: AlarmBandKey): boolean {
+  if (!(MACHINE_ALARM_PARAMS as readonly string[]).includes(param)) return true;
+  return Object.values(ALARM_SET_KEYS[param]).includes(key);
+}
+
+const BAND_LABELS: Record<AlarmBandKey, string> = {
+  critLow: 'Critical low',
+  warnLow: 'Low',
+  warnHigh: 'High',
+  critHigh: 'Critical high',
+};
+
+/**
+ * One limit's box. It keeps what is being typed to itself and commits on
+ * leaving the box or Enter, so a half-typed "3" or "of" is not read as a
+ * limit.
+ */
+function LimitInput({
+  label,
+  value,
+  placeholder,
+  onCommit,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onCommit: (raw: string) => void;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  return (
+    <input
+      className="input w-20"
+      inputMode="decimal"
+      placeholder={placeholder}
+      value={text ?? value}
+      onFocus={() => setText(value)}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        if (text !== null && text !== value) onCommit(text);
+        setText(null);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+      }}
+      aria-label={label}
+    />
+  );
+}
+
+/**
+ * The monitor's alarm limits for a case: a patient category to start from,
+ * and any limits this case changes. An empty box keeps the profile's limit
+ * (shown as the placeholder), a number replaces it, and "off" switches that
+ * limit off. Only changes are written to the scenario.
+ */
+export function AlarmLimitsEditor({
+  monitoring,
+  onChange,
+}: {
+  monitoring: MonitoringConfig | undefined;
+  onChange: (patch: Pick<MonitoringConfig, 'alarmProfile' | 'alarmLimits' | 'alarmsOff'>) => void;
+}) {
+  const profile = monitoring?.alarmProfile ?? 'adult';
+  const overrides = monitoring?.alarmLimits;
+  const base = ALARM_PROFILES[profile];
+  const problems = alarmLimitProblems(resolveAlarmLimits(monitoring));
+
+  const setLimit = (vital: AlarmParam, key: AlarmBandKey, raw: string) => {
+    const text = raw.trim().toLowerCase();
+    const next: AlarmLimitOverrides = { ...overrides, [vital]: { ...overrides?.[vital] } };
+    const band = next[vital]!;
+    const n = Number(text);
+    if (text === 'off') band[key] = null;
+    else if (text === '' || !Number.isFinite(n)) delete band[key];
+    else band[key] = Math.min(ALARM_PARAM_META[vital].max, Math.max(ALARM_PARAM_META[vital].min, n));
+    if (Object.keys(band).length === 0) delete next[vital];
+    onChange({
+      alarmProfile: monitoring?.alarmProfile,
+      alarmLimits: Object.keys(next).length > 0 ? next : undefined,
+      alarmsOff: monitoring?.alarmsOff,
+    });
+  };
+
+  const alarmsOff = monitoring?.alarmsOff ?? [];
+  const setOff = (vital: AlarmParam, off: boolean) => {
+    const next = ALARM_PARAMS.filter((v) => (v === vital ? off : alarmsOff.includes(v)));
+    onChange({
+      alarmProfile: monitoring?.alarmProfile,
+      alarmLimits: overrides,
+      alarmsOff: next.length > 0 ? next : undefined,
+    });
+  };
+
+  const shown = (vital: AlarmParam, key: AlarmBandKey): string => {
+    const value = overrides?.[vital]?.[key];
+    return value === null ? 'off' : value === undefined ? '' : String(value);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <span className="label">Patient category</span>
+        <select
+          className="input w-auto"
+          value={profile}
+          onChange={(e) => {
+            const next = e.target.value as AlarmProfile;
+            // Adult, the default, is never stored.
+            onChange({
+              alarmProfile: next === 'adult' ? undefined : next,
+              alarmLimits: overrides,
+              alarmsOff: monitoring?.alarmsOff,
+            });
+          }}
+        >
+          {(Object.keys(ALARM_PROFILE_LABELS) as AlarmProfile[]).map((p) => (
+            <option key={p} value={p}>
+              {ALARM_PROFILE_LABELS[p]}
+              {p === 'adult' ? ' — default' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="text-sm">
+          <thead>
+            <tr className="text-left text-xs text-faint">
+              <th className="pr-3 font-normal">Reading</th>
+              {ALARM_BAND_KEYS.map((key) => (
+                <th key={key} className="pr-2 font-normal">
+                  {BAND_LABELS[key]}
+                </th>
+              ))}
+              <th className="pr-2 font-normal">Alarm</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ALARM_PARAMS.map((vital) => (
+              <tr key={vital}>
+                <td className="pr-3 text-ink-2">
+                  {ALARM_PARAM_META[vital].label}
+                  {ALARM_PARAM_META[vital].unit && (
+                    <span className="text-xs text-faint"> {ALARM_PARAM_META[vital].unit}</span>
+                  )}
+                </td>
+                {ALARM_BAND_KEYS.map((key) => (
+                  <td key={key} className="py-0.5 pr-2">
+                    {hasLimit(vital, key) ? (
+                      <LimitInput
+                        label={`${ALARM_PARAM_META[vital].label} ${BAND_LABELS[key].toLowerCase()} limit`}
+                        placeholder={base[vital][key] === undefined ? 'none' : String(base[vital][key])}
+                        value={shown(vital, key)}
+                        onCommit={(raw) => setLimit(vital, key, raw)}
+                      />
+                    ) : (
+                      <span className="block w-20 text-center text-faint" aria-hidden>
+                        —
+                      </span>
+                    )}
+                  </td>
+                ))}
+                <td className="py-0.5 pr-2">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-2">
+                    <input
+                      type="checkbox"
+                      checked={!alarmsOff.includes(vital)}
+                      onChange={(e) => setOff(vital, !e.target.checked)}
+                      aria-label={`${ALARM_PARAM_META[vital].label} alarms on`}
+                    />
+                    {alarmsOff.includes(vital) ? 'off' : 'on'}
+                  </label>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {problems.length > 0 && (
+        <ul className="space-y-0.5 text-xs text-red">
+          {problems.map((p) => (
+            <li key={p.message}>{p.message}</li>
+          ))}
+        </ul>
+      )}
+      <p className="text-xs text-faint">
+        Grey numbers are the category’s limits. Type a number to change one for this case, or
+        “off” to switch it off; clear the box to go back. Below Low or above High is a warning;
+        beyond a critical limit the alarm is critical. Blood-pressure limits are systolic. The last
+        three rows are the anesthesia machine’s alarms, which apply while the machine readings are
+        on the monitor: airway pressure and inspired oxygen alarm as critical, minute volume as a
+        warning, each with one limit a side. Untick
+        Alarm to start the case with that alarm switched off, the way a monitor is sometimes
+        found. During a session, faculty change all of this by selecting a number on the monitor.
+      </p>
+    </div>
+  );
+}

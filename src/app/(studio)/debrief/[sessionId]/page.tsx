@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageSkeleton } from '@/components/ui/Skeleton';
+import { DebriefDeck } from '@/components/debrief/DebriefDeck';
 import { DebriefReport, type DebriefAmend } from '@/components/debrief/DebriefReport';
-import { ScoreRing } from '@/components/debrief/ScoreRing';
 import { Eyebrow } from '@/components/ui/PageHead';
 import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
 import '@/lib/cloud/sessionCloud'; // registers the session push handler
+import { DECK_COPY } from '@/lib/debrief/deckCopy';
 import { downloadJson } from '@/lib/download';
 import { scoreSession } from '@/lib/engine/scoring';
 import type { ArchivedSession } from '@/lib/engine/types';
@@ -21,6 +22,7 @@ import { serializeSessions } from '@/lib/store/sessionExport';
 export default function DebriefSessionPage() {
   const params = useParams<{ sessionId: string }>();
   const [session, setSession] = useState<ArchivedSession | null | undefined>(undefined);
+  const [presenting, setPresenting] = useState(false);
 
   useEffect(() => {
     setSession(getSession(params.sessionId) ?? null);
@@ -36,8 +38,10 @@ export default function DebriefSessionPage() {
     }
   };
 
-  // Post-hoc amendments: statuses are re-marked in debrief, the score is
-  // recomputed with the same policy, and the archive record is updated.
+  // Post-hoc amendments: statuses are re-marked in debrief and the archive
+  // record is updated. The score is no longer shown in the studio, but it is
+  // still recomputed with the same policy so the stored record (JSON export,
+  // institution archive, cohort analytics) stays true to the marks.
   const amend: DebriefAmend | undefined = session
     ? {
         markAction: (actionId, status) => {
@@ -94,6 +98,8 @@ export default function DebriefSessionPage() {
     );
   }
 
+  const runNextHref = `/faculty/run/${session.scenario.id}?code=${session.sessionCode ?? session.sessionId}`;
+
   return (
     <FacultyGate>
       <div className="mx-auto max-w-4xl space-y-4">
@@ -104,37 +110,31 @@ export default function DebriefSessionPage() {
           </Callout>
         )}
         <header className="no-print card flex flex-wrap items-center justify-between gap-x-6 gap-y-4 !p-5">
-          <div className="flex min-w-0 items-center gap-5">
-            {session.score.possible > 0 ? (
-              <ScoreRing percent={session.score.percent} />
-            ) : (
-              <div
-                className="grid h-24 w-24 shrink-0 place-items-center rounded-full bg-panel-2 text-center text-[11px] font-bold leading-tight text-muted"
-                title="Imported checklist with no point values — scored by faculty"
-              >
-                Faculty
-                <br />
-                scored
-              </div>
-            )}
-            <div className="min-w-0">
-              <div className="mb-1.5">
-                <Eyebrow>Session report</Eyebrow>
-              </div>
-              <p className="truncate text-2xl font-bold tracking-[-0.02em]">
-                {session.scenario.title}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                Completed {new Date(session.endedAtIso).toLocaleString()} ·{' '}
-                {Math.floor(session.snapshot.elapsedSec / 60)} min · session {session.sessionId}
-              </p>
+          <div className="min-w-0">
+            <div className="mb-1.5">
+              <Eyebrow>Session report</Eyebrow>
             </div>
+            <p className="truncate text-2xl font-bold tracking-[-0.02em]">
+              {session.scenario.title}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Completed {new Date(session.endedAtIso).toLocaleString()} ·{' '}
+              {Math.floor(session.snapshot.elapsedSec / 60)} min · session {session.sessionId}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="primary"
+              icon="fullscreen"
+              onClick={() => setPresenting(true)}
+              title="Walk the room through the debrief, one card at a time"
+            >
+              Start debrief
+            </Button>
+            <Button
+              variant="secondary"
               icon="play"
-              href={`/faculty/run/${session.scenario.id}?code=${session.sessionCode ?? session.sessionId}`}
+              href={runNextHref}
               title="Relaunch this scenario fresh on the same session code — connected student displays reconnect without re-joining"
             >
               Run next student
@@ -155,6 +155,26 @@ export default function DebriefSessionPage() {
         </header>
         <DebriefReport session={session} amend={amend} />
       </div>
+      <DebriefDeck
+        session={session}
+        open={presenting}
+        onClose={() => setPresenting(false)}
+        onAddTakeaway={(text) =>
+          amend?.setNotes([
+            ...session.snapshot.notes,
+            {
+              t: session.snapshot.elapsedSec,
+              text: `${DECK_COPY.takeaways.notePrefix}${text}`,
+              postHoc: true,
+            },
+          ])
+        }
+        endActions={
+          <Button variant="primary" icon="play" href={runNextHref}>
+            Run next student
+          </Button>
+        }
+      />
     </FacultyGate>
   );
 }

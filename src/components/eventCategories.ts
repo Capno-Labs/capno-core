@@ -41,3 +41,15 @@ export const CATEGORIES: EventCategory[] = [
   'resolution',
   'other',
 ];
+
+/** What people read for a category — never the stored enum text. */
+export const CATEGORY_LABELS: Record<EventCategory, string> = {
+  physiology: 'Physiology',
+  airway: 'Airway',
+  circulation: 'Circulation',
+  drug: 'Drug',
+  equipment: 'Equipment',
+  surgical: 'Surgical',
+  resolution: 'Recovery',
+  other: 'Other',
+};

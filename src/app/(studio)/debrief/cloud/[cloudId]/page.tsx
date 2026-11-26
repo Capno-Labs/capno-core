@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Eyebrow } from '@/components/ui/PageHead';
 import { PageSkeleton } from '@/components/ui/Skeleton';
+import { DebriefDeck } from '@/components/debrief/DebriefDeck';
 import { DebriefReport } from '@/components/debrief/DebriefReport';
 import { useAuthStore } from '@/lib/cloud/authStore';
 import { fetchCloudSession } from '@/lib/cloud/sessionCloud';
@@ -22,6 +23,7 @@ export default function CloudDebriefPage() {
   const authStatus = useAuthStore((s) => s.status);
   const authRole = useAuthStore((s) => s.profile?.role);
   const [session, setSession] = useState<ArchivedSession | null | undefined>(undefined);
+  const [presenting, setPresenting] = useState(false);
 
   useEffect(() => {
     useAuthStore.getState().init();
@@ -49,6 +51,14 @@ export default function CloudDebriefPage() {
             </span>
             <Button
               variant="primary"
+              icon="fullscreen"
+              onClick={() => setPresenting(true)}
+              disabled={!session}
+            >
+              Start debrief
+            </Button>
+            <Button
+              variant="secondary"
               icon="print"
               onClick={() => window.print()}
               disabled={!session}
@@ -99,6 +109,10 @@ export default function CloudDebriefPage() {
         )}
         {authStatus === 'signed_in' && session && <DebriefReport session={session} />}
       </div>
+      {/* Read-only walkthrough: no take-aways are saved from the archive. */}
+      {authStatus === 'signed_in' && session && (
+        <DebriefDeck session={session} open={presenting} onClose={() => setPresenting(false)} />
+      )}
     </FacultyGate>
   );
 }

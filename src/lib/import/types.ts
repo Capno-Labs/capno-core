@@ -117,7 +117,13 @@ export type DraftAirway = Draftify<AirwayExam>;
 
 export type DraftPatient = Draftify<Omit<Patient, 'airway'>> & { airway: DraftAirway };
 
-export type DraftVitals = Draftify<Omit<Vitals, 'rhythm' | 'capnoShape' | 'pvcFrequency'>> & {
+// `ecg` (complex morphology), `pulseless`, `fico2`, `vent`, `agent` and `nmb`
+// are left out: a run sheet has nowhere to state them, so an imported case
+// starts with a normal ECG, a pulse, no rebreathing, no machine readings and
+// no twitch monitor, and the author sets them in the editor.
+export type DraftVitals = Draftify<
+  Omit<Vitals, 'rhythm' | 'capnoShape' | 'pvcFrequency' | 'ecg' | 'pulseless' | 'fico2' | 'vent' | 'agent' | 'nmb'>
+> & {
   rhythm: DraftField<Rhythm>;
   capnoShape: DraftField<CapnoShape>;
   pvcFrequency: DraftField<PvcFrequency>;
