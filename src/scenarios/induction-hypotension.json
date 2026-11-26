@@ -1,6 +1,6 @@
 {
   "id": "induction-hypotension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "General Anesthesia Induction with Post-Induction Hypotension",
   "summary": "A 68-year-old hypertensive man on lisinopril (taken the morning of surgery) develops significant hypotension after a routine propofol induction. Learners must recognize the pressure drop, treat it with vasopressors and fluid, and adjust the anesthetic.",
   "tags": {
@@ -186,7 +186,7 @@
   "expectedActions": [
     {
       "id": "preoxygenate",
-      "label": "Preoxygenate to EtO2 > 80% (3 min or 8 vital-capacity breaths)",
+      "label": "Preoxygenate to EtO2 of about 90% (3 min of tidal breathing or 8 deep breaths)",
       "phase": "preinduction",
       "critical": false,
       "points": 10
@@ -268,7 +268,7 @@
     "Incision provides sympathetic stimulation, after which hemodynamics stabilize and the case proceeds."
   ],
   "correctManagement": [
-    "Preoxygenate with a tight mask seal until end-tidal O2 exceeds 80%.",
+    "Preoxygenate with a tight mask seal until end-tidal O2 reaches about 90%.",
     "Reduce the propofol induction dose (about 1-1.5 mg/kg) and give it slowly in an elderly hypertensive on an ACE inhibitor.",
     "Recognize hypotension early: verbalize MAP, shorten the NIBP cycle to 1-2 minutes.",
     "Give phenylephrine 100 mcg IV when heart rate is adequate; choose ephedrine 5-10 mg IV if heart rate is low.",

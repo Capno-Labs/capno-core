@@ -1,6 +1,6 @@
 {
   "id": "last-nerve-block",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Local Anesthetic Systemic Toxicity After Peripheral Nerve Block",
   "summary": "A 72-year-old woman receiving an interscalene block with ropivacaine 0.5% before total shoulder arthroplasty develops prodromal neurologic symptoms, a generalized seizure, and then ventricular dysrhythmia with hypotension. Learners must recognize LAST, control the seizure, and deliver 20% lipid emulsion with ASRA-modified resuscitation.",
   "tags": {
@@ -255,7 +255,7 @@
     {
       "id": "stabilized",
       "label": "Response: sustained stabilization",
-      "description": "Trigger once the lipid infusion continues at least 10 minutes past hemodynamic recovery and the team has a monitoring plan: vitals settle, the patient begins to arouse, and the team discusses ICU-level observation for 4-6 hours or more and cancellation of the arthroplasty.",
+      "description": "Trigger once the lipid infusion continues at least 15 minutes past hemodynamic recovery and the team has a monitoring plan: vitals settle, the patient begins to arouse, and the team discusses ICU-level observation for 4-6 hours or more and cancellation of the arthroplasty.",
       "category": "resolution",
       "actionIds": ["prolonged-monitoring", "cancel-case-communicate"],
       "effects": [
@@ -320,7 +320,7 @@
     {
       "id": "lipid-infusion",
       "label": "Start lipid infusion",
-      "description": "Follows the bolus with an infusion of 0.25 mL/kg/min (about 15 mL/min), doubling for refractory hypotension, continuing at least 10 minutes past hemodynamic recovery, maximum about 12 mL/kg total.",
+      "description": "Follows the bolus with an infusion of 0.25 mL/kg/min (about 15 mL/min), doubling for refractory hypotension, continuing at least 15 minutes past hemodynamic recovery, maximum about 12 mL/kg total.",
       "phase": "treatment",
       "critical": false,
       "points": 12
@@ -389,7 +389,7 @@
     "Maintain oxygenation and ventilation with 100% oxygen and bag-mask support; intubate if the airway cannot otherwise be protected, because hypoxia and acidosis dramatically worsen cardiac toxicity.",
     "Terminate seizures with benzodiazepines first-line (midazolam 1-2 mg IV increments); use only small doses of propofol, if any, once cardiovascular signs are present.",
     "Give 20% lipid emulsion early: 1.5 mL/kg (about 90 mL for 58 kg) IV over 2-3 minutes at the first sign of serious toxicity, not only after arrest.",
-    "Follow with a lipid infusion of 0.25 mL/kg/min (about 15 mL/min), repeat the bolus up to two more times and double the infusion for refractory collapse, continue at least 10 minutes past recovery, and respect the approximately 12 mL/kg total ceiling.",
+    "Follow with a lipid infusion of 0.25 mL/kg/min (about 15 mL/min), repeat the bolus up to two more times and double the infusion for refractory collapse, continue at least 15 minutes past recovery, and respect the approximately 12 mL/kg total ceiling.",
     "If pulseless, begin high-quality CPR immediately and expect a prolonged resuscitation; circulation is what carries lipid to the myocardium.",
     "Modify ACLS per ASRA: epinephrine boluses of 1 mcg/kg or less, no vasopressin, no calcium channel blockers or beta-blockers, and no lidocaine; prefer amiodarone for ventricular dysrhythmias.",
     "Notify the nearest cardiopulmonary bypass / ECMO capable team early in a refractory arrest.",
