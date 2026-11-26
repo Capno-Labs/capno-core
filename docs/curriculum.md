@@ -264,10 +264,188 @@ clinical content is authored against published guidance:
   measured a mainstem intubation directly. Inspired oxygen reads 100% once
   the team turns it up (the scenario's own step) and returns to the starting
   50% at the end ("a reduced FiO₂").
-- **anaphylaxis, malignant-hyperthermia, last-nerve-block,
-  laryngospasm-lma, induction-hypotension** — see the original scenario
-  PRs; management follows the corresponding society guidance (e.g. ASRA
-  LAST checklist, MHAUS protocol).
+For the five scenarios below — the ones that arrived with the repository's
+first commit — the sources were read in November 2026 and every dose,
+threshold and sequence in the scenario checked against them. Each entry ends
+by saying what was corrected and what remains the scenario's own choice.
+
+- **anaphylaxis** — ANZAAG–ANZCA *Perioperative Anaphylaxis Management
+  Guidelines* (version of November 2022; the adult immediate, refractory and
+  post-crisis cards and the
+  [background paper](https://www.anzca.edu.au/resources/professional-documents/endorsed-guidelines/anaphylaxis-guideline-bp-2022.pdf),
+  anzca.edu.au):
+  epinephrine 50–100 mcg IV for a life-threatening reaction, repeated every
+  1–2 min and raised if there is no response, an infusion after three
+  boluses, 1 mg with CPR in arrest; vasopressin 1–2 unit boluses; glucagon
+  when beta-blocked; triggers removed; minimal volatile; tryptase at 1 h, 4 h
+  and after 24 h; steroids only once stable and no IV antihistamine; 35–70%
+  of blood volume extravasating in 10–15 min; hypotension the first feature
+  in 46%. Stanford *Emergency Manual* v4 (Anaphylaxis event: epinephrine
+  10–100 mcg IV raised every 2 min, an early infusion, volatile off while
+  hypotensive, ICU for 12–24 h after a severe reaction). NAP6, Harper et al.,
+  *Br J Anaesth* 2018;121:172–188 (rash hidden under drapes or delayed;
+  epinephrine given late or not at all in a fifth of cases); Association of
+  Anaesthetists *Quick Reference Handbook* 3-1 (2023; crystalloid 20 mL/kg,
+  repeated).
+  Chosen, or differing from the sources: albuterol "8–10 puffs" is in none of
+  them (Stanford 4–8, ANZAAG 12). The infusion range 2–10 mcg/min starts
+  where the guidelines do but stops lower (ANZAAG 3–40 mcg/min; Stanford
+  0.02–0.3 mcg/kg/min, about 1.4–21 mcg/min at 70 kg). Latex is listed among
+  the commonest triggers as older series had it; NAP6 found none, and ANZAAG
+  names muscle relaxants and antibiotics, with chlorhexidine rising. Every
+  vital-sign value and time course is the scenario's own.
+- **malignant-hyperthermia** — MHAUS, *Emergency Treatment for an Acute MH
+  Event* ([mhaus.org](https://www.mhaus.org/healthcare-professionals/managing-a-crisis/)):
+  halt surgery and stop triggers; hyperventilate with 100% O₂ at 10 L/min;
+  charcoal filters on both limbs; dantrolene 2.5 mg/kg rapidly, repeated
+  until EtCO₂, rigidity and heart rate respond (20 mg vial in 60 mL sterile
+  water, or 250 mg Ryanodex in 5 mL); cool above 39 °C, or lower if rising
+  rapidly, and stop below 38 °C; for hyperkalemia calcium chloride 10 mg/kg
+  or gluconate 10–50 mg/kg, bicarbonate, and 10 units of regular insulin with
+  50 mL of 50% dextrose; no calcium channel blockers; urine output above
+  1 mL/kg/h; at least 24 h in recovery or ICU; hotline 800-644-9737. MHAUS
+  recommendation on [dantrolene after an MH event](https://www.mhaus.org/healthcare-professionals/mhaus-recommendations/dantrolene-administration-after-an-mh-event/)
+  (1 mg/kg every 4–6 h for at least 24 h; recrudescence in 20% — Burkman et
+  al., *Anesthesiology* 2007;106:901–6). European Malignant Hyperthermia
+  Group, Glahn et al., *Br J Anaesth* 2010;105:417–20 and the
+  [2024 revision](https://www.emhg.org/recommendations-1/2024/11/4/recognising-and-managing-a-malignant-hyperthermia-crisis-v2024):
+  minute volume 2–3 times normal, no time spent changing the circuit or
+  machine, the differential diagnosis, and (2010) urine output above
+  2 mL/kg/h.
+  Association of Anaesthetists, Hopkins et al., *Anaesthesia* 2021;76:655–664:
+  EtCO₂ that ventilation cannot control, re-dosing every 5 min. Rosenberg et
+  al., *Orphanet J Rare Dis* 2015;10:93
+  ([PMC4524368](https://pmc.ncbi.nlm.nih.gov/articles/PMC4524368/)):
+  genetics, testing, amiodarone or lidocaine for dysrhythmias.
+  *Corrected in 1.0.1, to MHAUS:* dextrose with the insulin was 50 g (50 mL of
+  50% is 25 g); cooling started "above 38.5" (38.5 °C is where the European
+  group stops cooling — no source starts there); the charcoal-filter step
+  offered changing the machine or circuit instead (the European guideline
+  says not to); recrudescence was "roughly a quarter" (20%).
+  Chosen, or differing: "repeat every 5–10 minutes up to about 10 mg/kg"
+  joins the Association's 5 min and the European 10 min — MHAUS gives no
+  interval, and all three say 10 mg/kg may be exceeded, with the diagnosis
+  reconsidered. "Hyperthermia is a late sign" follows the European list of
+  later signs; MHAUS and Larach et al. (*Anesth Analg* 2010;110:498–507:
+  among the first three signs in 63.5%) say it can come early. Dantrolene
+  continued after the crisis is MHAUS practice that the Association of
+  Anaesthetists advises against. Calcium gluconate 30 mg/kg is a point inside
+  the MHAUS range. The blood-gas results (pH 7.06, PaCO₂ 78, lactate 7.1,
+  K⁺ 6.4 then 6.9), the temperature course (to 39.8 °C at about 0.5 °C every
+  few minutes; Rosenberg gives up to 1–2 °C every five) and the vital signs
+  are the scenario's own.
+- **last-nerve-block** — ASRA *Local Anesthetic Systemic Toxicity Checklist*,
+  2020 version ([asra.com](https://asra.com/docs/default-source/guidelines-articles/local-anesthetic-systemic-toxicity-rgb.pdf)):
+  under 70 kg, 20% lipid emulsion 1.5 mL/kg over 2–3 min then
+  0.25 mL/kg/min; repeat the bolus and double the infusion if still
+  unstable; continue at least 15 min once stable; maximum 12 mL/kg;
+  benzodiazepine for seizures; epinephrine 1 mcg/kg or less; no vasopressin,
+  calcium channel blockers, beta-blockers or local anesthetics; observe 2 h
+  after a seizure and 4–6 h after cardiovascular instability. Third ASRA
+  Practice Advisory, Neal et al., *Reg Anesth Pain Med* 2018;43:113–123:
+  the prodrome and its timing, risk factors (age over 60, low muscle mass,
+  cardiac disease), injection in 3–5 mL increments with aspiration,
+  propofol avoided once the circulation is compromised, amiodarone preferred
+  and lidocaine not recommended, early notice to a cardiopulmonary bypass
+  centre, and hypoxia, hypercapnia and acidosis making toxicity worse.
+  Association of Anaesthetists safety guideline (2010) and *Quick Reference
+  Handbook* 3-10 (2023): stop injecting, 100% oxygen, at most two repeat
+  boluses, recovery that may take over an hour. El-Boghdadly et al., *Local
+  Reg Anesth* 2018;11:35–44
+  ([PMC6087022](https://pmc.ncbi.nlm.nih.gov/articles/PMC6087022/)):
+  ropivacaine 3 mg/kg, registry reporting. Ropivacaine prescribing
+  information (brachial plexus block with 0.5%: 175–250 mg).
+  *Corrected in 1.0.1:* the lipid infusion ran "at least 10 minutes" past
+  recovery, the 2017 advisory's figure; the 2020 checklist says 15.
+  Chosen, or differing: midazolam 2 mg — no source gives a benzodiazepine
+  dose. "ECMO" beside bypass is the scenario's addition; the sources name
+  cardiopulmonary bypass. "Less cardiotoxic than bupivacaine" is the
+  prescribing information's position; the 2017 advisory holds that
+  ropivacaine in equipotent doses is likely similar. The "lipid sink" is the
+  older account — the advisory describes a shuttle with a direct cardiotonic
+  effect. The dose (150 mg, 2.6 mg/kg) is within labelled limits by design.
+  The minute-by-minute course and the vital signs are the scenario's own.
+- **laryngospasm-lma** — Gavel & Walker, *Laryngospasm in anaesthesia*
+  (*Contin Educ Anaesth Crit Care Pain* 2014;14:47–51): risk factors (light
+  anesthesia, secretions, airway instrumentation, an LMA, smoking, a
+  respiratory infection in the last 6 weeks), the first-line sequence (remove
+  the stimulus, clear the airway, jaw thrust, CPAP with 100% oxygen by tight
+  mask, no forceful inflation that fills the stomach), propofol in 0.5 mg/kg
+  increments, succinylcholine 0.1–2 mg/kg IV or 4 mg/kg IM, atropine kept
+  ready. Visvanathan et al., *Crisis management during anaesthesia:
+  laryngospasm* (*Qual Saf Health Care* 2005;14:e3,
+  [PMC1744026](https://pmc.ncbi.nlm.nih.gov/articles/PMC1744026/)):
+  succinylcholine 0.5 mg/kg IV to relieve the spasm and 1–1.5 mg/kg to
+  intubate, 4 mg/kg IM with no IV, atropine, the check for post-obstructive
+  edema. Association of Anaesthetists *Quick Reference Handbook* 3-6,
+  *Laryngospasm and stridor* (2018). Hampson-Evans et al., *Paediatr Anaesth*
+  2008;18:303–7: partial against complete spasm, and Larson's point (Larson's
+  own letter, *Anesthesiology* 1998;89:1293–4, could not be obtained and is
+  cited as these reviews quote it; Gavel & Walker class the manoeuvre as
+  anecdotal). Negative pressure pulmonary edema: Bhaskar & Fraser, *Saudi J
+  Anaesth* 2011;5:308–13
+  ([PMC3168351](https://pmc.ncbi.nlm.nih.gov/articles/PMC3168351/); usually
+  within an hour, sometimes delayed by hours; observe for 2–12 h) and Lemyze
+  & Mallat, *Intensive Care Med* 2014;40:1140–3 (oxygen and positive
+  pressure).
+  Chosen, or differing: CPAP "15–20 cmH₂O" — no source read gives a pressure.
+  Propofol 0.5–1 mg/kg — the upper figure is two of Gavel's increments and
+  above the Handbook's 0.25–0.5 mg/kg. The Handbook says to remove airway
+  devices, where the scenario counts removing the LMA at a light plane as an
+  error (Gavel: take a supraglottic airway out deep or fully awake, not in
+  between). 4 mg/kg IM is 304 mg for this patient, over Gavel's suggested
+  200 mg maximum. The infection evidence is from children, and the largest
+  cohort (von Ungern-Sternberg et al., *Lancet* 2010;376:773–83) found the
+  excess risk with symptoms present or within 2 weeks. The fall in SpO₂ (to
+  76% over two minutes) and the heart rate in the 40s are the scenario's own.
+- **induction-hypotension** — Perioperative Quality Initiative consensus,
+  Sessler et al., *Br J Anaesth* 2019;122:563–574 (mean pressure below
+  60–70 mmHg is associated with myocardial injury, kidney injury and death,
+  by severity and duration) and Salmasi et al., *Anesthesiology*
+  2017;126:47–65 (the 65 mmHg threshold; longer exposure, higher odds) —
+  both read as abstracts. Predictors: Reich et al., *Anesth Analg*
+  2005;101:622–8 (age 50 or over, ASA III–V, propofol, more fentanyl) and
+  Südfeld et al., *Br J Anaesth* 2017;119:57–64 (age, lower pre-induction
+  pressure), abstracts; Kouz et al., *Indian J Anaesth* 2020;64:90–96
+  ([PMC7017666](https://pmc.ncbi.nlm.nih.gov/articles/PMC7017666/); ACE
+  inhibitors and ARBs predispose; a third of episodes fall between induction
+  and incision). ACE inhibitors: the Stop-or-Not trial, Legrand et al., *JAMA*
+  2024;332:970–978
+  ([PMC11365013](https://pmc.ncbi.nlm.nih.gov/articles/PMC11365013/);
+  hypotension during surgery in 54% when continued against 41% when stopped,
+  with no difference in complications); Hollmann et al., *Anesth Analg*
+  2018;127:678–687 (abstract); Lonjaret et al., *Integr Blood Press Control*
+  2014;7:49–59 ([PMC4178624](https://pmc.ncbi.nlm.nih.gov/articles/PMC4178624/);
+  mechanism, hypotension that resists ephedrine and phenylephrine). Drug
+  labels on DailyMed: propofol (Diprivan: 2–2.5 mg/kg under 65 and ASA I–II;
+  about 1–1.5 mg/kg and no rapid bolus in elderly or ASA III–IV patients),
+  phenylephrine (Biorphen: 40–100 mcg bolus, repeated every 1–2 min; reflex
+  bradycardia), ephedrine (Akovaz: 5–10 mg bolus, to 50 mg; raises heart
+  rate), sevoflurane (Ultane: dose-dependent fall in pressure, corrected by
+  lowering the concentration). Association of Anaesthetists *Quick Reference
+  Handbook* 2-4, *Hypotension* (fluid bolus 250 mL; the differential).
+  Preoxygenation: Difficult Airway Society 2015, Frerk et al., *Br J Anaesth*
+  2015;115:827–48 ([PMC4650961](https://pmc.ncbi.nlm.nih.gov/articles/PMC4650961/);
+  end-tidal oxygen fraction 0.87–0.9); Nimmagadda et al., *Anesth Analg*
+  2017;124:507–517 (end-tidal oxygen 90%) and Baraka et al., *Anesthesiology*
+  1999;91:612–6 (3 min of tidal breathing or 8 deep breaths in 60 s), both
+  abstracts.
+  *Corrected in 1.0.1:* the preoxygenation target was end-tidal oxygen above
+  80%; every source read gives about 90%.
+  Chosen, or differing: the scripted induction dose of 1.5–2 mg/kg sits
+  between the label's two ranges. "Some centers hold them the morning of
+  surgery" is practice the trials tested; the 2024 AHA/ACC perioperative
+  guideline is reported to say that omission 24 hours before surgery "may be
+  beneficial" (class 2b) — its own text could not be opened, so it is not
+  cited as read. Chronic hypertension as a risk factor is weaker than the
+  scenario implies: Reich and Südfeld found a *lower* starting pressure
+  predicted hypotension. Phenylephrine with an adequate heart rate and
+  ephedrine with a slow one follows from the labels' pharmacology; no source
+  read states it as a rule. A 1–2 minute cuff cycle and the 500 mL upper
+  fluid volume have no source (standards say at least every 5 minutes, more
+  often when unstable). The fall to 72/40 three minutes after induction — a
+  drop of about half in mean pressure, larger than the cohorts' averages —
+  is the scenario's own.
 
 ## Clinical sources for the monitor display
 
