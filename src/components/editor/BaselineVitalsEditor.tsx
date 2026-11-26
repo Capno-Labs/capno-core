@@ -1,5 +1,6 @@
 'use client';
 
+import { VITAL_NAMES } from './fieldLabels';
 import { Disclosure } from '@/components/ui/Disclosure';
 import { NumberField } from '@/components/ui/NumberField';
 import { SelectField, optionsFrom } from '@/components/ui/SelectField';
@@ -21,19 +22,6 @@ import { VentFields } from './VentFields';
  * default deletes the key from the document.
  */
 
-/** Long names for the starting numbers — the monitor's abbreviations are for the monitor. */
-const VITAL_NAMES: Record<keyof NumericVitals, string> = {
-  hr: 'Heart rate',
-  sbp: 'Systolic BP',
-  dbp: 'Diastolic BP',
-  spo2: 'SpO₂',
-  etco2: 'EtCO₂',
-  rr: 'Respiratory rate',
-  temp: 'Temperature',
-  depth: 'Depth of anesthesia',
-  agentEt: 'End-tidal agent',
-  agentFi: 'Inspired agent',
-};
 
 const COMMON: (keyof NumericVitals)[] = ['hr', 'sbp', 'dbp', 'spo2', 'etco2', 'rr', 'temp'];
 

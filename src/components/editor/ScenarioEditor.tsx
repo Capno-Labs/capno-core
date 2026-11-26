@@ -15,9 +15,8 @@ import {
 import { approveScenario, refreshScenarioStatus } from '@/lib/cloud/scenarioCloud';
 import { Callout } from '@/components/ui/Callout';
 import { Icon } from '@/components/ui/Icon';
-import { Pill, type PillTone } from '@/components/ui/Pill';
 import { downloadJson } from '@/lib/download';
-import { lintScenario, type LintWarning } from '@/lib/engine/lint';
+import { lintScenario } from '@/lib/engine/lint';
 import { validateScenario, parseScenario } from '@/lib/engine/schema';
 import type { Scenario } from '@/lib/engine/types';
 import { DEFAULT_VITALS } from '@/lib/engine/vitals';
@@ -45,13 +44,16 @@ import { toast } from '@/lib/store/toastStore';
 import { DraftPreviewCard } from './DraftPreviewCard';
 import { EditorRail, type SectionIssueCounts } from './EditorRail';
 import { JsonPanel } from './JsonPanel';
-import { SECTIONS, sectionOfHash, sectionOfIssue, sectionOfPath, type SectionId } from './sections';
+import { ReadinessList } from './ReadinessList';
+import { itemsFor, readinessItems, type ReadinessItem } from './readiness';
+import { SECTIONS, sectionOfHash, sectionOfIssue, type SectionId } from './sections';
 import { BasicsSection } from './sections/BasicsSection';
 import { DebriefSection } from './sections/DebriefSection';
 import { PatientSection } from './sections/PatientSection';
 import { ProgressionSection, noFreshIds } from './sections/ProgressionSection';
-import { ReviewExtras } from './sections/ReviewExtras';
+import { ReviewSection } from './sections/ReviewSection';
 import { StartSection } from './sections/StartSection';
+import { showField } from './showField';
 
 /**
  * Faculty case editor.
@@ -60,7 +62,7 @@ import { StartSection } from './sections/StartSection';
  * into instructor-facing sections (Basics → Patient → Starting state → Progression →
  * Debrief → Review & publish; see sections.ts) behind a navigation rail with per-section
  * validation badges, and the form covers the entire schema. Raw JSON is an
- * opt-in advanced surface (the toolbar's "Edit JSON" toggle) that *replaces*
+ * opt-in advanced surface ("Edit JSON", under Review & publish, Advanced) that *replaces*
  * the form while open — the two never edit the document at the same time,
  * and JSON text becomes the source of truth only after "Apply JSON",
  * validated with the same zod schema used at runtime.
@@ -111,12 +113,6 @@ export function blankScenario(): Scenario {
   };
 }
 
-const STATUS_TONE: Record<CloudScenarioStatus, PillTone> = {
-  draft: 'neutral',
-  review: 'warn',
-  published: 'green',
-};
-
 export interface ScenarioEditorProps {
   /** Document to open; omitted for a blank new case. */
   initial?: Scenario;
@@ -147,6 +143,8 @@ export function ScenarioEditor({
   const draftKey = useRef(initialDraftKey);
   /** Phase, event and action ids created since the last save (see ProgressionSection). */
   const freshIds = useRef(noFreshIds());
+  /** Rubric category ids created since the last save (see RubricEditor). */
+  const freshRubric = useRef(new Set<string>());
   /** False once a draft write has failed — then leaving really loses work. */
   const [draftStored, setDraftStored] = useState(true);
   const [restoredNotice, setRestoredNotice] = useState(restored ?? null);
@@ -166,6 +164,13 @@ export function ScenarioEditor({
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const [activeSection, setActiveSection] = useState<SectionId>('basics');
+  /** A checklist item whose field should be brought into view once its section is on screen. */
+  const [shown, setShown] = useState<{ item: ReadinessItem } | null>(null);
+  useEffect(() => {
+    if (!shown) return;
+    const timer = window.setTimeout(() => showField(shown.item), 60);
+    return () => window.clearTimeout(timer);
+  }, [shown]);
 
   // Advanced JSON surface. Text is regenerated from the scenario each time
   // the panel opens, so the form never has to keep it in sync per keystroke.
@@ -282,14 +287,20 @@ export function ScenarioEditor({
   const undo = () => stepHistory(undoEdit);
   const redo = () => stepHistory(redoEdit);
 
-  const selectSection = (id: SectionId) => {
+  const selectSection = (id: SectionId): boolean => {
     if (jsonDirty) {
       toast('Apply or discard your JSON edits first', 'error');
-      return;
+      return false;
     }
     setJsonOpen(false);
     setActiveSection(id);
     window.history.replaceState(null, '', `#${id}`);
+    return true;
+  };
+
+  /** "Show me": open the item's section and put the cursor in its field. */
+  const showItem = (item: ReadinessItem) => {
+    if (item.section && selectSection(item.section)) setShown({ item });
   };
 
   const toggleJson = () => {
@@ -350,10 +361,11 @@ export function ScenarioEditor({
         const labels = sections
           .map((id) => SECTIONS.find((s) => s.id === id)?.label ?? id)
           .join(', ');
-        toast(`${check.errors.length} issue(s) to fix — see ${labels}`, 'error');
+        toast(`${check.errors.length} thing${check.errors.length === 1 ? '' : 's'} to fix — see ${labels}`, 'error');
         selectSection(sections[0]);
       }
-      setErrors(check.errors.filter((e) => sectionOfIssue(e) === null));
+      // Pathless problems are already listed above the form (the live checklist).
+      setErrors([]);
       return null;
     }
     // A hand-typed ID that belongs to another case would add this document to
@@ -393,6 +405,7 @@ export function ScenarioEditor({
     setRestoredNotice(null);
     // What was new is now saved: its ids stay as they are from here on.
     freshIds.current = noFreshIds();
+    freshRubric.current = new Set();
     if (doc.id !== savedId) {
       setSavedId(doc.id);
       onSavedAs?.(doc.id);
@@ -568,47 +581,45 @@ export function ScenarioEditor({
   const warnings = useMemo(() => lintScenario(scenario), [scenario]);
   const aiDraft = scenario.tags.topics.includes(AI_GENERATED_TAG);
 
-  // Route every pathful issue to its owning section; the rest stay global.
-  const issues = useMemo(() => {
-    const bySection = new Map<SectionId, { errors: string[]; warnings: LintWarning[] }>();
-    const at = (id: SectionId) => {
-      let entry = bySection.get(id);
-      if (!entry) {
-        entry = { errors: [], warnings: [] };
-        bySection.set(id, entry);
-      }
-      return entry;
-    };
-    const globalErrors: string[] = [];
-    const globalWarnings: LintWarning[] = [];
-    for (const e of validation.errors) {
-      const id = sectionOfIssue(e);
-      if (id) at(id).errors.push(e);
-      else globalErrors.push(e);
-    }
-    for (const w of warnings) {
-      const id = sectionOfPath(w.path);
-      if (id) at(id).warnings.push(w);
-      else globalWarnings.push(w);
-    }
-    return { bySection, globalErrors, globalWarnings };
-  }, [validation, warnings]);
+  // The checklist: every error and note in the editor's own words. The rail
+  // badges, each section's own list and Review & publish all read from it.
+  const items = useMemo(
+    () => readinessItems(scenario, validation.errors, warnings),
+    [scenario, validation, warnings],
+  );
+  const fixCount = items.filter((item) => item.level === 'fix').length;
+  const lookCount = items.length - fixCount;
 
   const issueCounts = useMemo(() => {
     const counts = new Map<SectionId, SectionIssueCounts>();
-    for (const [id, entry] of issues.bySection) {
-      counts.set(id, { errors: entry.errors.length, warnings: entry.warnings.length });
+    for (const item of items) {
+      if (!item.section) continue;
+      const entry = counts.get(item.section) ?? { errors: 0, warnings: 0 };
+      if (item.level === 'fix') entry.errors += 1;
+      else entry.warnings += 1;
+      counts.set(item.section, entry);
     }
     return counts;
-  }, [issues]);
+  }, [items]);
 
-  const sectionIssues = issues.bySection.get(activeSection);
-  // Progression shows each event's warnings on the event itself.
-  const activeIssues =
-    sectionIssues && activeSection === 'progression'
-      ? { ...sectionIssues, warnings: sectionIssues.warnings.filter((w) => !w.path.startsWith('events.')) }
-      : sectionIssues;
-  const globalErrors = [...errors, ...issues.globalErrors];
+  // What the open section lists above its form. Review & publish shows the
+  // whole checklist itself; Progression shows each event's notes on the event.
+  const activeItems =
+    activeSection === 'review'
+      ? []
+      : itemsFor(items, activeSection).filter(
+          (item) => !(activeSection === 'progression' && item.level === 'look' && item.path.startsWith('events.')),
+        );
+  const globalErrors = [...errors, ...items.filter((item) => item.section === null).map((item) => item.message)];
+
+  const publishBlocked =
+    cloudStatus === 'published'
+      ? 'Already published. Editing and saving starts a new draft.'
+      : formDirty || jsonDirty
+        ? 'Save your changes first.'
+        : history.length === 0
+          ? 'Save a version first.'
+          : null;
 
   const renderSection = () => {
     switch (activeSection) {
@@ -629,71 +640,26 @@ export function ScenarioEditor({
         return <DebriefSection scenario={scenario} update={update} />;
       case 'review':
         return (
-          <div className="space-y-4">
-          <header>
-            <h2 className="text-xl font-bold tracking-tight text-ink">Review &amp; publish</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted">
-              Saved versions, publishing, and the settings most cases never need.
-            </p>
-          </header>
-          <section className="card">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-bold text-ink">
-                Saved versions{history.length > 0 ? ` (${history.length})` : ''}
-              </h3>
-              {cloudStatus && (
-                <Pill
-                  tone={STATUS_TONE[cloudStatus]}
-                  title="Review state of the institution copy of this scenario"
-                >
-                  {cloudStatus}
-                </Pill>
-              )}
-              {canApprove && (
-                <button
-                  className="btn-primary ml-auto btn-sm"
-                  disabled={approving || cloudStatus === 'published' || formDirty || jsonDirty}
-                  title={
-                    cloudStatus === 'published'
-                      ? 'Already published — editing and saving starts a new draft'
-                      : 'Publish the saved version to the institution library as the approved version'
-                  }
-                  onClick={() => void approve()}
-                >
-                  {approving ? 'Approving…' : 'Approve & publish'}
-                </button>
-              )}
-            </div>
-            {canApprove && (
-              <p className="mb-2 text-xs text-faint">
-                Sessions run against the approved version. Saving a new edit over a published
-                scenario returns it to draft until it is approved again.
-              </p>
-            )}
-            {history.length === 0 ? (
-              <p className="text-sm text-faint">
-                No saved versions yet — “Save version” snapshots the case here.
-              </p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {history.map((v, i) => (
-                  <li key={v.savedAtIso} className="flex items-center justify-between gap-2 rounded-ctl bg-panel-2 px-2 py-1">
-                    <span>
-                      {new Date(v.savedAtIso).toLocaleString()}{' '}
-                      <span className="text-xs text-faint">v{v.scenario.version}{i === 0 ? ' · latest' : ''}</span>
-                    </span>
-                    {i > 0 && (
-                      <button className="text-xs text-brand-strong hover:underline" onClick={() => restoreVersion(v)}>
-                        restore
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          <ReviewExtras scenario={scenario} update={update} saved={savedId !== null} />
-          </div>
+          <ReviewSection
+            scenario={scenario}
+            update={update}
+            saved={savedId !== null}
+            unsaved={formDirty}
+            items={items}
+            onShow={showItem}
+            versions={history}
+            onRestore={restoreVersion}
+            publish={
+              canApprove
+                ? { status: cloudStatus, busy: approving, blocked: publishBlocked, onApprove: () => void approve() }
+                : null
+            }
+            onTestRun={() => void testRun()}
+            freshRubric={freshRubric.current}
+            onEditJson={toggleJson}
+            onExport={exportFile}
+            onImport={() => fileInput.current?.click()}
+          />
         );
     }
   };
@@ -717,7 +683,7 @@ export function ScenarioEditor({
           disabled={!validation.ok || jsonDirty}
           title={
             !validation.ok
-              ? 'Fix validation errors first'
+              ? 'Sort out what is marked “Must fix” first'
               : formDirty || savedId === null
                 ? 'Saves a version, then opens the run screen'
                 : 'Opens the run screen with this case'
@@ -745,31 +711,6 @@ export function ScenarioEditor({
             <Icon name="redo" size={16} />
           </button>
         </span>
-        <button className="btn-secondary" onClick={exportFile}>
-          <Icon name="download" size={16} /> Export JSON
-        </button>
-        <button className="btn-secondary" onClick={() => fileInput.current?.click()}>
-          <Icon name="upload" size={16} /> Import JSON
-        </button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="application/json,.json"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) importFile(f);
-            e.target.value = '';
-          }}
-        />
-        <button
-          className={jsonOpen ? 'btn-secondary' : 'btn-ghost'}
-          aria-pressed={jsonOpen}
-          onClick={toggleJson}
-          title="Advanced: edit the full definition as raw JSON"
-        >
-          <Icon name="code" size={16} /> Edit JSON
-        </button>
         {formDirty && (
           <span className={`text-xs ${draftStored ? 'text-muted' : 'text-warn-strong'}`} data-draft-status>
             {draftStored
@@ -787,15 +728,29 @@ export function ScenarioEditor({
             )}
           </span>
         )}
-        {!validation.ok && (
-          <span className="text-xs text-warn-strong">{validation.errors.length} validation issue(s)</span>
-        )}
-        {validation.ok && warnings.length > 0 && (
-          <span className="text-xs text-warn-strong">
-            {warnings.length} authoring warning{warnings.length === 1 ? '' : 's'}
-          </span>
+        {(fixCount > 0 || lookCount > 0) && (
+          <button
+            type="button"
+            className={`ml-auto text-xs font-semibold underline-offset-2 hover:underline ${fixCount > 0 ? 'text-red' : 'text-warn-strong'}`}
+            title="Open the checklist on Review & publish"
+            onClick={() => selectSection('review')}
+            data-readiness-count
+          >
+            {fixCount > 0 ? `${fixCount} to fix` : `${lookCount} worth a look`}
+          </button>
         )}
       </div>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) importFile(f);
+          e.target.value = '';
+        }}
+      />
 
       {restoredNotice && (
         <Callout
@@ -875,18 +830,6 @@ export function ScenarioEditor({
         </div>
       )}
 
-      {issues.globalWarnings.length > 0 && (
-        <div className="rounded-ctl bg-warn-soft p-3 text-sm ring-1 ring-warn/40">
-          <ul className="list-disc space-y-0.5 pl-5">
-            {issues.globalWarnings.map((w, i) => (
-              <li key={i} className={w.severity === 'warning' ? 'text-warn-strong' : 'text-muted'}>
-                <span className="font-mono text-xs">{w.path}</span>: {w.message}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="desk:flex desk:items-start desk:gap-5">
         <EditorRail
           sections={SECTIONS}
@@ -894,7 +837,7 @@ export function ScenarioEditor({
           issueCounts={issueCounts}
           onSelect={selectSection}
         />
-        <div className="mt-3 min-w-0 flex-1 space-y-4 desk:mt-0">
+        <div className="mt-3 min-w-0 flex-1 space-y-4 desk:mt-0" data-editor-surface>
           {jsonOpen ? (
             <JsonPanel
               text={jsonText}
@@ -905,31 +848,15 @@ export function ScenarioEditor({
               }}
               onApply={applyJson}
               onDiscard={discardJson}
+              onClose={toggleJson}
             />
           ) : (
             <>
-              {activeIssues && activeIssues.errors.length > 0 && (
-                <div className="rounded-ctl bg-red-soft p-3 text-sm text-red ring-1 ring-red/40">
-                  <ul className="list-disc space-y-0.5 pl-5">
-                    {activeIssues.errors.map((e, i) => (
-                      <li key={i}>{e}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {activeIssues && activeIssues.warnings.length > 0 && (
-                <div className="rounded-ctl bg-warn-soft p-3 text-sm ring-1 ring-warn/40">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-warn-strong">
-                    Authoring warnings — saving is not blocked
-                  </p>
-                  <ul className="list-disc space-y-0.5 pl-5">
-                    {activeIssues.warnings.map((w, i) => (
-                      <li key={i} className={w.severity === 'warning' ? 'text-warn-strong' : 'text-muted'}>
-                        <span className="font-mono text-xs">{w.path}</span>: {w.message}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+              {activeItems.length > 0 && (
+                <section className="card space-y-2" aria-label="Things to check on this page">
+                  <h3 className="text-sm font-bold text-ink">On this page</h3>
+                  <ReadinessList items={activeItems} onShow={showItem} />
+                </section>
               )}
               {renderSection()}
             </>
