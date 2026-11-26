@@ -1,13 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { EffectEditor, effectSummary } from '@/components/editor/EffectEditor';
-import { CATEGORIES } from '@/components/eventCategories';
+import { EffectFields } from '@/components/editor/EffectFields';
+import { CATEGORIES, CATEGORY_LABELS } from '@/components/eventCategories';
+import { Field } from '@/components/ui/Field';
+import { Icon } from '@/components/ui/Icon';
+import { SelectField } from '@/components/ui/SelectField';
 import { EVENT_TEMPLATES, TEMPLATE_KINDS } from '@/lib/engine/eventTemplates';
 import { eventSchema } from '@/lib/engine/schema';
 import type { EventCategory, VitalEffect } from '@/lib/engine/types';
 import type { SavedEvent } from '@/lib/scenarios/eventLibrary';
 import { listSavedEvents } from '@/lib/scenarios/eventLibraryStore';
+import { describeEvent } from '@/lib/scenarios/progression';
 import { useControllerStore } from '@/lib/store/controllerStore';
 import { formatZodIssues } from '@/lib/zodIssues';
 
@@ -26,6 +30,8 @@ import { formatZodIssues } from '@/lib/zodIssues';
 // What the form actually authors: no id (the store generates it), no
 // autoAtSec / actionIds (ad-hoc events are fire-when-ready only).
 const adhocEventSchema = eventSchema.omit({ id: true, autoAtSec: true, actionIds: true });
+
+const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] }));
 
 export function AddEventForm({ onDone }: { onDone: () => void }) {
   const { addAdhocEvent, pinNextEvent } = useControllerStore();
@@ -95,24 +101,18 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <div className="space-y-2 rounded-ctl bg-panel/60 p-2 ring-1 ring-line">
-      <div>
-        <span className="label">Start from a template (optional)</span>
-        <select
-          className="input"
-          value={templateId}
-          onChange={(e) => applyTemplate(e.target.value)}
-          aria-label="Event template"
-        >
-          <option value="">— blank event —</option>
+    <div className="space-y-3 rounded-ctl bg-panel/60 p-3 ring-1 ring-line">
+      <Field
+        label="Start from a template"
+        hint="Optional. Template values come from the reviewed bundled scenarios; “My events” are your own saved values. Check either against this patient before firing."
+      >
+        <select className="input" value={templateId} onChange={(e) => applyTemplate(e.target.value)}>
+          <option value="">Blank event</option>
           {savedEvents.length > 0 && (
             <optgroup label="My events">
               {savedEvents.map((e) => (
                 <option key={e.id} value={`lib:${e.id}`}>
-                  {e.label}
-                  {e.effects.length > 0
-                    ? ` — ${e.effects.map(effectSummary).join(' | ')}`
-                    : ' — log only'}
+                  {e.label} — {describeEvent(e)}
                 </option>
               ))}
             </optgroup>
@@ -121,64 +121,56 @@ export function AddEventForm({ onDone }: { onDone: () => void }) {
             <optgroup key={kind} label={title}>
               {EVENT_TEMPLATES.filter((t) => t.kind === kind).map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.label}
-                  {t.effects.length > 0 ? ` — ${t.effects.map(effectSummary).join(' | ')}` : ' — log only'}
+                  {t.label} — {describeEvent(t)}
                 </option>
               ))}
             </optgroup>
           ))}
         </select>
-        <p className="mt-1 text-xs text-faint">
-          Template values come from the reviewed bundled scenarios; “My events” are your own saved
-          values — verify either for this patient and baseline before firing.
-        </p>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div>
-          <span className="label">Label</span>
+      </Field>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="What happens">
           <input
             className="input"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="e.g. Surgeon reports brisk bleeding"
+            placeholder="For example: Surgeon reports brisk bleeding"
           />
-        </div>
-        <div>
-          <span className="label">Category</span>
-          <select
-            className="input"
-            value={category}
-            onChange={(e) => setCategory(e.target.value as EventCategory)}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+        </Field>
+        <SelectField
+          label="Category"
+          value={category}
+          options={CATEGORY_OPTIONS}
+          onChange={(c) => c && setCategory(c)}
+        />
       </div>
-      <div>
-        <span className="label">Description (optional)</span>
+      <Field label="Notes for faculty" hint="Optional.">
         <textarea
           className="input"
           rows={2}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-      </div>
+      </Field>
       <div className="space-y-2">
-        <span className="label">Effects (empty effect = log-only marker)</span>
+        <span className="label">What it changes</span>
+        {effects.length === 0 && (
+          <p className="text-sm text-muted">
+            Nothing on the monitor. Firing it only writes a note in the session log.
+          </p>
+        )}
         {effects.map((effect, i) => (
-          <EffectEditor
+          <EffectFields
             key={i}
             effect={effect}
+            title={effects.length > 1 ? `Change ${i + 1}` : undefined}
             onChange={(next) => setEffects(effects.map((ef, j) => (j === i ? next : ef)))}
             onRemove={() => setEffects(effects.filter((_, j) => j !== i))}
           />
         ))}
-        <button className="btn-secondary" onClick={() => setEffects([...effects, {}])}>
-          + Add effect
+        <button type="button" className="btn-secondary btn-sm" onClick={() => setEffects([...effects, {}])}>
+          <Icon name="plus" size={14} />
+          {effects.length === 0 ? 'Add a change' : 'Add another change'}
         </button>
       </div>
       {errors.length > 0 && (
