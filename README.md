@@ -54,7 +54,8 @@ Copy `.env.example` to `.env.local`. Everything is optional:
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Enables cross-device realtime sync (Supabase Realtime broadcast), institution sign-in at `/account`, and cloud persistence of custom scenarios and session debriefs for faculty accounts. Run `db/schema.sql` in your Supabase project and enable the Email auth provider (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)). Existing projects apply `db/migrations/` in order; builds with scenario approval require `0004_scenario_review.sql`. |
 | `NEXT_PUBLIC_FACULTY_PIN` | Advisory PIN gate on faculty views for shared lab machines. Not a security boundary (it is a public client value) — use Supabase auth + RLS for real access control. Signed-in faculty/admin accounts bypass the PIN. |
-| `NEXT_PUBLIC_SITE_URL` | Public origin of this deployment (e.g. `https://capno.your-school.edu`). Enables absolute URLs in Open Graph share metadata, robots.txt, and sitemap.xml. Purely cosmetic for discoverability — offline labs can ignore it. |
+| `NEXT_PUBLIC_SITE_URL` | Public origin of this deployment (e.g. `https://capno.your-school.edu`). Enables absolute URLs in Open Graph share metadata, canonical links, robots.txt, and sitemap.xml. Purely cosmetic for discoverability — offline labs can ignore it. |
+| `ROBOTS_NOINDEX` | Set to `1` to keep the whole deployment out of search engines (every response carries `X-Robots-Tag: noindex, nofollow`; no sitemap). Use it for staging, demo, and private lab instances that are reachable from the internet. Unset, only the home page is indexable — the tool views (`/student`, `/scenarios`, `/editor`, `/debrief`, `/faculty`, `/account`, `/settings`) are always `noindex`. Read at build time. |
 
 ### Optional AI assistance (bring your own key)
 

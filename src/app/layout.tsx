@@ -23,20 +23,29 @@ const display = localFont({
 // When set, social-share metadata resolves to absolute URLs.
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
+// The page a search engine shows for this deployment is the app itself, so
+// the title and description say what opening it gets you. (The product
+// pitch lives on the marketing site; two results with the same title are
+// indistinguishable.)
+const TITLE = 'CAPNO Studio — simulator workspace';
+const DESCRIPTION =
+  'The CAPNO Studio app: open the case library, drive the simulated patient monitor from the faculty controller, join a session as a student display, or review a debrief. Simulation only — not for clinical use.';
+
 export const metadata: Metadata = {
-  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+  // With a known origin, every page names itself as canonical ('./'
+  // resolves against the current path), so a shared ?code= link or a
+  // tracking parameter never becomes a second copy of the page.
+  ...(siteUrl ? { metadataBase: new URL(siteUrl), alternates: { canonical: './' } } : {}),
   title: {
-    default: 'CAPNO Studio — Anesthesia Simulation Lab',
+    default: TITLE,
     template: '%s · CAPNO Studio',
   },
-  description:
-    'Open anesthesia simulation platform: faculty-controlled patient monitor, scenario engine, and structured debriefing.',
+  description: DESCRIPTION,
   openGraph: {
     type: 'website',
     siteName: 'CAPNO Studio',
-    title: 'CAPNO Studio — Anesthesia Simulation Lab',
-    description:
-      'Open anesthesia simulation platform: faculty-controlled patient monitor, scenario engine, and structured debriefing.',
+    title: TITLE,
+    description: DESCRIPTION,
     images: ['/og.png'],
   },
   twitter: {
