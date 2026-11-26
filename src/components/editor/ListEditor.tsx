@@ -6,7 +6,7 @@ import { moveItem } from '@/lib/formFields';
 
 /** A text box that grows with its content, so a long teaching point is read
  *  in full where it is edited. */
-function GrowingText({
+export function GrowingText({
   value,
   onChange,
   onBlur,
@@ -14,6 +14,7 @@ function GrowingText({
   placeholder,
   ariaLabel,
   id,
+  className = '',
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -22,6 +23,7 @@ function GrowingText({
   placeholder?: string;
   ariaLabel?: string;
   id?: string;
+  className?: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -35,7 +37,7 @@ function GrowingText({
       ref={ref}
       id={id}
       rows={1}
-      className="input min-w-0 flex-1 resize-none overflow-hidden"
+      className={`input min-w-0 flex-1 resize-none overflow-hidden ${className}`}
       value={value}
       placeholder={placeholder}
       aria-label={ariaLabel}

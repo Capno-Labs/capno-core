@@ -539,10 +539,21 @@ library) edits scenarios as forms with a live JSON pane:
   detail and alarm limits are in closed groups that say whether anything in
   them is set. A number outside its range is reported under the field and is
   not stored.
-- In an event's vital-effect grid, a **blank field means "unchanged"** — only
-  type a number for vitals the event should move. Rubric membership (under
-  **Review & publish → Scoring**) is checkboxes over your expected actions,
-  so broken references can't happen from the forms.
+- **Progression** is one page. Each phase is a card: what happens in it on
+  the left, what learners should do about it on the right. An event reads as
+  a sentence when closed ("Automatically at 4:00 · BP 92/52 · HR 104, over
+  1:30") and opens into its form. Add a **timed change**, a **faculty-fired
+  change**, or from the **…** menu a template, a return to the starting
+  vitals, or a log note. Type an expected action and press Enter to add it;
+  mark it **Critical**, or open **Details** for a note, its phase and points.
+- In an event's changes, a **blank field means "no change"** — only fill in
+  what the event should move. Times are typed as minutes:seconds. Less common
+  changes (temperature, depth, agent, CO₂ waveform, machine, twitch monitor,
+  ECG detail) are under **More changes**.
+- You never type ids. Phases, events and actions get one from their name;
+  renaming something that is already saved keeps its id, and removing an
+  action also removes its event links and rubric membership. Rubric
+  categories are under **Review & publish → Scoring**.
 - **Your edits are kept as you work.** Every change is stored as a draft on
   this device a moment later, and the editor picks it up again if you reload,
   close the tab or come back another day (with a **Discard them** button). A
