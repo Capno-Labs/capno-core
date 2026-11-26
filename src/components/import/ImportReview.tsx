@@ -19,7 +19,7 @@ import {
 import { BUILT_IN_SCENARIOS, QUICK_START_ID, listCustomScenarios, saveCustomScenario, uniquifyId } from '@/lib/scenarios';
 import { toast } from '@/lib/store/toastStore';
 import { DraftFields } from './DraftFields';
-import { labelForPath } from './fieldRegistry';
+import { labelForPath, rowIdForEntry } from './fieldRegistry';
 import { SourcePane } from './SourcePane';
 
 /**
@@ -142,7 +142,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
                 <button
                   className="rounded-full bg-panel-2 px-2 py-0.5 text-xs text-ink-2 ring-1 ring-line hover:bg-panel-3"
                   onClick={() =>
-                    document.getElementById(`field-${path}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                    document.getElementById(rowIdForEntry(path))?.scrollIntoView({ block: 'center', behavior: 'smooth' })
                   }
                 >
                   {labelForPath(path, draft.fields)}

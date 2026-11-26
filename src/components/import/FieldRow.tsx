@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Pill, type PillTone } from '@/components/ui/Pill';
+import { TimeField } from '@/components/ui/TimeField';
+import { formatTime } from '@/lib/formFields';
 import type { DraftField, FieldStatus } from '@/lib/import';
 import type { FieldSpec } from './fieldRegistry';
 
@@ -22,7 +24,7 @@ export const STATUS_LABEL: Record<FieldStatus, string> = {
 function toEditorText(kind: FieldSpec['kind'], value: unknown): string {
   if (value === null || value === undefined) return '';
   if (kind === 'stringList') return (value as string[]).join('\n');
-  if (kind === 'json') return JSON.stringify(value, null, 2);
+  if (kind === 'enumList' || kind === 'monitoring') return JSON.stringify(value);
   return String(value);
 }
 
@@ -47,17 +49,42 @@ function fromEditorText(spec: FieldSpec, text: string): { ok: true; value: unkno
           .map((s) => s.replace(/^[-*•]\s*/, '').trim())
           .filter(Boolean),
       };
-    case 'json':
-      try {
-        return { ok: true, value: JSON.parse(t) };
-      } catch {
-        return { ok: false, error: 'Invalid JSON.' };
-      }
+    case 'enumList': {
+      const chosen = parseJson<string[]>(t, []);
+      return chosen.length > 0 ? { ok: true, value: chosen } : { ok: false, error: 'Pick at least one.' };
+    }
+    case 'monitoring':
+      return { ok: true, value: parseJson<MonitoringValue>(t, {}) };
   }
 }
 
-function Display({ kind, value }: { kind: FieldSpec['kind']; value: unknown }) {
+/** The part of a case's monitoring a run sheet can state: an arterial line, or how often the cuff cycles. */
+interface MonitoringValue {
+  artLine?: boolean;
+  nibpIntervalSec?: number;
+}
+
+function parseJson<T>(text: string, fallback: T): T {
+  try {
+    return (JSON.parse(text) as T) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+const optionLabel = (spec: FieldSpec, option: unknown) => spec.optionLabels?.[String(option)] ?? String(option);
+
+function Display({ spec, value }: { spec: FieldSpec; value: unknown }) {
+  const { kind } = spec;
   if (value === null || value === undefined) return <span className="text-faint">—</span>;
+  if (kind === 'enum') return <span>{optionLabel(spec, value)}</span>;
+  if (kind === 'enumList') return <span>{(value as unknown[]).map((v) => optionLabel(spec, v)).join(', ')}</span>;
+  if (kind === 'monitoring') {
+    const m = value as MonitoringValue;
+    if (m.artLine) return <span>Arterial line: blood pressure displays continuously</span>;
+    if (m.nibpIntervalSec !== undefined) return <span>Cuff cycles every {formatTime(m.nibpIntervalSec)}</span>;
+    return <span>Cuff at the standard interval, no arterial line</span>;
+  }
   if (kind === 'stringList') {
     const items = value as string[];
     if (items.length === 0) return <span className="text-faint">none</span>;
@@ -69,8 +96,40 @@ function Display({ kind, value }: { kind: FieldSpec['kind']; value: unknown }) {
       </ul>
     );
   }
-  if (kind === 'json') return <pre className="whitespace-pre-wrap font-mono text-xs">{JSON.stringify(value)}</pre>;
-  return <span>{String(value)}</span>;
+  return (
+    <span>
+      {String(value)}
+      {spec.unit && <span className="ml-1 text-faint">{spec.unit}</span>}
+    </span>
+  );
+}
+
+/** Same two choices, in the same words, as the editor's Starting state page. */
+function MonitoringEditor({ value, onChange }: { value: MonitoringValue; onChange: (next: MonitoringValue) => void }) {
+  return (
+    <div className="space-y-2">
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-2">
+        <input
+          type="checkbox"
+          checked={value.artLine === true}
+          onChange={(e) => onChange(e.target.checked ? { artLine: true } : {})}
+        />
+        Arterial line: blood pressure displays continuously
+      </label>
+      {!value.artLine && (
+        <TimeField
+          className="max-w-[14rem]"
+          label="Cuff cycles every"
+          valueSec={value.nibpIntervalSec}
+          minSec={15}
+          maxSec={1800}
+          placeholder="3:00"
+          hint="Blank uses 3:00."
+          onChange={(nibpIntervalSec) => onChange(nibpIntervalSec === undefined ? {} : { nibpIntervalSec })}
+        />
+      )}
+    </div>
+  );
 }
 
 /**
@@ -119,7 +178,10 @@ export function FieldRow({
       onMouseEnter={() => blockId && onFocusBlock(blockId)}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-ink">{spec.label}</span>
+        <span className="text-xs font-semibold text-ink">
+          {spec.label}
+          {spec.unit && <span className="ml-1 font-normal text-faint">{spec.unit}</span>}
+        </span>
         <Pill tone={STATUS_TONE[field.status]}>{STATUS_LABEL[field.status]}</Pill>
         {spec.optional && <span className="text-[10px] text-faint">optional</span>}
         {blockId && (
@@ -134,7 +196,7 @@ export function FieldRow({
       </div>
       {!editing && (
         <div className="mt-1 text-sm text-ink-2">
-          <Display kind={spec.kind} value={field.value} />
+          <Display spec={spec} value={field.value} />
           {field.note && <p className="mt-0.5 text-xs text-faint">{field.note}</p>}
         </div>
       )}
@@ -145,23 +207,46 @@ export function FieldRow({
               <option value="">—</option>
               {spec.options?.map((o) => (
                 <option key={String(o)} value={String(o)}>
-                  {String(o)}
+                  {optionLabel(spec, o)}
                 </option>
               ))}
             </select>
-          ) : spec.kind === 'stringList' || spec.kind === 'json' ? (
+          ) : spec.kind === 'enumList' ? (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label={spec.label}>
+              {spec.options?.map((o) => {
+                const chosen = parseJson<string[]>(text, []);
+                const on = chosen.includes(String(o));
+                return (
+                  <button
+                    key={String(o)}
+                    type="button"
+                    className="chip"
+                    aria-pressed={on}
+                    onClick={() =>
+                      setText(JSON.stringify(on ? chosen.filter((c) => c !== String(o)) : [...chosen, String(o)]))
+                    }
+                  >
+                    {optionLabel(spec, o)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : spec.kind === 'monitoring' ? (
+            <MonitoringEditor value={parseJson<MonitoringValue>(text, {})} onChange={(m) => setText(JSON.stringify(m))} />
+          ) : spec.kind === 'stringList' ? (
             <textarea
-              className="input font-mono text-xs"
+              className="input text-sm"
               rows={Math.min(10, Math.max(3, text.split('\n').length + 1))}
               value={text}
               onChange={(e) => setText(e.target.value)}
               aria-label={spec.label}
-              placeholder={spec.kind === 'stringList' ? 'One item per line' : spec.hint}
+              placeholder="One item per line"
             />
           ) : (
             <input
               className="input"
-              type={spec.kind === 'number' ? 'number' : 'text'}
+              type="text"
+              inputMode={spec.kind === 'number' ? 'decimal' : undefined}
               value={text}
               onChange={(e) => setText(e.target.value)}
               aria-label={spec.label}
