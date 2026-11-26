@@ -14,10 +14,10 @@ import { NmbFields } from './NmbFields';
 import { VentFields } from './VentFields';
 
 /**
- * One change an event makes to the patient, in the case editor.
+ * One change an event makes to the patient. Shared by the case editor and
+ * the run screen's live add-event form.
  *
- * Correctness-critical convention, shared with EffectEditor (the run
- * screen's live add-event form): an empty field means "no change" — the key
+ * Correctness-critical convention: an empty field means "no change" — the key
  * is absent from the effect, never written as 0. A systolic pressure of 0 is
  * a very different case from "leave it alone". Nothing is pre-filled;
  * faculty type every number.

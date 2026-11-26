@@ -13,7 +13,7 @@ import { VentFields } from './VentFields';
 /**
  * Form editor for a scenario's starting vitals.
  *
- * Unlike EffectEditor (where blank = "unchanged"), every numeric here is
+ * Unlike EffectFields (where blank = "no change"), every numeric here is
  * required — the patient always starts somewhere. The numbers every case sets
  * come first; what most cases leave alone sits in closed groups, each saying
  * whether anything inside it is set. Optional display keys (capnoShape,
