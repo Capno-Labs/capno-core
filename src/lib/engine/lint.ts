@@ -66,7 +66,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
     warnings.push({
       severity: 'info',
       path: 'tags.topics',
-      message: `no topic names a curriculum domain (${DOMAINS.join(', ')}) — the case library groups scenarios by domain, so this one will appear under "Custom & drafts"`,
+      message: 'No curriculum area is chosen, so the library lists this case under "Custom & drafts".',
     });
   }
 
@@ -81,7 +81,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
       severity: 'info',
       path: 'monitoring.alarmProfile',
       message:
-        'the patient is under 18 but the monitor uses the adult alarm limits — choose the pediatric or neonatal profile (Vitals → Alarm limits) if normal vitals for this patient would alarm',
+        'The patient is under 18 but the monitor uses the adult alarm limits. If normal vitals for this patient would alarm, choose the pediatric or neonatal limits (Starting state, Alarm limits).',
     });
   }
 
@@ -93,7 +93,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
       warnings.push({
         severity: 'warning',
         path: `events.${i}.phaseHint`,
-        message: `phase hint "${event.phaseHint}" does not match any phase id (it is shown verbatim to faculty)`,
+        message: `Its phase, "${event.phaseHint}", is not one of this case's phases. Faculty see that text as written.`,
       });
     }
 
@@ -101,7 +101,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
       warnings.push({
         severity: 'warning',
         path: `events.${i}.autoAtSec`,
-        message: `fires at ${fmtTime(event.autoAtSec)}, after the estimated run time of ${fmtTime(runEndSec)}`,
+        message: `Fires at ${fmtTime(event.autoAtSec)}, after the expected length of ${fmtTime(runEndSec)}.`,
       });
     }
 
@@ -109,7 +109,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
       warnings.push({
         severity: 'info',
         path: `events.${i}.effects`,
-        message: 'no vital effects — this event only writes a log line (fine for marker events like "drug given")',
+        message: 'Changes nothing on the monitor; it only adds a line to the log. Fine for a marker such as "drug given".',
       });
     }
 
@@ -117,7 +117,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
       warnings.push({
         severity: 'info',
         path: `events.${i}.autoAtSec`,
-        message: 'fires the instant the scenario starts — set a time if that is not intended',
+        message: 'Fires the moment the case starts. Set a time if that is not intended.',
       });
     }
 
@@ -128,7 +128,7 @@ export function lintScenario(scenario: Scenario): LintWarning[] {
         warnings.push({
           severity: 'info',
           path: `events.${i}.autoAtSec`,
-          message: 'automatic events are listed out of time order; the run screen sorts by time, but narrative order is easier to review',
+          message: 'Timed events are listed out of time order. The run screen sorts them by time, but in order they are easier to review.',
         });
         flaggedOutOfOrder = true;
       }

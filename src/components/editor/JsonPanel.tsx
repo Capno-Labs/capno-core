@@ -3,7 +3,7 @@
 /**
  * The editor's advanced surface: the full scenario document as raw JSON.
  *
- * Opt-in via the toolbar's "Edit JSON" toggle — it replaces the form surface
+ * Opt-in via "Edit JSON" (Review & publish, Advanced) — it replaces the form surface
  * entirely, so the two can never fight over the document. The text is
  * (re)generated from the scenario when the panel opens; it becomes the source
  * of truth only after "Apply JSON" (validated with the same zod schema used
@@ -16,18 +16,21 @@ export function JsonPanel({
   onChange,
   onApply,
   onDiscard,
+  onClose,
 }: {
   text: string;
   dirty: boolean;
   onChange: (text: string) => void;
   onApply: () => void;
   onDiscard: () => void;
+  /** Back to the form; only offered when nothing is unapplied. */
+  onClose: () => void;
 }) {
   return (
     <section className="card flex flex-col">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted">
-          Full definition (JSON) — advanced
+          The case as JSON
         </h2>
         {dirty ? (
           <div className="flex items-center gap-2">
@@ -40,9 +43,12 @@ export function JsonPanel({
             </button>
           </div>
         ) : (
-          <span className="text-xs text-faint">
-            the full document — edits apply only after “Apply JSON”
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-faint">Edits apply only after “Apply JSON”.</span>
+            <button type="button" className="btn-secondary btn-sm" onClick={onClose}>
+              Back to the form
+            </button>
+          </div>
         )}
       </div>
       <textarea

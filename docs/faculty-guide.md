@@ -576,11 +576,20 @@ library) edits scenarios as forms with a live JSON pane:
   publishes the saved version as the approved one, and sessions run from then
   on are recorded against that exact version. Saving an edit over a
   published scenario returns it to draft until it is approved again.
-- **⬇ Export JSON / ⬆ Import JSON** move scenario files between machines.
+- **Review & publish** opens with a **Readiness** checklist: everything that
+  must be fixed before the case can be saved or run (**Must fix**) and
+  anything that is probably unintended (**Worth a look**, which never stops
+  you saving), each in plain words with a **Show me** button that opens the
+  field. The same items are listed at the top of the page they belong to,
+  and the count in the toolbar opens the checklist.
+- **Scoring** on that page is optional: points for each action (a new action
+  starts at 0) and, if you report scores by category, the rubric categories.
 - **▶ Test run** saves a version if you have unsaved changes, then opens the
-  controller on it (enabled once the case is valid).
-- The JSON pane only takes effect when you press **Apply JSON**; form edits
-  regenerate the JSON text.
+  controller on it (enabled once nothing is marked Must fix).
+- **Review & publish → Advanced** holds the case ID, the version label and
+  the case as a file: **Export JSON / Import JSON** move scenario files
+  between machines, and **Edit JSON** shows the whole case as text in place
+  of the form. JSON edits only take effect when you press **Apply JSON**.
 
 See [scenario.schema.md](scenario.schema.md) for the full field reference, or
 export a built-in scenario as a working example. Clinical content in the five

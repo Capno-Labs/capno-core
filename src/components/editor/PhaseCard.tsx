@@ -40,7 +40,7 @@ function ActionRow({
   const [details, setDetails] = useState(false);
   const name = action.label || 'Untitled action';
   return (
-    <li className="space-y-1.5">
+    <li id={`action-${action.id}`} className="scroll-mt-40 space-y-1.5">
       <div className="flex items-start gap-1">
         <GrowingText
           value={action.label}
@@ -174,7 +174,11 @@ export function PhaseCard({
   const name = phase ? phase.label || `Phase ${number}` : 'No phase';
 
   return (
-    <section className="card space-y-4" aria-label={name}>
+    <section
+      id={phase ? `phase-${phase.id}` : undefined}
+      className="card scroll-mt-40 space-y-4"
+      aria-label={name}
+    >
       {phase ? (
         <div className="space-y-3">
           <div className="flex items-start gap-2">
