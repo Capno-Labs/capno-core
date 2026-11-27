@@ -4,7 +4,7 @@ import { PageSkeleton } from '@/components/ui/Skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Pill } from '@/components/ui/Pill';
-import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
+import { cloudEligible, drain, enqueue, getPushedAt } from '@/lib/cloud/outbox';
 import {
   deleteImport,
   finalizeDraft,
@@ -16,7 +16,9 @@ import {
   type ImportDraft,
   type StoredImport,
 } from '@/lib/import';
-import { BUILT_IN_SCENARIOS, QUICK_START_ID, listCustomScenarios, saveCustomScenario, uniquifyId } from '@/lib/scenarios';
+import { BUILT_IN_SCENARIOS, QUICK_START_ID, listCustomScenarios, saveCustomScenario } from '@/lib/scenarios';
+import { cloudTakenScenarioIds } from '@/lib/cloud/scenarioCloud';
+import { freeScenarioId } from '@/lib/scenarios/scenarioId';
 import { toast } from '@/lib/store/toastStore';
 import { DraftFields } from './DraftFields';
 import { labelForPath, rowIdForEntry } from './fieldRegistry';
@@ -33,6 +35,7 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
   const [stored, setStored] = useState<StoredImport | null | undefined>(undefined);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const item = getImport(sourceId) ?? null;
@@ -71,7 +74,8 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
     void syncDraftToService(updated);
   };
 
-  const finish = () => {
+  const finish = async () => {
+    if (saving) return;
     const result = finalizeDraft(draft);
     if (!result.ok) {
       toast(`Still unresolved: ${labelForPath(result.unresolved[0], draft.fields)}`, 'error');
@@ -82,17 +86,32 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
       QUICK_START_ID,
       ...listCustomScenarios().map((s) => s.id),
     ]);
-    const scenario = { ...result.scenario, id: uniquifyId(result.scenario.id, taken) };
+    // Case ids are unique across every organization in the cloud, so an id
+    // that is free here can still belong to another program. Ask first; if
+    // the cloud cannot answer, the id that is free on this device is used.
+    setSaving(true);
+    const { id } = await freeScenarioId(result.scenario.id, taken, cloudTakenScenarioIds);
+    setSaving(false);
+    const scenario = { ...result.scenario, id };
     const saved = saveCustomScenario(scenario);
     if (!saved.ok) {
       toast(saved.error, 'error');
       return;
     }
+    const { jobId } = draft;
     if (cloudEligible()) {
-      enqueue('scenario', scenario.id);
-      void drain();
+      enqueue('scenario', id);
+      void drain().then((r) => {
+        // A refused push (the ID belongs to another program, say) must not
+        // pass silently: the case is then on this device only.
+        for (const message of r.dropped) toast(message, 'error');
+        // The service links a job only to a scenario already in the cloud,
+        // so this waits for the push instead of racing it.
+        if (jobId && getPushedAt('scenario', id)) void markJobFinalized(jobId, id);
+      });
+    } else if (jobId) {
+      void markJobFinalized(jobId, scenario.id);
     }
-    if (draft.jobId) void markJobFinalized(draft.jobId, scenario.id);
     // The finished draft leaves the review; the source stays until its
     // last draft is done.
     const remaining = stored.drafts.filter((d) => d.draftId !== draft.draftId);
@@ -131,8 +150,8 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
           <span className="text-xs text-faint">
             {extractedCount} from source · {confirmedCount} confirmed · parser profile {draft.profile}
           </span>
-          <button className="btn-primary ml-auto" onClick={finish} disabled={unresolved.length > 0}>
-            Save to library
+          <button className="btn-primary ml-auto" onClick={() => void finish()} disabled={unresolved.length > 0 || saving}>
+            {saving ? 'Saving…' : 'Save to library'}
           </button>
         </div>
         {unresolved.length > 0 && (
