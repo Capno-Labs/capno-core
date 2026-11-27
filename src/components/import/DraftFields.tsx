@@ -11,7 +11,7 @@ import { ItemList } from './ItemList';
 
 /** The starting numbers a run sheet most often leaves out. */
 const DEFAULTABLE = Object.keys(VITAL_NAMES) as (keyof NumericVitals)[];
-const DEFAULT_NOTE = 'The studio’s default for a healthy adult, not from your run sheet. Accept it or enter your own.';
+const DEFAULT_NOTE = 'The studio’s default for a healthy adult, not from your run sheet. Edit it if your case starts differently.';
 
 /** Right column: every draft field, grouped the way the source document is laid out. */
 export function DraftFields({
@@ -35,14 +35,15 @@ export function DraftFields({
     ...DEFAULTABLE.filter((key) => vitals[key].status === 'unresolved' && vitals[key].value === null),
     ...(vitals.rhythm.status === 'unresolved' && vitals.rhythm.value === null ? (['rhythm'] as const) : []),
   ];
-  // Suggestions only: each stays "suggested" until the reviewer accepts it.
-  const suggestDefaults = () => {
+  // One press is the reviewer's decision for all of them, so each is confirmed
+  // as a faculty entry. Nothing is filled in until the button is pressed.
+  const useDefaults = () => {
     let next = fields;
     for (const key of missing) {
       next = setField(next, `baselineVitals.${key}`, {
         value: DEFAULT_VITALS[key],
-        status: 'proposed',
-        provenance: null,
+        status: 'confirmed',
+        provenance: { method: 'faculty' },
         note: DEFAULT_NOTE,
       });
     }
@@ -59,12 +60,12 @@ export function DraftFields({
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted">{section.label}</h3>
             {section.id === 'vitals' && missing.length > 0 && (
               <div className="rounded-ctl bg-panel-2 p-2" data-default-vitals>
-                <button type="button" className="btn-secondary btn-sm" onClick={suggestDefaults}>
-                  Suggest the studio’s default adult values
+                <button type="button" className="btn-secondary btn-sm" onClick={useDefaults}>
+                  Use the studio’s default adult values
                 </button>
                 <p className="mt-1 text-xs text-faint">
                   For the {missing.length} starting value{missing.length === 1 ? '' : 's'} the run sheet does not
-                  state. Each one is marked “suggested” and still needs your Accept: HR {DEFAULT_VITALS.hr}, BP{' '}
+                  state. One click confirms them all, and you can still edit any of them: HR {DEFAULT_VITALS.hr}, BP{' '}
                   {DEFAULT_VITALS.sbp}/{DEFAULT_VITALS.dbp}, SpO₂ {DEFAULT_VITALS.spo2}, EtCO₂ {DEFAULT_VITALS.etco2},
                   RR {DEFAULT_VITALS.rr}, {DEFAULT_VITALS.temp} °C, sinus rhythm, awake, no agent.
                 </p>
