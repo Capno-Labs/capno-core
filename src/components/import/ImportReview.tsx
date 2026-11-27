@@ -4,7 +4,7 @@ import { PageSkeleton } from '@/components/ui/Skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Pill } from '@/components/ui/Pill';
-import { cloudEligible, drain, enqueue } from '@/lib/cloud/outbox';
+import { cloudEligible, drain, enqueue, getPushedAt } from '@/lib/cloud/outbox';
 import {
   deleteImport,
   finalizeDraft,
@@ -88,11 +88,21 @@ export function ImportReview({ sourceId }: { sourceId: string }) {
       toast(saved.error, 'error');
       return;
     }
+    const { jobId } = draft;
     if (cloudEligible()) {
-      enqueue('scenario', scenario.id);
-      void drain();
+      const id = scenario.id;
+      enqueue('scenario', id);
+      void drain().then((r) => {
+        // A refused push (the ID belongs to another program, say) must not
+        // pass silently: the case is then on this device only.
+        for (const message of r.dropped) toast(message, 'error');
+        // The service links a job only to a scenario already in the cloud,
+        // so this waits for the push instead of racing it.
+        if (jobId && getPushedAt('scenario', id)) void markJobFinalized(jobId, id);
+      });
+    } else if (jobId) {
+      void markJobFinalized(jobId, scenario.id);
     }
-    if (draft.jobId) void markJobFinalized(draft.jobId, scenario.id);
     // The finished draft leaves the review; the source stays until its
     // last draft is done.
     const remaining = stored.drafts.filter((d) => d.draftId !== draft.draftId);
