@@ -616,9 +616,9 @@ teach from into a scenario draft — without rewriting it.
    what is not, enter what the sheet leaves out. **Edit** on a phase, event,
    action or rubric category opens the same form the case editor uses.
    Vital signs, doses, patient demographics and event effects are **never**
-   filled in for you. If the sheet states no starting vitals, **Suggest the
-   studio's default adult values** offers them as *suggested*; each one
-   still needs your **Accept**.
+   filled in for you. If the sheet states no starting vitals, **Use the
+   studio's default adult values** enters them all as *confirmed* in one
+   click; edit any that your case starts differently.
 4. **Save to library** is enabled only when the review queue is empty. The
    scenario lands in the library tagged `imported`, opens in the editor,
    and follows the normal save / version / approval path.
