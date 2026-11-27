@@ -1,25 +1,51 @@
 'use client';
 
+import { Field } from '@/components/ui/Field';
+import { Icon } from '@/components/ui/Icon';
+import { Pill } from '@/components/ui/Pill';
 import type { ExpectedAction, RubricCategory } from '@/lib/engine/types';
+import { idFromLabel } from '@/lib/scenarios/progression';
 
 /**
- * Form editor for the grading rubric. Action membership is a checkbox list
- * over the scenario's expected actions, so unknown-action references cannot
- * be created from the form; stale ids left behind by JSON edits render in
- * red with an unlink button. Point sums are display-only — the scoring
- * policy lives in scoring.ts and is unchanged here.
+ * Rubric categories: named groups of expected actions, for programs that
+ * report scores by category. Membership is a checkbox list over the case's
+ * actions, so the form cannot link an action that does not exist; a link
+ * left behind by a JSON edit shows in red with an unlink button.
+ *
+ * Authors never type a category's id. A new category's id follows its name
+ * until the case is saved (`fresh`), then stays as it is.
  */
 export function RubricEditor({
   rubric,
   actions,
+  fresh,
   onChange,
 }: {
   rubric: RubricCategory[];
   actions: ExpectedAction[];
+  /** Ids of categories added since the last save. */
+  fresh: Set<string>;
   onChange: (rubric: RubricCategory[]) => void;
 }) {
   const patch = (i: number, p: Partial<RubricCategory>) =>
     onChange(rubric.map((c, j) => (j === i ? { ...c, ...p } : c)));
+
+  const otherIds = (i: number) => rubric.filter((_, j) => j !== i).map((c) => c.id);
+
+  const setLabel = (i: number, label: string) => {
+    const category = rubric[i];
+    if (!fresh.has(category.id)) return patch(i, { label });
+    const id = idFromLabel(label, otherIds(i), 'category');
+    fresh.delete(category.id);
+    fresh.add(id);
+    patch(i, { label, id });
+  };
+
+  const add = () => {
+    const id = idFromLabel('', rubric.map((c) => c.id), 'category');
+    fresh.add(id);
+    onChange([...rubric, { id, label: '', actionIds: [] }]);
+  };
 
   const actionById = new Map(actions.map((a) => [a.id, a]));
 
@@ -27,49 +53,39 @@ export function RubricEditor({
     <div className="space-y-2">
       {rubric.map((category, i) => {
         const staleIds = category.actionIds.filter((id) => !actionById.has(id));
-        const points = category.actionIds.reduce(
-          (sum, id) => sum + (actionById.get(id)?.points ?? 0),
-          0,
-        );
+        const points = category.actionIds.reduce((sum, id) => sum + (actionById.get(id)?.points ?? 0), 0);
         return (
-          <div key={i} className="space-y-2 rounded-ctl bg-panel-2 p-2">
-            <div className="flex items-start gap-2">
-              <div className="grid flex-1 grid-cols-2 gap-2">
-                <div>
-                  <span className="label">Category id (kebab-case)</span>
-                  <input
-                    className="input font-mono"
-                    value={category.id}
-                    onChange={(e) => patch(i, { id: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <span className="label">Label</span>
-                  <input
-                    className="input"
-                    value={category.label}
-                    onChange={(e) => patch(i, { label: e.target.value })}
-                  />
-                </div>
-              </div>
+          <div key={i} id={`rubric-${i}`} className="scroll-mt-40 space-y-2 rounded-ctl bg-panel-2 p-3">
+            <div className="flex items-end gap-2">
+              <Field className="min-w-0 flex-1" label="Category name">
+                <input
+                  className="input"
+                  value={category.label}
+                  placeholder="For example: Recognition"
+                  onChange={(e) => setLabel(i, e.target.value)}
+                />
+              </Field>
               <button
-                className="btn-ghost mt-5 shrink-0 !px-2 !py-1 text-red"
+                type="button"
+                className="btn-ghost btn-icon shrink-0 text-red"
                 onClick={() => onChange(rubric.filter((_, j) => j !== i))}
-                aria-label={`remove category ${category.label || i + 1}`}
+                aria-label={`Remove category ${category.label || i + 1}`}
+                title="Remove this category"
               >
-                ✕
+                <Icon name="trash" size={16} />
               </button>
             </div>
-            <div>
-              <span className="label">
+            <fieldset className="min-w-0">
+              <legend className="label">
                 Actions in this category · {points} point{points === 1 ? '' : 's'}
-              </span>
+              </legend>
               <ul className="space-y-1">
                 {actions.map((a) => (
                   <li key={a.id}>
-                    <label className="flex items-center gap-2 text-sm">
+                    <label className="flex items-start gap-2 text-sm">
                       <input
                         type="checkbox"
+                        className="mt-1"
                         checked={category.actionIds.includes(a.id)}
                         onChange={(e) =>
                           patch(i, {
@@ -79,11 +95,11 @@ export function RubricEditor({
                           })
                         }
                       />
-                      <span>
-                        {a.label || a.id}
-                        {a.critical && <span title="critical action"> ★</span>}
+                      <span className="min-w-0 flex-1">
+                        {a.label || 'Untitled action'}{' '}
+                        {a.critical && <Pill tone="red">Critical</Pill>}
                       </span>
-                      <span className="text-xs text-faint">
+                      <span className="shrink-0 text-xs tabular-nums text-faint">
                         {a.points} pt{a.points === 1 ? '' : 's'}
                       </span>
                     </label>
@@ -92,32 +108,24 @@ export function RubricEditor({
                 {staleIds.map((id) => (
                   <li key={id} className="flex items-center gap-2 text-sm text-red">
                     <span className="font-mono">{id}</span>
-                    <span className="text-xs">— no such action</span>
+                    <span className="text-xs">no longer exists</span>
                     <button
-                      className="text-xs underline hover:text-red"
-                      onClick={() =>
-                        patch(i, { actionIds: category.actionIds.filter((x) => x !== id) })
-                      }
+                      type="button"
+                      className="text-xs underline"
+                      onClick={() => patch(i, { actionIds: category.actionIds.filter((x) => x !== id) })}
                     >
-                      unlink
+                      Unlink
                     </button>
                   </li>
                 ))}
               </ul>
-            </div>
+            </fieldset>
           </div>
         );
       })}
-      <button
-        className="btn-secondary"
-        onClick={() => onChange([...rubric, { id: '', label: '', actionIds: [] }])}
-      >
-        + Add rubric category
+      <button type="button" className="btn-secondary btn-sm" onClick={add}>
+        <Icon name="plus" size={14} /> Add a category
       </button>
-      <p className="text-xs text-faint">
-        Scoring policy: done = full points, delayed = half, missed/incorrect = 0; critical actions
-        are additionally surfaced on the debrief report.
-      </p>
     </div>
   );
 }

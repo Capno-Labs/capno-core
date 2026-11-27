@@ -1,5 +1,6 @@
 'use client';
 
+import { VITAL_NAMES } from './fieldLabels';
 import { Disclosure } from '@/components/ui/Disclosure';
 import { NumberField } from '@/components/ui/NumberField';
 import { SelectField, optionsFrom } from '@/components/ui/SelectField';
@@ -26,18 +27,6 @@ import { VentFields } from './VentFields';
  * group that says how many of them are set.
  */
 
-const NAMES: Record<keyof NumericVitals, string> = {
-  hr: 'Heart rate',
-  sbp: 'Systolic BP',
-  dbp: 'Diastolic BP',
-  spo2: 'SpO₂',
-  etco2: 'EtCO₂',
-  rr: 'Respiratory rate',
-  temp: 'Temperature',
-  depth: 'Depth of anesthesia',
-  agentEt: 'End-tidal agent',
-  agentFi: 'Inspired agent',
-};
 const COMMON: (keyof NumericVitals)[] = ['hr', 'sbp', 'dbp', 'spo2', 'etco2', 'rr'];
 const MORE: (keyof NumericVitals)[] = ['temp', 'depth', 'agentEt', 'agentFi'];
 const RHYTHM_OPTIONS = optionsFrom(RHYTHM_LABELS);
@@ -81,7 +70,7 @@ export function EffectFields({
     return (
       <NumberField
         key={key}
-        label={NAMES[key]}
+        label={VITAL_NAMES[key]}
         unit={meta.unit || undefined}
         value={effect.vitals?.[key]}
         min={meta.min}

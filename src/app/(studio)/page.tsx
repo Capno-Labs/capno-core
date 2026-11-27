@@ -24,7 +24,7 @@ const SECONDARY = [
   {
     href: '/editor',
     title: 'Build a case',
-    desc: 'Author new cases for the library — form-based editing with JSON preview and import/export.',
+    desc: 'Write a case in six steps, from objectives to debrief. Your edits are kept as you work, and a checklist shows what is left.',
   },
   {
     href: '/scenarios/import',

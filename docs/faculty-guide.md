@@ -525,8 +525,9 @@ debrief.
 
 ## 9. Authoring scenarios (brief)
 
-The **Scenario Editor** (home page, or **✏️ New scenario** / **Edit** in the
-library) edits scenarios as forms with a live JSON pane:
+The **case editor** (**Build a case** on the home page, or **New case** /
+**Edit** in the library) is a set of forms; you never need to read or write
+JSON:
 
 - The editor is six steps, in the order a case is written: **Basics** (title,
   who it is for, objectives, room setup), **Patient**, **Starting state**
@@ -576,11 +577,20 @@ library) edits scenarios as forms with a live JSON pane:
   publishes the saved version as the approved one, and sessions run from then
   on are recorded against that exact version. Saving an edit over a
   published scenario returns it to draft until it is approved again.
-- **⬇ Export JSON / ⬆ Import JSON** move scenario files between machines.
+- **Review & publish** opens with a **Readiness** checklist: everything that
+  must be fixed before the case can be saved or run (**Must fix**) and
+  anything that is probably unintended (**Worth a look**, which never stops
+  you saving), each in plain words with a **Show me** button that opens the
+  field. The same items are listed at the top of the page they belong to,
+  and the count in the toolbar opens the checklist.
+- **Scoring** on that page is optional: points for each action (a new action
+  starts at 0) and, if you report scores by category, the rubric categories.
 - **▶ Test run** saves a version if you have unsaved changes, then opens the
-  controller on it (enabled once the case is valid).
-- The JSON pane only takes effect when you press **Apply JSON**; form edits
-  regenerate the JSON text.
+  controller on it (enabled once nothing is marked Must fix).
+- **Review & publish → Advanced** holds the case ID, the version label and
+  the case as a file: **Export JSON / Import JSON** move scenario files
+  between machines, and **Edit JSON** shows the whole case as text in place
+  of the form. JSON edits only take effect when you press **Apply JSON**.
 
 See [scenario.schema.md](scenario.schema.md) for the full field reference, or
 export a built-in scenario as a working example. Clinical content in the five
@@ -603,8 +613,12 @@ teach from into a scenario draft — without rewriting it.
 3. **Review**: every field carries a status — *from source* (quoted
    verbatim), *suggested* (an inference such as patient sex from a
    pronoun), *not in source*, or *confirmed*. Accept what is right, edit
-   what is not, enter what the sheet leaves out. Vital signs, doses,
-   patient demographics and event effects are **never** filled in for you.
+   what is not, enter what the sheet leaves out. **Edit** on a phase, event,
+   action or rubric category opens the same form the case editor uses.
+   Vital signs, doses, patient demographics and event effects are **never**
+   filled in for you. If the sheet states no starting vitals, **Suggest the
+   studio's default adult values** offers them as *suggested*; each one
+   still needs your **Accept**.
 4. **Save to library** is enabled only when the review queue is empty. The
    scenario lands in the library tagged `imported`, opens in the editor,
    and follows the normal save / version / approval path.
