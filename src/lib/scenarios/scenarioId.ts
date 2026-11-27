@@ -29,6 +29,43 @@ export function scenarioIdFromTitle(title: string, taken: ReadonlySet<string>): 
   return uniquifyId(slugifyScenarioTitle(title) || 'case', new Set([...taken, NEW_SCENARIO_ID]));
 }
 
+/**
+ * Asks somewhere else (the cloud) which of `candidates` are already used.
+ * Null means "could not tell" (offline, signed out, an older database).
+ */
+export type TakenIdLookup = (candidates: string[]) => Promise<ReadonlySet<string> | null>;
+
+const LOOKUP_BATCH = 8;
+const LOOKUP_ROUNDS = 3;
+
+/**
+ * `base`, or `base-2`, `base-3`, … — the first that is free both on this
+ * device (`taken`) and wherever `lookup` checks. When the lookup cannot
+ * tell, the locally free id is used and `checked` is false: saving must
+ * never wait on a network.
+ */
+export async function freeScenarioId(
+  base: string,
+  taken: ReadonlySet<string>,
+  lookup: TakenIdLookup,
+): Promise<{ id: string; checked: boolean }> {
+  const tried = new Set(taken);
+  const fallback = uniquifyId(base, tried);
+  for (let round = 0; round < LOOKUP_ROUNDS; round++) {
+    const candidates: string[] = [];
+    while (candidates.length < LOOKUP_BATCH) {
+      const next = uniquifyId(base, tried);
+      candidates.push(next);
+      tried.add(next);
+    }
+    const elsewhere = await lookup(candidates);
+    if (!elsewhere) return { id: fallback, checked: false };
+    const free = candidates.find((id) => !elsewhere.has(id));
+    if (free) return { id: free, checked: true };
+  }
+  return { id: fallback, checked: false };
+}
+
 /** “Title (copy)”, then “Title (copy 2)”, … — unique among `takenTitles`. */
 export function copyTitle(title: string, takenTitles: ReadonlySet<string>): string {
   const base = title.replace(/ \(copy(?: \d+)?\)$/, '');

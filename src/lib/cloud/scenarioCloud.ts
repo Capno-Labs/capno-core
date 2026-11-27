@@ -110,6 +110,31 @@ async function pushScenarioById(
 
 registerPushHandler('scenario', pushScenarioById);
 
+const ID_LOOKUP_TIMEOUT_MS = 4000;
+
+/**
+ * Which of `candidates` are already scenario ids in the cloud — in any
+ * organization, since ids are unique across the whole database and row-level
+ * security hides other organizations' rows from a plain select. Answered by
+ * the `scenario_ids_taken` function (db/migrations/0005).
+ *
+ * Null means "could not tell": not signed in as faculty, offline, slow, or a
+ * database without the function. Callers then save as before, and a refused
+ * push is still reported.
+ */
+export async function cloudTakenScenarioIds(candidates: string[]): Promise<ReadonlySet<string> | null> {
+  const supabase = getSupabase();
+  if (!supabase || !cloudEligible() || candidates.length === 0) return null;
+  try {
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), ID_LOOKUP_TIMEOUT_MS));
+    const answer = await Promise.race([supabase.rpc('scenario_ids_taken', { candidates }), timeout]);
+    if (!answer || answer.error || !Array.isArray(answer.data)) return null;
+    return new Set(answer.data.filter((id: unknown): id is string => typeof id === 'string'));
+  } catch {
+    return null;
+  }
+}
+
 export interface CloudScenario {
   scenario: Scenario;
   updatedAtIso: string;

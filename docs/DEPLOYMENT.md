@@ -71,9 +71,12 @@ all work offline (localStorage).
    RLS policies). If the project already ran an older Capno schema, run the
    files in `db/migrations/` that it is missing, in order
    (`0002_production_layer.sql` → `0003_session_code.sql` →
-   `0004_scenario_review.sql`; each is idempotent). App builds that include
-   scenario approval need `0004` — without it the scenario pull and pinned
-   session pushes fail against the old schema (see the migration header).
+   `0004_scenario_review.sql` → `0005_scenario_ids_taken.sql`; each is
+   idempotent). App builds that include scenario approval need `0004` —
+   without it the scenario pull and pinned session pushes fail against the
+   old schema (see the migration header). `0005` is optional: it lets the
+   run-sheet import pick a case ID nobody else uses, and the app works
+   without it.
 3. Authentication → Providers → make sure **Email** is enabled. Capno uses
    email/password sign-in (magic links behave badly in installed PWAs and on
    shared lab machines).
