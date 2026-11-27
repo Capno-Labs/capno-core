@@ -255,6 +255,23 @@ create trigger sessions_version_guard
   before insert or update on public.sessions
   for each row execute function public.sessions_version_guard();
 
+-- Which of a handful of candidate scenario ids are already in use. RLS hides
+-- other owners' rows, so the app asks here before it saves a new case under
+-- an id (see db/migrations/0005). Reveals existence only; signed-in callers,
+-- at most 20 candidates per call.
+create or replace function public.scenario_ids_taken(candidates text[])
+returns setof text
+language sql stable security definer set search_path = public as $$
+  select s.id
+  from public.scenarios s
+  where auth.uid() is not null
+    and coalesce(array_length(candidates, 1), 0) <= 20
+    and s.id = any (candidates);
+$$;
+
+revoke all on function public.scenario_ids_taken(text[]) from public, anon;
+grant execute on function public.scenario_ids_taken(text[]) to authenticated;
+
 -- ── Row-level security ───────────────────────────────────────────────────────
 
 alter table public.profiles enable row level security;
