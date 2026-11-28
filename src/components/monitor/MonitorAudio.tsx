@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { SimSnapshot } from '@/lib/engine/types';
+import type { DisplaySnapshot } from '@/lib/sync/displaySnapshot';
 import { hasPulse } from '@/lib/engine/types';
 import { migrateLegacyKey } from '@/lib/legacyStorage';
 import {
@@ -81,7 +81,7 @@ export function MonitorAudio({
   level,
   clock,
 }: {
-  snapshot: SimSnapshot;
+  snapshot: DisplaySnapshot;
   level: SoundLevel;
   /** The monitor's shared heartbeat clock (see MonitorDisplay). */
   clock: BeatClock;

@@ -220,8 +220,9 @@ Remaining enhancements, in order of value per cost:
 - **Skip** (engine change): mark an event as dismissed so it neither
   auto-fires nor clutters the rail, distinct from "fired". Needs a
   `skippedEventIds` (or similar) field on `SimSnapshot` — snapshot shape
-  changes must stay JSON-serializable and are visible to student displays,
-  so keep it a plain string array.
+  changes must stay JSON-serializable, so keep it a plain string array. It
+  is faculty-side: list it in `FACULTY_ONLY_FIELDS`
+  (`src/lib/sync/displaySnapshot.ts`), not among the display's fields.
 - **Current phase** belongs in the sticky command bar (item 3), not on
   every chip.
 

@@ -125,8 +125,10 @@ morphology-aware helpers in `ecgBeat`.
 
 Implement `SyncChannel` (`src/lib/sync/types.ts`), including the
 `onStatus`/`getHealth` transport-health methods, and register it in
-`createSyncChannels`. Full-state snapshot replication is the protocol —
-no deltas, no ordering assumptions. Transport health is adapter-local
+`createSyncChannels`. The protocol is full replication of the display
+snapshot (`displaySnapshot.ts`: the monitor fields, never the faculty-side
+record) — no deltas, no ordering assumptions. A new `SimSnapshot` field
+reaches displays only when it is added to `DISPLAY_FIELDS`. Transport health is adapter-local
 metadata, never on the wire.
 
 ## Touch cloud sync (`src/lib/cloud/`)

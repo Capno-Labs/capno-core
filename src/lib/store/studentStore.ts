@@ -1,8 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import type { SimSnapshot } from '../engine/types';
 import { createSyncChannels, type SyncChannel, type TransportHealth } from '../sync';
+import type { DisplaySnapshot } from '../sync/displaySnapshot';
 import { newRequestId, type MonitorRequest } from '../sync/monitorRequest';
 
 /**
@@ -26,7 +26,7 @@ export type StudentPhase = 'idle' | 'joining' | 'live' | 'stale' | 'ended' | 'jo
 
 interface StudentState {
   sessionId: string;
-  snapshot: SimSnapshot | null;
+  snapshot: DisplaySnapshot | null;
   phase: StudentPhase;
   /** Per-transport sync state for the health indicator. */
   syncHealth: TransportHealth[];
@@ -63,6 +63,9 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     channel.onMessage((m) => {
       if (m.type === 'snapshot') {
         lastSnapshotAtMs = Date.now();
+        // Already cut down to the monitor fields by the channel, whatever
+        // was sent (a controller tab from before displays were sent less
+        // still sends the whole session snapshot).
         set({ snapshot: m.snapshot, phase: 'live' });
       }
       if (m.type === 'bye') set({ phase: 'ended' });
