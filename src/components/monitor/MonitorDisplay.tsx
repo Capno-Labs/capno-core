@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { AlarmParam, SimSnapshot } from '@/lib/engine/types';
+import type { AlarmParam } from '@/lib/engine/types';
+import type { DisplaySnapshot } from '@/lib/sync/displaySnapshot';
 import {
   AGENT_TAGS,
   formatStMm,
@@ -24,7 +25,7 @@ import { cuffReadingFailed, displayAlarms,
 import { capnoScaleMax } from './waveforms';
 
 interface MonitorDisplayProps {
-  snapshot: SimSnapshot;
+  snapshot: DisplaySnapshot;
   /** Compact mode for the embedded preview inside the faculty controller. */
   compact?: boolean;
   /** Hidden on the student monitor — learners read the rhythm from the trace. */
@@ -57,9 +58,10 @@ function formatClock(totalSec: number): string {
 }
 
 /**
- * The patient monitor. Renders purely from a SimSnapshot so it is identical
- * whether driven locally (faculty preview) or over the sync channel (student
- * display / projector).
+ * The patient monitor. Renders purely from the snapshot's display fields, so
+ * it is identical whether driven locally (faculty preview, which passes the
+ * full snapshot) or over the sync channel (student display / projector,
+ * which is sent only those fields).
  */
 export function MonitorDisplay({
   snapshot,

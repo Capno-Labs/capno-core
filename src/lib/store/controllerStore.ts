@@ -26,13 +26,15 @@ import { cloudEligible, drain, enqueue, pinnedVersionId } from '../cloud/outbox'
 import '../cloud/sessionCloud'; // registers the session push handler
 import { getVersionHistory } from '../scenarios/customStore';
 import { createSyncChannels, type SyncChannel, type TransportHealth } from '../sync';
+import { toDisplaySnapshot } from '../sync/displaySnapshot';
 import { applyMonitorRequest, createRequestGate } from '../sync/monitorRequest';
 import { archiveSession } from './sessionArchive';
 
 /**
  * Faculty controller store — owns the authoritative SimulationEngine,
- * ticks it on a wall-clock interval, and broadcasts a snapshot to student
- * displays after every tick and every faculty command.
+ * ticks it on a wall-clock interval, and after every tick and every faculty
+ * command broadcasts the monitor's view of the snapshot to student displays.
+ * The full snapshot (notes, log, rubric marks) stays in this store.
  */
 
 const TICK_MS = 500;
@@ -125,7 +127,8 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     if (!engine) return;
     const snapshot = engine.snapshot();
     set({ snapshot });
-    channel?.send({ type: 'snapshot', snapshot });
+    // Displays get the monitor fields only — see sync/displaySnapshot.ts.
+    channel?.send({ type: 'snapshot', snapshot: toDisplaySnapshot(snapshot) });
   };
 
   const withEngine = (fn: (engine: SimulationEngine) => void) => {

@@ -1,6 +1,7 @@
 'use client';
 
-import type { AlarmParam, AlarmSide, SimSnapshot } from '@/lib/engine/types';
+import type { AlarmParam, AlarmSide } from '@/lib/engine/types';
+import type { DisplaySnapshot } from '@/lib/sync/displaySnapshot';
 import { ALARM_PARAM_META, ALARM_PROFILES, ALARM_SET_KEYS } from '@/lib/engine/vitals';
 
 /**
@@ -89,7 +90,7 @@ export function AlarmSetup({
   onClose,
 }: {
   vitals: AlarmParam[];
-  snapshot: SimSnapshot;
+  snapshot: DisplaySnapshot;
   actions: AlarmSetupActions;
   onClose: () => void;
 }) {

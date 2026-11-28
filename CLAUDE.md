@@ -45,8 +45,9 @@ maintainer instead of working around it.
    `SCHEMA_REFERENCE` prompt constant in `src/lib/llm/generator.ts`.
 3. **One authority per session.** Exactly one authoritative engine instance
    drives a session (today: the browser `controllerStore`) — never a second
-   tick loop. Student displays render broadcast snapshots and never change
-   simulation state themselves. They send two things: `hello`, and `monitor`
+   tick loop. Student displays render what the controller broadcasts — the
+   monitor fields of the snapshot (`src/lib/sync/displaySnapshot.ts`) — and
+   never change simulation state themselves. They send two things: `hello`, and `monitor`
    requests to operate the monitor's alarms (step an alarm limit, switch one
    vital's alarms on or off, press Silence). A request is untrusted input: the
    controller parses it (`src/lib/sync/monitorRequest.ts`), drops anything
@@ -134,8 +135,17 @@ instead of guessing in either direction.
   brand asset pack (`docs/brand.md`) — replace them from the pack, never
   redraw or hand-edit them; vitest runs in Node, so tests must not touch
   DOM.
-- Nothing unbounded goes into `SimSnapshot` — it's rebroadcast in full
-  twice a second, so wire size must not grow with session length. Vitals
+- Displays are sent a `DisplaySnapshot`, not the `SimSnapshot`: only the
+  fields in `DISPLAY_FIELDS` (`src/lib/sync/displaySnapshot.ts`), which are
+  what the monitor draws. Notes, the log, rubric marks, fired events and
+  the case's identity stay on the faculty device, and a display drops
+  anything else it hears. A new `SimSnapshot` field must be sorted into
+  `DISPLAY_FIELDS` or `FACULTY_ONLY_FIELDS` — the typecheck fails
+  otherwise. Put it in the first only if the monitor draws it: whatever is
+  listed there can be read by anyone holding the session code.
+- Nothing unbounded goes into `SimSnapshot` — it is rebuilt twice a second
+  and its display fields are broadcast each time, so its size must not grow
+  with session length. Vitals
   history (`engine.getHistory()`) is archive-only (that's why
   `ArchivedSession.history` is a separate field), and the snapshot log is
   capped at `SNAPSHOT_LOG_TAIL` entries with `getFullLog()` for the
@@ -147,8 +157,8 @@ instead of guessing in either direction.
   the session is idle and faculty have turned the pre-brief on (off by
   default — some patient blocks hold faculty notes), and it carries
   the scenario's `patient` and nothing else. Never add the title, summary,
-  objectives or events to it (or to any other snapshot field) — the snapshot
-  is broadcast to learners, and those give the case away.
+  objectives or events to it (or to any other field in `DISPLAY_FIELDS`) —
+  those fields are broadcast to learners, and these give the case away.
 - In NIBP cuff mode (the default), displayed BP and BP alarms come from
   `snapshot.nibp` (last measured), not live values. Only artLine scenarios
   show live pressure. Don't "fix" a stale NIBP tile — the staleness is the
