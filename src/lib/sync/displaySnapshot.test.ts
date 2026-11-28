@@ -22,6 +22,28 @@ function busySnapshot(): SimSnapshot {
   return engine.snapshot();
 }
 
+describe('DISPLAY_FIELDS', () => {
+  it('is exactly what the monitor draws from', () => {
+    // Written out, not derived: taking a field away from displays, or giving
+    // them a new one, has to be done here on purpose as well.
+    expect([...DISPLAY_FIELDS].sort()).toEqual([
+      'alarmLimits',
+      'alarms',
+      'alarmsOff',
+      'alarmsSilenced',
+      'elapsedSec',
+      'gas',
+      'learnerAlarmSetup',
+      'nibp',
+      'preBrief',
+      'status',
+      'tof',
+      'v5Lead',
+      'vitals',
+    ]);
+  });
+});
+
 describe('toDisplaySnapshot', () => {
   it('copies only the listed display fields', () => {
     const display = toDisplaySnapshot(busySnapshot());

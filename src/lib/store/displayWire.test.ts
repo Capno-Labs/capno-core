@@ -152,6 +152,14 @@ describe('what the faculty controller sends to displays', () => {
     expect(everything).not.toContain(JSON.stringify(s.events[0].label));
   });
 
+  it('still hears a display operating the alarm setup', () => {
+    // Messages to the controller pass through the same channel wrapper.
+    runSession();
+    deliver({ type: 'monitor', id: 'req-1', request: { kind: 'alarmOff', vital: 'hr', off: true } });
+    expect(useControllerStore.getState().snapshot?.alarmsOff).toContain('hr');
+    expect(lastSnapshotSent().alarmsOff).toContain('hr');
+  });
+
   it('answers a late display with the same trimmed snapshot', () => {
     runSession();
     wire.sent.length = 0;
