@@ -8,7 +8,7 @@ import type { MonitorRequest } from './monitorRequest';
  * State flows one way: on every tick and change the controller broadcasts
  * the display's whole view of the session — the monitor fields of the
  * snapshot, never the faculty-side record (see displaySnapshot.ts). The
- * view is small (a few KB) and sending all of it each time makes late
+ * view is small (1–2 KB) and sending all of it each time makes late
  * joiners, refreshes, and dropped messages a non-issue — a student display
  * is always correct within one tick of connecting.
  *

@@ -157,8 +157,8 @@ const ESCAPE_RATES: Partial<Record<Rhythm, { above: number; hr: number }>> = {
 const HISTORY_SAMPLE_SEC = 10;
 /** ~8 h at one sample per 10 s — a generous ceiling, not a real limit. */
 const MAX_HISTORY_SAMPLES = 2880;
-/** Snapshots broadcast twice a second, so they carry only the newest log
- *  entries — an uncapped log would grow every message with session length.
+/** A snapshot is rebuilt twice a second, so it carries only the newest log
+ *  entries — an uncapped log would grow every one with session length.
  *  The full log stays in the engine (`getFullLog()`) for the archive. */
 const SNAPSHOT_LOG_TAIL = 100;
 
@@ -1227,7 +1227,7 @@ export class SimulationEngine {
     return [...this.history];
   }
 
-  /** The complete session log. Broadcast snapshots carry only the newest
+  /** The complete session log. Live snapshots carry only the newest
    *  `SNAPSHOT_LOG_TAIL` entries; the archive substitutes this full record
    *  so the debrief loses nothing. */
   getFullLog(): LogEntry[] {

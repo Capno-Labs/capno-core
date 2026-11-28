@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SimulationEngine } from '../engine/engine';
 import type { Scenario } from '../engine/types';
 import { BUILT_IN_SCENARIOS } from '../scenarios/registry';
+import { DISPLAY_FIELDS } from '../sync/displaySnapshot';
 import type { SyncChannel, SyncMessage } from '../sync/types';
 
 /**
@@ -9,8 +10,10 @@ import type { SyncChannel, SyncMessage } from '../sync/types';
  *
  * The sync channel is joined with a short code, so everything sent on it
  * should be treated as readable by anyone in (or near) the room. These tests
- * stand at the wire: the transports are replaced with a recorder, the real
- * stores run on top of it.
+ * stand at the wire: the transport is replaced with a recorder, and the real
+ * stores and the real channel fan-out run on top of it. (The other
+ * transport, Supabase, is off without its env vars and is handed the same
+ * message by the fan-out.)
  */
 
 const wire = vi.hoisted(() => ({
@@ -18,8 +21,8 @@ const wire = vi.hoisted(() => ({
   handlers: new Set<(m: unknown) => void>(),
 }));
 
-vi.mock('../sync', () => ({
-  createSyncChannels: (): SyncChannel => ({
+vi.mock('../sync/broadcast', () => ({
+  createBroadcastChannel: (): SyncChannel => ({
     kind: 'broadcast',
     send: (m) => {
       // What a transport does: serialise. Anything not in the JSON is not sent.
@@ -56,11 +59,17 @@ function lastSnapshotSent(): Record<string, unknown> {
   return snapshots[snapshots.length - 1].snapshot;
 }
 
+/** Hand a message to whoever is listening, as the transport would. */
+function deliver(message: unknown) {
+  for (const h of [...wire.handlers]) h(message);
+}
+
 /** Run a session the way faculty do: start, fire an event, mark, note. */
 function runSession() {
   const s = scenario();
   const store = useControllerStore.getState();
   store.loadScenario(s);
+  store.setTofAttached(true);
   store.start();
   store.triggerEvent(s.events[0].id);
   store.markAction(s.expectedActions[0].id, 'done');
@@ -118,20 +127,35 @@ describe('what the faculty controller sends to displays', () => {
 
   it('still sends everything the monitor draws', () => {
     runSession();
-    const held = useControllerStore.getState().snapshot;
+    const held = JSON.parse(JSON.stringify(useControllerStore.getState().snapshot));
     const sent = lastSnapshotSent();
     expect(sent.status).toBe('running');
-    expect(sent.elapsedSec).toBe(held?.elapsedSec);
-    expect(sent.vitals).toEqual(held?.vitals);
-    expect(sent.alarms).toEqual(held?.alarms);
-    expect(sent.alarmLimits).toEqual(held?.alarmLimits);
-    expect(sent.nibp).toEqual(held?.nibp);
+    // The twitch monitor is attached, so its reading is there to compare.
+    expect(held.tof).toBeDefined();
+    for (const field of DISPLAY_FIELDS) expect(sent[field]).toEqual(held[field]);
+    expect(Object.keys(sent).sort()).toEqual(
+      DISPLAY_FIELDS.filter((f) => held[f] !== undefined).sort(),
+    );
+  });
+
+  it('sends the pre-brief before the start, and only the patient in it', () => {
+    const s = scenario();
+    const store = useControllerStore.getState();
+    store.loadScenario(s);
+    store.setPreBrief(true);
+    const sent = lastSnapshotSent();
+    expect(sent.status).toBe('idle');
+    expect(sent.preBrief).toEqual({ patient: JSON.parse(JSON.stringify(s.patient)) });
+    const everything = JSON.stringify(wire.sent);
+    expect(everything).not.toContain(`"${s.id}"`);
+    expect(everything).not.toContain(JSON.stringify(s.title));
+    expect(everything).not.toContain(JSON.stringify(s.events[0].label));
   });
 
   it('answers a late display with the same trimmed snapshot', () => {
     runSession();
     wire.sent.length = 0;
-    for (const h of [...wire.handlers]) h({ type: 'hello' });
+    deliver({ type: 'hello' });
     expect(lastSnapshotSent()).not.toHaveProperty('notes');
     expect(JSON.stringify(wire.sent)).not.toContain(NOTE);
   });
@@ -152,7 +176,7 @@ describe('what a student display keeps', () => {
   it('drops everything but the monitor fields from what it hears', () => {
     const full = fullSnapshot();
     useStudentStore.getState().join('ABCD');
-    for (const h of [...wire.handlers]) h({ type: 'snapshot', snapshot: full });
+    deliver({ type: 'snapshot', snapshot: full });
 
     const { snapshot, phase } = useStudentStore.getState();
     expect(phase).toBe('live');
@@ -163,5 +187,23 @@ describe('what a student display keeps', () => {
     expect(snapshot).not.toHaveProperty('scenarioId');
     expect(snapshot?.vitals).toEqual(full.vitals);
     expect(snapshot?.status).toBe('running');
+  });
+
+  it('ignores a snapshot message that carries no snapshot', () => {
+    useStudentStore.getState().join('ABCD');
+    expect(() => {
+      deliver({ type: 'snapshot' });
+      deliver({ type: 'snapshot', snapshot: null });
+      deliver({ type: 'snapshot', snapshot: 'not a snapshot' });
+      deliver(null);
+    }).not.toThrow();
+    expect(useStudentStore.getState().phase).toBe('joining');
+    expect(useStudentStore.getState().snapshot).toBeNull();
+  });
+
+  it('still ends when the controller says goodbye', () => {
+    useStudentStore.getState().join('ABCD');
+    deliver({ type: 'bye' });
+    expect(useStudentStore.getState().phase).toBe('ended');
   });
 });

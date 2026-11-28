@@ -137,9 +137,12 @@ instead of guessing in either direction.
   DOM.
 - Displays are sent a `DisplaySnapshot`, not the `SimSnapshot`: only the
   fields in `DISPLAY_FIELDS` (`src/lib/sync/displaySnapshot.ts`), which are
-  what the monitor draws. Notes, the log, rubric marks, fired events and
-  the case's identity stay on the faculty device, and a display drops
-  anything else it hears. A new `SimSnapshot` field must be sorted into
+  what the monitor draws from. Notes, the log, rubric marks, fired events
+  and the case's id are not sent over the sync channel, and a display drops
+  anything else it hears; both cuts happen in `createSyncChannels`. The cut
+  is by top-level field — `vitals` goes whole, including values the monitor
+  does not print (true pressure between cuff readings, true block, rhythm
+  and capnogram shape by name). A new `SimSnapshot` field must be sorted into
   `DISPLAY_FIELDS` or `FACULTY_ONLY_FIELDS` — the typecheck fails
   otherwise. Put it in the first only if the monitor draws it: whatever is
   listed there can be read by anyone holding the session code.

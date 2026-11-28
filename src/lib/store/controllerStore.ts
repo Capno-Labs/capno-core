@@ -26,7 +26,6 @@ import { cloudEligible, drain, enqueue, pinnedVersionId } from '../cloud/outbox'
 import '../cloud/sessionCloud'; // registers the session push handler
 import { getVersionHistory } from '../scenarios/customStore';
 import { createSyncChannels, type SyncChannel, type TransportHealth } from '../sync';
-import { toDisplaySnapshot } from '../sync/displaySnapshot';
 import { applyMonitorRequest, createRequestGate } from '../sync/monitorRequest';
 import { archiveSession } from './sessionArchive';
 
@@ -34,7 +33,7 @@ import { archiveSession } from './sessionArchive';
  * Faculty controller store — owns the authoritative SimulationEngine,
  * ticks it on a wall-clock interval, and after every tick and every faculty
  * command broadcasts the monitor's view of the snapshot to student displays.
- * The full snapshot (notes, log, rubric marks) stays in this store.
+ * The full snapshot (notes, log, rubric marks) is not sent on that channel.
  */
 
 const TICK_MS = 500;
@@ -127,8 +126,9 @@ export const useControllerStore = create<ControllerState>((set, get) => {
     if (!engine) return;
     const snapshot = engine.snapshot();
     set({ snapshot });
-    // Displays get the monitor fields only — see sync/displaySnapshot.ts.
-    channel?.send({ type: 'snapshot', snapshot: toDisplaySnapshot(snapshot) });
+    // The channel sends displays the monitor fields only, whatever is passed
+    // here — see createSyncChannels and sync/displaySnapshot.ts.
+    channel?.send({ type: 'snapshot', snapshot });
   };
 
   const withEngine = (fn: (engine: SimulationEngine) => void) => {
@@ -207,7 +207,7 @@ export const useControllerStore = create<ControllerState>((set, get) => {
         // The effective scenario (authored + live-added events) keeps the
         // archive self-consistent with firedEventIds and the debrief log.
         scenario: engine.getEffectiveScenario(),
-        // Broadcast snapshots carry only a log tail; the archive gets the
+        // A live snapshot carries only a log tail; the archive gets the
         // full record so the debrief is complete.
         snapshot: { ...snapshot, log: engine.getFullLog() },
         endedAtIso: new Date().toISOString(),

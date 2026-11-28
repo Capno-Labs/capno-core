@@ -13,6 +13,7 @@ function busySnapshot(): SimSnapshot {
   );
   if (!scenario) throw new Error('no built-in scenario has both actions and events');
   const engine = new SimulationEngine(scenario, 'TEST');
+  engine.setTofAttached(true);
   engine.start();
   engine.triggerEvent(scenario.events[0].id);
   engine.markAction(scenario.expectedActions[0].id, 'done');
@@ -48,6 +49,19 @@ describe('toDisplaySnapshot', () => {
     for (const field of DISPLAY_FIELDS) {
       expect(display[field]).toEqual(full[field]);
     }
+    // Not comparing absent with absent: the running fixture fills all but
+    // the pre-brief, which exists only before the start (next test).
+    const filled = DISPLAY_FIELDS.filter((f) => full[f] !== undefined);
+    expect(filled).toEqual(DISPLAY_FIELDS.filter((f) => f !== 'preBrief'));
+  });
+
+  it('passes the pre-brief through before the start', () => {
+    const scenario = BUILT_IN_SCENARIOS[0];
+    const idle = new SimulationEngine(scenario, 'TEST', { preBrief: true }).snapshot();
+    expect(idle.preBrief).toBeDefined();
+    const display = toDisplaySnapshot(idle);
+    expect(display.preBrief).toEqual(idle.preBrief);
+    expect(JSON.stringify(display)).not.toContain(`"${scenario.id}"`);
   });
 
   it('sorts every field of a real snapshot into one list', () => {

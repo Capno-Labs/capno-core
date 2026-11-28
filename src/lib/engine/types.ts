@@ -754,10 +754,12 @@ export interface NibpReading {
 }
 
 /**
- * Full serializable simulation state. This is what the faculty controller
- * broadcasts to student displays and what gets archived for debriefing.
+ * Full serializable simulation state: what the faculty controller holds and
+ * what gets archived for debriefing. Student displays are sent only its
+ * monitor fields (src/lib/sync/displaySnapshot.ts), never the whole thing.
  * Vitals history is deliberately NOT part of the snapshot (it is archive-only,
- * via SimulationEngine.getHistory()) to keep the 2/s broadcasts small.
+ * via SimulationEngine.getHistory()) so a snapshot, rebuilt twice a second,
+ * stays small.
  */
 export interface SimSnapshot {
   scenarioId: string;
@@ -811,10 +813,10 @@ export interface SimSnapshot {
    */
   learnerAlarmSetup?: boolean;
   actions: ActionRecord[];
-  /** In live broadcast snapshots this is a capped tail of the newest entries
-   *  (snapshots go out twice a second — an uncapped log would grow every
-   *  message with session length). Archived snapshots hold the full log via
-   *  `engine.getFullLog()`. */
+  /** In live snapshots this is a capped tail of the newest entries (a
+   *  snapshot is rebuilt twice a second — an uncapped log would grow every
+   *  one with session length). Archived snapshots hold the full log via
+   *  `engine.getFullLog()`. Not sent to displays. */
   log: LogEntry[];
   notes: FacultyNote[];
   firedEventIds: string[];
