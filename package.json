@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "next": "15.5.22",
+    "next": "15.5.29",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zod": "^3.23.8",
@@ -29,7 +29,7 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
-    "eslint-config-next": "^15.5.22",
+    "eslint-config-next": "^15.5.29",
     "postcss": "^8.5.25",
     "tailwindcss": "^3.4.10",
     "tsx": "^4.23.0",
